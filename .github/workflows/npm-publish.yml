@@ -1,5 +1,14 @@
 name: Publish npm package
 
+# Requires Trusted Publisher on npmjs.com for this package:
+#   Package → Settings → Trusted Publisher → GitHub Actions
+#   User/org: fujiezee
+#   Repository: duaer-spec
+#   Workflow filename: npm-publish.yml   ← filename only
+#   Allowed actions: npm publish
+#
+# No NPM_TOKEN secret needed when Trusted Publishing is configured.
+
 on:
   release:
     types: [published]
@@ -19,17 +28,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
+          # Trusted Publishing needs recent npm (bundled with Node 22.14+)
           node-version: '22'
-          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
 
-      - name: Publish
-        if: ${{ secrets.NPM_TOKEN != '' }}
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Show tooling
+        run: node -v && npm -v
 
-      - name: Skip notice
-        if: ${{ secrets.NPM_TOKEN == '' }}
-        run: |
-          echo "NPM_TOKEN secret not set — skip npm publish."
-          echo "Add repo secret NPM_TOKEN (npm automation token), then re-run or republish the release."
+      - name: Publish (OIDC Trusted Publishing)
+        run: npm publish --access public --registry https://registry.npmjs.org/

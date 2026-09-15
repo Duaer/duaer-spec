@@ -23,16 +23,15 @@ when a phase's contract changes.
 2. Commit, merge to `main`
 3. Tag `vX.Y.Z` and push the tag
 4. Create a GitHub Release from the tag (notes from CHANGELOG)
-5. npm publish:
-   - One-shot: `npm login` then `npm publish --access public`
-   - Or set repo secret `NPM_TOKEN` and publish via
-     `.github/workflows/npm-publish.yml` (runs on Release published)
+5. npm publish via **Trusted Publishing** (preferred):
+   - One-time setup: [npm Trusted Publishing](npm-trusted-publishing.md)
+   - Then each GitHub Release runs `.github/workflows/npm-publish.yml` (no `NPM_TOKEN`)
 
-Adopter install paths:
+Adopter install:
 
 ```bash
+npx duaer-spec@0.1.0 init --here
 npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
-npx duaer-spec@0.1.0 init --here   # after npm publish
 ```
 
 ## Examples

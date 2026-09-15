@@ -60,6 +60,7 @@ ADOPT.md                  Install guide
 .cursor/skills/           duaer-* skills
 docs/agent/               Workflow detail + checklists
 docs/maintaining.md       How maintainers evolve the method
+docs/npm-trusted-publishing.md  npm Trusted Publishing (OIDC) setup
 examples/                 Optional product overlays (not defaults)
 ```
 
