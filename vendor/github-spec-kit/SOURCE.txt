@@ -1,5 +1,0 @@
-repository: https://github.com/github/spec-kit.git
-ref: main
-commit: fd490fac952cc6baeb421905b28031b4c5fe8a99
-date: 2026-09-14T09:19:28-05:00
-synced_by: scripts/sync-upstream-spec-kit.mjs

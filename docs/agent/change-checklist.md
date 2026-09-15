@@ -54,7 +54,7 @@ See [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-th
 ## 2. Impact Analysis
 
 - [ ] What behavior changes?
-- [ ] Which specs / Spec Kit features are affected? (list paths)
+- [ ] Which specs / Duaer features are affected? (list paths)
 - [ ] Architectural boundary? (contracts, storage, security, public API)
 - [ ] User-visible or protocol-visible?
 - [ ] Smallest targeted validation set (or none, with reason)?

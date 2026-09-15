@@ -1,56 +1,56 @@
 # duaer-spec
 
-Standalone AI development standards for Cursor agents. Not tied to any product
-codebase.
+**Duaer** is a Spec-Driven Development methodology for AI coding agents
+(Cursor first), plus enforceable **agent ops** for isolation, commits, and
+Issue/PR gates.
 
-Two layers, one precedence rule:
+Not a wrapper around another toolkit. The method, directories, skills, and rules
+in this repository **are** duaer-spec.
 
-| Layer | Role | Path |
+## Two layers
+
+| Layer | Role | Where |
 |---|---|---|
-| **Agent ops** | How agents operate — isolation, commits, Issue/PR gates | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
-| **Spec Kit** | What to build — Spec → Plan → Tasks → Implement → Converge | [`SPECKIT.md`](SPECKIT.md), [`.specify/`](.specify/), [`.cursor/skills/`](.cursor/skills/) |
+| **Agent ops** | How agents operate | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
+| **Duaer method** | What to build (Spec → Plan → Tasks → Implement → Converge) | [`DUADER.md`](DUADER.md), [`.duaer/`](.duaer/), [`.cursor/skills/`](.cursor/skills/) |
 
-**Conflict rule:** when Spec Kit, `examples/`, or other overlays disagree with
-agent ops, **root `AGENTS.md` / `docs/agent/` win**.
+When they conflict, **agent ops win**.
+
+## Default loop
+
+```text
+constitution → specify → plan → tasks → implement → converge
+```
+
+Small change: `specify → plan → tasks → implement → converge`  
+Hotfix: `specify (hotfix) → tasks → implement → converge`
+
+Slash skills: `/duaer-specify`, `/duaer-plan`, `/duaer-tasks`, `/duaer-implement`,
+`/duaer-converge`, …
 
 ## Layout
 
 ```text
-AGENTS.md                 Agent-ops contract (authoritative)
-SPECKIT.md                Spec Kit conventions
-ADOPT.md                  How to adopt into another repo
+AGENTS.md                 Agent-ops contract
+DUADER.md                 Methodology conventions
+ADOPT.md                  Install into another repository
 LICENSE                   MIT
-.specify/                 Spec Kit memory, templates, workflows
-.cursor/rules/            Agent-ops + Spec Kit Cursor rules
-.cursor/skills/           speckit-* skills
-docs/
-  baseline.md             Baseline placeholder / this-repo defaults
-  adr/                    ADR index
-  agent/                  Workflow + change checklist + E2E template
-  maintaining.md          Upstream Spec Kit sync / promote
+.duaer/                   Memory, templates, workflows, scripts
+.cursor/rules/            Agent-ops + Duaer rules
+.cursor/skills/           duaer-* skills
+docs/agent/               Workflow detail + checklists
+docs/maintaining.md       How maintainers evolve the method
 examples/                 Optional product overlays (not defaults)
-vendor/github-spec-kit/   Official Spec Kit docs/templates snapshot
-scripts/                  Maintainer tooling
 SOURCE.md                 Historical provenance only
 ```
 
-## Defaults for this repository
+## Defaults (this repo)
 
 - Integration branch: **`main`**
-- One request → one branch + one worktree → merge back → delete worktree
+- One request → one branch + one worktree → merge → delete worktree
 - Push only when explicitly requested
-- Spec Kit optional for standards-doc edits; recommended for process changes that need acceptance criteria
-
-`examples/` may document other git policies (for example `develop`). Those apply
-only inside that example's target product, never to duaer-spec itself.
 
 ## Quick start
 
-Adopt into a project: see [`ADOPT.md`](ADOPT.md).
-
-Spec Kit loop: **specify → plan → tasks → implement → converge**  
-Hotfix: **specify (hotfix) → tasks → implement → converge**
-
-Details: [`SPECKIT.md`](SPECKIT.md) · Official upstream: https://github.com/github/spec-kit
-
-Keep Spec Kit fresh: [`docs/maintaining.md`](docs/maintaining.md) (weekly CI + `node scripts/sync-upstream-spec-kit.mjs`).
+Copy into a project: see [`ADOPT.md`](ADOPT.md).  
+Method details: [`DUADER.md`](DUADER.md).

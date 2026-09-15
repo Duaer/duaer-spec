@@ -1,6 +1,6 @@
 # Agent workflow (duaer-spec)
 
-Authoritative docs for *how* agents operate. Wins over Spec Kit and `examples/`
+Authoritative docs for *how* agents operate. Wins over Duaer and `examples/`
 when they conflict.
 
 | Doc | Description |

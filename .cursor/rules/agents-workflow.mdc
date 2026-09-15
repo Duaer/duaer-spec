@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Agent development workflow
 
-Part of **duaer-spec**. Authoritative over Spec Kit when they conflict. This
+Part of **duaer-spec**. Authoritative over Duaer when they conflict. This
 repository integrates on `main`. Adopting projects may document another
 integration branch in their baseline.
 

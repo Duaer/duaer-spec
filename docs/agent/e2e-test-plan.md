@@ -14,7 +14,7 @@ Title:       Short name
 Preconditions:
 Steps:
 Expected:
-Specs:       Links to specs / Spec Kit feature dirs
+Specs:       Links to specs / Duaer feature dirs
 Status:      planned | automated | manual
 ```
 

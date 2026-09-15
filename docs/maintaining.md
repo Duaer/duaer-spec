@@ -1,62 +1,33 @@
 # Maintaining duaer-spec
 
-## Spec Kit upstream sync
+duaer-spec is the source of truth for the **Duaer** methodology. There is no
+embedded upstream toolkit to sync.
 
-Official Spec Kit: https://github.com/github/spec-kit
+## Evolving the method
 
-| Path | Role | Update cadence |
-|---|---|---|
-| `vendor/github-spec-kit/` | Read-only snapshot of upstream `docs/` + `templates/` | Sync often (weekly CI + on demand) |
-| `.specify/` + `.cursor/skills/` + `SPECKIT.md` | Portable Spec Kit at repo root | Promote carefully after review |
+| Change | Where |
+|---|---|
+| Process principles | `.duaer/memory/constitution.md` (+ template) |
+| Templates (spec/plan/tasks/…) | `.duaer/templates/` |
+| Cursor skills / slash flows | `.cursor/skills/duaer-*` |
+| Method overview | `DUADER.md` |
+| Agent ops | `AGENTS.md`, `docs/agent/` |
+| Install instructions | `ADOPT.md` |
 
-### Manual sync (any time)
+One logical change per commit. Prefer updating skills and templates together
+when a phase's contract changes.
 
-```bash
-node scripts/sync-upstream-spec-kit.mjs
-# optional pin:
-node scripts/sync-upstream-spec-kit.mjs --ref vX.Y.Z
-```
+## Releases
 
-This refreshes `vendor/` only. Review the diff, then commit:
+Tag meaningful snapshots (`v0.x.y`) when adopters should pin. Summarize method
+deltas in the tag/release notes (phases, paths, breaking renames).
 
-```text
-chore(vendor): sync github/spec-kit <shortsha>
-```
+## Examples
 
-### Promote templates into `.specify/` (optional)
+Keep `examples/` from becoming defaults. Product overlays must not override
+this repository's `main` + worktree policy.
 
-After reviewing vendor changes:
+## Adopters
 
-```bash
-node scripts/sync-upstream-spec-kit.mjs --promote-templates
-```
-
-Copies the five core templates into `.specify/templates/`.  
-**Does not** auto-update `.cursor/skills/*` — those are Cursor skill wrappers.
-When upstream `templates/commands/*.md` changes behavior, update the matching
-`speckit-*` skill by hand and note it in the commit.
-
-### Weekly automation
-
-`.github/workflows/upstream-spec-kit.yml` runs every Monday (and on
-`workflow_dispatch`). If `vendor/` changes, it opens a PR:
-
-```text
-chore(vendor): sync github/spec-kit
-```
-
-Merge after a short review. Promote into `.specify/templates/` in a follow-up
-commit only when the template/command delta is intentional for adopters.
-
-### Adopter repos
-
-Projects that copied Spec Kit from this repo do **not** auto-update. Options:
-
-1. Re-run the install steps in [ADOPT.md](../ADOPT.md) from a newer duaer-spec commit
-2. Or run `specify` CLI upgrades per upstream docs, then re-overlay duaer-spec conventions
-
-## Other maintenance
-
-- Agent ops live in `AGENTS.md` + `docs/agent/` — change those for process rules
-- Keep `examples/` from becoming defaults
-- Prefer one logical commit per sync or docs change
+Projects that copied files do not auto-update. They re-run [ADOPT.md](../ADOPT.md)
+when they want a newer method revision.

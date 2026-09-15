@@ -2,7 +2,7 @@
 
 > Scope: **duaer-spec** agent ops (adoptable by other repositories)  
 > Status: Accepted  
-> Precedence: this document and root `AGENTS.md` win over Spec Kit / examples  
+> Precedence: this document and root `AGENTS.md` win over Duaer / examples  
 > Cross-references: [baseline](../baseline.md) · [e2e-test-plan](e2e-test-plan.md) · [change-checklist](change-checklist.md) · [ADR index](../adr/README.md) · [ADOPT](../../ADOPT.md)
 
 ---
@@ -18,7 +18,7 @@ handling. They cannot be relaxed without explicit human override.
 > **No behavior change without updating the corresponding spec.**
 
 - Every change that alters observable behavior must update the relevant
-  specification (project `docs/spec/`, Spec Kit feature specs, or
+  specification (project `docs/spec/`, Duaer feature specs, or
   `docs/agent/` when changing duaer-spec itself).
 - Architectural boundary changes also require an ADR under `docs/adr/`.
 - Pure refactors that preserve behavior and contracts do not require spec
@@ -83,8 +83,8 @@ unrelated pushes.
 
 1. **Intake** — If an issue or PR is linked, complete R5 / R6 first.
 2. **Isolate** — Update `main`, create branch + worktree (R4).
-3. **Orient** — Read baseline, relevant specs, and Spec Kit memory when present.
-4. **Specify (when using Spec Kit)** — Feature / hotfix specs before coding.
+3. **Orient** — Read baseline, relevant specs, and Duaer memory when present.
+4. **Specify (when using Duaer)** — Feature / hotfix specs before coding.
 5. **Implement** — Smallest coherent change; update specs alongside (R1).
 6. **Verify** — Targeted checks; E2E runs only if the user asks (except fork
    landing rules in `AGENTS.md`).
@@ -103,7 +103,7 @@ unrelated pushes.
 | New public interface or data ownership | Required | Required |
 | Docs-only / standards-only in this repo | Update `docs/` / `AGENTS.md` as needed | If a frozen decision changes |
 
-Prefer Spec Kit feature directories for product feature work. Prefer `docs/agent/`
+Prefer Duaer feature directories for product feature work. Prefer `docs/agent/`
 when changing duaer-spec's own agent-ops contract.
 
 ---
@@ -117,11 +117,11 @@ when changing duaer-spec's own agent-ops contract.
 
 ---
 
-## 5. Spec Kit Relationship
+## 5. Duaer Relationship
 
 - **Agent ops** (`AGENTS.md`, this file): isolation, commits, Issue/PR, merge.
-- **Spec Kit** (repo root `.specify/`, `SPECKIT.md`): what to build — specify →
+- **Duaer** (repo root `.duaer/`, `DUADER.md`): what to build — specify →
   plan → tasks → implement → converge.
 
 When they conflict, **agent ops win**. Install and conventions:
-[SPECKIT.md](../../SPECKIT.md) · [ADOPT.md](../../ADOPT.md).
+[DUADER.md](../../DUADER.md) · [ADOPT.md](../../ADOPT.md).

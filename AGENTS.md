@@ -3,8 +3,8 @@
 Mandatory rules for AI coding agents working in **duaer-spec**, and for any
 repository that adopts this file as its agent-ops contract.
 
-This file is authoritative for *how* agents operate. If Spec Kit (`.specify/`,
-`SPECKIT.md`), `examples/`, or other overlays conflict with this file,
+This file is authoritative for *how* agents operate. If Duaer (`.duaer/`,
+`DUADER.md`), `examples/`, or other overlays conflict with this file,
 **follow this file**.
 
 See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/change-checklist.md) · [ADOPT](ADOPT.md)
@@ -152,7 +152,7 @@ tracked files or interfere with another worktree.
 ### 1. Keep Specs Synchronized
 
 Every behavior change must update the relevant project specification
-(commonly under `docs/spec/`, Spec Kit feature specs, or this repo's
+(commonly under `docs/spec/`, Duaer feature specs, or this repo's
 `docs/agent/` when changing duaer-spec itself).
 
 Add an ADR under `docs/adr/` when changing architecture, public interfaces,
@@ -223,7 +223,7 @@ git worktree prune
 1. Update local `main`
 2. Create a unique request branch
 3. Create and enter a dedicated worktree
-4. Read the baseline and relevant specs (and Spec Kit memory when present)
+4. Read the baseline and relevant specs (and Duaer memory when present)
 5. Identify affected specs, ADRs, E2E scenarios, and validation
 6. Implement the smallest coherent change
 7. Update documentation as required
@@ -237,7 +237,7 @@ git worktree prune
 
 Development must not begin before steps 1–3 are complete.
 
-For feature work that uses Spec Kit, prefer
+For feature work that uses Duaer, prefer
 `specify → plan → tasks → implement → converge` (or the hotfix short path).
 Agent ops in this file still govern isolation, commits, and merge.
 

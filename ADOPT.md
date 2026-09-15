@@ -1,9 +1,9 @@
 # Adopt duaer-spec
 
-duaer-spec is a **standalone** standards package. Copy what you need; keep
-product policy in the target repository.
+Install the **Duaer** methodology and agent-ops contract into another
+repository. Keep product-specific policy in that repository.
 
-## 1. Agent ops (required for the isolation contract)
+## 1. Agent ops
 
 ```bash
 cp AGENTS.md /path/to/project/
@@ -16,45 +16,36 @@ cp docs/agent/workflow.md docs/agent/change-checklist.md docs/agent/e2e-test-pla
 
 Then:
 
-1. Replace or link `docs/baseline.md` to the product's frozen decisions.
-2. If the integration branch is not `main` (for example `develop`), state that
-   override in the baseline and adjust `AGENTS.md` examples accordingly.
-3. Point the E2E template at the product's real scenario catalog when one exists.
+1. Set the product baseline (or link `docs/baseline.md`).
+2. If the integration branch is not `main`, document the override in the baseline
+   and adjust `AGENTS.md` examples.
+3. Replace the E2E template with the product's real scenario catalog when one exists.
 
-## 2. Spec Kit (recommended for feature work)
+## 2. Duaer method
 
 ```bash
-rsync -a .specify/ /path/to/project/.specify/
+rsync -a .duaer/ /path/to/project/.duaer/
+mkdir -p /path/to/project/.cursor/skills /path/to/project/.cursor/rules
 rsync -a .cursor/skills/ /path/to/project/.cursor/skills/
-mkdir -p /path/to/project/.cursor/rules
-cp .cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
-cp SPECKIT.md /path/to/project/
+cp .cursor/rules/duaer-spec.mdc /path/to/project/.cursor/rules/
+cp DUADER.md /path/to/project/
 ```
 
-Edit `.specify/memory/constitution.md`, `project-context.md`, and `testing.md`
+Edit `.duaer/memory/constitution.md`, `project-context.md`, and `testing.md`
 for that product.
 
 ## 3. Precedence
 
-In the target repo:
+1. `AGENTS.md` / agent-ops — how agents operate  
+2. `DUADER.md` / `.duaer/` — what to build  
+3. Product overlays (do not copy `examples/` blindly)
 
-1. Root `AGENTS.md` / agent-ops docs — how agents operate
-2. Spec Kit / `SPECKIT.md` — what to build
-3. Optional overlays under that product (do not copy `examples/` blindly)
+## 4. Updates
 
-## 4. Versioning
+Pin to a duaer-spec commit/tag, or periodically re-copy method files and
+reconcile local overrides. Adopters are not auto-updated.
 
-This repository tracks standards on `main`. When adopting, pin to a commit or
-tag if you need a frozen snapshot; otherwise periodically pull updates and
-reconcile overrides in the product baseline.
+## 5. Do not copy
 
-Upstream Spec Kit snapshots in `vendor/` are refreshed weekly (see
-[docs/maintaining.md](docs/maintaining.md)). Re-copy `.specify/`, skills, and
-`SPECKIT.md` into product repos when you intentionally want those updates —
-adopters are not auto-updated.
-
-## 5. What not to copy
-
-- `examples/` — product-specific samples only
-- `vendor/` — upstream reference snapshot only
-- `SOURCE.md` — provenance for maintainers of duaer-spec
+- `examples/` — samples only
+- `SOURCE.md` — provenance for maintainers

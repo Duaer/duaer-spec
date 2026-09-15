@@ -61,7 +61,7 @@ Scene 仅经 Dynamic Worker（`LOADER`）执行。
 
 配方步骤钉死 `slug@version`。运行走解释器；主 Worker 禁止 `eval` / `new Function`。
 
-### V. 规格驱动迭代 + 实然必读（Spec Kit）
+### V. 规格驱动迭代 + 实然必读（Duaer）
 
 功能、架构与**热修**都必须先有规格再写代码。默认路径：
 
@@ -72,9 +72,9 @@ Scene 仅经 Dynamic Worker（`LOADER`）执行。
 开任何 feature（含热修）前 MUST 阅读：
 
 1. 本 Constitution  
-2. `.specify/memory/project-context.md`（**as-is 实现真相**）  
+2. `.duaer/memory/project-context.md`（**as-is 实现真相**）  
 3. 仓库根目录 `CORE.md`（产品应然）  
-4. 若含 UI / 体验：`.specify/memory/design-system.md`
+4. 若含 UI / 体验：`.duaer/memory/design-system.md`
 5. 若含用户可见文案：遵守双语 i18n（原则 VII / `.cursor/rules/i18n.mdc`）
 
 禁止用过时的 `EVOLUTION.md` 段落否定已落地能力（如 Dynamic Worker、Catalog Vectorize）。
@@ -83,7 +83,7 @@ Git 长期分支只有 **`main`（正式）** 与 **`develop`（开发集成）*
 
 ### VI. 设计约定 + Mobbin 真实体验校验（UI NON-NEGOTIABLE）
 
-视觉与交互 MUST 遵守 `.specify/memory/design-system.md`（现网 token、字体、反模式）。  
+视觉与交互 MUST 遵守 `.duaer/memory/design-system.md`（现网 token、字体、反模式）。  
 凡新增或演进用户可见体验，MUST 使用 **Mobbin MCP** 对照真实产品流程后再落地，并在 plan / PR 留下对照摘要。  
 禁止无参考的「AI 默认脸」拼界面。无 UI 的改动可跳过 Mobbin，但须显式说明。
 
@@ -95,7 +95,7 @@ Git 长期分支只有 **`main`（正式）** 与 **`develop`（开发集成）*
 - SEO 营销页英前缀 `/en/...`；应用页不加 locale 前缀（Cookie `dw_locale`）。  
 - 不翻译：slug、配方、用户表数据。  
 - 意图与 Catalog 关键词：中英都能召回。  
-细节：`.cursor/rules/i18n.mdc`、`.specify/specs/049-i18n-zh-en/`、`project-context`「语言」。
+细节：`.cursor/rules/i18n.mdc`、`.duaer/specs/049-i18n-zh-en/`、`project-context`「语言」。
 
 ### VIII. Agent 合格证与流程合格证（NON-NEGOTIABLE）
 
@@ -125,12 +125,12 @@ Git 长期分支只有 **`main`（正式）** 与 **`develop`（开发集成）*
 - **未落地**：R2 待审存储、积木市场、默认绑定推送 Queue（详见 project-context）。  
 - **设计**：青绿信号色 + Syne/Figtree/Plex Mono；进化靠 design-system + Mobbin。
 
-## 开发工作流（Spec Kit）
+## 开发工作流（Duaer）
 
-1. 新能力、行为变更或热修：先 `/speckit-specify` 写清 what/why 与验收（热修标明 hotfix）。  
-2. `/speckit-plan` 必须对照 `project-context.md`；含 UI 时对照 `design-system.md` 并附 Mobbin 摘要（热修可将短 plan 并入 feature 目录）。  
-3. `/speckit-tasks` 产出可勾选任务；UI 任务含 Mobbin 校验项；实现只跟 `tasks.md`。  
-4. `/speckit-implement` 按依赖顺序落地；完成后 `/speckit-converge`。  
+1. 新能力、行为变更或热修：先 `/duaer-specify` 写清 what/why 与验收（热修标明 hotfix）。  
+2. `/duaer-plan` 必须对照 `project-context.md`；含 UI 时对照 `design-system.md` 并附 Mobbin 摘要（热修可将短 plan 并入 feature 目录）。  
+3. `/duaer-tasks` 产出可勾选任务；UI 任务含 Mobbin 校验项；实现只跟 `tasks.md`。  
+4. `/duaer-implement` 按依赖顺序落地；完成后 `/duaer-converge`。  
 5. **热修也走 Spec**；仅允许缩短路径，禁止「口头热修直接改代码」。  
 6. 改 as-is 架构 → 更新 `project-context.md`；改视觉 token / 体验原则 → 更新 `design-system.md`。  
 7. 改用户可见文案 / 新 UI → 同步 `messages/zh-CN.json` + `en.json`（或 Agent 展示 helper）。  
