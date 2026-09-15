@@ -21,9 +21,9 @@ Follow the project's [baseline](docs/baseline.md) (or its local equivalent).
 
 ## Autonomous job loop (all hosts)
 
-For product work (new behavior, fixes, refactors), **you** run Brief → work →
-accept. Do **not** ask the human to type slash commands, phase names, or CLI
-flags.
+For product work (new behavior, fixes, refactors), **you** run Brief →
+**understand** → work → accept. Do **not** ask the human to type slash
+commands, phase names, or CLI flags.
 
 1. Isolate: `feat|fix/<name>` + `.worktree/feat-<name>/` (or `fix-…`); never
    reuse the Brief folder name as the worktree id.
@@ -34,7 +34,10 @@ flags.
    - Copilot / Windsurf / Cline / Continue / Gemini / Aider: follow this section
      and the host adapter files installed by `duaer init`
 3. Briefs live in `.duaer/specs/<nnn-slug>/`. Method notes: [`DUADER.md`](DUADER.md).
-4. One handoff line; never claim done unless `delivery.json` is `accepted`.
+4. **Understand before Work:** restate precise goal / scope / acceptance; if
+   the ask is vague, confirm with the human before implementing. Do not jump
+   from a casual sentence to code.
+5. One handoff line; never claim done unless `delivery.json` is `accepted`.
 
 ## GitHub Issue Handling
 

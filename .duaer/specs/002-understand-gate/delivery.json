@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-15T10:05:00.000Z",
+  "summary": "Added Understand gate to duaer-do and host-facing docs so vague asks are restated and confirmed before implementation.",
+  "verification": {
+    "levels": ["L0"],
+    "commands": [
+      "rg 'Understand' .cursor/skills/duaer-do/SKILL.md DUADER.md AGENTS.md",
+      "rg 'understand / confirm' .cursor/rules/duaer-spec.mdc .claude/rules/duaer-spec.md"
+    ],
+    "result": "pass",
+    "notes": "Methodology/docs only; no runtime suite."
+  }
+}
