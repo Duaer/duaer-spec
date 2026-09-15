@@ -2,6 +2,10 @@
 
 > Duaer / Agent 做验收与质量门禁时必读。  
 > 目标：**层叠测全**——单测 → 产品验收 → Live/Smoke → **Playwright E2E** → UI/Mobbin → 专家审阅。
+>
+> 本文件是 **adopter 加厚配置**：先满足仓库根目录
+> [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md) 的通用风险门禁，
+> 再叠加下列 L3–L6 与产品命令。
 
 ---
 
@@ -133,6 +137,7 @@ CI：`.github/workflows/e2e.yml` 在 push/PR 跑 `npm test` + `npx tsc --noEmit`
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-09-15 | 对齐 duaer-spec **verification gate**（通用 `testing.md` 为基座） |
 | 2026-09-04 | 初版 |
 | 2026-09-04 | **补 L5 Playwright** + CI workflow + `test:full` |
 | 2026-09-04 | **核心路径验收**：`core-path.test.ts` + `test:core` + core-acceptance 清单 |

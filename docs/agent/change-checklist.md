@@ -58,7 +58,7 @@ See [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-th
 - [ ] Which specs / Duaer features are affected? (list paths)
 - [ ] Architectural boundary? (contracts, storage, security, public API)
 - [ ] User-visible or protocol-visible?
-- [ ] Smallest targeted validation set (or none, with reason)?
+- [ ] Smallest verification set per `.duaer/memory/testing.md` (or waiver)?
 
 See [spec update guidance](workflow.md#3-spec-update-guidance).
 
@@ -72,14 +72,16 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 
 ---
 
-## 4. E2E / Test Docs
+## 4. Verification / E2E
 
 - [ ] User/protocol-visible change → scenario added or updated in the project's
   E2E catalog ([template](e2e-test-plan.md)).
 - [ ] Unit/integration tests updated when risk requires them.
-- [ ] Targeted local checks passed, or assessed unnecessary.
-- [ ] E2E suites run only if the user explicitly requested them (except fork
-  landing rules in `AGENTS.md`).
+- [ ] Risk-based levels from [testing.md](../../.duaer/memory/testing.md)
+  executed (prefer subsets), or waived in feature docs.
+- [ ] Opt-in-only suites (full-repo E2E, live LLM, remote triggers) run only
+  when `testing.md` or the user requires them (fork landing rules in
+  `AGENTS.md` still apply).
 
 ---
 
@@ -124,8 +126,8 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 | 1 | Branch + `.worktree/` from up-to-date `develop` (hotfix: `main`) | [R4](workflow.md#r4--request-branch--worktree--merge-gate) · [branching](branching-and-release.md) |
 | 2 | Change implements the planned work | [Development loop](workflow.md#2-development-loop) |
 | 3 | Impacted specs updated | [R1](workflow.md#r1--spec-first--spec-sync) |
-| 4 | E2E docs updated or confirmed unnecessary | [R3](workflow.md#r3--e2e-coverage-doc) |
-| 5 | Targeted validation done or waived with reason | Development loop |
+| 4 | E2E docs updated or confirmed unnecessary | [R3](workflow.md#r3--verification--e2e-coverage) |
+| 5 | Risk-based verification done or waived with reason | [R3](workflow.md#r3--verification--e2e-coverage) · `testing.md` |
 | 5a | Active job handoff by the agent (coach/strict) | Delivery OS — not a git lock |
 | 6 | Conventional commits | [R2](workflow.md#r2--commit-per-change) |
 | 7 | No secrets, local data, or `.worktree/` | [§4](workflow.md#4-what-never-to-commit) |

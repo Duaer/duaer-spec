@@ -50,6 +50,7 @@ Works with **Cursor**, **Claude Code**, **Codex**, **GitHub Copilot**,
 - Aider: `.aider.conf.yml` → reads `AGENTS.md`  
 - `.duaer/handoff.json` + `duaer handoff` after worktree remove  
 - Agent ops: `main` / `develop` / `feat` / `fix` + `.worktree/`  
+- Verification contract: `.duaer/memory/testing.md` (risk-based checks before accept)  
 
 ## Precedence
 

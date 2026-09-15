@@ -29,8 +29,13 @@ Do not expand scope without updating the spec and tasks.
 
 ### IV. Verify before done
 
-Mark tasks complete only when the stated verification (tests, manual checks,
-or converge) has been performed or explicitly waived in the feature docs.
+Mark tasks complete only when the verification required by
+`.duaer/memory/testing.md` (and any Spec/task checks) has been **executed**,
+or explicitly waived in the feature docs.
+
+Do not stamp `delivery.json` `accepted` without verification evidence (or a
+written waiver). Prefer automated subsets; use manual L4 only when automation
+cannot cover the path.
 
 **Job handoff (not a git lock):** the agent reports accept/open itself.
 Default policy `coach` — do not claim "done" while the active job is unfinished.

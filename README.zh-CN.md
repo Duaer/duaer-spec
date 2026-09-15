@@ -1,6 +1,6 @@
 # duaer-spec
 
-**Duaer** 把 AI 编程助手变成**数字员工**：你用自然语言提需求，它自己跑 Spec → 实现 → 验收；只有交接干净才算完成。
+**Duaer** 把 AI 编程助手变成**数字员工**：你用自然语言提需求，它自己跑 Spec → 实现 → 按 `.duaer/memory/testing.md` 做风险分级验证 → 验收；只有交接干净才算完成。
 
 你**不用**操作流程。装一次之后，在 **Cursor** / **Claude Code** / **Codex** / **Copilot** / **Windsurf** / **Cline** / **Continue** / **Gemini** / **Aider** 里说话即可。
 

@@ -8,4 +8,4 @@ security boundaries, or frozen decisions.
 
 | ID | Title | Status |
 |---|---|---|
-| — | *(none yet)* | — |
+| [ADR-001](001-verification-gate.md) | Risk-based verification gate for agent-owned work | Accepted |

@@ -227,22 +227,33 @@ data ownership, security boundaries, or frozen decisions.
 * No unrelated cleanup
 * Leave the request worktree clean
 
-### 3. Keep E2E Documentation Synchronized
+### 3. Verify by risk (tests + E2E docs)
 
-Every user-visible or protocol-visible behavior change must add or update a
-scenario in the project's E2E catalog (template:
+Agent-owned development **must** run verification required by the project's
+[`.duaer/memory/testing.md`](.duaer/memory/testing.md) risk table before
+accepting a job or merging into local **`develop`**. Prefer targeted subsets
+over full suites. Record commands and results in the handoff / `delivery.json`
+`verification` field when used.
+
+Every user-visible or protocol-visible behavior change must also add or update
+a scenario in the project's E2E catalog (template:
 [e2e-test-plan](docs/agent/e2e-test-plan.md)).
 
-Do not run local E2E commands or manually trigger remote E2E jobs unless
-explicitly requested by the user, **except** for forked third-party pull
-request heads when the project requires local suites before merge. Record the
-result in the pull request comment.
+**Do not** skip required L0–L3 levels waiting for the human to say “run tests”.
+Opt-in only for suites the project's `testing.md` marks as expensive / remote /
+live (full-repo E2E, paid live LLM, manually triggered remote jobs, etc.).
+
+**Exception (forked third-party PR heads):** when landing a contributor PR under
+R6, run the project's required local suites before merge when the project has
+them; record results in the pull request comment. Completeness gaps on the
+contributor's branch may still be follow-up *after* a principle-sound merge,
+except when a failing required suite would break `main`.
 
 ### 4. Merge Back into Local `develop` (or hotfix `main`)
 
 After normal development:
 
-1. Complete targeted validation
+1. Complete risk-based verification (see §3 / `testing.md`)
 2. Review the complete diff
 3. Commit all logical changes
 4. Update the request branch with the latest local **`develop`**
@@ -299,10 +310,10 @@ git worktree prune
 2. Create a unique `feat/` or `fix/` branch
 3. Create and enter `.worktree/<request-id>`
 4. Read the baseline and relevant specs (and Duaer memory when present)
-5. Identify affected specs, ADRs, E2E scenarios, and validation
+5. Identify affected specs, ADRs, E2E scenarios, and **`testing.md` levels**
 6. Implement the smallest coherent change
 7. Update documentation as required
-8. Run targeted, risk-based checks
+8. Run risk-based verification (do not wait for the user to request ordinary tests)
 9. Review the complete diff
 10. Commit each logical change
 11. Refresh against latest **`develop`** (or **`main`** for hotfix)
@@ -339,7 +350,7 @@ Allowed types: `feat fix docs test chore refactor perf build ci`
 * [ ] All development occurred inside that worktree
 * [ ] No other agent's branch or worktree was modified
 * [ ] Relevant specs and E2E scenarios were updated
-* [ ] Targeted validation passed or was documented as unnecessary
+* [ ] Risk-based verification passed (or waived in feature docs per `testing.md`)
 * [ ] No secrets, local data, `.worktree/`, or unrelated changes are included
 * [ ] All logical changes were committed
 * [ ] The branch was refreshed against the latest local **`develop`** (or hotfix base)
@@ -360,7 +371,7 @@ Report:
 * Branch and worktree used
 * What changed
 * Documentation updated
-* Validation performed or skipped
+* Verification performed (commands/levels) or waiver reference
 * Commit hashes and messages
 * Merge target (`develop` / `main`) and result
 * Worktree and branch cleanup result

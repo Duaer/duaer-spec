@@ -40,7 +40,8 @@ cd .worktree/feat-login
 
 - Spec-sync for behavior changes; ADR when architecture/security/contracts change
 - One logical change per commit; leave the worktree clean
-- User/protocol-visible changes update E2E scenario docs
+- Risk-based verification per `.duaer/memory/testing.md` before accept / merge
+- User/protocol-visible changes update E2E scenario docs **and** run required L3 subsets
 - Merge into **`develop`** when done (hotfix: **`main`**, then back-merge **`develop`**)
 - **Handoff (mandatory):** stop worktree-bound processes → remove `.worktree/<id>` →
   restart from primary checkout on `develop` (`duaer handoff [--run]`, `.duaer/handoff.json`)

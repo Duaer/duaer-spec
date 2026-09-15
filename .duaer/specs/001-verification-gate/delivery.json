@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "outcome": "converged",
+  "checkedAt": "2026-09-15T06:50:00.000Z",
+  "openTasks": 0,
+  "findings": 0,
+  "source": "duaer-converge",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": [
+      "rg 'Do not run local E2E' AGENTS.md docs/agent (expect none)",
+      "rg 'Verification is DEFAULT' .cursor/skills/duaer-tasks/SKILL.md",
+      "test -f .duaer/memory/testing.md docs/adr/001-verification-gate.md"
+    ],
+    "result": "pass",
+    "notes": "Docs/policy change in duaer-spec; no app runtime suite. Manual catalog E2E-017–020."
+  }
+}

@@ -78,7 +78,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Phase 1: Setup tasks (project initialization)
    - Phase 2: Foundational tasks (blocking prerequisites for all user stories)
    - Phase 3+: One phase per user story (in priority order from spec.md)
-   - Each phase includes: story goal, independent test criteria, tests (if requested), implementation tasks
+   - Each phase includes: story goal, independent test criteria, **verification tasks** (from `testing.md`), implementation tasks
    - Final Phase: Polish & cross-cutting concerns
    - All tasks must follow the strict checklist format (see Task Generation Rules below)
    - Clear file paths for each task
@@ -139,7 +139,11 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
-**Tests are OPTIONAL**: Only generate test tasks if explicitly requested in the feature specification or if user requests TDD approach.
+**Verification is DEFAULT**: For each user story, generate verification tasks
+from `.duaer/memory/testing.md` (L0–L3 as the risk table requires). Do **not**
+omit tests just because the Spec did not say “TDD”. Only skip a level when the
+Spec or tasks record an explicit waiver. Extra TDD-style tests before
+implementation remain allowed when requested.
 
 ### Checklist Format (REQUIRED)
 
@@ -181,12 +185,12 @@ Every task MUST strictly follow this format:
      - Models needed for that story
      - Services needed for that story
      - Interfaces/UI needed for that story
-     - If tests requested: Tests specific to that story
+     - Verification tasks for that story (per `.duaer/memory/testing.md` risk table)
    - Mark story dependencies (most stories should be independent)
 
 2. **From Contracts**:
    - Map each interface contract → to the user story it serves
-   - If tests requested: Each interface contract → contract test task [P] before implementation in that story's phase
+   - Each interface contract → contract/verification task [P] before or with implementation when the risk table requires L1/L2
 
 3. **From Data Model**:
    - Map each entity to the user story(ies) that need it

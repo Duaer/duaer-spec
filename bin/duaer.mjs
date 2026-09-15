@@ -702,6 +702,7 @@ function printFeature(f, { label } = {}) {
 function checkWorkplace(target) {
   const checks = [
     ['.duaer/memory/constitution.md', 'method'],
+    ['.duaer/memory/testing.md', 'method'],
     ['DUADER.md', 'method'],
     ['.cursor/rules/duaer-spec.mdc', 'method'],
     ['.cursor/skills/duaer-specify/SKILL.md', 'method'],

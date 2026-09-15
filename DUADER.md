@@ -18,9 +18,9 @@ Follow the `duaer-do` skill (`.cursor/skills/`, `.claude/skills/`, or `.agents/s
 waiting for a slash invocation:
 
 1. Assign Brief + `active-job.json`  
-2. Light `tasks.md` if needed  
-3. Implement  
-4. Converge → `delivery.json`  
+2. Light `tasks.md` if needed (include verification tasks from `testing.md`)  
+3. Implement + run risk-based checks  
+4. Converge → `delivery.json` (with verification evidence or waiver)  
 5. One handoff line; never claim done until accepted  
 
 Large jobs may use step playbooks (`duaer-specify`, `duaer-plan`, …) internally.

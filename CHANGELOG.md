@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Verification gate
+
+- `.duaer/memory/testing.md` is an actionable risk-based verification contract
+- Agents must run required levels before accept / merge to `develop` (no blanket E2E ban)
+- `duaer-do` / `duaer-tasks` / `duaer-converge` / `duaer-implement` default to verification
+- Optional `delivery.json.verification` evidence on accept
+- ADR-001; E2E-017–020; ops docs and always-on rules updated
+
 ## 0.9.0 — 2026-09-15
 
 ### More common agent hosts

@@ -9,7 +9,8 @@ Wins over Duaer and `examples/` when they conflict.
 | [branching-and-release.md](branching-and-release.md) | **Required** `main`/`develop`/`feat`/`fix` + go-live by issue type |
 | [change-checklist.md](change-checklist.md) | Finish checklist |
 | [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |
+| [../adr/001-verification-gate.md](../adr/001-verification-gate.md) | Risk-based verification gate (ADR) |
 
-Root contract: [`AGENTS.md`](../../AGENTS.md).  
+Root contracts: [`AGENTS.md`](../../AGENTS.md), [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md).  
 Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx duaer-spec init --here` / `npx duaer-spec update`.  
 Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).

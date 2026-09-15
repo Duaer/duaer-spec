@@ -42,8 +42,11 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
 
 3. **Work** — Implement open tasks; mark `[x]` as you go. No scope beyond Spec.
 
-4. **Accept** — Converge against Spec: stamp `delivery.json` `accepted`, or append
-   gap tasks and implement them when small enough; otherwise one clear remaining note.
+4. **Accept** — Converge against Spec **and** `.duaer/memory/testing.md`:
+   run required verification (or record a written waiver), stamp `delivery.json`
+   `accepted` with optional `verification` evidence, or append gap tasks and
+   implement them when small enough; otherwise one clear remaining note.
+   Never accept on Spec match alone when required levels were not run.
 
 5. **Handoff** — One line to the human:
    - `✅ Job accepted — ready for your review.`

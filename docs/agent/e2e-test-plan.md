@@ -4,7 +4,10 @@ Each adopting project should maintain its own E2E scenario catalog. This file is
 a **template** for that catalog — not a product suite.
 
 When a change is user-visible or protocol-visible, add or update a scenario
-before or alongside the change (see [R3](workflow.md#r3--e2e-coverage-doc)).
+before or alongside the change, **and** run the risk-required verification from
+[`.duaer/memory/testing.md`](../../.duaer/memory/testing.md) (see
+[R3](workflow.md#r3--verification--e2e-coverage)).
+The catalog is not a substitute for executing checks.
 
 ## Scenario template
 
@@ -41,6 +44,10 @@ the table for their app.
 | E2E-014 | Init installs Cursor + Claude hosts (`CLAUDE.md`, `.claude/skills`) | manual |
 | E2E-015 | Init installs Codex skills under `.agents/skills/` | manual |
 | E2E-016 | Init installs Copilot/Windsurf/Cline/Continue/Gemini/Aider adapters | manual |
+| E2E-017 | `.duaer/memory/testing.md` defines levels + risk table + DoD | manual |
+| E2E-018 | AGENTS requires risk-based verification (no blanket E2E ban) | manual |
+| E2E-019 | `duaer-tasks` defaults to verification tasks; converge needs evidence | manual |
+| E2E-020 | Accept may stamp `delivery.json.verification` | manual |
 
 ## Traceability
 
@@ -62,3 +69,7 @@ the table for their app.
 | E2E-014 | Claude + Cursor install | Dual host |
 | E2E-015 | Codex `.agents/skills` | Triple host |
 | E2E-016 | Extra host adapters | Copilot+Windsurf+Cline+… |
+| E2E-017 | `testing.md` | Verification contract |
+| E2E-018 | AGENTS §3 / workflow R3 | Risk-based run |
+| E2E-019 | `duaer-tasks` / `duaer-converge` | Default verify |
+| E2E-020 | `delivery.json` | Verification evidence |

@@ -31,13 +31,20 @@ handling. They cannot be relaxed without explicit human override.
 - One logical unit per commit. No large uncommitted piles at session end.
 - Incomplete work: commit as `WIP:` draft or roll it back.
 
-### R3 — E2E coverage doc
+### R3 — Verification + E2E coverage
 
-> **User-visible or protocol-visible changes must update E2E scenario docs.**
+> **Agent-owned work must run risk-based verification from
+> `.duaer/memory/testing.md`. User-visible or protocol-visible changes must
+> also update E2E scenario docs.**
 
+- Execute the levels required by the project's
+  [testing contract](../../.duaer/memory/testing.md) (prefer subsets).
 - Document scenarios in the project's E2E catalog (see
   [e2e-test-plan](e2e-test-plan.md)).
-- Internal-only changes (logging format, private renames) do not require it.
+- Do **not** wait for the human to request ordinary L0–L3 checks.
+- Opt-in only for suites marked expensive/remote/live in `testing.md`.
+- Internal-only changes still need L0/L1 when those commands exist; they do
+  not need E2E catalog updates.
 
 ### R4 — Request branch + worktree + merge gate
 
@@ -90,8 +97,8 @@ unrelated pushes.
 3. **Orient** — Read baseline, relevant specs, and Duaer memory when present.
 4. **Specify (when using Duaer)** — Agent runs Brief → work → accept autonomously.
 5. **Implement** — Smallest coherent change; update specs alongside (R1).
-6. **Verify** — Targeted checks; E2E runs only if the user asks (except fork
-   landing rules in `AGENTS.md`).
+6. **Verify** — Risk-based checks per `testing.md` (E2E subset when UI/UX
+   touched; fork landing rules still in `AGENTS.md`).
 7. **Commit** — One logical change per commit (R2).
 8. **Merge & clean** — Merge to `develop` (hotfix: `main` + back-merge), stop
    worktree services, remove worktree (R4).

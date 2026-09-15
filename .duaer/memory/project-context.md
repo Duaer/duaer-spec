@@ -7,7 +7,7 @@ Fill this in for each project. Agents treat it as implementation truth.
 - Language / runtime:
 - Package manager:
 - App entrypoints:
-- Test commands:
+- Test commands: (fill from `.duaer/memory/testing.md` — L0/L1/L2/L3 scripts)
 
 ## Layout
 

@@ -98,6 +98,11 @@ When the codebase already satisfies everything, the command MUST leave `tasks.md
 produces a corresponding remediation task. If the constitution is an unfilled template,
 skip constitution checks gracefully rather than failing.
 
+**Verification Authority**: `.duaer/memory/testing.md` is part of accept criteria.
+Do **not** stamp `status: "accepted"` if required risk-table levels were not run and
+no written waiver exists in the feature docs. Treat missing verification as a
+`missing` gap (append a Convergence task) rather than accepting on Spec match alone.
+
 ## Execution Steps
 
 ### 1. Initialize Convergence Context
@@ -256,15 +261,23 @@ Append to the **end** of `tasks.md`, per the append contract:
     "checkedAt": "<ISO-8601 UTC>",
     "openTasks": 0,
     "findings": 0,
-    "source": "duaer-converge"
+    "source": "duaer-converge",
+    "verification": {
+      "levels": ["L0", "L1"],
+      "commands": ["<commands run>"],
+      "result": "pass",
+      "notes": "<optional waiver or subset note>"
+    }
   }
   ```
 
+  Include `verification` whenever checks were run or waived (`result`: `pass` |
+  `waived`). Omit only for pure-docs jobs with no levels required.
   Set `openTasks` to the count of unchecked `- [ ]` lines currently in `tasks.md`
   (must be `0` for `status: "accepted"`; if any remain, treat as `tasks_appended`
   path instead — do not stamp accepted).
 - Report: **"✅ Converged — the implementation satisfies the spec, plan, and tasks."**
-- Include the summary counts of what was checked.
+- Include the summary counts of what was checked **and** verification levels/commands.
 - Tell the user they can run `duaer job .` to see handoff status (policy default: coach).
 - Reminder: this is **job acceptance**, not a repository merge lock.
 ### 8. Provide Next Actions (Handoff)

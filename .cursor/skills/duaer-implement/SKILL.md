@@ -174,7 +174,8 @@ You **MUST** consider the user input before proceeding (if not empty).
 9. Completion validation:
    - Verify all required tasks are completed
    - Check that implemented features match the original specification
-   - Validate that tests pass and coverage meets requirements
+   - Run `.duaer/memory/testing.md` levels required for the change (or record waivers)
+   - Validate that required tests pass; leave failures as open work
    - Confirm the implementation follows the technical plan
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/duaer-tasks` first to regenerate the task list.
