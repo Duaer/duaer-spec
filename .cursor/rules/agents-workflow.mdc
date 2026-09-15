@@ -14,16 +14,23 @@ integration branch in their baseline.
 Use English for code, identifiers, comments, commits, specs, and docs unless
 the project explicitly overrides.
 
-## Isolated development
+## Isolated development (mandatory worktree)
 
 Before editing files for a new request:
 
 1. Update local integration branch (`main` here; or project override)
 2. Create a unique branch: `<type>/<short-description>`
-3. Create a dedicated worktree and develop only there
-4. Never develop in the primary checkout or on the long-lived branch
-5. Never reuse or modify another agent's branch/worktree
+3. Create a dedicated worktree at **`.worktree/<request-id>`** (required — not optional)
+4. Develop only inside that worktree
+5. Never develop in the primary checkout or on the long-lived branch
+6. Never reuse or modify another agent's branch/worktree
+7. Never commit `.worktree/` (must stay gitignored)
 
+```bash
+mkdir -p .worktree
+git worktree add .worktree/<request-id> -b <type>/<request-id> main
+cd .worktree/<request-id>
+```
 ## Immutable habits
 
 - Spec-sync: behavior changes update the relevant project specs/docs (and ADR when architecture/security/contracts change)

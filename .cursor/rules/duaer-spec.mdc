@@ -16,6 +16,9 @@ If this conflicts with root `AGENTS.md` (worktrees, commits, Issue/PR),
 
 For new behavior, fixes, refactors that change product behavior, or architecture:
 
+0. **Isolate first (mandatory):** update integration branch, create
+   `<type>/<short-description>`, add worktree at `.worktree/<request-id>`,
+   work only there. Never skip the worktree. Never commit `.worktree/`.
 1. **Silently follow** the procedure in `.cursor/skills/duaer-do/SKILL.md`
    (assign Brief → light tasks → implement → converge → handoff line).
 2. Do **not** wait for `/duaer-do` or any other skill invocation.

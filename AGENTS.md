@@ -115,20 +115,27 @@ Before modifying any file, the agent must:
 
 1. Update the primary checkout's local `main`
 2. Create a unique branch from the updated `main`
-3. Create a dedicated worktree for that branch
-4. Enter the new worktree
+3. Create a dedicated worktree **under the project** at `.worktree/<request-id>`
+4. Enter that worktree
 5. Only then begin development
+
+Worktrees live in **`.worktree/`** at the repository root. That directory is
+**mandatory**, not optional, and **must never be committed** (see `.gitignore`).
 
 Example:
 
 ```bash
 git switch main
 git pull --ff-only
-git worktree add ../worktrees/<request-id> -b <type>/<request-id> main
-cd ../worktrees/<request-id>
+mkdir -p .worktree
+git worktree add .worktree/<request-id> -b <type>/<request-id> main
+cd .worktree/<request-id>
 ```
 
 Branch and worktree names must be unique and clearly associated with the request.
+Do **not** place request worktrees outside the repo (for example `../worktrees/`)
+unless the project baseline explicitly overrides this and still keeps them
+untracked.
 
 **This repository's default integration branch is `main`.** Adopting projects
 may substitute another long-lived branch (for example `develop`); document that
@@ -211,7 +218,7 @@ Once the request branch is merged into local `main`, remove its worktree and
 delete the merged branch. Never leave a merged worktree on disk.
 
 ```bash
-git worktree remove ../worktrees/<request-id>
+git worktree remove .worktree/<request-id>
 git branch -d <type>/<request-id>
 git worktree prune
 ```
@@ -220,6 +227,7 @@ git worktree prune
 * The worktree must be clean first
 * Use `git branch -d` (not `-D`)
 * Delete only your own worktree and branch
+* Never commit `.worktree/` (ignored)
 
 ## Development Workflow
 

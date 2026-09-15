@@ -45,7 +45,7 @@ See [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-th
 - [ ] Existing uncommitted work is identified and preserved.
 - [ ] `origin/main` fetched; local `main` fast-forwarded when clean.
 - [ ] Dedicated `<type>/<short-description>` branch and worktree created from
-  that commit.
+  that commit under **`.worktree/<request-id>`** (mandatory; never commit `.worktree/`).
 - [ ] Shared toolchains/caches reused where safe; mutable state stays local.
 - [ ] Current branch is not `main` before implementation begins.
 

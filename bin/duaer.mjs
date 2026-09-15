@@ -194,6 +194,21 @@ function installMethod(target, opts) {
 
   copyPath(join(PKG_ROOT, 'DUADER.md'), join(target, 'DUADER.md'), opts)
   console.log('  DUADER.md')
+  ensureWorktreeGitignore(target)
+}
+
+function ensureWorktreeGitignore(target) {
+  const gi = join(target, '.gitignore')
+  const line = '.worktree/'
+  let text = existsSync(gi) ? readFileSync(gi, 'utf8') : ''
+  if (text.split(/\r?\n/).some((l) => l.trim() === line)) {
+    console.log('  .gitignore already ignores .worktree/')
+    return
+  }
+  if (text.length && !text.endsWith('\n')) text += '\n'
+  text += `# duaer-spec: mandatory request worktrees (do not commit)\n${line}\n`
+  writeFileSync(gi, text, 'utf8')
+  console.log('  .gitignore ← .worktree/')
 }
 
 function installOps(target, opts) {
@@ -220,6 +235,7 @@ function installOps(target, opts) {
     )
   }
   console.log('  docs/agent/')
+  ensureWorktreeGitignore(target)
 
   const baselineSrc = join(PKG_ROOT, 'docs', 'baseline.md')
   const baselineDst = join(target, 'docs', 'baseline.md')

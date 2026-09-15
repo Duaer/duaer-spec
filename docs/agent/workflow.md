@@ -45,10 +45,12 @@ handling. They cannot be relaxed without explicit human override.
 > branch and finishes only after it is merged into `main`.**
 
 - Before editing: preserve existing uncommitted work; fetch and fast-forward
-  local `main` when clean; create a new request branch and worktree from that
-  commit. Never stash or overwrite another agent's work merely to start.
+  local `main` when clean; create a new request branch and a dedicated worktree
+  at **`.worktree/<request-id>`** under the project root. Worktrees are
+  **mandatory**. Never stash or overwrite another agent's work merely to start.
 - Name branches `<type>/<short-description>` (for example `feat/adopt-docs`).
 - Do not implement in the primary checkout or reuse another request's worktree.
+- Keep `.worktree/` gitignored — never commit request worktrees.
 - Reuse shared toolchains and caches where safe; keep mutable or
   concurrency-sensitive state worktree-local and ignored.
 - After validation: merge into local `main` (or via PR/MR when required), then
