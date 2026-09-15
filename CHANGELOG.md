@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.4 — 2026-09-15
+
+### Worktree ≠ Brief folder name
+
+- Clarify two layers: `.worktree/feat-<name>/` (full checkout) vs
+  `.duaer/specs/<nnn-slug>/` (Brief)
+- Forbid naming the worktree after the Brief slug (avoids
+  `.worktree/002-x/.../specs/002-x/` double naming)
+
 ## 0.6.3 — 2026-09-15
 
 ### Docs: update path in installed 说明

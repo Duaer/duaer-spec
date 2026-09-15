@@ -36,6 +36,18 @@ feat/<short-description>   # new capability / improvement
 fix/<short-description>    # defect
 ```
 
+Worktree directory = branch with `/` → `-`:
+
+```text
+branch feat/login  →  .worktree/feat-login
+branch fix/timer   →  .worktree/fix-timer
+```
+
+Duaer Brief folders are separate: `.duaer/specs/<nnn-slug>/`. Because a worktree
+is a full checkout, Specs appear as
+`.worktree/feat-login/.duaer/specs/002-login/spec.md`. That nesting is normal.
+Do **not** reuse `<nnn-slug>` as the worktree folder name.
+
 Optional types when the project already uses them: `docs/`, `chore/`, `refactor/`,
 `test/`, `ci/` — still branch from `develop`, merge back to `develop` first.
 

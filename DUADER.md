@@ -34,11 +34,17 @@ Humans need not configure it for everyday use.
 ## Layout
 
 ```text
-.duaer/active-job.json
-.duaer/specs/<nnn-slug>/spec.md|tasks.md|delivery.json
-.cursor/rules/duaer-spec.mdc      # autonomous behavior
-.cursor/skills/duaer-do/          # default job loop
+.worktree/feat-<name>/                 # git isolation (full checkout)
+  .duaer/active-job.json
+  .duaer/specs/<nnn-slug>/             # Brief (≠ worktree folder name)
+    spec.md | tasks.md | delivery.json
+.cursor/rules/duaer-spec.mdc           # autonomous behavior
+.cursor/skills/duaer-do/               # default job loop
 ```
+
+Worktree and Brief are different layers. Prefer
+`.worktree/feat-login/.duaer/specs/002-login/` — not
+`.worktree/002-login/.duaer/specs/002-login/`.
 
 ## Related
 

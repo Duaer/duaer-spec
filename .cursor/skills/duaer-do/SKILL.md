@@ -32,6 +32,10 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
    - Matching active job (`.duaer/active-job.json` + `spec.md`) → update acceptance if needed.
    - Else create `.duaer/specs/<nnn-slug>/spec.md` and `.duaer/active-job.json`
      (same outcome as specify). Keep small asks short: what / why / acceptance.
+   - The Brief path is **not** the worktree path. Isolation uses
+     `.worktree/feat-<name>/` (or `fix-…`); the Spec stays under
+     `.duaer/specs/<nnn-slug>/` inside that checkout. Never set both names to
+     the same `<nnn-slug>`.
 
 2. **Break down** — If `tasks.md` missing, write a short checklist from the Spec.
    Skip a heavy plan unless architecture or contracts change.

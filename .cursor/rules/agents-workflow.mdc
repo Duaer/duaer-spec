@@ -24,7 +24,9 @@ Before editing files for a new request:
 
 1. Update local **`develop`** (hotfix: **`main`**)
 2. Create `feat/<name>` or `fix/<name>`
-3. Create worktree at **`.worktree/<request-id>`** (required)
+3. Create worktree at **`.worktree/feat-<name>`** or **`.worktree/fix-<name>`**
+   (slash → hyphen). Do **not** reuse the Brief folder name
+   (`.duaer/specs/<nnn-slug>/`) as the worktree id.
 4. Develop only inside that worktree
 5. Never develop on `main` / `develop` or in the primary checkout
 6. Never reuse another agent's branch/worktree
@@ -32,8 +34,9 @@ Before editing files for a new request:
 
 ```bash
 mkdir -p .worktree
-git worktree add .worktree/<request-id> -b feat/<name> develop
-cd .worktree/<request-id>
+git worktree add .worktree/feat-login -b feat/login develop
+cd .worktree/feat-login
+# Brief lives inside the checkout, e.g. .duaer/specs/002-login/
 ```
 
 ## Immutable habits

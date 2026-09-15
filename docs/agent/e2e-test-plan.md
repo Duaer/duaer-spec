@@ -37,6 +37,7 @@ the table for their app.
 | E2E-010 | `npx duaer-spec update` refreshes an existing install | manual |
 | E2E-011 | Installed docs (`DUADER.md`, `docs/agent/`) document `update` | manual |
 | E2E-012 | `README.zh-CN.md` covers install, update, branch model | manual |
+| E2E-013 | Worktree id ≠ Brief `<nnn-slug>`; path is `.worktree/feat-…/.duaer/specs/…` | manual |
 
 ## Traceability
 
@@ -54,3 +55,4 @@ the table for their app.
 | E2E-010 | `duaer update` | One-line refresh |
 | E2E-011 | DUADER + agent docs | Update path in installed 说明 |
 | E2E-012 | `README.zh-CN.md` | Chinese 说明文档 |
+| E2E-013 | AGENTS / branching naming | Avoid double `<nnn-slug>` |

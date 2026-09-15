@@ -31,4 +31,13 @@ npx duaer-spec update
 
 合并后：`duaer handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.duaer/handoff.json`）。
 
+### 目录不要同名套娃
+
+Worktree 是整仓副本，Brief 在仓库内的 `.duaer/specs/`：
+
+```text
+正确: .worktree/feat-login/.duaer/specs/002-login/spec.md
+错误: .worktree/002-login/.duaer/specs/002-login/spec.md   ← worktree 名不要用 specs 目录名
+```
+
 英文源：[`README.md`](README.md) · 采纳细节：[`ADOPT.md`](ADOPT.md)

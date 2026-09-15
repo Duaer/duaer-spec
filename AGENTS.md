@@ -147,9 +147,30 @@ Example (normal feature):
 git switch develop
 git pull --ff-only
 mkdir -p .worktree
-git worktree add .worktree/<request-id> -b feat/<request-id> develop
-cd .worktree/<request-id>
+git worktree add .worktree/feat-login -b feat/login develop
+cd .worktree/feat-login
 ```
+
+**Two different folders — do not give them the same name:**
+
+| Layer | Path | Role |
+|---|---|---|
+| Worktree | `.worktree/feat-<name>/` | Full git checkout for isolation |
+| Brief | `.duaer/specs/<nnn-slug>/` | Job Spec / tasks / delivery stamp |
+
+A worktree is a **complete** repo copy, so Briefs live *inside* it:
+
+```text
+.worktree/feat-login/.duaer/specs/002-login/spec.md
+```
+
+That is expected. What is **wrong** is reusing the Brief folder name as the
+worktree id (e.g. `.worktree/002-login/.../specs/002-login/`) — it looks like
+double nesting and confuses humans. Always:
+
+* Branch: `feat/<name>` or `fix/<name>`
+* Worktree: `.worktree/feat-<name>` or `.worktree/fix-<name>` (slash → hyphen)
+* Brief: `.duaer/specs/<nnn-slug>/` (numbered catalog; may differ from `<name>`)
 
 Branch and worktree names must be unique and clearly associated with the request.
 Do **not** place request worktrees outside the repo (for example `../worktrees/`)

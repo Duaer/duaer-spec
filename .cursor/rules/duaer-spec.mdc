@@ -17,9 +17,11 @@ If this conflicts with root `AGENTS.md` (worktrees, commits, Issue/PR),
 For new behavior, fixes, refactors that change product behavior, or architecture:
 
 0. **Isolate first (mandatory):** update **`develop`** (hotfix: **`main`**),
-   create `feat|fix/<name>`, add worktree at `.worktree/<request-id>`,
-   work only there. Never skip the worktree. Never commit `.worktree/`.
-   Never develop on `main` or `develop`.
+   create `feat|fix/<name>`, add worktree at `.worktree/feat-<name>` or
+   `.worktree/fix-<name>` (slash → hyphen). Never name the worktree after the
+   Brief folder (do **not** use `.worktree/<nnn-slug>` when the Spec is
+   `.duaer/specs/<nnn-slug>/`). Work only in the worktree. Never commit
+   `.worktree/`. Never develop on `main` or `develop`.
 1. **Silently follow** the procedure in `.cursor/skills/duaer-do/SKILL.md`
    (assign Brief → light tasks → implement → converge → handoff line).
 2. Do **not** wait for `/duaer-do` or any other skill invocation.
