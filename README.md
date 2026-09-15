@@ -1,58 +1,47 @@
-# MyDesk Dev Standards
+# MyDesk / Spec Kit Dev Standards
 
-Reusable AI / agent development standards extracted from **MyDesk** (PI-Desktop), for use in other repositories.
+Reusable AI development standards:
 
-## What is included
+1. **MyDesk agent workflow** — `AGENTS.md`, delivery checklist, Cursor rules
+2. **GitHub Spec Kit** — Spec → Plan → Tasks → Implement drop-in scaffold
 
-| File | Role |
+## Layout
+
+| Path | Contents |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Mandatory rules for AI coding agents |
-| [`docs/spec/06-delivery/03-ai-development-workflow.md`](docs/spec/06-delivery/03-ai-development-workflow.md) | Immutable workflow rules R1–R6 |
-| [`docs/spec/06-delivery/05-change-checklist.md`](docs/spec/06-delivery/05-change-checklist.md) | Pre-finish checklist |
-| [`.cursor/rules/`](.cursor/rules/) | Cursor rule drop-ins (same ideas, shorter) |
+| [`AGENTS.md`](AGENTS.md) | MyDesk-style agent rules |
+| [`docs/spec/06-delivery/`](docs/spec/06-delivery/) | AI workflow + change checklist |
+| [`.cursor/rules/`](.cursor/rules/) | Condensed Cursor rules (MyDesk) |
+| [`spec-kit/`](spec-kit/) | **Portable Spec Kit** (`.specify/`, skills, `SPECKIT.md`) |
+| [`examples/dianwu-flow/`](examples/dianwu-flow/) | DianWu Flow Spec Kit conventions (product-specific) |
+| [`upstream/github-spec-kit/`](upstream/github-spec-kit/) | Official Spec Kit templates + README snapshot |
 
-Product-specific MyDesk docs (full baseline, ADRs, E2E catalog, release runbook) are **not** included. See [`SOURCE.md`](SOURCE.md).
+## Spec Kit (recommended for new work)
 
-## How to use in another project
-
-### Option A — Copy into the project root
-
-```bash
-cp AGENTS.md /path/to/your-project/
-mkdir -p /path/to/your-project/docs/spec/06-delivery
-cp docs/spec/06-delivery/03-ai-development-workflow.md \
-   docs/spec/06-delivery/05-change-checklist.md \
-   /path/to/your-project/docs/spec/06-delivery/
-```
-
-Then replace the placeholders under `docs/spec/00-baseline.md` and `docs/adr/` with that project's real contracts.
-
-### Option B — Cursor rules only
+Copy into a project:
 
 ```bash
-cp .cursor/rules/*.mdc /path/to/your-project/.cursor/rules/
-# or into ~/.cursor/rules/ for all projects
+rsync -a spec-kit/.specify/ /path/to/project/.specify/
+rsync -a spec-kit/.cursor/skills/ /path/to/project/.cursor/skills/
+mkdir -p /path/to/project/.cursor/rules
+cp spec-kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
+cp spec-kit/SPECKIT.md /path/to/project/
 ```
 
-### Option C — Git submodule / subtree
+Then edit `.specify/memory/constitution.md` and `project-context.md` for that product.
 
-```bash
-git submodule add https://github.com/fujiezee/mydesk-dev-standards.git docs/dev-standards
-```
+Default loop: **specify → plan → tasks → implement → converge**  
+Hotfix: **specify (hotfix) → tasks → implement → converge**
 
-Point the project's `AGENTS.md` at the submodule paths, or symlink.
+See [`spec-kit/SPECKIT.md`](spec-kit/SPECKIT.md). Official upstream: https://github.com/github/spec-kit
 
-## Core ideas (short)
+## MyDesk agent rules
 
-1. **Spec-first / spec-sync** — behavior changes update docs
-2. **Commit per logical change** — no large uncommitted piles
-3. **E2E docs stay in sync** for user/protocol-visible changes
-4. **One request = one branch + one worktree**, merge back to local `main`, push only when asked
-5. **GitHub issues** — verify before coding; comment and close when done
-6. **GitHub PRs** — merge sound principles first; polish after merge
+See earlier sections / [`SOURCE.md`](SOURCE.md). Keep root `AGENTS.md` short when adapting; prefer Spec Kit for *what* to build and `AGENTS.md` for *how agents operate*.
 
-## Note vs personal git-branch-flow
+## Note on branch policy
 
-MyDesk's `AGENTS.md` merges short-lived work into local **`main`**.
+- MyDesk `AGENTS.md`: merge short-lived work into local `main`
+- DianWu Flow Spec Kit example: `develop` / `feat/*` / `fix/*`
 
-If a project instead uses `develop` / `feat/*` / `fix/*` (see your Cursor user rule `git-branch-flow`), keep that project's branch policy and treat these docs as the agent checklist + issue/PR intake pattern — adapt the merge target accordingly.
+Pick one per project and keep Spec Kit + git rules aligned.
