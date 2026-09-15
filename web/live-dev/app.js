@@ -540,7 +540,12 @@ el.repoBrowse?.addEventListener("click", async () => {
       state.repoCatalog.recent = data.recent;
     }
     selectRepo(data);
-    addBubble("bot", `已选择并记住仓库 ${data.name}`);
+    addBubble(
+      "bot",
+      data.bootstrapped
+        ? `已在 ${data.name} 自动 git init（develop）并记住`
+        : `已选择并记住仓库 ${data.name}`,
+    );
   } catch (err) {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent =

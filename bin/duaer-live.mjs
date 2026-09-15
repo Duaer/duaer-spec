@@ -826,18 +826,19 @@ function listReposForUi() {
 
 function cmdRepoAdd(opts) {
   const target = path.resolve(opts.repoPath || process.cwd());
-  const probe = probeRepo(target);
+  const probe = probeRepo(target, { bootstrap: true });
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
-  console.log("已登记产品仓库", probe.path);
+  console.log(probe.bootstrapped ? "已自动 git init 并登记" : "已登记产品仓库", probe.path);
   console.log(JSON.stringify(probe, null, 2));
   console.log("现场开发派工时可直接点选。");
 }
 
-function runGit(cwd, args) {
+function runGit(cwd, args, envExtra = null) {
   const r = spawnSync("git", args, {
     cwd,
     encoding: "utf8",
     maxBuffer: 4 * 1024 * 1024,
+    env: envExtra ? { ...process.env, ...envExtra } : process.env,
   });
   if (r.status !== 0) {
     throw new Error(
@@ -942,8 +943,58 @@ function resolveGitTop(repoPath) {
   throw e;
 }
 
-function probeRepo(repoPath) {
-  const top = resolveGitTop(repoPath);
+function bootstrapGitRepo(repoPath) {
+  const abs = normalizeRepoPath(repoPath);
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
+    throw new Error(`路径不存在或不是目录：${abs}`);
+  }
+  const home = normalizeRepoPath(os.homedir());
+  if (abs === home || abs === path.parse(abs).root) {
+    throw new Error("不能在用户主目录或磁盘根目录自动 git init，请选具体项目文件夹");
+  }
+  if (hasGitDir(abs) || tryGitTop(abs)) {
+    return abs;
+  }
+  // Prefer develop as default branch (git 2.28+); fall back for older git.
+  try {
+    runGit(abs, ["init", "-b", "develop"]);
+  } catch {
+    runGit(abs, ["init"]);
+    try {
+      runGit(abs, ["checkout", "-b", "develop"]);
+    } catch {
+      // stay on default branch name; probe accepts main/master too
+    }
+  }
+  try {
+    runGit(abs, ["add", "-A"]);
+  } catch {
+    // ignore add failures (empty / permission on some files)
+  }
+  const identity = {
+    GIT_AUTHOR_NAME: "duaer-live",
+    GIT_AUTHOR_EMAIL: "duaer-live@localhost",
+    GIT_COMMITTER_NAME: "duaer-live",
+    GIT_COMMITTER_EMAIL: "duaer-live@localhost",
+  };
+  runGit(abs, ["commit", "--allow-empty", "-m", "chore: init repository"], identity);
+  return abs;
+}
+
+function probeRepo(repoPath, { bootstrap = false } = {}) {
+  let bootstrapped = false;
+  let top;
+  try {
+    top = resolveGitTop(repoPath);
+  } catch (err) {
+    if (!bootstrap || err?.code !== "NOT_GIT" || !err.path) throw err;
+    // Do not bootstrap home / obvious parent folders with many children.
+    const kids = listChildGitRepos(err.path, { max: 3 });
+    if (kids.length > 0) throw err;
+    bootstrapGitRepo(err.path);
+    bootstrapped = true;
+    top = resolveGitTop(err.path);
+  }
   let baseBranch = null;
   for (const b of ["develop", "main", "master"]) {
     if (hasLocalBranch(top, b)) {
@@ -964,6 +1015,7 @@ function probeRepo(repoPath) {
     name: path.basename(top) || top,
     baseBranch,
     hasDuaer: fs.existsSync(path.join(top, ".duaer")),
+    bootstrapped,
   };
 }
 
@@ -1013,7 +1065,7 @@ function tryOpenEditor(targetPath) {
 
 function dispatchToRepo({ jobId, repoPath }) {
   const live = readLiveJob(jobId);
-  const probe = probeRepo(repoPath);
+  const probe = probeRepo(repoPath, { bootstrap: true });
   const branch =
     String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
   const worktreeId = branch.replace(/\//g, "-");
@@ -1342,7 +1394,7 @@ async function handleApi(req, res) {
     let chosen = null;
     try {
       chosen = pickFolderNative();
-      const probe = probeRepo(chosen);
+      const probe = probeRepo(chosen, { bootstrap: true });
       const recent = rememberRepo(probe.path, {
         baseBranch: probe.baseBranch,
       });
@@ -1367,7 +1419,7 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/repos/add") {
     try {
       const body = await readJson(req);
-      const probe = probeRepo(body.path);
+      const probe = probeRepo(body.path, { bootstrap: true });
       rememberRepo(probe.path, { baseBranch: probe.baseBranch });
       send(res, 200, { ok: true, ...probe, repos: readRepos() });
     } catch (err) {
@@ -1381,7 +1433,9 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/repos/probe") {
     try {
       const body = await readJson(req);
-      const probe = probeRepo(body.path);
+      const probe = probeRepo(body.path, {
+        bootstrap: body.bootstrap !== false,
+      });
       send(res, 200, { ok: true, ...probe });
     } catch (err) {
       send(res, 400, {

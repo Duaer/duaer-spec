@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live git bootstrap
+
+- Browsing / adding a non-git folder auto-runs `git init -b develop` + initial commit (skips home/root; skips parent-of-many-repos)
+
 ## 0.11.0 — 2026-09-16
 
 ### Live browse remember
