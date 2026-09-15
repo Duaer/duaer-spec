@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live browse remember
+
+- Fix「浏览…」: persist selection into recent list immediately; normalize paths; accept `master`
+
 ### Live repo pick
 
 - Dispatch: system folder picker, scan common dirs, filterable list

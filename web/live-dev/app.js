@@ -469,8 +469,7 @@ function renderRepoList() {
     const tag = repo.kind === "recent" ? "最近" : "发现";
     btn.innerHTML = `<strong>${escapeHtml(repo.name || pathBasename(repo.path))} · ${tag}</strong><span>${escapeHtml(repo.path)}</span>`;
     btn.addEventListener("click", () => {
-      el.repoPath.value = repo.path;
-      renderRepoList();
+      selectRepo(repo);
     });
     el.repoList.appendChild(btn);
   }
@@ -489,6 +488,27 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
+function selectRepo(repo) {
+  if (!repo?.path) return;
+  el.repoPath.value = repo.path;
+  const entry = {
+    path: repo.path,
+    name: repo.name || pathBasename(repo.path),
+    baseBranch: repo.baseBranch,
+    kind: "recent",
+  };
+  const rest = (state.repoCatalog.recent || []).filter(
+    (r) => r.path !== entry.path,
+  );
+  state.repoCatalog = {
+    recent: [entry, ...rest],
+    discovered: (state.repoCatalog.discovered || []).filter(
+      (r) => r.path !== entry.path,
+    ),
+  };
+  renderRepoList();
+}
+
 el.repoBrowse?.addEventListener("click", async () => {
   el.dispatchErr.hidden = true;
   el.repoBrowse.disabled = true;
@@ -498,11 +518,17 @@ el.repoBrowse?.addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) {
       if (data.cancelled) return;
+      // Still surface the chosen folder path when validation failed.
+      if (data.path) {
+        el.repoPath.value = data.path;
+      }
       throw new Error(data.error || "选择失败");
     }
-    el.repoPath.value = data.path;
-    await loadRepoCatalog(false);
-    addBubble("bot", `已选择仓库 ${data.name}（${data.path}）`);
+    if (Array.isArray(data.recent)) {
+      state.repoCatalog.recent = data.recent;
+    }
+    selectRepo(data);
+    addBubble("bot", `已选择并记住仓库 ${data.name}`);
   } catch (err) {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent =

@@ -638,16 +638,24 @@ function readRepos() {
   }
 }
 
+function normalizeRepoPath(repoPath) {
+  return path.resolve(
+    String(repoPath || "")
+      .trim()
+      .replace(/[\\/]+$/, "") || ".",
+  );
+}
+
 function rememberRepo(repoPath, extra = {}) {
-  const abs = path.resolve(repoPath);
+  const abs = normalizeRepoPath(repoPath);
   const next = [
     {
       path: abs,
-      name: path.basename(abs),
+      name: path.basename(abs) || abs,
       lastUsedAt: new Date().toISOString(),
       ...extra,
     },
-    ...readRepos().filter((r) => r.path !== abs),
+    ...readRepos().filter((r) => normalizeRepoPath(r.path) !== abs),
   ].slice(0, 20);
   fs.writeFileSync(
     reposFile(),
@@ -765,31 +773,40 @@ function pickFolderNative() {
     const r = spawnSync(
       "osascript",
       ["-e", 'POSIX path of (choose folder with prompt "选择产品仓库")'],
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 300000 },
     );
+    const err = String(r.stderr || "").trim();
+    const out = String(r.stdout || "").trim();
     if (r.status !== 0) {
-      const err = String(r.stderr || r.stdout || "").trim();
-      if (/User canceled|取消/i.test(err) || r.status === 1) {
+      if (
+        /User canceled|cancelled|canceled|取消/i.test(err) ||
+        /User canceled|cancelled|canceled|取消/i.test(out)
+      ) {
         const e = new Error("已取消选择");
         e.code = "CANCELLED";
         throw e;
       }
-      throw new Error(err || "无法打开系统文件夹选择");
+      throw new Error(err || out || "无法打开系统文件夹选择");
     }
-    return path.resolve(String(r.stdout || "").trim());
+    if (!out) {
+      const e = new Error("已取消选择");
+      e.code = "CANCELLED";
+      throw e;
+    }
+    return normalizeRepoPath(out);
   }
   if (process.platform === "linux") {
     const r = spawnSync(
       "zenity",
       ["--file-selection", "--directory", "--title=选择产品仓库"],
-      { encoding: "utf8" },
+      { encoding: "utf8", timeout: 300000 },
     );
     if (r.status !== 0) {
       const e = new Error("已取消选择");
       e.code = "CANCELLED";
       throw e;
     }
-    return path.resolve(String(r.stdout || "").trim());
+    return normalizeRepoPath(String(r.stdout || "").trim());
   }
   const e = new Error(
     "当前系统暂不支持弹窗选文件夹，请用扫描列表或：duaer live repo add",
@@ -840,26 +857,28 @@ function hasLocalBranch(cwd, name) {
 }
 
 function probeRepo(repoPath) {
-  const abs = path.resolve(String(repoPath || "").trim());
+  const abs = normalizeRepoPath(repoPath);
   if (!abs || abs === path.sep) throw new Error("请填写仓库绝对路径");
   if (!fs.existsSync(abs)) throw new Error(`路径不存在：${abs}`);
   let top;
   try {
-    top = runGit(abs, ["rev-parse", "--show-toplevel"]);
+    top = normalizeRepoPath(runGit(abs, ["rev-parse", "--show-toplevel"]));
   } catch {
-    throw new Error("不是 git 仓库");
+    throw new Error("不是 git 仓库（请选仓库根目录）");
   }
   let baseBranch = null;
-  for (const b of ["develop", "main"]) {
+  for (const b of ["develop", "main", "master"]) {
     if (hasLocalBranch(top, b)) {
       baseBranch = b;
       break;
     }
   }
-  if (!baseBranch) throw new Error("需要本地 develop 或 main 分支");
+  if (!baseBranch) {
+    throw new Error("需要本地 develop / main / master 分支");
+  }
   return {
     path: top,
-    name: path.basename(top),
+    name: path.basename(top) || top,
     baseBranch,
     hasDuaer: fs.existsSync(path.join(top, ".duaer")),
   };
@@ -1237,16 +1256,25 @@ async function handleApi(req, res) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/repos/pick") {
+    let chosen = null;
     try {
-      const chosen = pickFolderNative();
+      chosen = pickFolderNative();
       const probe = probeRepo(chosen);
-      rememberRepo(probe.path, { baseBranch: probe.baseBranch });
-      send(res, 200, { ok: true, ...probe });
+      const recent = rememberRepo(probe.path, {
+        baseBranch: probe.baseBranch,
+      });
+      send(res, 200, {
+        ok: true,
+        ...probe,
+        recent,
+        discovered: [],
+      });
     } catch (err) {
       const code = err && err.code;
-      send(res, code === "CANCELLED" ? 400 : 400, {
+      send(res, 400, {
         error: err instanceof Error ? err.message : "pick failed",
         cancelled: code === "CANCELLED",
+        path: chosen || undefined,
       });
     }
     return;
