@@ -35,6 +35,8 @@ the table for their app.
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
 | E2E-010 | `npx duaer-spec update` refreshes an existing install | manual |
+| E2E-011 | Installed docs (`DUADER.md`, `docs/agent/`) document `update` | manual |
+| E2E-012 | `README.zh-CN.md` covers install, update, branch model | manual |
 
 ## Traceability
 
@@ -50,3 +52,5 @@ the table for their app.
 | E2E-008 | `branching-and-release.md` | Branch + release matrix |
 | E2E-009 | `.duaer/handoff.json` / `duaer handoff` | Service handoff |
 | E2E-010 | `duaer update` | One-line refresh |
+| E2E-011 | DUADER + agent docs | Update path in installed 说明 |
+| E2E-012 | `README.zh-CN.md` | Chinese 说明文档 |

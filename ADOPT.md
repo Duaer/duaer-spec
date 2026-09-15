@@ -12,10 +12,15 @@ npx duaer-spec init --here
 npx duaer-spec update
 ```
 
-That’s it. If you customized local files, glance at `git diff` once.
+Do **not** use `init --here --force` as the everyday refresh. `update` reuses
+the mode/branch from `.duaer/duaer-init.json`.
+
+If you customized constitution / baseline / `.duaer/handoff.json` commands,
+glance at `git diff` once and keep your overrides.
 
 Ensure the repo has **`main`** and **`develop`**. See
-[`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md).
+[`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
+(Chinese: [`README.zh-CN.md`](README.zh-CN.md)).
 
 Then talk to the agent in plain language.
 

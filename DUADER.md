@@ -7,9 +7,10 @@ runs Brief → work → accept. Humans are not the operators of the phase machin
 
 ## Human experience
 
-1. One-time: `npx duaer-spec init --here`  
-2. Ongoing: describe work in chat  
-3. Review the handoff line (accepted / not yet)
+1. One-time install: `npx duaer-spec init --here`  
+2. Later refresh: `npx duaer-spec update`  
+3. Ongoing: describe work in chat  
+4. Review the handoff line (accepted / not yet)
 
 ## Agent procedure (autonomous)
 
@@ -42,4 +43,5 @@ Humans need not configure it for everyday use.
 ## Related
 
 - Adopt: [`ADOPT.md`](ADOPT.md)
+- Branches / go-live: [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
 - Agent ops: [`AGENTS.md`](AGENTS.md)

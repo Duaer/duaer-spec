@@ -21,6 +21,8 @@ npx duaer-spec update
 
 Then use Cursor as usual — describe what you want.
 
+中文说明：[`README.zh-CN.md`](README.zh-CN.md)
+
 ## What the employee does (by itself)
 
 1. Writes a Brief (Spec) for the ask  

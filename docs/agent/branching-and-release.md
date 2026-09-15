@@ -199,9 +199,20 @@ All implementation edits happen inside the request worktree.
 
 ---
 
+## 7. Install and update (adopters)
+
+```bash
+npx duaer-spec init --here     # once
+npx duaer-spec update          # later refresh — no --force recipe
+```
+
+Details: [`ADOPT.md`](../../ADOPT.md). Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).
+
 ## Related
 
 - [workflow.md](workflow.md) — R4 and development loop  
 - [change-checklist.md](change-checklist.md) — finish checklist  
 - [baseline.md](../baseline.md) — frozen: `develop` + `main`  
-- [ADOPT.md](../../ADOPT.md) — install into another repo  
+- [ADOPT.md](../../ADOPT.md) — install / update into another repo  
+- [README.zh-CN.md](../../README.zh-CN.md) — Chinese install, update, branches  
+

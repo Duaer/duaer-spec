@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.3 — 2026-09-15
+
+### Docs: update path in installed 说明
+
+- `DUADER.md` and `docs/agent/branching-and-release.md` document `npx duaer-spec update`
+- Add `README.zh-CN.md` (install / update / branches)
+- ADOPT clarifies: do not use `init --force` for everyday refresh
+
 ## 0.6.2 — 2026-09-15
 
 ### Simple update

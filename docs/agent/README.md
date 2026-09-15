@@ -10,4 +10,6 @@ Wins over Duaer and `examples/` when they conflict.
 | [change-checklist.md](change-checklist.md) | Finish checklist |
 | [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |
 
-Root contract: [`AGENTS.md`](../../AGENTS.md). Adoption: [`ADOPT.md`](../../ADOPT.md).
+Root contract: [`AGENTS.md`](../../AGENTS.md).  
+Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx duaer-spec init --here` / `npx duaer-spec update`.  
+Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).
