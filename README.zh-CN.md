@@ -48,7 +48,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
 duaer live
 ```
 
-浏览器打开提示地址。多轮对话 → 确认卡 → 点确认后 Brief 落在 `~/.duaer/live/jobs/`，再复制开工说明给数字员工到**真正的产品仓库**干活。
+浏览器打开提示地址。多轮对话 → 确认卡 → 自动验收 → **选择产品仓库派工**（建 worktree + 写入 Brief）→ 把开工说明给数字员工。
 
 ### 目录不要同名套娃
 

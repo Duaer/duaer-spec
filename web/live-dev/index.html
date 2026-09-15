@@ -16,7 +16,7 @@
     <header class="top">
       <p class="mark">Live desk · isolated</p>
       <p class="brand">现场开发</p>
-      <p class="tag">对话弄清 → 确认卡 → 数字员工开工</p>
+      <p class="tag">对话弄清 → 确认验收 → 派工产品仓</p>
       <div class="sight" aria-hidden="true">
         <span class="arm arm-h"></span>
         <span class="arm arm-v"></span>
@@ -83,11 +83,24 @@
           <span>假设</span>
           <textarea id="assumptions" rows="2" placeholder="待确认"></textarea>
         </label>
-        <p id="lockHint" class="hint">确认时自动验收；通过才写入 Brief</p>
+        <p id="lockHint" class="hint">确认时自动验收；通过后选择产品仓派工</p>
         <button type="button" class="btn confirm" id="confirm" disabled>
           需求无误，开始干活
         </button>
         <pre id="result" class="result" hidden></pre>
+
+        <section id="dispatch" class="dispatch" hidden>
+          <p class="mark">Dispatch · product repo</p>
+          <h3 class="dispatch-title">派工到产品仓库</h3>
+          <div id="repoList" class="repo-list"></div>
+          <label class="field">
+            <span>仓库路径</span>
+            <input id="repoPath" type="text" placeholder="/Users/…/your-product" />
+          </label>
+          <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并建 worktree</button>
+          <p id="dispatchErr" class="hint" hidden></p>
+          <p id="dispatchStatus" class="meta" hidden></p>
+        </section>
       </section>
     </main>
 

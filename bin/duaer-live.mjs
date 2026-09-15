@@ -15,6 +15,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawn, spawnSync } from "node:child_process";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -558,17 +559,14 @@ ${assumptions || "- (none)"}
 ${reviewBlock}
 ## Notes
 
-Confirmed via 现场开发 after auto-accept. Workspace is ~/.duaer/live (isolated from product repos).
-Copy this Brief into a product repo's \`.duaer/specs/\` when the digital employee starts work there.
+Confirmed via 现场开发 after auto-accept. Next: dispatch into a product repo worktree from the live desk.
 `;
 
   const tasks = `# Tasks
 
-- [ ] T001 Pick/create the target product repository (do not invent paths)
-- [ ] T002 Copy or recreate this Brief under that repo's .duaer/specs/
-- [ ] T003 Isolate worktree \`${branchHint}\` from develop
-- [ ] T004 Implement against this Brief
-- [ ] T005 Risk-based verification; delivery.json accepted
+- [ ] T001 Implement against this Brief in the request worktree
+- [ ] T002 Risk-based verification per \`.duaer/memory/testing.md\`
+- [ ] T003 Stamp \`delivery.json\` accepted (with verification evidence or waiver)
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), spec, "utf8");
@@ -581,6 +579,7 @@ Copy this Brief into a product repo's \`.duaer/specs/\` when the digital employe
         branch: branchHint,
         confirmedAt: new Date().toISOString(),
         source: "live-dev",
+        status: "confirmed",
         autoAccept: review
           ? {
               passed: true,
@@ -595,20 +594,15 @@ Copy this Brief into a product repo's \`.duaer/specs/\` when the digital employe
     "utf8",
   );
 
-  const agentPrompt = `按 Duaer 数字员工流程开工（Brief 在现场开发隔离区，勿与无关业务仓混淆）。
+  const agentPrompt = `现场开发已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
-Brief 目录: ${featureDir}
-（也可用相对路径：~/.duaer/live/jobs/${dirName}）
-
-要求：
-1. 先确认要在哪个产品仓库干活，把 Brief 放进该仓 .duaer/specs/
-2. 从 develop 建 worktree \`${branchHint}\`
-3. 只做 Brief 范围；按 testing.md 验证后 stamp delivery.json
-4. 不要推远程除非用户明确要求
+Brief: ${featureDir}
+分支建议: ${branchHint}
 `;
 
   return {
     ok: true,
+    jobId: dirName,
     featureDir,
     relativeDir: `~/.duaer/live/jobs/${dirName}`,
     branch: branchHint,
@@ -616,6 +610,301 @@ Brief 目录: ${featureDir}
     review: review
       ? { passed: true, summary: review.summary || "" }
       : undefined,
+  };
+}
+
+function reposFile() {
+  return path.join(liveRoot(), "repos.json");
+}
+
+function readRepos() {
+  ensureLiveDirs();
+  const p = reposFile();
+  if (!fs.existsSync(p)) return [];
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
+    return Array.isArray(raw.repos) ? raw.repos : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberRepo(repoPath, extra = {}) {
+  const abs = path.resolve(repoPath);
+  const next = [
+    {
+      path: abs,
+      name: path.basename(abs),
+      lastUsedAt: new Date().toISOString(),
+      ...extra,
+    },
+    ...readRepos().filter((r) => r.path !== abs),
+  ].slice(0, 20);
+  fs.writeFileSync(
+    reposFile(),
+    `${JSON.stringify({ repos: next }, null, 2)}\n`,
+    "utf8",
+  );
+  return next;
+}
+
+function runGit(cwd, args) {
+  const r = spawnSync("git", args, {
+    cwd,
+    encoding: "utf8",
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  if (r.status !== 0) {
+    throw new Error(
+      String(r.stderr || r.stdout || `git ${args.join(" ")} failed`).trim(),
+    );
+  }
+  return String(r.stdout || "").trim();
+}
+
+function hasLocalBranch(cwd, name) {
+  const r = spawnSync(
+    "git",
+    ["show-ref", "--verify", "--quiet", `refs/heads/${name}`],
+    { cwd },
+  );
+  return r.status === 0;
+}
+
+function probeRepo(repoPath) {
+  const abs = path.resolve(String(repoPath || "").trim());
+  if (!abs || abs === path.sep) throw new Error("请填写仓库绝对路径");
+  if (!fs.existsSync(abs)) throw new Error(`路径不存在：${abs}`);
+  let top;
+  try {
+    top = runGit(abs, ["rev-parse", "--show-toplevel"]);
+  } catch {
+    throw new Error("不是 git 仓库");
+  }
+  let baseBranch = null;
+  for (const b of ["develop", "main"]) {
+    if (hasLocalBranch(top, b)) {
+      baseBranch = b;
+      break;
+    }
+  }
+  if (!baseBranch) throw new Error("需要本地 develop 或 main 分支");
+  return {
+    path: top,
+    name: path.basename(top),
+    baseBranch,
+    hasDuaer: fs.existsSync(path.join(top, ".duaer")),
+  };
+}
+
+function nextSpecNum(specsRoot) {
+  fs.mkdirSync(specsRoot, { recursive: true });
+  const existing = fs.readdirSync(specsRoot).filter((n) => /^\d{3}-/.test(n));
+  let max = 0;
+  for (const name of existing) {
+    const n = Number(name.slice(0, 3));
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
+function readLiveJob(jobId) {
+  const id = String(jobId || "").trim();
+  if (!id) throw new Error("jobId required");
+  const featureDir = path.join(jobsRoot(), id);
+  if (!fs.existsSync(featureDir)) throw new Error(`找不到 live job：${id}`);
+  const jobPath = path.join(featureDir, "job.json");
+  const job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
+  return {
+    id,
+    featureDir,
+    job,
+    jobPath,
+    spec: fs.readFileSync(path.join(featureDir, "spec.md"), "utf8"),
+    tasks: fs.existsSync(path.join(featureDir, "tasks.md"))
+      ? fs.readFileSync(path.join(featureDir, "tasks.md"), "utf8")
+      : "",
+  };
+}
+
+function tryOpenEditor(targetPath) {
+  for (const cmd of ["cursor", "code"]) {
+    const which = spawnSync("which", [cmd], { encoding: "utf8" });
+    if (which.status !== 0) continue;
+    const child = spawn(cmd, [targetPath], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+    return cmd;
+  }
+  return null;
+}
+
+function dispatchToRepo({ jobId, repoPath }) {
+  const live = readLiveJob(jobId);
+  const probe = probeRepo(repoPath);
+  const branch =
+    String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
+  const worktreeId = branch.replace(/\//g, "-");
+  const worktreePath = path.join(probe.path, ".worktree", worktreeId);
+
+  if (fs.existsSync(worktreePath)) {
+    throw new Error(`worktree 已存在：${worktreePath}`);
+  }
+  if (hasLocalBranch(probe.path, branch)) {
+    throw new Error(`分支已存在：${branch}（请换目标或删分支后再派工）`);
+  }
+
+  fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
+  runGit(probe.path, [
+    "worktree",
+    "add",
+    "-b",
+    branch,
+    worktreePath,
+    probe.baseBranch,
+  ]);
+
+  const specsRoot = path.join(worktreePath, ".duaer", "specs");
+  const nextNum = nextSpecNum(specsRoot);
+  const slug = live.id.replace(/^\d{3}-/, "") || slugify(branch);
+  const specDirName = `${String(nextNum).padStart(3, "0")}-${slug}`;
+  const featureDir = path.join(specsRoot, specDirName);
+  fs.mkdirSync(featureDir, { recursive: true });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const goalMatch = live.spec.match(/^# Feature Specification:\s*(.+)$/m);
+  const goal = goalMatch ? goalMatch[1].trim() : live.id;
+  const productSpec = `# Feature Specification: ${goal}
+
+**Feature Branch**: \`${branch}\`
+
+**Created**: ${today}
+
+**Status**: Dispatched (现场开发)
+
+**Live job**: \`~/.duaer/live/jobs/${live.id}\`
+
+## Goal
+${extractSection(live.spec, "Goal") || goal}
+
+## Out of scope
+${extractSection(live.spec, "Out of scope") || "- (none listed)"}
+
+## Acceptance
+${extractSection(live.spec, "Acceptance") || ""}
+
+## Assumptions
+${extractSection(live.spec, "Assumptions") || "- (none)"}
+
+## Notes
+
+Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
+`;
+
+  const productTasks = `# Tasks
+
+- [ ] T001 Implement against this Brief
+- [ ] T002 Risk-based verification per testing.md
+- [ ] T003 Stamp delivery.json accepted
+`;
+
+  fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
+  fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
+  fs.writeFileSync(
+    path.join(worktreePath, ".duaer", "active-job.json"),
+    `${JSON.stringify(
+      {
+        specDir: `.duaer/specs/${specDirName}`,
+        branch,
+        startedAt: new Date().toISOString(),
+        source: "live-dispatch",
+        liveJobId: live.id,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  const openedWith = tryOpenEditor(worktreePath);
+  const agentPrompt = `按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
+
+工作目录: ${worktreePath}
+Brief: ${featureDir}
+分支: ${branch}
+
+要求：
+1. 只做 Brief 范围
+2. 按 .duaer/memory/testing.md（若有）做风险验证
+3. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
+4. 不要推远程除非用户明确要求
+5. 合入 develop 并 handoff 清理 worktree
+`;
+
+  const dispatch = {
+    repoPath: probe.path,
+    baseBranch: probe.baseBranch,
+    branch,
+    worktreePath,
+    specDir: `.duaer/specs/${specDirName}`,
+    featureDir,
+    dispatchedAt: new Date().toISOString(),
+    openedWith,
+  };
+
+  const nextJob = {
+    ...live.job,
+    status: "dispatched",
+    dispatch,
+  };
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  rememberRepo(probe.path, { baseBranch: probe.baseBranch });
+
+  return {
+    ok: true,
+    jobId: live.id,
+    ...dispatch,
+    agentPrompt,
+  };
+}
+
+function extractSection(md, title) {
+  const re = new RegExp(
+    `## ${title}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`,
+    "i",
+  );
+  const m = String(md || "").match(re);
+  return m ? m[1].trim() : "";
+}
+
+function dispatchStatus(jobId) {
+  const live = readLiveJob(jobId);
+  const dispatch = live.job.dispatch || null;
+  if (!dispatch?.worktreePath) {
+    return {
+      jobId: live.id,
+      status: live.job.status || "confirmed",
+      dispatch: null,
+      delivery: null,
+    };
+  }
+  const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
+  let delivery = null;
+  if (fs.existsSync(deliveryPath)) {
+    try {
+      delivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+    } catch {
+      delivery = { status: "invalid" };
+    }
+  }
+  const worktreeExists = fs.existsSync(dispatch.worktreePath);
+  return {
+    jobId: live.id,
+    status: delivery?.status === "accepted" ? "accepted" : live.job.status,
+    dispatch: { ...dispatch, worktreeExists },
+    delivery,
   };
 }
 
@@ -753,6 +1042,7 @@ async function handleApi(req, res) {
       send(res, 200, {
         ...result,
         passed: true,
+        needDispatch: true,
         card: {
           goal: review.goal,
           outOfScope: review.outOfScope,
@@ -763,6 +1053,52 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "confirm failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/repos") {
+    send(res, 200, { repos: readRepos() });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/repos/probe") {
+    try {
+      const body = await readJson(req);
+      const probe = probeRepo(body.path);
+      send(res, 200, { ok: true, ...probe });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "probe failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/dispatch") {
+    try {
+      const body = await readJson(req);
+      const result = dispatchToRepo({
+        jobId: body.jobId,
+        repoPath: body.repoPath,
+      });
+      send(res, 200, result);
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "dispatch failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/status") {
+    try {
+      const jobId = url.searchParams.get("jobId");
+      send(res, 200, dispatchStatus(jobId));
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "status failed",
       });
     }
     return;

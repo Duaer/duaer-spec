@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live dispatch
+
+- After confirm + auto-accept: pick a product repo, create `.worktree/feat-*`, write Brief under that worktree’s `.duaer/specs/`
+- Remembers recent repos; polls `delivery.json` status; opens `cursor`/`code` when available
+
 ### Live streaming chat
 
 - Dialogue replies stream over SSE (`/api/chat`); text appears token-by-token before the confirm card updates

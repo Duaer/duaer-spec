@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T00:30:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": [
+      "probe + dispatch against temp git repo with develop",
+      "worktree + active-job.json created"
+    ],
+    "result": "pass"
+  }
+}

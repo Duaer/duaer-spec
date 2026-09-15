@@ -26,6 +26,8 @@ const state = {
   messages: [],
   providers: FALLBACK_PROVIDERS,
   providerId: "deepseek",
+  jobId: null,
+  statusTimer: null,
 };
 
 const el = {
@@ -49,6 +51,12 @@ const el = {
   cfgModel: document.getElementById("cfgModel"),
   saveCfg: document.getElementById("saveCfg"),
   cfgErr: document.getElementById("cfgErr"),
+  dispatch: document.getElementById("dispatch"),
+  repoList: document.getElementById("repoList"),
+  repoPath: document.getElementById("repoPath"),
+  doDispatch: document.getElementById("doDispatch"),
+  dispatchErr: document.getElementById("dispatchErr"),
+  dispatchStatus: document.getElementById("dispatchStatus"),
 };
 
 function cardValues() {
@@ -65,9 +73,9 @@ function syncConfirmEnabled() {
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
   el.confirm.disabled = !ok;
   el.lockHint.textContent = state.locked
-    ? "已锁定。Brief 在 ~/.duaer/live/jobs，不在业务仓库里。"
+    ? "已确认。选择产品仓库派工，Brief 才会进入业务仓 worktree。"
     : ok
-      ? "可以确认了。确认后写入隔离工作区。"
+      ? "可以确认了。确认后自动验收，再派工。"
       : "至少填好「要做什么」和「验收标准」。";
 }
 
@@ -357,9 +365,7 @@ el.confirm.addEventListener("click", async () => {
     if (data.card) applyCard(data.card);
     if (res.status === 422 || data.passed === false) {
       const issues = Array.isArray(data.issues) ? data.issues : [];
-      const detail = issues.length
-        ? `\n- ${issues.join("\n- ")}`
-        : "";
+      const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
       addBubble(
         "bot",
         `自动验收未通过：${data.summary || data.error || "请修改确认卡"}${detail}`,
@@ -371,17 +377,19 @@ el.confirm.addEventListener("click", async () => {
     }
     if (!res.ok) throw new Error(data.error || "confirm failed");
     state.locked = true;
+    state.jobId = data.jobId || null;
     el.confirm.textContent = "已确认";
     el.result.hidden = false;
     const reviewLine = data.review?.summary
       ? `自动验收：${data.review.summary}\n`
       : "";
-    el.result.textContent = `${reviewLine}Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
+    el.result.textContent = `${reviewLine}Live Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n下一步：下方选择产品仓库派工。`;
     addBubble(
       "bot",
-      `自动验收通过。Brief 已写入 ${data.relativeDir || data.featureDir}，未写入业务仓库。`,
+      `自动验收通过。隔离区 Brief 已就绪；请选择产品仓库派工（建 worktree + 写入 Brief）。`,
     );
     syncConfirmEnabled();
+    await showDispatchPanel();
   } catch (err) {
     el.confirm.disabled = false;
     el.confirm.textContent = "需求无误，开始干活";
@@ -390,5 +398,105 @@ el.confirm.addEventListener("click", async () => {
     state.busy = false;
   }
 });
+
+async function showDispatchPanel() {
+  el.dispatch.hidden = false;
+  el.dispatchErr.hidden = true;
+  el.dispatchStatus.hidden = true;
+  el.doDispatch.disabled = false;
+  el.doDispatch.textContent = "写入 Brief 并建 worktree";
+  const res = await fetch("/api/repos");
+  const data = await res.json();
+  el.repoList.replaceChildren();
+  for (const repo of data.repos || []) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "repo-chip";
+    btn.innerHTML = `<strong>${escapeHtml(repo.name || pathBasename(repo.path))}</strong><span>${escapeHtml(repo.path)}</span>`;
+    btn.addEventListener("click", () => {
+      el.repoPath.value = repo.path;
+    });
+    el.repoList.appendChild(btn);
+  }
+}
+
+function pathBasename(p) {
+  const parts = String(p || "").split(/[/\\]/);
+  return parts.filter(Boolean).pop() || p;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+el.doDispatch.addEventListener("click", async () => {
+  if (!state.jobId || state.busy) return;
+  const repoPath = el.repoPath.value.trim();
+  if (!repoPath) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = "填写产品仓库绝对路径";
+    return;
+  }
+  el.dispatchErr.hidden = true;
+  el.doDispatch.disabled = true;
+  el.doDispatch.textContent = "派工中…";
+  state.busy = true;
+  try {
+    const res = await fetch("/api/dispatch", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobId: state.jobId, repoPath }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "派工失败");
+    el.result.hidden = false;
+    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n打开编辑器: ${data.openedWith || "无（请手动打开）"}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
+    addBubble(
+      "bot",
+      `已派工到 ${data.worktreePath}。把右侧开工说明交给数字员工；完成后 delivery 会显示在此。`,
+    );
+    el.doDispatch.textContent = "已派工";
+    el.dispatchStatus.hidden = false;
+    el.dispatchStatus.textContent = "等待数字员工 stamp delivery.json…";
+    startStatusPoll();
+  } catch (err) {
+    el.doDispatch.disabled = false;
+    el.doDispatch.textContent = "写入 Brief 并建 worktree";
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent =
+      err instanceof Error ? err.message : String(err);
+  } finally {
+    state.busy = false;
+  }
+});
+
+function startStatusPoll() {
+  if (state.statusTimer) clearInterval(state.statusTimer);
+  const tick = async () => {
+    if (!state.jobId) return;
+    try {
+      const res = await fetch(`/api/status?jobId=${encodeURIComponent(state.jobId)}`);
+      const data = await res.json();
+      if (!res.ok) return;
+      if (data.status === "accepted") {
+        el.dispatchStatus.textContent = "delivery accepted · 工单完成";
+        addBubble("bot", "数字员工已验收通过（delivery.json accepted）。");
+        clearInterval(state.statusTimer);
+        state.statusTimer = null;
+        return;
+      }
+      const st = data.delivery?.status || data.status || "pending";
+      el.dispatchStatus.textContent = `状态：${st}${data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""}`;
+    } catch {
+      // ignore poll errors
+    }
+  };
+  void tick();
+  state.statusTimer = setInterval(tick, 5000);
+}
 
 void loadConfig();

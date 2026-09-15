@@ -49,7 +49,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
 duaer live
 ```
 
-Dialogue → four-block confirm → Brief in `~/.duaer/live/jobs/` (copy into a product repo when the digital employee starts coding).
+Dialogue → confirm + auto-accept → **dispatch** into a product repo worktree (Brief under that worktree’s `.duaer/specs/`) → hand the prompt to the digital employee.
 
 ## Branches (mandatory)
 
