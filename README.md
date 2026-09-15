@@ -1,51 +1,37 @@
 # duaer-spec
 
-**Duaer** makes AI coding agents work like digital employees: assign a job,
-get a controllable handoff — without a rigid git lock.
+**Duaer** turns AI coding agents into **digital employees**: they take a normal
+language ask, run Spec → work → accept themselves, and only claim a job done
+when the handoff is clean.
 
-## Everyday (this is enough)
+You should **not** have to operate the workflow. After a one-time install, you
+talk; the employee runs the process.
+
+## One-time install
 
 ```bash
 npx duaer-spec init --here
 ```
 
-In Cursor, one command:
+Then use Cursor as usual — describe what you want. No slash-command chain
+required.
 
-```text
-/duaer-do <what you want built or fixed>
-```
+## What the employee does (by itself)
 
-See if the job can be reported done:
+1. Writes a Brief (Spec) for the ask  
+2. Implements within that Brief  
+3. Checks the result and stamps accept / still-open  
+4. Tells you in one line whether the job is ready for review  
 
-```bash
-duaer status
-```
-
-That’s the whole loop: **hire → do → status**.
-
-## What `/duaer-do` does
-
-1. Writes a short Brief (Spec)  
-2. Implements it  
-3. Checks against the Brief and stamps accept / still-open  
-
-You do **not** need to chain specify → plan → tasks → implement → converge
-for normal work. Those remain available when you want finer control.
+Step skills and CLI checks exist for agents and power users — not as the
+everyday human UI.
 
 ## Optional
 
 ```bash
-duaer status          # active job: accepted or not
-npx duaer-spec@0.4.0 init --here --method   # method only
+npx duaer-spec@0.5.0 init --here --method   # method only
 ```
 
-Advanced (policy, full check, step-by-step skills): [`ADOPT.md`](ADOPT.md) · [`DUADER.md`](DUADER.md)
+Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)
 
-## Two layers
-
-| Layer | Role |
-|---|---|
-| **Agent ops** | How agents may operate — [`AGENTS.md`](AGENTS.md) |
-| **Duaer method** | How jobs are briefed and accepted — [`.duaer/`](.duaer/), skills |
-
-When they conflict, **agent ops win**.
+When agent ops and method conflict, **agent ops win**.

@@ -1,45 +1,42 @@
 # Adopt duaer-spec
 
-Install Duaer so agents act like digital employees with a simple everyday loop.
+Install once so the coding agent behaves as a **digital employee**: it runs
+Brief → work → accept **without** the human operating slash commands or CLI.
 
-## Install
+## Install (human, once)
 
 ```bash
 npx duaer-spec init --here
-# pin: npx github:fujiezee/duaer-spec@v0.4.0 duaer init --here
+# pin: npx github:fujiezee/duaer-spec@v0.5.0 duaer init --here
 ```
 
 ```bash
-npx duaer-spec init --here --method          # lite
+npx duaer-spec init --here --method
 npx duaer-spec init --here --ops --branch develop
 ```
 
-## Everyday use
+After that: talk to the agent in plain language. Do not teach them `/duaer-*`.
 
-1. `/duaer-do <ask>` in Cursor  
-2. `duaer status` when you want to see if the job is accepted  
+## What gets installed
 
-No need to learn policy modes or the full skill chain for normal work.
+- Always-on rule: agent must run the autonomous job loop on product work  
+- Playbook skill `duaer-do` (agent follows it; human need not invoke it)  
+- Optional step skills for large jobs (agent-only)  
+- Agent ops (`AGENTS.md`) when using `--all` / `--ops`
 
-## Finer control (optional)
+## Power users / agents
 
-| Command | When |
+| Tool | Who uses it |
 |---|---|
-| `/duaer-specify` | Only write / reshape the Brief |
-| `/duaer-plan` · `/duaer-tasks` | Large or architectural jobs |
-| `/duaer-implement` | Resume coding from `tasks.md` |
-| `/duaer-converge` | Re-check Spec vs code |
-| `duaer policy . strict` | Harder “don’t claim done” (still not a git lock) |
+| `/duaer-do` procedure | Agent (automatic) |
+| `/duaer-specify` … `/duaer-converge` | Agent, when splitting a large job |
+| `duaer status` / `duaer policy` | Optional diagnostics — not required of humans |
 
 ## Precedence
 
 1. `AGENTS.md` — how employees operate  
-2. `DUADER.md` / `.duaer/` — what to build  
+2. `DUADER.md` / `.duaer/` — how jobs are briefed  
 
 ## Updates
 
-`duaer init --force` (review the diff) or pin a tag. No auto-update.
-
-## Do not copy
-
-`examples/`, `SOURCE.md`, `bin/` / `package.json` (unless vendoring the CLI)
+`duaer init --force` (review the diff) or pin a tag.

@@ -94,7 +94,7 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 
 ## 6. Merge / PR
 
-- [ ] Active job handoff considered: `duaer job .` (coach/strict: do not claim done if unfinished).
+- [ ] Active job handoff considered by the **agent** (do not require the human to run CLI for routine work).
 - [ ] Branch refreshed against latest `main`.
 - [ ] Merged into local `main` (and/or remote PR/MR when required).
 - [ ] Only this request's logical changes included.

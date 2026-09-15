@@ -26,23 +26,19 @@ const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 
 const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
-Everyday:
-  duaer init [--here]     Hire into a project
-  duaer status [dir]      Is the active job accepted?
+Human (once):
+  duaer init [--here]     Install so the agent works as a digital employee
 
-In Cursor:  /duaer-do <what you want>
+After install: talk to the agent in plain language. Do not operate /duaer-* phases.
 
-Advanced:
-  duaer check [dir] [--workplace|--job|--all-jobs|--strict]
-  duaer job [dir]                    (same as status)
-  duaer policy [dir] [off|coach|strict]
-  duaer version
+Agent / optional diagnostics:
+  duaer status [dir]
+  duaer check | policy | version
 
 Init: --all (default) | --method | --ops | --force | --branch <n> | --here
 
-Examples:
+Example:
   npx duaer-spec init --here
-  duaer status
 `
 
 function parseArgs(argv) {
@@ -283,12 +279,12 @@ function cmdInit(opts) {
   }
 
   console.log(`
-Hired. Everyday loop:
+Hired.
 
-  1. In Cursor:  /duaer-do <what you want>
-  2. Optional:   duaer status
+You: describe work in Cursor (plain language).
+Agent: runs Brief → work → accept by itself — do not operate slash phases.
 
-That is enough for normal work. Advanced: ADOPT.md / DUADER.md
+Optional diagnostic: duaer status
 `)
 }
 

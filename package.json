@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.4.0",
-  "description": "Simple digital-employee delivery: /duaer-do + duaer status",
+  "version": "0.5.0",
+  "description": "Digital employees that run Spec→work→accept themselves — humans just ask",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",

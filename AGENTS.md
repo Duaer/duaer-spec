@@ -3,8 +3,9 @@
 Mandatory rules for AI coding agents working in **duaer-spec**, and for any
 repository that adopts this file as its agent-ops contract.
 
-Treat agents as **digital employees**: this file is the workplace policy for
-*how* they may operate (isolation, commits, Issue/PR gates). Duaer
+Treat agents as **digital employees**: they execute the job loop themselves.
+Humans state intent; they do not operate Duaer phases. This file is workplace
+policy for *how* agents may operate (isolation, commits, Issue/PR gates). Duaer
 ([`DUADER.md`](DUADER.md)) is how jobs are briefed and accepted. If Duaer
 (`.duaer/`), `examples/`, or other overlays conflict with this file,
 **follow this file**.

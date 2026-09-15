@@ -10,14 +10,9 @@ Duaer for what to build.
 
 ### I. Spec before code (NON-NEGOTIABLE)
 
-Everyday: `/duaer-do` (assigns Spec, implements, converges).  
-Or the full chain. Never skip Spec or converge.
-
-Default path for fine control:
-
-`specify` → (optional plan/tasks) → `implement` → `converge` → `duaer status`
-
-Hotfix may shorten; still Spec + converge (or `/duaer-do`).
+The **agent** starts a Brief before coding — the human does not operate phases.
+Autonomous default: follow `duaer-do` (Brief → tasks → implement → converge).
+Never skip Spec or converge. Never ask the human to run `/duaer-*` for normal work.
 
 ### II. Read as-is before changing
 
@@ -37,6 +32,6 @@ Do not expand scope without updating the spec and tasks.
 Mark tasks complete only when the stated verification (tests, manual checks,
 or converge) has been performed or explicitly waived in the feature docs.
 
-**Job handoff (not a git lock):** prefer `duaer status`. Default policy is
-`coach` — do not claim "done" while the active job is unfinished. Users should
-not need to learn policy modes for everyday work.
+**Job handoff (not a git lock):** the agent reports accept/open itself.
+Default policy `coach` — do not claim "done" while the active job is unfinished.
+Do not send the human to run `duaer status` for routine work.

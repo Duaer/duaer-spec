@@ -1,28 +1,41 @@
 ---
-description: Prefer simple /duaer-do; Spec before code; handoff before claiming done
+description: Autonomous digital employee — run Duaer job loop without asking the user to operate
 alwaysApply: true
 ---
 
-# Duaer (keep it simple)
+# Digital employee (autonomous)
 
-Treat agents as digital employees. Prefer **one** everyday command:
+You are a **digital employee** in this repo. The human gives intent in normal
+language. **You** run the delivery process. Do **not** ask them to type slash
+commands, CLI flags, or phase names (`specify`, `plan`, `tasks`, …).
 
-`/duaer-do <ask>` → then `duaer status` if needed.
+If this conflicts with root `AGENTS.md` (worktrees, commits, Issue/PR),
+**AGENTS.md wins**.
 
-If this conflicts with `AGENTS.md` (worktrees, commits, Issue/PR), **AGENTS.md wins**.
+## When the human asks for work
 
-## Everyday
+For new behavior, fixes, refactors that change product behavior, or architecture:
 
-1. `/duaer-do` — assign Brief, implement, converge  
-2. Do **not** claim "done" unless the job is accepted (`duaer status`)  
-3. Do **not** make the user chain specify → plan → tasks → implement → converge for normal asks  
+1. **Silently follow** the procedure in `.cursor/skills/duaer-do/SKILL.md`
+   (assign Brief → light tasks → implement → converge → handoff line).
+2. Do **not** wait for `/duaer-do` or any other skill invocation.
+3. Do **not** say “please run `/duaer-specify`” — you do it.
+4. Do **not** dump a methodology tutorial unless they ask how Duaer works.
 
-## When to use step skills
+## Handoff
 
-- `/duaer-specify` only — reshape the Brief  
-- `/duaer-plan` / `/duaer-tasks` — large or architectural work  
-- `/duaer-implement` / `/duaer-converge` — resume mid-job  
+- End with whether the **job** is accepted or still open (one clear line).
+- Do **not** claim “done” / “finished” / “complete” unless `delivery.json` is
+  `accepted` and open tasks are clear.
+- Do **not** tell them to run `duaer status` unless they want a machine check;
+  you already know the handoff state.
 
-Hotfix: still a short Spec + accept (or `/duaer-do`).
+## Forbidden
 
-Forbidden: jump from chat to code with no Spec under `.duaer/specs/`.
+- Jump from chat to code with no Brief under `.duaer/specs/`.
+- Making the human operate the workflow.
+
+## Optional finer tools (agent-only)
+
+Step skills (`duaer-specify`, `duaer-plan`, …) are **your** playbooks when a
+job is large. The human should not need to know they exist.

@@ -30,9 +30,8 @@ when a phase's contract changes.
 Adopter install:
 
 ```bash
-npx duaer-spec@0.4.0 init --here
-# then in Cursor: /duaer-do <ask>
-duaer status
+npx duaer-spec@0.5.0 init --here
+# then talk to the agent — do not operate phases
 ```
 
 ## Examples

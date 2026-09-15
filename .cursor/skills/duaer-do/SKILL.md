@@ -1,11 +1,16 @@
 ---
 name: "duaer-do"
-description: "Simple one-shot: turn a user ask into an assigned job, implement it, and hand off. Prefer this for everyday work instead of chaining specify/plan/tasks/implement/converge."
+description: "Autonomous job loop for digital employees: Brief → work → accept. Agents must follow this whenever the user asks for product work — without waiting for the user to invoke this skill or any CLI."
 compatibility: "Requires duaer-spec project structure with .duaer/ directory"
 metadata:
   author: "duaer-spec"
   source: "duaer-spec"
 ---
+
+## Trigger
+
+Any human ask that needs code or product behavior changed.  
+**Do not require** the human to type `/duaer-do` or name phases.
 
 ## User Input
 
@@ -13,50 +18,40 @@ metadata:
 $ARGUMENTS
 ```
 
-You **MUST** use the user input as the job request (if not empty).
+If empty, use the current conversation ask as the job.
 
 ## Goal
 
-**Everyday path — keep it simple.** Run one digital-employee job end-to-end without
-asking the user to chain slash commands.
+Run one job end-to-end. The human should only review the result.
 
-Do **not** lecture about methodology. Do the work.
+Do **not** lecture about methodology. Do **not** ask them to run commands.
 
-## Steps (always in order)
+## Steps (you perform these)
 
-1. **Assign** — Ensure an active feature Brief exists:
-   - If there is already a clear active job (`.duaer/active-job.json` + `spec.md`)
-     that matches this ask, update that `spec.md` acceptance as needed.
-   - Otherwise run the same outcome as `/duaer-specify` for this ask
-     (create `.duaer/specs/<nnn-slug>/spec.md`, write `.duaer/active-job.json`).
-   - For small asks: keep the Spec short (what / why / acceptance only).
+1. **Assign** — Ensure an active Brief:
+   - Matching active job (`.duaer/active-job.json` + `spec.md`) → update acceptance if needed.
+   - Else create `.duaer/specs/<nnn-slug>/spec.md` and `.duaer/active-job.json`
+     (same outcome as specify). Keep small asks short: what / why / acceptance.
 
-2. **Break down (lightweight)** — If `tasks.md` is missing:
-   - Write a short `tasks.md` with a few `- [ ]` items from the Spec.
-   - Skip `/duaer-plan` unless architecture or contracts clearly change.
-   - If `tasks.md` already exists, use it.
+2. **Break down** — If `tasks.md` missing, write a short checklist from the Spec.
+   Skip a heavy plan unless architecture or contracts change.
 
-3. **Work** — Implement open tasks (same rules as `/duaer-implement`).
-   Mark tasks `[x]` as you finish them. Do not expand scope past the Spec.
+3. **Work** — Implement open tasks; mark `[x]` as you go. No scope beyond Spec.
 
-4. **Accept** — Run the same outcome as `/duaer-converge`:
-   - Compare code to Spec; append gap tasks or stamp `delivery.json` accepted.
-   - If gaps were appended, either implement them now (preferred for small jobs)
-     or stop and tell the user what remains — once.
+4. **Accept** — Converge against Spec: stamp `delivery.json` `accepted`, or append
+   gap tasks and implement them when small enough; otherwise one clear remaining note.
 
-5. **Handoff line** — End with exactly one clear status:
-   - If accepted: `✅ Job accepted — ready for your review.`
-   - If not: `⏳ Job not accepted yet — <one sentence what to do next>.`
-   - Do **not** claim "done" unless `delivery.json` is `accepted` and tasks are clear
-     (coach/strict policy). Git is not locked.
+5. **Handoff** — One line to the human:
+   - `✅ Job accepted — ready for your review.`
+   - `⏳ Job not accepted yet — <one sentence>.`
+   Never claim done unless accepted + tasks clear. Git is not locked by this.
 
 ## Hotfix
 
-If the user says hotfix/bug/regression: still write a short Spec (symptom / cause /
-acceptance), then tasks → implement → converge. Same handoff line.
+Still a short Spec (symptom / cause / acceptance), then work + accept. Same handoff.
 
-## Out of scope for this command
+## Never
 
-- Do not require the user to run `/duaer-plan`, `/duaer-checklist`, or `/duaer-analyze`.
-- Do not discuss policy modes unless they ask.
-- Do not turn this into a merge/CI lecture.
+- Ask the human to run `/duaer-*`, `duaer status`, or `duaer policy`.
+- Discuss policy modes unless they ask.
+- Block on slash-command invocation.

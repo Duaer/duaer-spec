@@ -1,54 +1,45 @@
 # Duaer methodology
 
-Treat AI coding agents as **digital employees**. Everyday path is short; the
-full chain exists when you need it.
+AI coding agents are **digital employees**. The human states intent; the agent
+runs Brief → work → accept. Humans are not the operators of the phase machine.
 
 **Precedence:** [`AGENTS.md`](AGENTS.md) wins on isolation, commits, Issue/PR.
 
-## Everyday (default)
+## Human experience
 
-```text
-/duaer-do <ask>     →  duaer status
-```
+1. One-time: `npx duaer-spec init --here`  
+2. Ongoing: describe work in chat  
+3. Review the handoff line (accepted / not yet)
 
-`/duaer-do` assigns a Brief, implements, converges, and reports handoff.
-Do not require the user to run every phase skill.
+## Agent procedure (autonomous)
 
-## Full path (optional)
+Follow `.cursor/skills/duaer-do/SKILL.md` on every product ask — **without**
+waiting for a slash invocation:
 
-1. `/duaer-specify` — Brief  
-2. `/duaer-plan` — when architecture/contracts change  
-3. `/duaer-tasks` — explicit checkbox breakdown  
-4. `/duaer-implement` — code from tasks  
-5. `/duaer-converge` — accept stamp (`delivery.json`)  
-6. `duaer status` — may we claim this job done?
+1. Assign Brief + `active-job.json`  
+2. Light `tasks.md` if needed  
+3. Implement  
+4. Converge → `delivery.json`  
+5. One handoff line; never claim done until accepted  
 
-Hotfix: short Spec → tasks → implement → converge (or just `/duaer-do`).
+Large jobs may use step playbooks (`duaer-specify`, `duaer-plan`, …) internally.
 
-Never skip a Brief or an accept step. Under default **coach** policy, do not
-claim "done" while `duaer status` is unfinished. This is **job handoff**, not a
-git merge lock.
+## Policy
 
-## Install
-
-```bash
-npx duaer-spec init --here
-```
-
-See [`ADOPT.md`](ADOPT.md).
+`.duaer/delivery-policy.json` defaults to `coach`. Agents must not claim done
+while the active job is unfinished. This is job etiquette, not a git lock.
+Humans need not configure it for everyday use.
 
 ## Layout
 
 ```text
-.duaer/delivery-policy.json   # default coach — usually ignore
-.duaer/active-job.json        # current job
-.duaer/specs/<nnn-slug>/
-  spec.md
-  tasks.md
-  delivery.json
+.duaer/active-job.json
+.duaer/specs/<nnn-slug>/spec.md|tasks.md|delivery.json
+.cursor/rules/duaer-spec.mdc      # autonomous behavior
+.cursor/skills/duaer-do/          # default job loop
 ```
 
 ## Related
 
+- Adopt: [`ADOPT.md`](ADOPT.md)
 - Agent ops: [`AGENTS.md`](AGENTS.md)
-- Maintainer notes: [`docs/maintaining.md`](docs/maintaining.md)
