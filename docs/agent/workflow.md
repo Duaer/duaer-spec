@@ -1,500 +1,127 @@
 # AI-Assisted Development Workflow
 
-> Scope: AI agents adopting **duaer-spec** / MyDesk-style ops (sourced from PI-Desktop)  
+> Scope: **duaer-spec** agent ops (adoptable by other repositories)  
 > Status: Accepted  
-> Brand: duaer-spec — this document and root `AGENTS.md` win over Spec Kit conflicts  
-> Cross-references: [baseline](../baseline.md) · [e2e-test-plan](e2e-test-plan.md) · [change-checklist](change-checklist.md) · [ADR index](../adr/README.md)
+> Precedence: this document and root `AGENTS.md` win over Spec Kit / examples  
+> Cross-references: [baseline](../baseline.md) · [e2e-test-plan](e2e-test-plan.md) · [change-checklist](change-checklist.md) · [ADR index](../adr/README.md) · [ADOPT](../../ADOPT.md)
 
 ---
 
 ## 1. Core Immutable Rules
 
-The rules below govern every change when adopting duaer-spec agent ops. R1–R4 restate the five numbered Immutable Rules in `AGENTS.md` (R4 covers both the merge-back and worktree clean-up rules); R5 and R6 restate its GitHub issue and pull request handling sections. They cannot be relaxed by an agent without explicit human override.
+R1–R4 restate the numbered Immutable Rules in `AGENTS.md` (R4 covers merge-back
+and worktree clean-up). R5 and R6 restate GitHub issue and pull request
+handling. They cannot be relaxed without explicit human override.
 
 ### R1 — Spec-first / Spec-sync
 
 > **No behavior change without updating the corresponding spec.**
 
-- Every code, config, or UX change that alters observable behavior must update the relevant `docs/spec/` document before or alongside the change.
-- Architectural boundary changes (process model, IPC contract, storage ownership, security boundary) also require an ADR — see `docs/adr/README.md`.
-- Pure refactor that preserves behavior and API contracts does not require spec updates, but must still be committed (R2).
+- Every change that alters observable behavior must update the relevant
+  specification (project `docs/spec/`, Spec Kit feature specs, or
+  `docs/agent/` when changing duaer-spec itself).
+- Architectural boundary changes also require an ADR under `docs/adr/`.
+- Pure refactors that preserve behavior and contracts do not require spec
+  updates, but must still be committed (R2).
 
 ### R2 — Commit-per-change
 
 > **Every completed logical change must be git committed.**
 
-- No large uncommitted piles of work. Each logical unit of work — a feature, a fix, a spec update, a chore — gets its own commit.
-- Uncommitted work at session end is a violation of this rule.
-- If a change is incomplete, either commit it as a draft with a `WIP:` prefix or roll it back.
+- One logical unit per commit. No large uncommitted piles at session end.
+- Incomplete work: commit as `WIP:` draft or roll it back.
 
 ### R3 — E2E coverage doc
 
-> **Every feature/fix that affects user-visible or protocol-visible behavior must update e2e test documentation.**
+> **User-visible or protocol-visible changes must update E2E scenario docs.**
 
-- "User-visible": anything the end-user sees or interacts with (UI, CLI output, dialogs, notifications).
-- "Protocol-visible": IPC messages, RPC methods, plugin API surfaces, event payloads.
-- Document the scenario in [`e2e-test-plan.md`](e2e-test-plan.md) — even before the automated test exists.
-- Internal-only changes (logging format, internal variable rename) do not require e2e doc updates.
+- Document scenarios in the project's E2E catalog (see
+  [e2e-test-plan](e2e-test-plan.md)).
+- Internal-only changes (logging format, private renames) do not require it.
 
 ### R4 — Request branch + worktree + merge gate
 
-> **Every new request starts from `main` in a dedicated worktree on a dedicated branch and finishes only after its PR/MR is merged into `main`.**
+> **Every new request starts from `main` in a dedicated worktree on a dedicated
+> branch and finishes only after it is merged into `main`.**
 
-- Before editing, preserve any existing uncommitted work, fetch `origin/main`,
-  fast-forward local `main` when its worktree is clean, and create a new request
-  branch and worktree from that up-to-date commit. Existing work in the primary
-  checkout must never be moved, stashed, or overwritten merely to start a new
+- Before editing: preserve existing uncommitted work; fetch and fast-forward
+  local `main` when clean; create a new request branch and worktree from that
+  commit. Never stash or overwrite another agent's work merely to start.
+- Name branches `<type>/<short-description>` (for example `feat/adopt-docs`).
+- Do not implement in the primary checkout or reuse another request's worktree.
+- Reuse shared toolchains and caches where safe; keep mutable or
+  concurrency-sensitive state worktree-local and ignored.
+- After validation: merge into local `main` (or via PR/MR when required), then
+  remove the request worktree and delete the merged branch immediately.
+- Push only when the user explicitly requests remote publishing for this
   request.
-- Use one short-lived branch per request. Name it
-  `<type>/<short-description>`, where `type` matches the conventional change
-  type when practical, for example `feat/provider-import` or
-  `docs/request-branch-workflow`.
-- Use one dedicated worktree per request. Do not implement a new request in the
-  primary checkout or reuse another request's worktree.
-- Reuse the primary checkout's development environment where safe: installed
-  toolchains, package-manager stores, build caches, and ignored local
-  environment configuration remain the canonical environment. Reference or
-  link those resources into the request worktree when required; do not copy
-  environment state into tracked files. Install or generate worktree-local
-  state only when isolation or version compatibility requires it.
-- Development commits and direct pushes on `main` are forbidden.
-- After development and any necessary local validation, push the request
-  branch, open a pull/merge request targeting `main`, and complete all required
-  remote checks and reviews.
-- Merge the approved PR/MR into `main`, remove the request worktree, and delete
-  the request branch. If
-  authentication, permissions, required remote checks, or required reviews prevent
-  the merge, report the blocker; the request is not Done.
-- Worktree cleanup is mandatory and immediate. As soon as the request branch is
-  integrated into `main` — including a local `main` merge when the request is
-  delivered without a remote PR/MR — remove the worktree and delete the merged
-  branch. A merged request must not leave a worktree on disk. Remove only your
-  own worktree and branch, and only after verifying the merge commits are
-  present in `main`.
+
+Adopting projects may replace `main` with another integration branch; document
+it in the project baseline. **duaer-spec itself uses `main`.** Example overlays
+under `examples/` do not change this repo's default.
 
 ### R5 — Verify linked GitHub issues before work, then reply and close
 
-> **A linked GitHub issue is not a task until the reported problem is shown to exist. After the outcome is conclusive, reply on that issue and close it.**
+> **A linked GitHub issue is not a task until the reported problem is shown to
+> exist. After a conclusive outcome, reply and close.**
 
-This rule applies when the user prompt includes a GitHub issue URL or an
-unambiguous issue number for this repository.
-
-- Fetch the issue (title, body, labels, comments, and state) before creating a
-  worktree or changing files for the claimed problem.
-- Independently verify the claim against the current codebase. For a bug,
-  reproduce it or cite concrete code/spec evidence. For a feature or
-  improvement, confirm the requested behavior is actually missing or incomplete
-  and in scope.
-- Do not start implementation until verification confirms the problem exists.
-- If the problem does not exist (already fixed, invalid, or a
-  misunderstanding): comment with the verification evidence and close the issue
-  when that conclusion is clear. If verification is inconclusive, comment with
-  what was tried and leave the issue open.
-- If the problem exists: follow R4, implement the smallest coherent change,
-  and after the request is merged into local `main`, comment with the
-  resolution and close the issue.
-- Write the GitHub comment in the language of the original issue title and
-  body. Code, commits, specs, and other repository documentation stay English.
-- An issue link authorizes commenting on and closing **that** issue only. It
-  does not authorize a git push. Remote publishing remains opt-in per R4 and
-  `AGENTS.md`.
-- Do not comment on or close unrelated issues. Do not reopen a closed issue
-  unless the user explicitly asks.
+Applies when the prompt includes a GitHub issue URL or unambiguous issue number
+for this repository. Comment in the issue's language. An issue link does not
+authorize push.
 
 ### R6 — Merge a linked pull request whose principle is sound, then follow up
 
-> **A linked GitHub pull request whose direction is sound is merged first. Completeness, style, spec-sync, and polish happen after merge so the contributor's work is not discarded.**
+> **Judge principle first. Merge that PR when sound; completeness is follow-up.**
 
-This rule applies when the user prompt includes a GitHub pull request URL or
-an unambiguous pull request number for this repository.
-
-- Fetch the pull request (title, body, files, commits, comments, checks, draft
-  state, base/head, and linked issues) before creating a replacement
-  implementation or requesting a rewrite.
-- Independently judge whether the **principle** is sound. The change must
-  address a real, in-scope problem, and the approach must be compatible with
-  the baseline, security boundaries, and architecture (or be a justified
-  spec-backed amendment). Judge the direction, not whether the pull request
-  already satisfies R1–R5 completeness.
-- Do not reimplement the pull request as a replacement, close it for nits, or
-  ask the contributor to start over when the principle is sound.
-- If the principle is sound:
-  1. Merge **that** pull request first, preserving the contributor's commits.
-     Use a repository-permitted merge strategy that keeps the contributor as
-     author of the landed work.
-  2. Missing specs, tests, i18n, e2e documentation, style, naming, and
-     commit-message nits are follow-up work, not merge blockers.
-  3. Landing blockers that would break `main` (the change does not compile,
-     fails existing tests for the changed area, or has merge conflicts) may
-     receive the smallest commits **on top of** the author's work so the pull
-     request can land. Do not squash away the author. Do not rewrite the
-     design.
-  4. After the pull request is in `main`, follow R4 for any follow-up
-     improvements from the updated `main`.
-  5. Comment on the pull request in its language: acknowledge the
-     contribution, state what was merged, and list follow-up if any.
-- If the principle is not sound, or a harm blocker exists (secrets, sandbox
-  or privilege bypass, malicious or clearly destructive changes, out-of-scope
-  reversal of a frozen decision, unrelated drive-by payload): do not merge.
-  Comment with the evidence in the pull request's language. Do not silently
-  reimplement the same idea as if the pull request never existed.
-- Do not merge a draft pull request the author has not marked ready, unless
-  the user explicitly asks to merge the draft. Comment with the principle
-  review and wait until it is ready.
-- A pull request link authorizes reviewing, commenting on, and merging
-  **that** pull request when this rule applies. It does not authorize
-  force-pushing the contributor's branch or publishing unrelated branches.
-  Follow-up still follows R4's opt-in remote publishing rule.
-- Do not comment on or merge unrelated pull requests. An already-merged pull
-  request is not reopened; remaining gaps become ordinary follow-up.
-- When both an issue and a pull request are linked, R6 applies to the pull
-  request and R5 still applies to the issue after the merged outcome.
-
-### GitHub issue templates
-
-`.github/ISSUE_TEMPLATE` is the only public intake path (`blank_issues_enabled:
-false`). English is the source label language; Chinese remains on the same
-fields.
-
-- **Bug report** requires: description, reproduction steps, expected behavior,
-  actual behavior, app version, and OS. Logs, extra environment, and
-  screenshots are optional. Settings → Info prefills version, OS, and
-  environment when opened from the app (D313).
-- **Feature request** requires: problem and proposed change. Alternatives and
-  extra context are optional.
-
-Do not weaken these required fields. Blank issues stay disabled.
+Do not silently reimplement. Do not force-push the contributor branch. Draft
+PRs stay unmerged unless the user explicitly asks. A PR link does not authorize
+unrelated pushes.
 
 ---
 
 ## 2. Development Loop
 
-Every change follows this sequence. Steps may be iterated if the implementation reveals new requirements. If the prompt includes a GitHub issue, complete R5 verification before step 1. If the prompt includes a GitHub pull request, complete the R6 principle review (and merge when sound) before starting a replacement or follow-up implementation.
+1. **Intake** — If an issue or PR is linked, complete R5 / R6 first.
+2. **Isolate** — Update `main`, create branch + worktree (R4).
+3. **Orient** — Read baseline, relevant specs, and Spec Kit memory when present.
+4. **Specify (when using Spec Kit)** — Feature / hotfix specs before coding.
+5. **Implement** — Smallest coherent change; update specs alongside (R1).
+6. **Verify** — Targeted checks; E2E runs only if the user asks (except fork
+   landing rules in `AGENTS.md`).
+7. **Commit** — One logical change per commit (R2).
+8. **Merge & clean** — Refresh against `main`, merge, remove worktree (R4 / R5).
+9. **Report** — Use the Final Report section in `AGENTS.md`.
 
-```
-0. If a GitHub issue is linked: verify the claim (R5) before any implementation
-0b. If a GitHub pull request is linked: review the principle (R6); merge first when sound; start follow-up only after it is in `main`
-1. Sync main + create a request branch and worktree
-2. Read baseline + relevant specs
-3. Plan change + list impacted specs and necessary validation
-4. Implement
-5. Update specs / ADR / decisions-log if needed
-6. Update or add e2e scenarios when R3 applies
-7. Run the smallest targeted local checks necessary for the change's risk; skip
-   local validation when it is unnecessary and continue to step 8. Run E2E only
-   when explicitly requested by the user
-8. Commit with conventional message
-9. Update BOARD if milestone-related
-10. Push branch + open PR/MR to main
-11. Pass remote gates + merge + remove worktree and branch
-```
+---
 
-### Step-by-step
+## 3. Spec Update Guidance
 
-| Step | Action | Output |
+| Change type | Spec sync | ADR |
 |---|---|---|
-| **0. Issue verify** | When a GitHub issue is linked, fetch it and independently verify that the reported problem exists. Stop here (comment, and close only if conclusive) when it does not. | Verified issue, or a comment and close/leave-open decision. |
-| **0b. PR review** | When a GitHub pull request is linked, fetch it and independently judge whether the principle is sound. Merge first when it is; start follow-up only after it is in `main`. Stop (comment, do not rewrite) when it is not. | Merged contributor PR plus follow-up plan, or a comment and no merge. |
-| **1. Branch + worktree** | Preserve existing work, update from `origin/main`, and create a dedicated request branch in a dedicated worktree. Reuse the primary checkout's environment where safe. | Isolated task files on current `main` with a consistent development environment. |
-| **2. Read** | Read `00-baseline.md` and any specs relevant to the change area. | Mental model of constraints. |
-| **3. Plan** | Describe the intended change. List every spec, ADR, and e2e scenario that will need updates, and assess whether local validation is necessary. | Change plan + impact and validation list. |
-| **4. Implement** | Write code, config, or assets. | Changed files. |
-| **5. Spec-sync** | Update specs per the impact list. Add ADR if architectural. Update `decisions-log.md` if an implementation default changes. | Updated docs/spec/\* and/or docs/adr/\*. |
-| **6. E2E doc** | When R3 applies, add or update scenario entries in `04-e2e-test-plan.md` and link to acceptance criteria IDs (A–H). Otherwise, confirm no scenario update is needed. | Updated e2e test plan, or confirmed not applicable. |
-| **7. Validate if necessary** | Use change risk and regression scope to decide whether local validation is necessary. If it is, run the smallest relevant set of non-E2E checks, such as a focused lint, typecheck, unit/integration test, or build. If it is not, skip local validation and continue directly to commit and delivery. Run E2E only when the user explicitly requests E2E validation. | Targeted check results, or validation assessed as unnecessary. |
-| **8. Commit** | Git commit with conventional message (see §4). | One or more commits. |
-| **9. BOARD** | If the change completes a milestone deliverable, update `docs/project/BOARD.md`. | Updated board. |
-| **10. Open PR/MR** | Push the request branch and open a pull/merge request targeting `main`. | Reviewable remote change with impacted specs and validation listed. |
-| **11. Merge** | Pass required remote checks and reviews, merge into `main`, remove the request worktree, and delete the request branch. | Change integrated into `main`; task worktree and request branch removed. |
+| User-visible or protocol-visible behavior | Required | If architecture / contracts / security boundaries change |
+| Internal refactor, same behavior | Not required | No |
+| New public interface or data ownership | Required | Required |
+| Docs-only / standards-only in this repo | Update `docs/` / `AGENTS.md` as needed | If a frozen decision changes |
 
-### Local Validation and E2E Execution Policy
-
-- Local validation is risk-based rather than an automatic prerequisite for
-  delivery. Documentation-only changes and low-risk mechanical edits normally
-  require no local tests or checks and proceed directly to commit, push, and
-  PR/MR creation. No separate approval or waiver is needed to skip them.
-- Changes with material regression risk, including security boundaries,
-  protocol contracts, data migrations, build configuration, or widely shared
-  behavior, normally require the smallest targeted non-E2E validation that can
-  address that risk. A full local suite is not the default.
-- E2E scenario documentation and E2E execution are separate concerns. R3 still
-  requires scenario updates for user-visible or protocol-visible behavior.
-- Agents must not proactively run E2E suites or commands, including
-  `pnpm test:e2e*`, Playwright suites, Electron probes, or live-agent E2E
-  scripts. Run them only when the user explicitly requests E2E validation.
-- A generic instruction to run checks or tests authorizes relevant non-E2E
-  validation under Step 7; it does not require every available local check and
-  does not authorize E2E execution.
-- Required E2E jobs that the hosting platform starts automatically after a
-  push or PR remain merge gates. Observe and report their result, but do not
-  manually dispatch or rerun them unless the user explicitly requests it.
-
-### Marketplace/update diagnosis gate
-
-Plugin update incidents require an evidence-first prompt flow before code
-changes:
-
-1. Capture the exact plugin ID, installed version, displayed version, expected
-   release, catalog URL, and observation time.
-2. Fetch the live catalog and inspect the exact entry, then inspect the local
-   catalog cache and installed registry independently.
-3. Classify the failure boundary: publisher/catalog data, fetch/cache fallback,
-   host version comparison, IPC propagation, or renderer presentation.
-4. Run `pnpm check:marketplace -- --url <catalog-url> --plugin <id>`. Missing
-   `shasum`, `url`, positive `sizeBytes`, or `permissions`, or a catalog
-   `author` that is not a string (for example `{ name, url }` copied from a
-   plugin manifest), is a release-data failure, not evidence of a stale
-   renderer. Incomplete releases remain non-installable.
-5. Reproduce with a fixture containing unsorted versions and incomplete
-   metadata before changing host or renderer code.
-
-The agent must state which boundary failed and what evidence rules out the
-other boundaries. A client-side fallback may preserve safe discovery, but it
-must not be used to conceal an invalid marketplace release.
+Prefer Spec Kit feature directories for product feature work. Prefer `docs/agent/`
+when changing duaer-spec's own agent-ops contract.
 
 ---
 
-## 3. Spec Update Matrix
+## 4. What Never to Commit
 
-Which change types require which doc updates.
-
-| Change type | Spec update | ADR | Decisions-log | E2E doc | BOARD |
-|---|---|---|---|---|---|
-| New feature (user-visible) | Related domain spec | If architectural boundary | — | New scenario | If milestone deliverable |
-| Bug fix (user-visible) | Related spec if behavior clarified | — | — | New or updated scenario | — |
-| Bug fix (internal) | — | — | — | — | — |
-| Refactor (behavior preserved) | — | — | — | — | — |
-| Architectural change | Related specs + baseline | **New ADR** | Update entry if default changes | Update affected scenarios | — |
-| New IPC/RPC method | `03-runtime/01-ipc-protocol.md` or `06-host-rpc-protocol.md` | If contract boundary | — | New protocol scenario | — |
-| Plugin API addition | `07-plugins/03-plugin-api.md` | If boundary change | — | New plugin scenario | If M4 deliverable |
-| Security change | `05-security/01-security.md` | If boundary change | Update if D001–D010 touched | New security scenario | — |
-| UX change | Related `04-ux/` spec | — | — | New UI scenario | — |
-| Spec-only update | The spec itself | — | — | — | — |
-| Chore (deps, tooling) | — | — | If tooling decision | — | — |
-| **App version release / stable tag** | `06-delivery/06-release-runbook.md` (mandatory version-surface gate before tag: shipped-locale `packages/shared/src/changelog.ts`, its test list, all workspace/Cargo/`APP_VERSION` versions, and the release line in `README.md` + `README.zh-CN.md`) | — | If release policy changes | Confirm E2E-067B still accurate | If milestone ship |
+- Secrets, tokens, credentials, private keys
+- Local databases, caches, build artifacts, `node_modules/`
+- Machine-specific paths or environment files with secrets
+- Unrelated changes from another request or agent
 
 ---
 
-## 4. Git Commit Rules
+## 5. Spec Kit Relationship
 
-### 4.1 Conventional Commits
+- **Agent ops** (`AGENTS.md`, this file): isolation, commits, Issue/PR, merge.
+- **Spec Kit** (`kit/`): what to build — specify → plan → tasks → implement →
+  converge.
 
-Format: `type(scope): description`
-
-| Type | Use for |
-|---|---|
-| `feat` | New feature |
-| `fix` | Bug fix |
-| `docs` | Documentation-only change |
-| `test` | Adding or updating tests |
-| `chore` | Build, deps, tooling, CI |
-| `refactor` | Code restructuring, no behavior change |
-| `perf` | Performance improvement |
-| `build` | Build system or external dependency change |
-| `ci` | CI/CD configuration change |
-
-**Scope** is optional but encouraged — e.g. `feat(host-core):`, `fix(ui):`, `docs(spec):`.
-
-### 4.2 Language
-
-- Commit messages: **English only** (matches baseline language policy).
-- Body: optional; use for non-obvious context.
-
-### 4.3 One logical change per commit
-
-- Prefer small, focused commits.
-- Spec updates that are tightly coupled to the code change should be in the same commit.
-- Pure doc changes (spec rewrite, ADR) may be a separate adjacent `docs:` commit.
-
-### 4.4 Never commit
-
-- Secrets, API keys, tokens, passwords
-- Local-only data (user configs, session data, logs)
-- `node_modules/`, build artifacts, release packages
-- Generated files that should be rebuilt per CI
-
-### 4.5 Pre-commit checklist
-
-Before committing, verify:
-
-1. Change is one logical unit (or clearly split).
-2. No secrets or local data in the diff.
-3. Specs updated per §3 matrix.
-4. E2E doc updated if behavior changed.
-5. `git diff --stat` review — nothing unexpected.
-6. Commit message follows conventional format.
-
----
-
-## 5. Branching Model
-
-The repository uses a mandatory request-branch and worktree workflow:
-
-- **`main`** is always deployable and is the protected integration target. Do
-  not develop, commit, or push directly on it.
-- **Request branches and worktrees** are mandatory for every new request,
-  including docs, chores, and small fixes. Create each branch and worktree from
-  an up-to-date `main`, then remove both immediately after the branch is merged
-  into `main`.
-- **Branch names** use `<type>/<short-description>` with a lowercase,
-  kebab-case description. Allowed type prefixes mirror §4.1.
-- **No long-lived development branch** exists. Each request gets a new branch;
-  an old request branch must not be reused for unrelated work.
-- **The primary checkout owns the default development environment.** Request
-  worktrees reuse its toolchains, package-manager stores, caches, and ignored
-  local configuration where safe. A request may create isolated local state
-  when sharing would be unsafe or incompatible, but that state stays ignored
-  and must not leak into commits.
-- **PR/MR delivery** is mandatory. Push the branch, open a PR/MR targeting
-  `main`, pass required remote checks and reviews, then merge using a repository-
-  permitted merge strategy.
-
-Typical request start (run from the primary checkout; choose a path outside it):
-
-```bash
-git status --short
-git fetch origin main
-git worktree add -b <type>/<short-description> <worktree-path> origin/main
-```
-
-If `main` is checked out in a clean primary worktree, `git switch main` plus
-`git pull --ff-only origin main` should be run before `git worktree add`. If the
-primary worktree is not clean or is on another branch, leave it untouched and
-create the request worktree directly from the fetched `origin/main`. Never
-discard, stash, move, or overwrite unrelated work merely to satisfy this
-sequence.
-
-Environment reuse is resource-specific. Package-manager stores and language
-toolchains are normally shared automatically. Ignored local configuration or a
-compatible dependency tree may be referenced or linked from the primary
-checkout when a task needs it. Build outputs that can race, mutable runtime
-data, and incompatible dependency trees must remain worktree-local.
-
-Typical GitHub delivery (use the hosting platform's equivalent when needed):
-
-```bash
-git push -u origin <type>/<short-description>
-gh pr create --base main --head <type>/<short-description>
-gh pr checks --watch
-gh pr merge --merge
-git worktree remove <worktree-path>
-git branch -d <type>/<short-description>
-git push origin --delete <type>/<short-description>
-```
-
-Request cleanup when the request is integrated by merging into local `main`
-instead of a remote PR/MR (run from the primary checkout):
-
-```bash
-git switch main
-git merge <type>/<short-description>
-git log --oneline -1
-git worktree remove <worktree-path>
-git branch -d <type>/<short-description>
-git worktree prune
-```
-
-The worktree must be clean before removal; commit or discard the request's own
-leftover changes first. Use `git branch -d` rather than `-D` so an unmerged
-branch refuses to delete. If `git worktree remove` reports the worktree as dirty
-or locked, resolve that state instead of forcing removal, and never remove
-another request's worktree.
-
----
-
-## 6. Definition of Done
-
-A change is **Done** when all of the following are true:
-
-1. A dedicated request branch and worktree were created from an up-to-date
-   `main`.
-2. Code (or doc) implements the planned change.
-3. All impacted specs are updated.
-4. E2E scenarios are documented (or confirmed not needed per §3).
-5. Necessary targeted local validation passes, or local validation is assessed
-   as unnecessary; automatically triggered remote gates pass, and agents only
-   run or dispatch E2E when explicitly requested.
-6. Change is committed with a conventional message.
-7. BOARD is updated if a milestone deliverable completed.
-8. No secrets or local data are present in the commit.
-9. The branch was pushed and its PR/MR was reviewed and merged into `main`.
-10. The request worktree was removed and the merged request branch was deleted.
-11. If a GitHub issue was linked: the claim was verified before implementation;
-    the issue received a comment in its language; and the issue was closed when
-    the outcome was conclusive.
-12. If a GitHub pull request was linked: the principle was reviewed; the pull
-    request was merged first when sound; follow-up landed after merge; the
-    contributor's work was not discarded.
-
-### Release / version-tag gate
-
-When the change is a **stable app version release** (version bump + tag),
-Definition of Done also requires, **before** the tag, that every
-version-bearing surface describes the new version: the shipped-locale in-app
-changelog entries in `packages/shared/src/changelog.ts` (English and every
-shipped product locale, with aligned highlight counts) with its `changelog.test.ts` list, every workspace
-`package.json` (including `docs/package.json`), the Cargo workspace version and
-`host-core` lockfile entry, `APP_VERSION`, and the release line stated in
-`README.md` + `README.zh-CN.md`. `node scripts/check-release-docs.mjs` must
-pass; `scripts/release.mjs` runs it and refuses to tag otherwise. See
-[06-release-runbook.md §4.1](06-release-runbook.md#41-mandatory-release-version-surface-gate-d164--d260),
-D164, and D260. GitHub release notes are not a substitute.
-
----
-
-## 7. Forbidden Practices
-
-| Practice | Why |
-|---|---|
-| Committing secrets | Security violation |
-| Large uncommitted diffs | Violates R2; loss of granularity |
-| Changing behavior without spec update | Violates R1; specs become unreliable |
-| Skipping e2e doc for user-visible changes | Violates R3; traceability gap |
-| Manually running or dispatching E2E without an explicit user request | Violates the opt-in E2E execution policy |
-| Treating the full local test/check suite as an automatic pre-push requirement | Ignores risk-based validation and delays delivery without evidence of need |
-| Developing, committing, or pushing directly on `main` | Violates R4; bypasses isolation and review gates |
-| Developing a new request in the primary checkout or another request's worktree | Violates R4; mixes task files and local state |
-| Reusing a request branch for unrelated work | Mixes request scope and weakens traceability |
-| Marking work Done before its PR/MR is merged | Violates R4; change is not integrated into `main` |
-| Leaving a merged request worktree on disk | Violates R4; stale worktrees accumulate and invite cross-request contamination |
-| Modifying baseline frozen decisions without ADR + version bump | Baseline is frozen; changes need formal process |
-| Committing generated artifacts that CI should rebuild | Repo bloat, merge conflicts |
-| Mixing multiple logical changes in one commit without clear message | Loss of history granularity |
-| Implementing a linked GitHub issue without verifying the problem exists | Violates R5; wastes work on invalid or already-fixed claims |
-| Closing a linked GitHub issue without a comment in the issue language | Violates R5; leaves no public record of the outcome |
-| Closing, rewriting, or requesting a restart of a linked pull request whose principle is sound | Violates R6; discards the contributor's work |
-| Blocking merge of a sound linked pull request solely for missing specs, tests, style, or agent-workflow completeness | Violates R6; completeness is follow-up after merge |
-| Merging a linked pull request whose principle is unsound or that introduces a harm blocker | Violates R6; merge-first does not apply to unsafe or wrong-direction changes |
-| Force-pushing a contributor's branch to land a linked pull request | Violates R6; landing fixes go on top of the author's commits |
-| Tagging a stable app release without updating `packages/shared/src/changelog.ts` for every shipped locale | Violates D164 / D345 / release runbook; in-app What's new is empty for that locale and version |
-| Tagging a stable app release while `README.md` / `README.zh-CN.md` still state an older release line, or bypassing `scripts/check-release-docs.mjs` with `--skip-docs-check` | Violates D260 / release runbook; published documentation advertises a version the release no longer matches |
-
----
-
-## 8. Acceptance Criteria for This Workflow
-
-This workflow spec itself is accepted when:
-
-- [ ] R1/R2/R3/R4/R5/R6 are stated clearly and cross-linked to relevant specs.
-- [ ] Development loop is documented and referenced by `AGENTS.md`.
-- [ ] Spec update matrix covers all change types in the baseline.
-- [ ] Git commit rules match existing repo commit style (`docs:`, `chore:`).
-- [ ] Every request is required to use a dedicated branch and worktree created
-      from current `main`.
-- [ ] Request worktrees reuse the primary checkout's environment where safe
-      without committing local environment state.
-- [ ] PR/MR creation, remote gates, merge, and branch cleanup are mandatory.
-- [ ] Worktree removal and branch deletion are required immediately after the
-      request branch is merged into `main`, including local-merge delivery.
-- [ ] E2E execution is opt-in and requires an explicit user request, while E2E
-      scenario documentation remains mandatory under R3.
-- [ ] Local validation is risk-based; unnecessary checks may be skipped without
-      blocking commit, push, or PR/MR creation.
-- [ ] Definition of Done is complete and actionable.
-- [ ] Forbidden practices list covers known risk areas.
-- [ ] `AGENTS.md` points to this doc, `04-e2e-test-plan.md`, and `05-change-checklist.md`.
-- [ ] Linked GitHub issues are verified before implementation, then commented
-      on in the issue language and closed when conclusive.
-- [ ] Linked GitHub pull requests whose principle is sound are merged first,
-      then followed up; contributor work is not discarded.
-- [ ] All indexes updated (NAV, delivery README, spec README, docs README, BOARD).
+When they conflict, **agent ops win**. Install and conventions:
+[kit/SPECKIT.md](../../kit/SPECKIT.md) · [ADOPT.md](../../ADOPT.md).

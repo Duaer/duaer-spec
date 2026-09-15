@@ -1,18 +1,19 @@
 # AGENTS.md
 
-Mandatory rules for AI coding agents working in **duaer-spec** (and MyDesk-style
-repos that adopt this file).
+Mandatory rules for AI coding agents working in **duaer-spec**, and for any
+repository that adopts this file as its agent-ops contract.
 
-These MyDesk agent-ops rules are authoritative. If Spec Kit (`kit/`), product
-examples, or other overlays conflict with this file, **follow this file**.
+This file is authoritative for *how* agents operate. If Spec Kit (`kit/`),
+`examples/`, or other overlays conflict with this file, **follow this file**.
+
+See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/change-checklist.md) · [ADOPT](ADOPT.md)
 
 ## Language
 
-Use English for code, identifiers, comments, commits, specifications, and documentation.
+Use English for code, identifiers, comments, commits, specifications, and
+documentation unless the adopting project explicitly overrides.
 
-Follow:
-
-* [Baseline](docs/baseline.md)
+Follow the project's [baseline](docs/baseline.md) (or its local equivalent).
 
 ## GitHub Issue Handling
 
@@ -33,16 +34,15 @@ until the reported problem has been independently verified.
    implement the smallest coherent fix, merge into local `main`, then comment
    on the issue and close it.
 5. Write the issue comment in the issue's language (the language of the
-   original title and body). Repository docs, code, and commits stay English.
+   original title and body). Repository docs, code, and commits stay English
+   unless the project overrides.
 6. An issue link authorizes commenting on and closing **that** issue. It does
    not authorize a git push. Remote publishing remains opt-in.
 
 Do not comment on or close unrelated issues. Do not reopen a closed issue
 unless the user explicitly asks.
 
-See:
-
-* [AI development workflow — R5](docs/agent/workflow.md#r5--verify-linked-github-issues-before-work-then-reply-and-close)
+See [R5](docs/agent/workflow.md#r5--verify-linked-github-issues-before-work-then-reply-and-close).
 
 ## GitHub Pull Request Handling
 
@@ -63,12 +63,13 @@ request is in `main`.
      spec-sync, tests, style, or other completeness rules.
 3. If the principle is sound: merge **that** pull request first, preserving
    the contributor's commits. If the head branch lives in a fork (third-party
-   contributor), run the relevant local E2E suites against the head first;
-   a failing E2E run is a landing blocker, not a follow-up. Completeness gaps
-   (specs, tests, i18n, e2e docs, style, naming, commit-message nits) are
-   follow-up work after merge, not merge blockers. Landing blockers that
-   would break `main` may receive the smallest commits on top of the author's
-   work so the pull request can land. Then follow the isolated development workflow for any follow-up.
+   contributor), run the project's relevant local automated suites against the
+   head first when the project has them; a failing required suite is a landing
+   blocker, not a follow-up. Completeness gaps (specs, tests, i18n, e2e docs,
+   style, naming, commit-message nits) are follow-up work after merge, not
+   merge blockers. Landing blockers that would break `main` may receive the
+   smallest commits on top of the author's work so the pull request can land.
+   Then follow the isolated development workflow for any follow-up.
 4. If the principle is not sound, or a harm blocker exists (secrets, sandbox
    or privilege bypass, malicious or clearly destructive changes, out-of-scope
    reversal of a frozen decision): do not merge. Comment with the evidence.
@@ -76,9 +77,8 @@ request is in `main`.
    existed.
 5. Do not merge a draft pull request the author has not marked ready, unless
    the user explicitly asks to merge the draft.
-6. Write the pull request comment in the pull request's language (the language
-   of the original title and body). Repository docs, code, and commits stay
-   English.
+6. Write the pull request comment in the pull request's language. Repository
+   docs, code, and commits stay English unless the project overrides.
 7. A pull request link authorizes reviewing, commenting on, and merging
    **that** pull request. It does not authorize a force-push of the
    contributor's branch or publishing unrelated branches. Follow-up remote
@@ -86,9 +86,7 @@ request is in `main`.
 
 Do not comment on or merge unrelated pull requests.
 
-See:
-
-* [AI development workflow — R6](docs/agent/workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-then-follow-up)
+See [R6](docs/agent/workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-then-follow-up).
 
 ## AI-Generated Page Content
 
@@ -97,11 +95,9 @@ copy limited to the information and actions users need to complete the task:
 
 * Do not add filler introductions, repeated summaries, implementation notes,
   or prose that merely explains an obvious control or layout.
-* Prefer concise labels, headings, helper text, and empty states; remove copy
-  that does not change a user's decision or clarify a non-obvious behavior.
-* Put rationale, usage guidance, and implementation detail in documentation
-  or code comments, not in the page UI, unless the user explicitly requests
-  explanatory content.
+* Prefer concise labels, headings, helper text, and empty states.
+* Put rationale and implementation detail in documentation or code comments,
+  not in the page UI, unless the user explicitly requests explanatory content.
 
 ## Mandatory Isolated Development
 
@@ -130,13 +126,15 @@ cd ../worktrees/<request-id>
 
 Branch and worktree names must be unique and clearly associated with the request.
 
-## Multi-Agent Isolation
+**This repository's default integration branch is `main`.** Adopting projects
+may substitute another long-lived branch (for example `develop`); document that
+override in the project baseline. Do not inherit git policy from `examples/`.
 
-To ensure multiple AI agents can work concurrently:
+## Multi-Agent Isolation
 
 * Each agent must use its own branch and worktree
 * Never develop directly in the primary checkout
-* Never develop directly on `main`
+* Never develop directly on `main` (or the project's integration branch)
 * Never reuse another agent's branch or worktree
 * Never modify files inside another request's worktree
 * Never switch another agent's branch
@@ -144,21 +142,22 @@ To ensure multiple AI agents can work concurrently:
 * Never include unrelated changes from another request
 * Do not commit local environment files, caches, databases, or secrets
 
-The primary checkout is reserved for synchronizing and merging `main`.
-
-Shared dependencies or environments may be reused only when doing so cannot modify tracked files or interfere with another worktree.
+The primary checkout is reserved for synchronizing and merging the integration
+branch. Shared toolchains and caches may be reused when that cannot modify
+tracked files or interfere with another worktree.
 
 ## Immutable Rules
 
 ### 1. Keep Specs Synchronized
 
-Every behavior change must update the relevant document under `docs/spec/`.
+Every behavior change must update the relevant project specification
+(commonly under `docs/spec/`, Spec Kit feature specs, or this repo's
+`docs/agent/` when changing duaer-spec itself).
 
-Add an ADR under `docs/adr/` when changing architecture, public interfaces, data ownership, security boundaries, or frozen decisions.
+Add an ADR under `docs/adr/` when changing architecture, public interfaces,
+data ownership, security boundaries, or frozen decisions.
 
 ### 2. Commit Every Logical Change
-
-Every completed logical change must be committed.
 
 * One logical change per commit
 * No large uncommitted diffs
@@ -167,17 +166,14 @@ Every completed logical change must be committed.
 
 ### 3. Keep E2E Documentation Synchronized
 
-Every user-visible or protocol-visible behavior change must add or update a scenario in:
-
-* [E2E test plan](docs/agent/e2e-test-plan.md)
+Every user-visible or protocol-visible behavior change must add or update a
+scenario in the project's E2E catalog (template:
+[e2e-test-plan](docs/agent/e2e-test-plan.md)).
 
 Do not run local E2E commands or manually trigger remote E2E jobs unless
-explicitly requested by the user, **except** when the change comes from a
-forked third-party repository (a pull request whose head branch lives in a
-fork). Fork pull requests do not receive the repository's secrets, so the
-remote E2E jobs cannot be trusted to cover them. For those, run the relevant
-local E2E suites (`npm run test:e2e*`) against the pull request head before
-merging and record the result in the pull request comment.
+explicitly requested by the user, **except** for forked third-party pull
+request heads when the project requires local suites before merge. Record the
+result in the pull request comment.
 
 ### 4. Merge Back into Local `main`
 
@@ -196,26 +192,19 @@ After development:
 11. Push only when the user explicitly requested remote publishing for the
     current request
 
-If another agent has updated `main`, the request branch must be refreshed before merging:
-
-```bash
-git fetch
-git rebase main
-```
-
-Use merge instead of rebase when repository policy requires it.
+If another agent has updated `main`, refresh the request branch before merging
+(`git fetch` then `git rebase main`, or merge if project policy requires it).
 
 Do not overwrite, reset, or discard changes already merged by another agent.
 
 Remote publishing is opt-in. Never infer a push from ordinary development,
-commit, merge, or completion requests. When the user explicitly requests a
-push, verify the remote, branch, commit set, and Git identity before publishing.
-Never force-push unless the user explicitly requests that exact operation.
+commit, merge, or completion requests. Never force-push unless the user
+explicitly requests that exact operation.
 
 ### 5. Clean Up the Request Worktree
 
-Once the request branch is merged into local `main`, its worktree has no further
-purpose and must be removed. Never leave a merged worktree on disk.
+Once the request branch is merged into local `main`, remove its worktree and
+delete the merged branch. Never leave a merged worktree on disk.
 
 ```bash
 git worktree remove ../worktrees/<request-id>
@@ -223,19 +212,17 @@ git branch -d <type>/<request-id>
 git worktree prune
 ```
 
-Requirements:
-
-* Remove the worktree only after verifying the merge commits are present in local `main`
-* The worktree must be clean; commit or discard your own leftover changes first
-* Use `git branch -d` (not `-D`) so an unmerged branch refuses to delete
-* Delete only your own worktree and branch, never another agent's
+* Remove only after verifying merge commits are present in local `main`
+* The worktree must be clean first
+* Use `git branch -d` (not `-D`)
+* Delete only your own worktree and branch
 
 ## Development Workflow
 
 1. Update local `main`
 2. Create a unique request branch
 3. Create and enter a dedicated worktree
-4. Read the baseline and relevant specs
+4. Read the baseline and relevant specs (and Spec Kit memory when present)
 5. Identify affected specs, ADRs, E2E scenarios, and validation
 6. Implement the smallest coherent change
 7. Update documentation as required
@@ -245,41 +232,13 @@ Requirements:
 11. Refresh the branch against the latest local `main`
 12. Merge into local `main`
 13. Remove the request worktree and delete the merged branch
-14. Push only when explicitly requested by the user for the current request
+14. Push only when explicitly requested for the current request
 
 Development must not begin before steps 1–3 are complete.
 
-## Marketplace and Update Diagnosis Gate
-
-When a request concerns plugin versions, marketplace updates, or an installed
-plugin showing an unexpected latest version, follow this evidence-first prompt
-flow before changing application code:
-
-1. Record the exact plugin ID, installed version, displayed latest version,
-   expected release version, catalog URL, and the time of observation.
-2. Fetch and parse the live catalog from the configured URL. Inspect the exact
-   plugin entry and its version records; do not infer the source state from the
-   renderer or from a cached response.
-3. Inspect the cached catalog and installed registry separately. Classify the
-   failure as one of: publisher/catalog data, remote fetch/cache fallback,
-   host version comparison, IPC state propagation, or renderer presentation.
-4. Run the catalog preflight before proposing an application fix:
-   `node scripts/check-marketplace-catalog.mjs --url <catalog-url> --plugin <id>`.
-   Missing checksum, package URL, package size, or permissions, or a catalog
-   `author` that is not a string (for example `{ name, url }` copied from a
-   plugin manifest), is a release data failure. Report it as such and do not
-   make incomplete releases installable merely to hide the bad catalog.
-5. Reproduce the exact case with a deterministic fixture, including unsorted
-   versions and an incomplete version record, then add the narrowest regression
-   test for the diagnosed layer.
-6. Only after the source/cache/host/renderer boundary is identified may the
-   implementation be changed. The final report must name the evidence,
-   failure classification, and the validation that distinguishes the fix from
-   a marketplace-data correction.
-
-This gate is mandatory even when the symptom appears to be a simple stale UI
-label. A newly published version with invalid catalog metadata must not be
-treated as proof of a client regression.
+For feature work that uses Spec Kit, prefer
+`specify → plan → tasks → implement → converge` (or the hotfix short path).
+Agent ops in this file still govern isolation, commits, and merge.
 
 ## Commit Format
 
@@ -287,42 +246,11 @@ treated as proof of a client regression.
 type(scope): description
 ```
 
-Allowed types:
-
-```text
-feat fix docs test chore refactor perf build ci
-```
-
-Requirements:
+Allowed types: `feat fix docs test chore refactor perf build ci`
 
 * English only
 * Concise, imperative description
 * One logical change per commit
-
-## Stable Release Rule
-
-Before creating a stable application version tag, update every place that states a version, not only the changelog:
-
-```text
-packages/shared/src/changelog*.ts       # newest-first entries for all shipped locales
-packages/shared/src/changelog.test.ts   # newest-first version list
-package.json, apps/*, packages/*, docs/ # workspace package versions
-Cargo.toml, Cargo.lock                  # workspace + host-core versions
-packages/shared/src/protocol.ts         # APP_VERSION
-README.md, README.zh-CN.md              # current <major>.<minor>.x release line
-```
-
-Verify with the preflight before tagging; `scripts/release.mjs` runs the same check and refuses to tag while any surface disagrees:
-
-```bash
-pnpm check:release-docs
-```
-
-READMEs are release surfaces. When a release changes user-visible behavior, refresh the affected Highlights, Download, Getting started, Status, or Development claims in both locales; English is the source of truth and the Chinese file links the `docs/zh-CN/` mirrors.
-
-See:
-
-* Release runbook — product-specific (MyDesk: `docs/spec/06-delivery/06-release-runbook.md`); not shipped in duaer-spec
 
 ## Completion Checklist
 
@@ -332,7 +260,6 @@ See:
 * [ ] All development occurred inside that worktree
 * [ ] No other agent's branch or worktree was modified
 * [ ] Relevant specs and E2E scenarios were updated
-* [ ] For a stable version bump: every version surface and both READMEs were updated and `node scripts/check-release-docs.mjs` passed
 * [ ] Targeted validation passed or was documented as unnecessary
 * [ ] No secrets, local data, or unrelated changes are included
 * [ ] All logical changes were committed
@@ -342,12 +269,10 @@ See:
 * [ ] The merged request branch was deleted
 * [ ] Remote publishing was skipped unless explicitly requested
 * [ ] If pushed, the remote, branch, commit set, and Git identity were verified
-* [ ] If the request included a GitHub issue: the claim was verified before
-      implementation; the issue was commented on in its language and closed
-      when the outcome was conclusive
-* [ ] If the request included a GitHub pull request: the principle was
-      reviewed; the pull request was merged first when sound; follow-up
-      landed after merge; the contributor's work was not discarded
+* [ ] If a GitHub issue was linked: verified before work; commented in its
+      language; closed when conclusive
+* [ ] If a GitHub pull request was linked: principle reviewed; merged first
+      when sound; follow-up after merge; contributor work not discarded
 
 ## Final Report
 
@@ -361,6 +286,4 @@ Report:
 * Merge result
 * Worktree and branch cleanup result
 * Push target and result, or confirmation that nothing was pushed
-* Linked GitHub issue, verification result, comment, and close result (or N/A)
-* Linked GitHub pull request, principle review, merge result, follow-up, and
-  comment (or N/A)
+* Linked GitHub issue / PR outcomes (or N/A)

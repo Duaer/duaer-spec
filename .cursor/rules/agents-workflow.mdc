@@ -1,21 +1,24 @@
 ---
-description: duaer-spec / MyDesk AI workflow (isolated branch/worktree, commits, push opt-in)
+description: duaer-spec agent ops (isolated branch/worktree, commits, push opt-in)
 alwaysApply: true
 ---
 
 # Agent development workflow
 
-Part of **duaer-spec**. Extracted from MyDesk `AGENTS.md`. Wins over Spec Kit when they conflict. Adapt merge target if the project uses `develop` instead of `main`.
+Part of **duaer-spec**. Authoritative over Spec Kit when they conflict. This
+repository integrates on `main`. Adopting projects may document another
+integration branch in their baseline.
 
 ## Language
 
-Use English for code, identifiers, comments, commits, specs, and docs unless the project explicitly overrides.
+Use English for code, identifiers, comments, commits, specs, and docs unless
+the project explicitly overrides.
 
 ## Isolated development
 
 Before editing files for a new request:
 
-1. Update local integration branch (`main` or project `develop`)
+1. Update local integration branch (`main` here; or project override)
 2. Create a unique branch: `<type>/<short-description>`
 3. Create a dedicated worktree and develop only there
 4. Never develop in the primary checkout or on the long-lived branch

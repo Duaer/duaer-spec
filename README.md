@@ -1,53 +1,50 @@
 # duaer-spec
 
-Reusable AI development standards for Cursor agents.
+Standalone AI development standards for Cursor agents. Not tied to any product
+codebase.
 
 Two layers, one precedence rule:
 
 | Layer | Role | Path |
 |---|---|---|
-| **Agent ops (MyDesk)** | How agents operate — isolation, commits, Issue/PR gates | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
+| **Agent ops** | How agents operate — isolation, commits, Issue/PR gates | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
 | **Spec kit** | What to build — Spec → Plan → Tasks → Implement → Converge | [`kit/`](kit/) |
 
-**Conflict rule:** when Spec Kit conventions, examples, or product kits disagree with MyDesk agent ops, **MyDesk / root `AGENTS.md` wins**.
+**Conflict rule:** when Spec Kit, `examples/`, or other overlays disagree with
+agent ops, **root `AGENTS.md` / `docs/agent/` win**.
 
 ## Layout
 
 ```text
-AGENTS.md                 MyDesk agent rules (authoritative ops)
-.cursor/rules/            Condensed Cursor rules
+AGENTS.md                 Agent-ops contract (authoritative)
+ADOPT.md                  How to adopt into another repo
+LICENSE                   MIT
+.cursor/rules/            Condensed Cursor rules (this repo)
 docs/
-  baseline.md             Placeholder for a target project's frozen decisions
-  adr/                    ADR index placeholder
-  agent/                  AI workflow + change checklist
+  baseline.md             Baseline placeholder / this-repo defaults
+  adr/                    ADR index
+  agent/                  Workflow + change checklist + E2E template
 kit/                      Portable Spec Kit drop-in
-examples/dianwu-flow/     Product-specific Spec Kit conventions (example)
+examples/                 Optional product overlays (not defaults)
 vendor/github-spec-kit/   Official Spec Kit docs/templates snapshot
-SOURCE.md                 Upstream provenance
+SOURCE.md                 Historical provenance only
 ```
 
-## Install Spec Kit into a project
+## Defaults for this repository
 
-```bash
-rsync -a kit/.specify/ /path/to/project/.specify/
-rsync -a kit/.cursor/skills/ /path/to/project/.cursor/skills/
-mkdir -p /path/to/project/.cursor/rules
-cp kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
-cp kit/SPECKIT.md /path/to/project/
-```
+- Integration branch: **`main`**
+- One request → one branch + one worktree → merge back → delete worktree
+- Push only when explicitly requested
+- Spec Kit optional for standards-doc edits; recommended for process changes that need acceptance criteria
 
-Then edit `.specify/memory/constitution.md` and `project-context.md` for that product.
+`examples/` may document other git policies (for example `develop`). Those apply
+only inside that example's target product, never to duaer-spec itself.
 
-Default loop: **specify → plan → tasks → implement → converge**  
+## Quick start
+
+Adopt into a project: see [`ADOPT.md`](ADOPT.md).
+
+Spec Kit loop: **specify → plan → tasks → implement → converge**  
 Hotfix: **specify (hotfix) → tasks → implement → converge**
 
-Copy root [`AGENTS.md`](AGENTS.md) (or adapt it) for *how* agents operate. Keep Spec Kit for *what* to build. Align branch policy with the target repo — this standards repo follows MyDesk (`main` + request worktrees).
-
-See [`kit/SPECKIT.md`](kit/SPECKIT.md). Official upstream: https://github.com/github/spec-kit
-
-## Branch policy note
-
-- **This repo / MyDesk-style:** short-lived branch → merge into local `main`
-- **DianWu Flow example:** `develop` / `feat/*` / `fix/*`
-
-Pick one per product; Spec Kit git helpers must match that choice.
+Details: [`kit/SPECKIT.md`](kit/SPECKIT.md) · Official upstream: https://github.com/github/spec-kit

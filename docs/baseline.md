@@ -1,7 +1,10 @@
 # Baseline (project-specific)
 
-Placeholder for a target project's frozen decisions.
+Frozen decisions for the adopting project: language, stack, architecture
+boundaries, and integration-branch override (if not `main`).
 
-In MyDesk, the real baseline lives at `docs/spec/00-baseline.md`. When adopting
-duaer-spec elsewhere, replace this with that project's language, stack, and
-architecture boundaries.
+**duaer-spec itself:** English docs and commits; integration branch `main`;
+no application runtime.
+
+When you copy agent ops into another repository, replace this file with that
+product's baseline (or point agents at the project's existing baseline path).

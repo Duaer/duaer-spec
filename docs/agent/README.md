@@ -1,11 +1,12 @@
-# Agent workflow (MyDesk)
+# Agent workflow (duaer-spec)
 
-Authoritative for *how* agents operate in duaer-spec and MyDesk-style repos.
+Authoritative docs for *how* agents operate. Wins over Spec Kit and `examples/`
+when they conflict.
 
 | Doc | Description |
 |---|---|
-| [workflow.md](workflow.md) | Immutable rules R1–R6, worktree isolation, Issue/PR gates |
-| [change-checklist.md](change-checklist.md) | Practical finish checklist |
-| [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario doc placeholder |
+| [workflow.md](workflow.md) | Rules R1–R6, development loop, spec guidance |
+| [change-checklist.md](change-checklist.md) | Finish checklist |
+| [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |
 
-When Spec Kit (`kit/`) or product examples disagree with these docs, **this directory and root `AGENTS.md` win**.
+Root contract: [`AGENTS.md`](../../AGENTS.md). Adoption: [`ADOPT.md`](../../ADOPT.md).

@@ -1,11 +1,14 @@
 ---
-description: 功能与热修都必须走 Spec Kit；禁止口头需求直接改代码
-alwaysApply: true
+description: 示例 overlay — 功能与热修都必须走 Spec Kit；禁止口头需求直接改代码
+alwaysApply: false
 ---
 
 # Spec Kit 必走（NON-NEGOTIABLE）
 
-约定见仓库根目录 `SPECKIT.md` 与 `.specify/memory/constitution.md`。
+> 本文件属于 `examples/dianwu-flow/`，不是 duaer-spec 默认。  
+> 与目标仓根目录 `AGENTS.md` 冲突时，以 `AGENTS.md` 为准。
+
+约定见本示例的 `SPECKIT.md` 与 `.specify/memory/constitution.md`。
 
 ## 何时必须走 Spec Kit
 

@@ -1,10 +1,11 @@
 # Spec Kit iteration conventions (duaer-spec kit)
 
-Part of **duaer-spec**. Based on [GitHub Spec Kit](https://github.com/github/spec-kit)
-(plus Cursor `speckit-*` skills), adapted as a reusable drop-in.
+Part of the standalone **duaer-spec** package. Based on
+[GitHub Spec Kit](https://github.com/github/spec-kit) (plus Cursor `speckit-*`
+skills).
 
-**Precedence:** root `AGENTS.md` / MyDesk agent ops win if anything here
-conflicts with how agents must operate (worktrees, commits, Issue/PR gates).
+**Precedence:** root `AGENTS.md` / `docs/agent/` win if anything here conflicts
+with isolation, commits, or Issue/PR gates.
 
 ## Read before work (order)
 
@@ -33,8 +34,9 @@ conflicts with how agents must operate (worktrees, commits, Issue/PR gates).
 
 ## Install into a project
 
+See repo root [`ADOPT.md`](../ADOPT.md), or:
+
 ```bash
-# From the duaer-spec repo root
 rsync -a kit/.specify/ /path/to/project/.specify/
 rsync -a kit/.cursor/skills/ /path/to/project/.cursor/skills/
 cp kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
