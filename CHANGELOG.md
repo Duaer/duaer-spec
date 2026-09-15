@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.11.0 — 2026-09-16
+
 ### Live browse remember
 
 - Fix「浏览…」: persist selection into recent list immediately; normalize paths; accept `master`
