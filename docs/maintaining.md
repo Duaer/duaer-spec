@@ -31,11 +31,11 @@ Day-to-day work integrates on **`develop`**. See
    - One-time setup: [npm Trusted Publishing](npm-trusted-publishing.md)
    - Then each GitHub Release runs `.github/workflows/npm-publish.yml` (no `NPM_TOKEN`)
 
-Adopter install:
+Adopter install / update:
 
 ```bash
-npx duaer-spec@0.6.0 init --here
-# talk to the agent — do not operate phases
+npx duaer-spec init --here
+npx duaer-spec update
 ```
 
 ## Examples
@@ -45,5 +45,6 @@ this repository's `main` + `develop` + `.worktree/` policy.
 
 ## Adopters
 
-Projects that copied files do not auto-update. They re-run [ADOPT.md](../ADOPT.md)
-when they want a newer method revision.
+Projects that copied files do not auto-update. They re-run
+`npx duaer-spec update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
+method revision.
