@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live base branch bootstrap
+
+- If a git repo has no develop/main/master, auto-create local `develop` from HEAD (or empty commit)
+
 ### Live git bootstrap
 
 - Browsing / adding a non-git folder auto-runs `git init -b develop` + initial commit (skips home/root; skips parent-of-many-repos)

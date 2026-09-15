@@ -542,8 +542,8 @@ el.repoBrowse?.addEventListener("click", async () => {
     selectRepo(data);
     addBubble(
       "bot",
-      data.bootstrapped
-        ? `已在 ${data.name} 自动 git init（develop）并记住`
+      data.bootstrapped || data.baseBranchCreated
+        ? `已准备仓库 ${data.name}（${data.baseBranchCreated ? "已创建 develop 分支" : "已 git init"}）并记住`
         : `已选择并记住仓库 ${data.name}`,
     );
   } catch (err) {

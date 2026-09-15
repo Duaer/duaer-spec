@@ -981,6 +981,64 @@ function bootstrapGitRepo(repoPath) {
   return abs;
 }
 
+function ensureBaseBranch(top, { bootstrap = false } = {}) {
+  for (const b of ["develop", "main", "master"]) {
+    if (hasLocalBranch(top, b)) {
+      return { baseBranch: b, created: false };
+    }
+  }
+  if (!bootstrap) {
+    const e = new Error(
+      `「${top}」是 git 仓库，但本地没有 develop / main / master 分支`,
+    );
+    e.code = "NO_BASE_BRANCH";
+    e.path = top;
+    throw e;
+  }
+
+  const identity = {
+    GIT_AUTHOR_NAME: "duaer-live",
+    GIT_AUTHOR_EMAIL: "duaer-live@localhost",
+    GIT_COMMITTER_NAME: "duaer-live",
+    GIT_COMMITTER_EMAIL: "duaer-live@localhost",
+  };
+  const headOk =
+    spawnSync("git", ["rev-parse", "-q", "--verify", "HEAD"], {
+      cwd: top,
+    }).status === 0;
+
+  if (headOk) {
+    // Create develop from current HEAD without switching the user's checkout.
+    runGit(top, ["branch", "develop", "HEAD"]);
+    return { baseBranch: "develop", created: true };
+  }
+
+  // Unborn HEAD: make an empty commit on develop.
+  try {
+    runGit(top, ["checkout", "-b", "develop"]);
+  } catch {
+    try {
+      runGit(top, ["branch", "-M", "develop"]);
+    } catch {
+      // continue; commit may still create the branch tip
+    }
+  }
+  try {
+    runGit(top, ["add", "-A"]);
+  } catch {
+    // ignore
+  }
+  runGit(
+    top,
+    ["commit", "--allow-empty", "-m", "chore: init develop branch"],
+    identity,
+  );
+  if (!hasLocalBranch(top, "develop")) {
+    runGit(top, ["branch", "-M", "develop"]);
+  }
+  return { baseBranch: "develop", created: true };
+}
+
 function probeRepo(repoPath, { bootstrap = false } = {}) {
   let bootstrapped = false;
   let top;
@@ -995,27 +1053,15 @@ function probeRepo(repoPath, { bootstrap = false } = {}) {
     bootstrapped = true;
     top = resolveGitTop(err.path);
   }
-  let baseBranch = null;
-  for (const b of ["develop", "main", "master"]) {
-    if (hasLocalBranch(top, b)) {
-      baseBranch = b;
-      break;
-    }
-  }
-  if (!baseBranch) {
-    const e = new Error(
-      `「${top}」是 git 仓库，但本地没有 develop / main / master 分支`,
-    );
-    e.code = "NO_BASE_BRANCH";
-    e.path = top;
-    throw e;
-  }
+  const base = ensureBaseBranch(top, { bootstrap });
+  if (base.created) bootstrapped = true;
   return {
     path: top,
     name: path.basename(top) || top,
-    baseBranch,
+    baseBranch: base.baseBranch,
     hasDuaer: fs.existsSync(path.join(top, ".duaer")),
     bootstrapped,
+    baseBranchCreated: base.created,
   };
 }
 
