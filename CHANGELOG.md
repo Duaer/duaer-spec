@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1 — 2026-09-15
+
+### Mandatory in-repo worktrees
+
+- Request worktrees **must** live under **`.worktree/<request-id>`** (not optional)
+- `.worktree/` is gitignored and must never be committed
+- `duaer init` ensures `.gitignore` contains `.worktree/`
+- AGENTS / R4 / agent rules updated; `../worktrees/` is no longer the default
+
 ## 0.5.0 — 2026-09-15
 
 ### Autonomous digital employee
