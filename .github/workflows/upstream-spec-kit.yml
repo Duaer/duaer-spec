@@ -1,0 +1,61 @@
+name: Sync upstream Spec Kit
+
+on:
+  schedule:
+    # Monday 03:00 UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream-spec-kit
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Sync vendor snapshot
+        run: node scripts/sync-upstream-spec-kit.mjs
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- vendor/github-spec-kit; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            short="$(head -1 vendor/github-spec-kit/COMMIT.txt | awk '{print $1}')"
+            echo "short=${short}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create pull request
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: chore/vendor-spec-kit-sync
+          delete-branch: true
+          commit-message: "chore(vendor): sync github/spec-kit ${{ steps.diff.outputs.short }}"
+          title: "chore(vendor): sync github/spec-kit ${{ steps.diff.outputs.short }}"
+          body: |
+            Automated refresh of `vendor/github-spec-kit/` from [github/spec-kit](https://github.com/github/spec-kit).
+
+            - Review the vendor diff
+            - Merge when OK
+            - Optionally promote templates into `kit/` with:
+              `node scripts/sync-upstream-spec-kit.mjs --promote-templates`
+            - Cursor skills under `kit/.cursor/skills` still need a manual pass if command semantics changed
+
+            See [docs/maintaining.md](docs/maintaining.md).
+          labels: dependencies
