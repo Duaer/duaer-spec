@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live auto-accept
+
+- Confirm runs model auto-accept of the four-block card; fail returns issues without writing Brief
+- Passed reviews are stamped into the job Brief / `job.json`
+
 ### Live desk UI
 
 - Restyle 现场开发 to Probe visual language (steel plate, Outfit + Chivo Mono, register/lock accents)

@@ -246,9 +246,10 @@ el.form.addEventListener("submit", (e) => {
 
 el.confirm.addEventListener("click", async () => {
   const v = cardValues();
-  if (!v.goal || !v.acceptance || state.locked) return;
+  if (!v.goal || !v.acceptance || state.locked || state.busy) return;
   el.confirm.disabled = true;
-  el.confirm.textContent = "写入 Brief…";
+  el.confirm.textContent = "自动验收中…";
+  state.busy = true;
   try {
     const res = await fetch("/api/confirm", {
       method: "POST",
@@ -259,20 +260,40 @@ el.confirm.addEventListener("click", async () => {
       }),
     });
     const data = await res.json();
+    if (data.card) applyCard(data.card);
+    if (res.status === 422 || data.passed === false) {
+      const issues = Array.isArray(data.issues) ? data.issues : [];
+      const detail = issues.length
+        ? `\n- ${issues.join("\n- ")}`
+        : "";
+      addBubble(
+        "bot",
+        `自动验收未通过：${data.summary || data.error || "请修改确认卡"}${detail}`,
+      );
+      el.confirm.disabled = false;
+      el.confirm.textContent = "需求无误，开始干活";
+      syncConfirmEnabled();
+      return;
+    }
     if (!res.ok) throw new Error(data.error || "confirm failed");
     state.locked = true;
     el.confirm.textContent = "已确认";
     el.result.hidden = false;
-    el.result.textContent = `Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
+    const reviewLine = data.review?.summary
+      ? `自动验收：${data.review.summary}\n`
+      : "";
+    el.result.textContent = `${reviewLine}Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
     addBubble(
       "bot",
-      `已锁定。Brief 在隔离区 ${data.relativeDir || data.featureDir}，未写入业务仓库。`,
+      `自动验收通过。Brief 已写入 ${data.relativeDir || data.featureDir}，未写入业务仓库。`,
     );
     syncConfirmEnabled();
   } catch (err) {
     el.confirm.disabled = false;
     el.confirm.textContent = "需求无误，开始干活";
-    addBubble("bot", `写入失败：${err instanceof Error ? err.message : err}`);
+    addBubble("bot", `确认失败：${err instanceof Error ? err.message : err}`);
+  } finally {
+    state.busy = false;
   }
 });
 

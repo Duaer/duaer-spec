@@ -251,13 +251,28 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 5. 必须只输出一个 JSON 对象，不要 markdown 围栏：
 {"reply":"对用户说的话","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-async function callChatModel(cfg, messages) {
+const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。请自动验收这份需求。
+
+检查：
+1. goal 是否单一、可执行
+2. acceptance 是否可客观检查（避免「更好用」这类空话）
+3. outOfScope 是否划清边界（可简短）
+4. assumptions 是否合理、不偷换目标
+
+规则：
+- 若小改即可通过：修订四块，passed=true
+- 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
+- 不要写代码。不要假设仓库路径。
+- 只输出一个 JSON，不要 markdown 围栏：
+{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
+async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const base = cfg.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
   const body = {
     model: cfg.model,
-    temperature: 0.3,
-    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+    temperature: systemPrompt === ACCEPT_PROMPT ? 0.15 : 0.3,
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
   };
   // DeepSeek Flash defaults to thinking; disable for reliable JSON replies.
   if (inferProviderId(cfg) === "deepseek") {
@@ -279,7 +294,7 @@ async function callChatModel(cfg, messages) {
   }
   const content = String(json?.choices?.[0]?.message?.content || "").trim();
   if (!content) throw new Error("模型返回空内容");
-  return parseModelJson(content);
+  return content;
 }
 
 function parseModelJson(content) {
@@ -289,7 +304,11 @@ function parseModelJson(content) {
   const start = text.indexOf("{");
   const end = text.lastIndexOf("}");
   if (start >= 0 && end > start) text = text.slice(start, end + 1);
-  const obj = JSON.parse(text);
+  return JSON.parse(text);
+}
+
+function parseChatResult(content) {
+  const obj = parseModelJson(content);
   return {
     reply: String(obj.reply || "").trim() || "请继续补充。",
     goal: String(obj.goal || "").trim(),
@@ -303,12 +322,69 @@ function parseModelJson(content) {
   };
 }
 
+function parseAcceptResult(content, fallback) {
+  const obj = parseModelJson(content);
+  const pick = (key) => {
+    const v = String(obj[key] || "").trim();
+    return v || String(fallback[key] || "").trim();
+  };
+  return {
+    passed: Boolean(obj.passed),
+    summary: String(obj.summary || "").trim(),
+    issues: Array.isArray(obj.issues)
+      ? obj.issues.map((x) => String(x).trim()).filter(Boolean).slice(0, 8)
+      : [],
+    goal: pick("goal"),
+    outOfScope: pick("outOfScope"),
+    acceptance: pick("acceptance"),
+    assumptions: pick("assumptions"),
+  };
+}
+
+function localAcceptCheck(card) {
+  const issues = [];
+  const goal = String(card.goal || "").trim();
+  const acceptance = String(card.acceptance || "").trim();
+  if (goal.length < 4) issues.push("「要做什么」过短，写不清目标");
+  if (acceptance.length < 4) {
+    issues.push("「验收标准」过短，无法检查是否完成");
+  }
+  return issues;
+}
+
+async function autoAcceptCard(cfg, card) {
+  const local = localAcceptCheck(card);
+  if (local.length) {
+    return {
+      passed: false,
+      summary: "本地预检未通过",
+      issues: local,
+      goal: card.goal,
+      outOfScope: card.outOfScope,
+      acceptance: card.acceptance,
+      assumptions: card.assumptions,
+    };
+  }
+  const content = await callChatModel(
+    cfg,
+    [
+      {
+        role: "user",
+        content: `请验收以下确认卡：\n${JSON.stringify(card, null, 2)}`,
+      },
+    ],
+    ACCEPT_PROMPT,
+  );
+  return parseAcceptResult(content, card);
+}
+
 function writeBrief(payload) {
   const goal = String(payload.goal || "").trim();
   const outOfScope = String(payload.outOfScope || "").trim();
   const acceptance = String(payload.acceptance || "").trim();
   const assumptions = String(payload.assumptions || "").trim();
   const rawAsk = String(payload.rawAsk || "").trim();
+  const review = payload.review && typeof payload.review === "object" ? payload.review : null;
   if (!goal || !acceptance) throw new Error("goal and acceptance are required");
 
   const { root, nextNum } = nextJobDir();
@@ -319,6 +395,15 @@ function writeBrief(payload) {
 
   const today = new Date().toISOString().slice(0, 10);
   const branchHint = `feat/${slug}`;
+  const reviewBlock = review
+    ? `
+
+## Auto-accept
+
+- Passed: yes
+- Summary: ${review.summary || "ok"}
+`
+    : "";
   const spec = `# Feature Specification: ${goal}
 
 **Feature Branch**: \`${branchHint}\`
@@ -344,10 +429,10 @@ ${acceptance}
 ## Assumptions
 
 ${assumptions || "- (none)"}
-
+${reviewBlock}
 ## Notes
 
-Confirmed via 现场开发. Workspace is ~/.duaer/live (isolated from product repos).
+Confirmed via 现场开发 after auto-accept. Workspace is ~/.duaer/live (isolated from product repos).
 Copy this Brief into a product repo's \`.duaer/specs/\` when the digital employee starts work there.
 `;
 
@@ -370,6 +455,13 @@ Copy this Brief into a product repo's \`.duaer/specs/\` when the digital employe
         branch: branchHint,
         confirmedAt: new Date().toISOString(),
         source: "live-dev",
+        autoAccept: review
+          ? {
+              passed: true,
+              summary: review.summary || "",
+              reviewedAt: new Date().toISOString(),
+            }
+          : undefined,
       },
       null,
       2,
@@ -395,6 +487,9 @@ Brief 目录: ${featureDir}
     relativeDir: `~/.duaer/live/jobs/${dirName}`,
     branch: branchHint,
     agentPrompt,
+    review: review
+      ? { passed: true, summary: review.summary || "" }
+      : undefined,
   };
 }
 
@@ -469,7 +564,7 @@ async function handleApi(req, res) {
         content: `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话并返回 JSON。`,
       });
       const result = await callChatModel(cfg, messages);
-      send(res, 200, result);
+      send(res, 200, parseChatResult(result));
     } catch (err) {
       send(res, 500, {
         error: err instanceof Error ? err.message : "chat failed",
@@ -479,10 +574,61 @@ async function handleApi(req, res) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/confirm") {
+    const cfg = readConfig();
+    if (!configReady(cfg)) {
+      send(res, 400, {
+        error: "请先配置模型后再确认（确认时会自动验收需求）",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
     try {
       const body = await readJson(req);
-      const result = writeBrief(body);
-      send(res, 200, result);
+      const card = {
+        goal: String(body.goal || "").trim(),
+        outOfScope: String(body.outOfScope || "").trim(),
+        acceptance: String(body.acceptance || "").trim(),
+        assumptions: String(body.assumptions || "").trim(),
+      };
+      if (!card.goal || !card.acceptance) {
+        send(res, 400, { error: "goal and acceptance are required" });
+        return;
+      }
+      const review = await autoAcceptCard(cfg, card);
+      if (!review.passed) {
+        send(res, 422, {
+          ok: false,
+          passed: false,
+          error: review.summary || "自动验收未通过",
+          summary: review.summary,
+          issues: review.issues,
+          card: {
+            goal: review.goal,
+            outOfScope: review.outOfScope,
+            acceptance: review.acceptance,
+            assumptions: review.assumptions,
+          },
+        });
+        return;
+      }
+      const result = writeBrief({
+        goal: review.goal,
+        outOfScope: review.outOfScope,
+        acceptance: review.acceptance,
+        assumptions: review.assumptions,
+        rawAsk: body.rawAsk,
+        review: { summary: review.summary || "自动验收通过" },
+      });
+      send(res, 200, {
+        ...result,
+        passed: true,
+        card: {
+          goal: review.goal,
+          outOfScope: review.outOfScope,
+          acceptance: review.acceptance,
+          assumptions: review.assumptions,
+        },
+      });
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "confirm failed",

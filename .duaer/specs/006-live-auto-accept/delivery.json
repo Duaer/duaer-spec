@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-15T11:30:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["POST /api/confirm with short card -> 422, no Brief"],
+    "result": "pass"
+  }
+}
