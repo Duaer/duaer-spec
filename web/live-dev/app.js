@@ -518,7 +518,19 @@ el.repoBrowse?.addEventListener("click", async () => {
     const data = await res.json();
     if (!res.ok) {
       if (data.cancelled) return;
-      // Still surface the chosen folder path when validation failed.
+      if (Array.isArray(data.candidates) && data.candidates.length) {
+        state.repoCatalog = {
+          recent: state.repoCatalog.recent || [],
+          discovered: data.candidates.map((c) => ({
+            ...c,
+            source: "discover",
+          })),
+        };
+        renderRepoList();
+        el.dispatchErr.hidden = false;
+        el.dispatchErr.textContent = data.error || "请从下方列表点选具体仓库";
+        return;
+      }
       if (data.path) {
         el.repoPath.value = data.path;
       }

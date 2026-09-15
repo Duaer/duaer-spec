@@ -856,16 +856,94 @@ function hasLocalBranch(cwd, name) {
   return r.status === 0;
 }
 
-function probeRepo(repoPath) {
+function hasGitDir(dir) {
+  try {
+    return fs.existsSync(path.join(dir, ".git"));
+  } catch {
+    return false;
+  }
+}
+
+function tryGitTop(dir) {
+  const r = spawnSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: dir,
+    encoding: "utf8",
+  });
+  if (r.status !== 0) return null;
+  return normalizeRepoPath(String(r.stdout || "").trim());
+}
+
+function listChildGitRepos(dir, { max = 12 } = {}) {
+  const out = [];
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return out;
+  }
+  for (const ent of entries) {
+    if (out.length >= max) break;
+    if (!ent.isDirectory()) continue;
+    if (ent.name.startsWith(".")) continue;
+    if (["node_modules", "Library", "Applications"].includes(ent.name)) {
+      continue;
+    }
+    const full = path.join(dir, ent.name);
+    if (!hasGitDir(full)) continue;
+    const top = tryGitTop(full);
+    if (top) out.push(top);
+  }
+  return out;
+}
+
+function resolveGitTop(repoPath) {
   const abs = normalizeRepoPath(repoPath);
   if (!abs || abs === path.sep) throw new Error("请填写仓库绝对路径");
   if (!fs.existsSync(abs)) throw new Error(`路径不存在：${abs}`);
-  let top;
-  try {
-    top = normalizeRepoPath(runGit(abs, ["rev-parse", "--show-toplevel"]));
-  } catch {
-    throw new Error("不是 git 仓库（请选仓库根目录）");
+
+  // 1) This folder (or inside a repo)
+  let top = tryGitTop(abs);
+  if (top) return top;
+
+  // 2) Walk up — user may have picked src/ or packages/foo
+  let cur = abs;
+  for (let i = 0; i < 8; i += 1) {
+    const parent = path.dirname(cur);
+    if (parent === cur) break;
+    cur = parent;
+    if (!hasGitDir(cur)) continue;
+    top = tryGitTop(cur);
+    if (top) return top;
   }
+
+  // 3) Immediate children — user picked parent of the real repo
+  const kids = listChildGitRepos(abs);
+  if (kids.length === 1) return kids[0];
+  if (kids.length > 1) {
+    const e = new Error(
+      `你选的是父目录，下面有多个 git 仓库。请再选其中一个项目文件夹：${kids
+        .map((k) => path.basename(k))
+        .join("、")}`,
+    );
+    e.code = "AMBIGUOUS_PARENT";
+    e.candidates = kids.map((p) => ({
+      path: p,
+      name: path.basename(p),
+    }));
+    e.path = abs;
+    throw e;
+  }
+
+  const e = new Error(
+    `「${abs}」不是 git 仓库（没有 .git）。有文件不等于已 git init——请选带 .git 的项目根目录，或在该目录执行：git init -b develop && git add -A && git commit -m init`,
+  );
+  e.code = "NOT_GIT";
+  e.path = abs;
+  throw e;
+}
+
+function probeRepo(repoPath) {
+  const top = resolveGitTop(repoPath);
   let baseBranch = null;
   for (const b of ["develop", "main", "master"]) {
     if (hasLocalBranch(top, b)) {
@@ -874,7 +952,12 @@ function probeRepo(repoPath) {
     }
   }
   if (!baseBranch) {
-    throw new Error("需要本地 develop / main / master 分支");
+    const e = new Error(
+      `「${top}」是 git 仓库，但本地没有 develop / main / master 分支`,
+    );
+    e.code = "NO_BASE_BRANCH";
+    e.path = top;
+    throw e;
   }
   return {
     path: top,
@@ -1274,7 +1357,8 @@ async function handleApi(req, res) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "pick failed",
         cancelled: code === "CANCELLED",
-        path: chosen || undefined,
+        path: (err && err.path) || chosen || undefined,
+        candidates: err && err.candidates ? err.candidates : undefined,
       });
     }
     return;
