@@ -48,9 +48,11 @@ update develop
   → git worktree add .worktree/<id> -b feat|fix/<name> develop
   → work only in that worktree (Duaer job loop as needed)
   → merge into local develop
-  → stop any server started in the worktree
-  → remove .worktree/<id>; delete feat|fix/<name>
-  → (optional) start/restart services from the primary checkout on develop
+  → handoff (mandatory):
+       stop processes bound to the worktree
+       remove .worktree/<id>; delete feat|fix/<name>
+       restart services from the primary checkout on develop
+         (see .duaer/handoff.json / `duaer handoff [--run]`)
   → push develop only if the user asked
 ```
 
@@ -66,15 +68,44 @@ cd .worktree/feat-login
 cd ../..   # primary checkout
 git switch develop
 git merge feat/login
-# stop processes that used .worktree/feat-login
+
+# Handoff — do not skip
+# 1) stop anything started under .worktree/feat-login
 git worktree remove .worktree/feat-login
 git branch -d feat/login
+# 2) restart on develop (primary checkout)
+duaer handoff --run
+# or: npm run dev   # if listed in .duaer/handoff.json
 ```
 
-**After merge / before delete worktree:** if a local service was running from the
-worktree, stop it; if the user still needs it, start it again from the primary
-checkout on **`develop`** (merged tree). Do not expect the old worktree process
-to survive directory removal.
+### Worktree → develop service handoff (mandatory)
+
+Deleting a worktree **removes that directory**. Any server started there will
+break. Agents **must**:
+
+1. Merge the request branch into **`develop`** (hotfix: **`main`**, then
+   back-merge **`develop`**)
+2. **Stop** processes whose cwd is under `.worktree/<id>/`
+3. `git worktree remove .worktree/<id>` and delete the short branch
+4. **Restart** from the **primary checkout** on the merged long-lived branch:
+   - Read `.duaer/handoff.json` → `onWorktreeRemove.commands`
+   - Run `duaer handoff` (prints the plan) or `duaer handoff --run` (starts
+     configured commands in the background from the project root)
+   - If `commands` is empty but the agent started a server in the worktree,
+     restart the **same** command from the primary checkout on `develop`
+   - Tell the user the new service is on the merged branch, not the old worktree
+
+Configure per project by editing `.duaer/handoff.json`, for example:
+
+```json
+{
+  "schemaVersion": 1,
+  "onWorktreeRemove": {
+    "restartFromPrimary": true,
+    "commands": ["npm run dev"]
+  }
+}
+```
 
 ---
 

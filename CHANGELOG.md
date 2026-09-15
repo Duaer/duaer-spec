@@ -1,42 +1,41 @@
 # Changelog
 
+## 0.6.1 — 2026-09-15
+
+### Worktree → develop service handoff
+
+- Mandatory handoff after merge: stop worktree-bound processes, remove
+  `.worktree/<id>`, restart from primary checkout on `develop`
+- `.duaer/handoff.json` configures restart commands (e.g. `npm run dev`)
+- CLI: `duaer handoff` / `duaer handoff --run`
+- Docs: update path for existing installs (`init --force` + review diff)
+
 ## 0.6.0 — 2026-09-15
 
 ### Mandatory branch model + release flows
 
-- Required branches: **`main`** (production), **`develop`** (integration),
-  **`feat/*`**, **`fix/*`**
-- New doc: [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
-  — day-to-day, go-live, feature / bug / hotfix / issue / PR flows
-- Agent ops merge target is **`develop`**; promote to **`main`** only when
-  shipping; hotfixes from `main` then back-merge `develop`
-- Worktree cleanup includes stopping services and restarting on `develop` if needed
-- `duaer init` default `--branch` is `develop`
+- Required: `main` / `develop` / `feat/*` / `fix/*`
+- [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
 
 ## 0.5.1 — 2026-09-15
 
-### Mandatory in-repo worktrees
-
-- Request worktrees **must** live under **`.worktree/<request-id>`**
-- `.worktree/` is gitignored; `duaer init` ensures the ignore rule
+- Mandatory `.worktree/` (gitignored)
 
 ## 0.5.0 — 2026-09-15
 
-### Autonomous digital employee
-
-- Humans ask; agents run Brief → work → accept without slash-command ops
+- Autonomous digital employee (ask, don’t operate phases)
 
 ## 0.4.0 — 2026-09-15
 
-- `/duaer-do` + `duaer status` everyday path (later reframed as agent-internal)
+- Everyday `/duaer-do` path (later agent-internal)
 
 ## 0.3.0 — 2026-09-15
 
-- Job handoff policy (`coach` / `strict` / `off`)
+- Job handoff policy
 
 ## 0.2.0 — 2026-09-15
 
-- `delivery.json` handoff stamp
+- `delivery.json`
 
 ## 0.1.1 — 2026-09-15
 
@@ -44,4 +43,4 @@
 
 ## 0.1.0 — 2026-09-15
 
-- First public methodology release
+- First public release

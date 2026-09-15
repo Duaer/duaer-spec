@@ -27,6 +27,10 @@ For new behavior, fixes, refactors that change product behavior, or architecture
 4. Do **not** dump a methodology tutorial unless they ask how Duaer works.
 5. Merge to **`develop`** when done (hotfix: **`main`**, then back-merge
    **`develop`**). Promote to **`main`** only if the user asks to go online.
+6. **Handoff (mandatory):** stop processes bound to `.worktree/<id>/`, remove
+   the worktree, then restart services from the primary checkout on `develop`
+   using `.duaer/handoff.json` / `duaer handoff [--run]`. Never leave the user
+   on a dead worktree server.
    See `docs/agent/branching-and-release.md`.
 
 ## Handoff

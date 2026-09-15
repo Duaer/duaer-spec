@@ -251,7 +251,9 @@ git worktree prune
 * Use `git branch -d` (not `-D`)
 * Delete only your own worktree and branch
 * Never commit `.worktree/` (ignored)
-* Stop worktree-bound services before remove; restart from primary checkout if needed
+* Stop worktree-bound services before remove; then restart from the primary
+  checkout on **`develop`** via `.duaer/handoff.json` / `duaer handoff [--run]`
+  (mandatory handoff — see [branching-and-release](docs/agent/branching-and-release.md))
 
 ## Development Workflow
 
@@ -267,7 +269,8 @@ git worktree prune
 10. Commit each logical change
 11. Refresh against latest **`develop`** (or **`main`** for hotfix)
 12. Merge into local **`develop`** (hotfix: **`main`**, then back-merge to **`develop`**)
-13. Stop worktree services; remove worktree; delete short branch
+13. Stop worktree services; remove worktree; delete short branch; **handoff**
+    restart on `develop` (`duaer handoff [--run]` / `.duaer/handoff.json`)
 14. Push only when explicitly requested
 15. Promote **`develop` → `main`** only when the user explicitly asks to go online
 

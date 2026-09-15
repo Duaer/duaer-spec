@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "onWorktreeRemove": {
+    "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs).",
+    "restartFromPrimary": true,
+    "commands": []
+  },
+  "notes": "After merging into develop (or hotfix main), stop worktree-bound processes, remove .worktree/<id>, then restart from the primary checkout. Add commands such as \"npm run dev\" when this project needs a local service after handoff. Empty commands = stop only; agent still reports handoff."
+}

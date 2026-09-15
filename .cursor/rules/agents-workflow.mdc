@@ -42,7 +42,8 @@ cd .worktree/<request-id>
 - One logical change per commit; leave the worktree clean
 - User/protocol-visible changes update E2E scenario docs
 - Merge into **`develop`** when done (hotfix: **`main`**, then back-merge **`develop`**)
-- Stop worktree services → remove worktree → delete short branch
+- **Handoff (mandatory):** stop worktree-bound processes → remove `.worktree/<id>` →
+  restart from primary checkout on `develop` (`duaer handoff [--run]`, `.duaer/handoff.json`)
 - Push only when the user explicitly asks
 - Promote **`develop` → `main`** only when the user asks to go online
 

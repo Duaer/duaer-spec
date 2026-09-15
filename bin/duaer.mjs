@@ -15,6 +15,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs'
+import { spawn } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -26,19 +27,25 @@ const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 
 const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
-Human (once):
-  duaer init [--here]     Install so the agent works as a digital employee
+Human (once / update):
+  duaer init [--here] [--force]   Install or refresh into a project
 
-After install: talk to the agent in plain language. Do not operate /duaer-* phases.
+After install: talk to the agent in plain language.
 
-Agent / optional diagnostics:
+Agent / optional:
+  duaer handoff [dir] [--run]   After merge: print/restart services on develop
   duaer status [dir]
   duaer check | policy | version
 
 Init: --all (default) | --method | --ops | --force | --branch <n> (default: develop) | --here
 
+Update existing install:
+  npx duaer-spec@latest init --here --force
+  # then review git diff; keep project-specific constitution / baseline / handoff commands
+
 Example:
   npx duaer-spec init --here
+  duaer handoff --run
 `
 
 function parseArgs(argv) {
@@ -55,6 +62,7 @@ function parseArgs(argv) {
     allJobs: false,
     strict: false,
     policyMode: null,
+    run: false,
   }
   const rest = args.slice(1)
   for (let i = 0; i < rest.length; i++) {
@@ -69,6 +77,7 @@ function parseArgs(argv) {
     else if (a === '--job') out.job = true
     else if (a === '--all-jobs') out.allJobs = true
     else if (a === '--strict' || a === '--gate') out.strict = true
+    else if (a === '--run') out.run = true
     else if (a === '--branch') {
       out.branch = rest[++i]
       if (!out.branch) throw new Error('--branch requires a value')
@@ -170,11 +179,37 @@ function writeDefaultPolicy(target, { force }) {
   console.log('  .duaer/delivery-policy.json (mode=coach)')
 }
 
+function defaultHandoff() {
+  return {
+    schemaVersion: 1,
+    onWorktreeRemove: {
+      stop:
+        'Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs).',
+      restartFromPrimary: true,
+      commands: [],
+    },
+    notes:
+      'After merging into develop, stop worktree processes, remove .worktree/<id>, then restart from the primary checkout. Add commands such as "npm run dev" when needed.',
+  }
+}
+
+function writeDefaultHandoff(target, { force }) {
+  const path = join(target, '.duaer', 'handoff.json')
+  if (existsSync(path) && !force) {
+    console.log(`skip (exists): ${path}`)
+    return
+  }
+  ensureDir(dirname(path))
+  writeFileSync(path, JSON.stringify(defaultHandoff(), null, 2) + '\n')
+  console.log('  .duaer/handoff.json')
+}
+
 function installMethod(target, opts) {
   console.log('Installing Duaer method…')
   copyPath(join(PKG_ROOT, '.duaer'), join(target, '.duaer'), opts)
   console.log('  .duaer/')
   writeDefaultPolicy(target, opts)
+  writeDefaultHandoff(target, opts)
 
   ensureDir(join(target, '.cursor', 'skills'))
   const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
@@ -304,9 +339,10 @@ function cmdInit(opts) {
 Hired.
 
 You: describe work in Cursor (plain language).
-Agent: runs Brief → work → accept by itself — do not operate slash phases.
+Agent: runs Brief → work → accept; uses develop + .worktree/; after merge runs handoff.
 
-Optional diagnostic: duaer status
+Update later: npx duaer-spec@latest init --here --force  (review the diff)
+Handoff:      duaer handoff [--run]   # restart services on develop after worktree remove
 `)
 }
 
@@ -596,6 +632,49 @@ Not a git merge lock.
 `)
 }
 
+function cmdHandoff(opts) {
+  const target = resolve(opts.dir)
+  const cfg = readJson(join(target, '.duaer', 'handoff.json'), defaultHandoff())
+  const block = cfg.onWorktreeRemove || {}
+  const commands = Array.isArray(block.commands) ? block.commands.filter(Boolean) : []
+
+  console.log(`Handoff @ ${target}`)
+  console.log('(worktree → merged develop / hotfix main)\n')
+  console.log('1. Confirm request branch is merged into develop (hotfix: main + back-merge develop)')
+  console.log(`2. Stop: ${block.stop || defaultHandoff().onWorktreeRemove.stop}`)
+  console.log('3. git worktree remove .worktree/<id>  &&  git branch -d feat|fix/<name>')
+  console.log('4. Restart from primary checkout on the merged branch:\n')
+
+  if (!commands.length) {
+    console.log('   (no commands in .duaer/handoff.json)')
+    console.log('   Add e.g. "npm run dev" under onWorktreeRemove.commands')
+    console.log('   If you started a server in the worktree, re-run that same command here.')
+  } else {
+    for (const c of commands) console.log(`   $ ${c}`)
+  }
+
+  if (opts.run) {
+    if (!commands.length) {
+      console.log('\n--run: nothing to start (commands empty).')
+      return
+    }
+    console.log('')
+    for (const c of commands) {
+      const child = spawn(c, {
+        shell: true,
+        cwd: target,
+        detached: true,
+        stdio: 'ignore',
+      })
+      child.unref()
+      console.log(`started (detached) pid=${child.pid}: ${c}`)
+    }
+    console.log('\nServices should now be bound to the primary checkout, not .worktree/.')
+  } else if (commands.length) {
+    console.log('\nTip: duaer handoff --run   # start the commands above in the background')
+  }
+}
+
 function main() {
   let opts
   try {
@@ -613,6 +692,9 @@ function main() {
         break
       case 'check':
         cmdCheck(opts)
+        break
+      case 'handoff':
+        cmdHandoff(opts)
         break
       case 'job':
       case 'status':

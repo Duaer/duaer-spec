@@ -98,7 +98,8 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 - [ ] Active job handoff considered by the **agent** (do not require the human to run CLI for routine work).
 - [ ] Branch refreshed against latest `develop` (hotfix: `main`).
 - [ ] Merged into local `develop` (hotfix: `main`, then back-merge `develop`).
-- [ ] Worktree services stopped; worktree removed; short branch deleted.
+- [ ] Worktree services stopped; worktree removed; short branch deleted;
+  **handoff** restart on `develop` (`duaer handoff` / `.duaer/handoff.json`).
 - [ ] Only this request's logical changes included.
 - [ ] Push performed only if the user explicitly asked for this request.
 - [ ] `develop` → `main` promotion only if the user asked to go online.

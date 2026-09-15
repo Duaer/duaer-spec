@@ -38,10 +38,21 @@ everyday human UI.
 Go-live and flows by issue type:
 [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md).
 
+**After merge:** `duaer handoff [--run]` restarts local services on `develop`
+(configure commands in `.duaer/handoff.json`).
+
+## Updating
+
+```bash
+npx duaer-spec@latest init --here --force   # review diff; keep handoff commands
+```
+
+Details: [`ADOPT.md`](ADOPT.md)#updating-an-existing-install
+
 ## Optional
 
 ```bash
-npx duaer-spec@0.6.0 init --here --method   # method only
+npx duaer-spec@0.6.1 init --here --method
 ```
 
 Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)
