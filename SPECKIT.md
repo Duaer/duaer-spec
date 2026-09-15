@@ -1,8 +1,8 @@
-# Spec Kit iteration conventions (duaer-spec kit)
+# Spec Kit iteration conventions (duaer-spec)
 
 Part of the standalone **duaer-spec** package. Based on
 [GitHub Spec Kit](https://github.com/github/spec-kit) (plus Cursor `speckit-*`
-skills).
+skills). Lives at the repository root (`.specify/`, `.cursor/skills/`).
 
 **Precedence:** root `AGENTS.md` / `docs/agent/` win if anything here conflicts
 with isolation, commits, or Issue/PR gates.
@@ -34,13 +34,15 @@ with isolation, commits, or Issue/PR gates.
 
 ## Install into a project
 
-See repo root [`ADOPT.md`](../ADOPT.md), or:
+See [`ADOPT.md`](ADOPT.md), or:
 
 ```bash
-rsync -a kit/.specify/ /path/to/project/.specify/
-rsync -a kit/.cursor/skills/ /path/to/project/.cursor/skills/
-cp kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
-cp kit/SPECKIT.md /path/to/project/
+# From the duaer-spec repo root
+rsync -a .specify/ /path/to/project/.specify/
+rsync -a .cursor/skills/ /path/to/project/.cursor/skills/
+mkdir -p /path/to/project/.cursor/rules
+cp .cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
+cp SPECKIT.md /path/to/project/
 # Edit .specify/memory/* for that product
 ```
 
@@ -54,4 +56,4 @@ CLI: `specify` (`uv tool install specify-cli` or via `uvx`). Verify with
 `specify version` / `specify check`.
 
 Upstream refresh for maintainers of this package:
-[docs/maintaining.md](../docs/maintaining.md).
+[docs/maintaining.md](docs/maintaining.md).

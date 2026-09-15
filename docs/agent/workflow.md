@@ -120,8 +120,8 @@ when changing duaer-spec's own agent-ops contract.
 ## 5. Spec Kit Relationship
 
 - **Agent ops** (`AGENTS.md`, this file): isolation, commits, Issue/PR, merge.
-- **Spec Kit** (`kit/`): what to build — specify → plan → tasks → implement →
-  converge.
+- **Spec Kit** (repo root `.specify/`, `SPECKIT.md`): what to build — specify →
+  plan → tasks → implement → converge.
 
 When they conflict, **agent ops win**. Install and conventions:
-[kit/SPECKIT.md](../../kit/SPECKIT.md) · [ADOPT.md](../../ADOPT.md).
+[SPECKIT.md](../../SPECKIT.md) · [ADOPT.md](../../ADOPT.md).

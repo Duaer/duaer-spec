@@ -3,8 +3,9 @@
 Mandatory rules for AI coding agents working in **duaer-spec**, and for any
 repository that adopts this file as its agent-ops contract.
 
-This file is authoritative for *how* agents operate. If Spec Kit (`kit/`),
-`examples/`, or other overlays conflict with this file, **follow this file**.
+This file is authoritative for *how* agents operate. If Spec Kit (`.specify/`,
+`SPECKIT.md`), `examples/`, or other overlays conflict with this file,
+**follow this file**.
 
 See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/change-checklist.md) · [ADOPT](ADOPT.md)
 

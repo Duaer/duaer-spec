@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Spec Kit required (NON-NEGOTIABLE)
 
-Part of **duaer-spec** kit. See `SPECKIT.md` and `.specify/memory/constitution.md`.
+Part of **duaer-spec**. See `SPECKIT.md` and `.specify/memory/constitution.md`.
 
 If this rule conflicts with root `AGENTS.md` / `docs/agent/` (worktrees, commits,
 Issue/PR), **AGENTS.md wins**.

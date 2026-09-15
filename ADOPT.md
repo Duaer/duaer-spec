@@ -24,11 +24,11 @@ Then:
 ## 2. Spec Kit (recommended for feature work)
 
 ```bash
-rsync -a kit/.specify/ /path/to/project/.specify/
-rsync -a kit/.cursor/skills/ /path/to/project/.cursor/skills/
+rsync -a .specify/ /path/to/project/.specify/
+rsync -a .cursor/skills/ /path/to/project/.cursor/skills/
 mkdir -p /path/to/project/.cursor/rules
-cp kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
-cp kit/SPECKIT.md /path/to/project/
+cp .cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
+cp SPECKIT.md /path/to/project/
 ```
 
 Edit `.specify/memory/constitution.md`, `project-context.md`, and `testing.md`
@@ -49,8 +49,9 @@ tag if you need a frozen snapshot; otherwise periodically pull updates and
 reconcile overrides in the product baseline.
 
 Upstream Spec Kit snapshots in `vendor/` are refreshed weekly (see
-[docs/maintaining.md](docs/maintaining.md)). Re-copy `kit/` into product repos
-when you intentionally want those updates — adopters are not auto-updated.
+[docs/maintaining.md](docs/maintaining.md)). Re-copy `.specify/`, skills, and
+`SPECKIT.md` into product repos when you intentionally want those updates —
+adopters are not auto-updated.
 
 ## 5. What not to copy
 

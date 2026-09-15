@@ -8,7 +8,7 @@
  *   node scripts/sync-upstream-spec-kit.mjs --promote-templates
  *
  * Default ref: origin/main of github/spec-kit (shallow clone).
- * Does not overwrite kit/ unless --promote-templates (templates only).
+ * Does not overwrite .specify/templates unless --promote-templates.
  */
 
 import { spawnSync } from 'node:child_process'
@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
 const VENDOR = join(ROOT, 'vendor', 'github-spec-kit')
-const KIT_TEMPLATES = join(ROOT, 'kit', '.specify', 'templates')
+const KIT_TEMPLATES = join(ROOT, '.specify', 'templates')
 const UPSTREAM = 'https://github.com/github/spec-kit.git'
 
 const args = process.argv.slice(2)
@@ -118,13 +118,13 @@ function main() {
           continue
         }
         cpSync(from, to)
-        console.log(`promoted template → kit/.specify/templates/${name}`)
+        console.log(`promoted template → .specify/templates/${name}`)
       }
       console.log(
-        'Note: Cursor skills under kit/.cursor/skills are not auto-promoted; review vendor/templates/commands and update skills manually.',
+        'Note: Cursor skills under .cursor/skills are not auto-promoted; review vendor/templates/commands and update skills manually.',
       )
     } else {
-      console.log('Templates in kit/ left unchanged. Re-run with --promote-templates after review if desired.')
+      console.log('Templates in .specify/ left unchanged. Re-run with --promote-templates after review if desired.')
     }
 
     // Helpful diff hint

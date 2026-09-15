@@ -53,9 +53,9 @@ jobs:
 
             - Review the vendor diff
             - Merge when OK
-            - Optionally promote templates into `kit/` with:
+            - Optionally promote templates into `.specify/templates/` with:
               `node scripts/sync-upstream-spec-kit.mjs --promote-templates`
-            - Cursor skills under `kit/.cursor/skills` still need a manual pass if command semantics changed
+            - Cursor skills under `.cursor/skills` still need a manual pass if command semantics changed
 
             See [docs/maintaining.md](docs/maintaining.md).
           labels: dependencies
