@@ -16,10 +16,32 @@
     <div class="atmosphere" aria-hidden="true"></div>
     <header class="top">
       <p class="brand">现场开发</p>
-      <p class="tag">对话弄清 → 确认卡 → 数字员工干活</p>
+      <p class="tag">对话弄清 → 确认卡 → 数字员工干活（与业务仓库隔离）</p>
     </header>
 
-    <main class="layout">
+    <section id="setup" class="panel setup-panel" hidden>
+      <h2 class="card-title">配置模型</h2>
+      <p class="hint">
+        使用 OpenAI 兼容接口。配置保存在本机
+        <code>~/.duaer/live/config.json</code>，不会写入你的产品仓库。
+      </p>
+      <label class="field">
+        <span>Base URL</span>
+        <input id="cfgBase" type="url" placeholder="https://api.openai.com/v1" />
+      </label>
+      <label class="field">
+        <span>API Key</span>
+        <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
+      </label>
+      <label class="field">
+        <span>Model</span>
+        <input id="cfgModel" type="text" placeholder="gpt-4o-mini" />
+      </label>
+      <button type="button" class="btn confirm" id="saveCfg">保存并开始</button>
+      <p id="cfgErr" class="hint" hidden></p>
+    </section>
+
+    <main id="desk" class="layout" hidden>
       <section class="panel chat-panel" aria-label="对话">
         <div id="log" class="log"></div>
         <form id="composer" class="composer">
@@ -36,6 +58,7 @@
 
       <section class="panel card-panel" aria-label="确认卡">
         <h2 class="card-title">确认卡</h2>
+        <p id="meta" class="meta"></p>
         <label class="field">
           <span>要做什么</span>
           <textarea id="goal" rows="3" placeholder="待确认"></textarea>

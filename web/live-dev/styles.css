@@ -260,6 +260,36 @@ textarea:focus {
   max-height: 240px;
 }
 
+.setup-panel {
+  max-width: 520px;
+  margin: 0 auto 2rem;
+  padding: 1.25rem;
+  position: relative;
+  z-index: 1;
+}
+
+.meta {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+input[type="url"],
+input[type="password"],
+input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  background: #fffefb;
+  color: var(--ink);
+}
+
+code {
+  font-size: 0.85em;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

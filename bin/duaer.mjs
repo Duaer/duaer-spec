@@ -33,7 +33,8 @@ Update:   npx duaer-spec update
 Then talk to the agent in plain language.
 
 Also:
-  duaer live [--port N]   Open 现场开发 web (dialogue → confirm → Brief)
+  duaer live [--port N]              Open 现场开发 (isolated ~/.duaer/live)
+  duaer live config --base-url … --api-key … --model …
   duaer handoff [--run]   Restart services on develop after worktree remove
   duaer status | check | policy | version | help
 
@@ -57,8 +58,17 @@ function parseArgs(argv) {
     run: false,
     modeExplicit: false,
     port: null,
+    liveConfig: false,
+    baseUrl: null,
+    apiKey: null,
+    model: null,
   }
   const rest = args.slice(1)
+  // duaer live config …
+  if (out.cmd === 'live' && rest[0] === 'config') {
+    out.liveConfig = true
+    rest.shift()
+  }
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]
     if (a === '--all') {
@@ -81,6 +91,15 @@ function parseArgs(argv) {
     else if (a === '--port') {
       out.port = rest[++i]
       if (!out.port) throw new Error('--port requires a value')
+    } else if (a === '--base-url') {
+      out.baseUrl = rest[++i]
+      if (out.baseUrl == null) throw new Error('--base-url requires a value')
+    } else if (a === '--api-key') {
+      out.apiKey = rest[++i]
+      if (out.apiKey == null) throw new Error('--api-key requires a value')
+    } else if (a === '--model') {
+      out.model = rest[++i]
+      if (out.model == null) throw new Error('--model requires a value')
     } else if (a === '--branch') {
       out.branch = rest[++i]
       if (!out.branch) throw new Error('--branch requires a value')
@@ -90,7 +109,7 @@ function parseArgs(argv) {
       throw new Error(`Unknown flag: ${a}`)
     } else if (out.cmd === 'policy' && POLICY_MODES.has(a)) {
       out.policyMode = a
-    } else {
+    } else if (!out.liveConfig) {
       out.dir = a
     }
   }
@@ -944,16 +963,23 @@ function cmdHandoff(opts) {
 }
 
 function cmdLive(opts) {
-  const target = resolve(opts.dir)
   const script = join(PKG_ROOT, 'bin', 'duaer-live.mjs')
   if (!existsSync(script)) {
     throw new Error('duaer-live.mjs missing from package')
   }
-  const args = [script, target]
-  if (opts.port) args.push('--port', String(opts.port))
+  // Isolated desk: do NOT pass the user's cwd as a project root.
+  const args = [script]
+  if (opts.liveConfig) {
+    args.push('config')
+    if (opts.baseUrl) args.push('--base-url', opts.baseUrl)
+    if (opts.apiKey) args.push('--api-key', opts.apiKey)
+    if (opts.model) args.push('--model', opts.model)
+  } else if (opts.port) {
+    args.push('--port', String(opts.port))
+  }
   const child = spawn(process.execPath, args, {
     stdio: 'inherit',
-    cwd: target,
+    cwd: PKG_ROOT,
   })
   child.on('exit', (code) => process.exit(code ?? 0))
 }

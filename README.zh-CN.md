@@ -35,14 +35,17 @@ npx duaer-spec update
 
 ## 现场开发（网页确认台）
 
-在**已 init 的业务仓库**根目录：
+与业务仓库隔离。配置与 Brief 写在本机 `~/.duaer/live/`。
 
 ```bash
-npx duaer-spec live
-# 或：npm run live（在 duaer-spec 本仓）
+# 1) 配置模型（OpenAI 兼容）
+duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+
+# 2) 启动（任意目录都行，不会写入当前项目）
+duaer live
 ```
 
-浏览器打开提示的地址。多轮对话弄清需求 → 改确认卡四块 → 点「需求无误，开始干活」会写入 `.duaer/specs/`，并给出可复制给数字员工的开工说明。
+浏览器打开提示地址。多轮对话 → 确认卡 → 点确认后 Brief 落在 `~/.duaer/live/jobs/`，再复制开工说明给数字员工到**真正的产品仓库**干活。
 
 ### 目录不要同名套娃
 

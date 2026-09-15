@@ -1,64 +1,18 @@
 /**
- * 现场开发 — client dialogue protocol (no LLM required).
- * Priority: goal → who/where → acceptance → out of scope → assumptions.
+ * 现场开发 UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
  */
 
-const QUESTIONS = [
-  {
-    id: "goal",
-    field: "goal",
-    ask: "用一句话说：做成之后，用户能得到什么？",
-    why: "没有目标就无法验收。",
-    options: [
-      "网页上能确认需求并开工",
-      "修好某个明确的线上故障",
-      "加一个用户能看见的功能",
-    ],
-  },
-  {
-    id: "who",
-    field: "goal",
-    append: true,
-    ask: "这是给谁用、在什么场景用？",
-    why: "场景不同，范围差很多。",
-    options: ["内部同事", "外部客户", "我自己先用"],
-  },
-  {
-    id: "acceptance",
-    field: "acceptance",
-    ask: "怎样算做完？请给 1～3 条可检查的结果。",
-    why: "验收含糊时数字员工会做错边界。",
-    options: [
-      "页面能对话、确认后写出 Brief",
-      "点确认前绝不改代码",
-      "本地打开即可试用",
-    ],
-  },
-  {
-    id: "out",
-    field: "outOfScope",
-    ask: "明确不做哪些？",
-    why: "边界写清，避免范围膨胀。",
-    options: ["不做云端多租户", "不做完整 IDE", "不自动推生产"],
-  },
-  {
-    id: "assumptions",
-    field: "assumptions",
-    ask: "还有默认假设要记下吗？（可跳过）",
-    why: "未问清的默认要标出来。",
-    options: ["先用结构化提问，不接大模型", "确认后只写 Brief，人工/代理再开发", "跳过"],
-  },
-];
-
 const state = {
-  rawAsk: "",
-  round: 0,
-  asked: 0,
-  phase: "seed", // seed | ask | ready
+  ready: false,
   locked: false,
+  busy: false,
+  rawAsk: "",
+  messages: [],
 };
 
 const el = {
+  setup: document.getElementById("setup"),
+  desk: document.getElementById("desk"),
   log: document.getElementById("log"),
   form: document.getElementById("composer"),
   input: document.getElementById("input"),
@@ -69,6 +23,13 @@ const el = {
   confirm: document.getElementById("confirm"),
   result: document.getElementById("result"),
   lockHint: document.getElementById("lockHint"),
+  meta: document.getElementById("meta"),
+  send: document.getElementById("send"),
+  cfgBase: document.getElementById("cfgBase"),
+  cfgKey: document.getElementById("cfgKey"),
+  cfgModel: document.getElementById("cfgModel"),
+  saveCfg: document.getElementById("saveCfg"),
+  cfgErr: document.getElementById("cfgErr"),
 };
 
 function cardValues() {
@@ -82,12 +43,12 @@ function cardValues() {
 
 function syncConfirmEnabled() {
   const v = cardValues();
-  const ok = Boolean(v.goal && v.acceptance) && !state.locked;
+  const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
   el.confirm.disabled = !ok;
   el.lockHint.textContent = state.locked
-    ? "已锁定。下面是给数字员工的开工说明。"
+    ? "已锁定。Brief 在 ~/.duaer/live/jobs，不在业务仓库里。"
     : ok
-      ? "可以确认了。确认后才会写入 Brief。"
+      ? "可以确认了。确认后写入隔离工作区。"
       : "至少填好「要做什么」和「验收标准」。";
 }
 
@@ -95,16 +56,10 @@ function syncConfirmEnabled() {
   el[id].addEventListener("input", syncConfirmEnabled);
 });
 
-function addBubble(role, text, { why, options } = {}) {
+function addBubble(role, text, { options } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
   div.appendChild(document.createTextNode(text));
-  if (why) {
-    const w = document.createElement("span");
-    w.className = "why";
-    w.textContent = why;
-    div.appendChild(w);
-  }
   if (options?.length) {
     const row = document.createElement("div");
     row.className = "options";
@@ -125,110 +80,108 @@ function addBubble(role, text, { why, options } = {}) {
   el.log.scrollTop = el.log.scrollHeight;
 }
 
-function applyAnswer(q, answer) {
-  if (!q) return;
-  const field = el[q.field];
-  if (!field) return;
-  if (q.append && field.value.trim()) {
-    field.value = `${field.value.trim()}\n面向：${answer}`;
-  } else if (q.id === "assumptions" && answer === "跳过") {
-    if (!field.value.trim()) field.value = "无额外假设";
-  } else if (q.id === "acceptance" && field.value.trim()) {
-    field.value = `${field.value.trim()}\n- ${answer}`;
-  } else if (q.id === "out" && field.value.trim()) {
-    field.value = `${field.value.trim()}\n- ${answer}`;
-  } else {
-    field.value = answer;
+function applyCard(data) {
+  if (data.goal) el.goal.value = data.goal;
+  if (data.outOfScope) el.outOfScope.value = data.outOfScope;
+  if (data.acceptance) el.acceptance.value = data.acceptance;
+  if (data.assumptions) el.assumptions.value = data.assumptions;
+  syncConfirmEnabled();
+}
+
+function showSetup(cfg) {
+  el.setup.hidden = false;
+  el.desk.hidden = true;
+  el.cfgBase.value = cfg.baseUrl || "";
+  el.cfgModel.value = cfg.model || "";
+  el.cfgKey.value = "";
+  el.cfgKey.placeholder = cfg.hasApiKey ? "已保存（留空则不改）" : "sk-…";
+}
+
+function showDesk(cfg) {
+  el.setup.hidden = true;
+  el.desk.hidden = false;
+  state.ready = true;
+  el.meta.textContent = `模型 ${cfg.model} · Brief → ${cfg.jobsRoot || "~/.duaer/live/jobs"}`;
+  if (!state.messages.length) {
+    addBubble(
+      "bot",
+      "模型已就绪。随便说你想做什么；我会多轮问清，右侧是确认卡。确认前不会改你的业务仓库。",
+    );
   }
   syncConfirmEnabled();
 }
 
-function restate() {
-  const v = cardValues();
-  return [
-    "目前我理解是：",
-    v.goal ? `· 要做什么：${v.goal}` : "· 要做什么：待确认",
-    v.outOfScope ? `· 不做什么：${v.outOfScope}` : "· 不做什么：待确认",
-    v.acceptance ? `· 验收：${v.acceptance}` : "· 验收：待确认",
-    v.assumptions ? `· 假设：${v.assumptions}` : "· 假设：待确认",
-  ].join("\n");
+async function loadConfig() {
+  const res = await fetch("/api/config");
+  const cfg = await res.json();
+  if (cfg.ready) showDesk(cfg);
+  else showSetup(cfg);
 }
 
-function nextQuestion() {
-  if (state.asked >= 5) {
-    finishQuestions();
-    return;
+el.saveCfg.addEventListener("click", async () => {
+  el.cfgErr.hidden = true;
+  const body = {
+    baseUrl: el.cfgBase.value.trim(),
+    model: el.cfgModel.value.trim(),
+  };
+  const key = el.cfgKey.value.trim();
+  if (key) body.apiKey = key;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "保存失败");
+    showDesk(data);
+  } catch (err) {
+    el.cfgErr.hidden = false;
+    el.cfgErr.textContent = err instanceof Error ? err.message : String(err);
   }
-  const q = QUESTIONS[state.round];
-  if (!q) {
-    finishQuestions();
-    return;
-  }
-  state.phase = "ask";
-  addBubble("bot", `${restate()}\n\n${q.ask}`, {
-    why: q.why,
-    options: q.options,
-  });
-}
+});
 
-function finishQuestions() {
-  state.phase = "ready";
-  const v = cardValues();
-  if (!v.outOfScope) el.outOfScope.value = "- 第一版不做云端多租户与完整 IDE";
-  if (!v.assumptions) el.assumptions.value = "- 确认后先写 Brief，由数字员工按 Duaer 开工";
-  if (!v.acceptance) {
-    el.acceptance.value =
-      "- 能在网页完成对话与确认\n- 确认后生成 .duaer/specs Brief";
-  }
-  syncConfirmEnabled();
-  addBubble(
-    "bot",
-    `${restate()}\n\n四块已整理。请在右侧改到满意，再点「需求无误，开始干活」。`,
-  );
-}
+async function sendChat(userText) {
+  state.messages.push({ role: "user", content: userText });
+  addBubble("user", userText);
+  if (!state.rawAsk) state.rawAsk = userText;
 
-function onUserText(text) {
-  const t = text.trim();
-  if (!t || state.locked) return;
-  addBubble("user", t);
-
-  if (state.phase === "seed") {
-    state.rawAsk = t;
-    el.goal.value = t.slice(0, 120);
-    state.phase = "ask";
-    state.round = 0;
-    state.asked = 0;
-    addBubble("bot", `收到。先把它收成可确认的需求。\n\n${restate()}`);
-    nextQuestion();
-    syncConfirmEnabled();
-    return;
-  }
-
-  if (state.phase === "ask") {
-    const q = QUESTIONS[state.round];
-    applyAnswer(q, t);
-    state.round += 1;
-    state.asked += 1;
-    if (state.asked >= 5 || state.round >= QUESTIONS.length) {
-      finishQuestions();
-    } else {
-      nextQuestion();
+  state.busy = true;
+  el.send.disabled = true;
+  try {
+    const history = state.messages.slice(-16);
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: history,
+        card: cardValues(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "对话失败");
+    applyCard(data);
+    state.messages.push({ role: "assistant", content: data.reply });
+    addBubble("bot", data.reply, { options: data.options });
+    if (data.ready) {
+      addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
     }
-    return;
+  } catch (err) {
+    state.messages.pop();
+    addBubble("bot", `出错：${err instanceof Error ? err.message : err}`);
+  } finally {
+    state.busy = false;
+    el.send.disabled = false;
   }
-
-  // ready: free edits via chat still update goal as note
-  addBubble(
-    "bot",
-    "右侧确认卡可直接改。改完点「需求无误，开始干活」。若要重来，刷新页面。",
-  );
 }
 
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
-  const text = el.input.value;
+  if (!state.ready || state.locked || state.busy) return;
+  const text = el.input.value.trim();
+  if (!text) return;
   el.input.value = "";
-  onUserText(text);
+  void sendChat(text);
 });
 
 el.confirm.addEventListener("click", async () => {
@@ -250,11 +203,8 @@ el.confirm.addEventListener("click", async () => {
     state.locked = true;
     el.confirm.textContent = "已确认";
     el.result.hidden = false;
-    el.result.textContent = `Brief: ${data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
-    addBubble(
-      "bot",
-      `已锁定并写入 ${data.featureDir}。把下方开工说明交给数字员工即可。`,
-    );
+    el.result.textContent = `Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
+    addBubble("bot", `已锁定。Brief 在隔离区 ${data.relativeDir || data.featureDir}，未写入业务仓库。`);
     syncConfirmEnabled();
   } catch (err) {
     el.confirm.disabled = false;
@@ -263,8 +213,4 @@ el.confirm.addEventListener("click", async () => {
   }
 });
 
-addBubble(
-  "bot",
-  "你好。我是现场开发。\n先用一句话描述你想做的事；我会多轮问清，再请你确认右侧四块。",
-);
-syncConfirmEnabled();
+void loadConfig();

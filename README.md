@@ -37,14 +37,14 @@ everyday human UI.
 
 ## Live Dev (web confirm desk)
 
-From an initialized project root:
+Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 
 ```bash
-npx duaer-spec live
+duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+duaer live
 ```
 
-Opens a local page: multi-round dialogue → four-block confirm card → writes
-`.duaer/specs/<nnn-slug>/` and a copy-paste prompt for the digital employee.
+Dialogue → four-block confirm → Brief in `~/.duaer/live/jobs/` (copy into a product repo when the digital employee starts coding).
 
 ## Branches (mandatory)
 

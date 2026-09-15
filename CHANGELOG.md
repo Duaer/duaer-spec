@@ -4,9 +4,11 @@
 
 ### 现场开发 Web
 
-- `duaer live` opens a local page: multi-round dialogue → four-block confirm card
-  → writes `.duaer/specs/<nnn-slug>/` Brief + `active-job.json`
-- Static UI under `web/live-dev/`; no cloud LLM required for v1
+- `duaer live` opens a local page in an **isolated** workspace (`~/.duaer/live`)
+- Requires model config: `duaer live config --base-url … --api-key … --model …`
+- Dialogue uses OpenAI-compatible chat; confirm writes Briefs under `~/.duaer/live/jobs/`
+  (does **not** write into the user's product repository)
+- Static UI under `web/live-dev/`
 
 ### Understand gate
 
