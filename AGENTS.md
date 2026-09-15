@@ -3,8 +3,10 @@
 Mandatory rules for AI coding agents working in **duaer-spec**, and for any
 repository that adopts this file as its agent-ops contract.
 
-This file is authoritative for *how* agents operate. If Duaer (`.duaer/`,
-`DUADER.md`), `examples/`, or other overlays conflict with this file,
+Treat agents as **digital employees**: this file is the workplace policy for
+*how* they may operate (isolation, commits, Issue/PR gates). Duaer
+([`DUADER.md`](DUADER.md)) is how jobs are briefed and accepted. If Duaer
+(`.duaer/`), `examples/`, or other overlays conflict with this file,
 **follow this file**.
 
 See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/change-checklist.md) · [ADOPT](ADOPT.md)

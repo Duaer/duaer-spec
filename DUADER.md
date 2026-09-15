@@ -1,7 +1,10 @@
 # Duaer methodology
 
-**duaer-spec** owns this method. Artifacts live under `.duaer/`; Cursor skills
-are `duaer-*` at `.cursor/skills/`.
+**duaer-spec** owns this method. Treat AI coding agents as **digital employees**:
+you assign a Brief (Spec), they follow a fixed work order, and delivery only
+counts after **converge** accepts the result against that Brief.
+
+Artifacts live under `.duaer/`; Cursor skills are `duaer-*` at `.cursor/skills/`.
 
 **Precedence:** root [`AGENTS.md`](AGENTS.md) / [`docs/agent/`](docs/agent/) win
 over anything here for isolation, commits, and Issue/PR gates.
@@ -18,24 +21,24 @@ over anything here for isolation, commits, and Issue/PR gates.
 **Full (recommended):**
 
 1. `/duaer-constitution` — only when principles change
-2. `/duaer-specify` — what / why / acceptance (not stack trivia)
+2. `/duaer-specify` — **Assign**: what / why / acceptance (not stack trivia)
 3. `/duaer-clarify` — optional
 4. `/duaer-plan` — technical plan aligned with project-context
 5. `/duaer-checklist` — optional quality checklist
 6. `/duaer-tasks` — checkbox task breakdown
 7. `/duaer-analyze` — optional consistency check
 8. `/duaer-implement` — implement tasks only
-9. `/duaer-converge` — compare result to spec; append remaining tasks if gaps
+9. `/duaer-converge` — **Accept**: compare result to Spec; append remaining tasks if gaps
 
 **Small feature:** specify → plan → tasks → implement → converge  
 
 **Hotfix:** specify (mark hotfix) → tasks → implement → converge  
-Never skip specify or converge.
+Never skip specify (assign) or converge (accept).
 
 ## Install
 
 ```bash
-npx github:fujiezee/duaer-spec duaer init --here
+npx duaer-spec init --here
 ```
 
 Or see [`ADOPT.md`](ADOPT.md). No third-party Spec CLI is required — `duaer`
@@ -45,7 +48,7 @@ installs this repository's method files into the target project.
 
 ```text
 .duaer/specs/<nnn-slug>/
-  spec.md
+  spec.md      # Brief
   plan.md      # after /duaer-plan
   tasks.md     # after /duaer-tasks
   …            # research / contracts as needed

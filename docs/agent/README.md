@@ -1,7 +1,7 @@
 # Agent workflow (duaer-spec)
 
-Authoritative docs for *how* agents operate. Wins over Duaer and `examples/`
-when they conflict.
+Authoritative docs for *how* digital employees operate (workplace policy).
+Wins over Duaer and `examples/` when they conflict.
 
 | Doc | Description |
 |---|---|

@@ -1,22 +1,21 @@
 # Adopt duaer-spec
 
-Install the **Duaer** methodology and agent-ops contract into another
-repository.
+Onboard a **digital employee** into another repository: install the Duaer
+delivery OS (method) and the agent-ops contract (how they are allowed to work).
 
 ## Recommended: CLI
 
 From the target project (Node 18+):
 
 ```bash
-# GitHub pin
-npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
-
-# npm (after publish)
 npx duaer-spec init --here
 
-# method only / ops only / other integration branch
-npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here --method
-npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here --ops --branch develop
+# Pin a release
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+
+# Lite (method only) / ops only / other integration branch
+npx duaer-spec init --here --method
+npx duaer-spec init --here --ops --branch develop
 ```
 
 From a clone of this repo:
@@ -30,9 +29,11 @@ node bin/duaer.mjs check /path/to/project
 
 Then:
 
-1. Edit `.duaer/memory/constitution.md` and `project-context.md` for the product
-2. Confirm `docs/baseline.md` (integration branch)
-3. Use `/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge`
+1. **Orient** — edit `.duaer/memory/constitution.md` and `project-context.md`
+2. **Confirm workplace** — `docs/baseline.md` (integration branch)
+3. **Assign → work → accept** — `/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge`
+
+A job without Spec is not assigned. A change that fails converge is not accepted.
 
 ## Manual copy (optional)
 
@@ -59,7 +60,7 @@ cp DUADER.md /path/to/project/
 
 ## Precedence
 
-1. `AGENTS.md` / agent-ops — how agents operate  
+1. `AGENTS.md` / agent-ops — how employees operate  
 2. `DUADER.md` / `.duaer/` — what to build  
 3. Product overlays (do not copy `examples/` blindly)
 

@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
   "version": "0.1.0",
-  "description": "Duaer Spec-Driven Development methodology + agent ops for AI coding agents",
+  "description": "Delivery OS for AI digital employees: Spec briefs, agent ops, controllable handoffs",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",
@@ -36,11 +36,13 @@
   "homepage": "https://github.com/fujiezee/duaer-spec#readme",
   "keywords": [
     "duaer",
+    "digital-employee",
+    "delivery-os",
     "spec-driven",
     "agents",
     "cursor",
     "ai-engineering",
-    "methodology"
+    "controllable-delivery"
   ],
   "license": "MIT",
   "scripts": {

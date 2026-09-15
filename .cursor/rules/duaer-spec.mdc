@@ -5,14 +5,15 @@ alwaysApply: true
 
 # Duaer required (NON-NEGOTIABLE)
 
-See repo `DUADER.md` and `.duaer/memory/constitution.md`.
+Treat agents as digital employees: assign a Brief (Spec) before code; accept
+only via converge. See `DUADER.md` and `.duaer/memory/constitution.md`.
 
 If this rule conflicts with root `AGENTS.md` / `docs/agent/` (worktrees, commits,
 Issue/PR), **AGENTS.md wins**.
 
 ## When Duaer is mandatory
 
-Always write/update a feature spec before coding for:
+Always write/update a feature spec (Brief) before coding for:
 
 - New features / user-visible behavior
 - Architecture or contract changes

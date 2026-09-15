@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * duaer — CLI for the duaer-spec methodology
+ * duaer — CLI for the duaer-spec delivery OS (digital employees)
  *
  *   duaer init [dir] [--all|--method|--ops] [--force] [--branch <name>]
  *   duaer check [dir]
@@ -24,23 +24,26 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PKG_ROOT = resolve(__dirname, '..')
 const PKG = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
 
-const USAGE = `duaer — Duaer methodology installer (duaer-spec ${PKG.version})
+const USAGE = `duaer — Delivery OS for AI digital employees (duaer-spec ${PKG.version})
+
+Hire agents into a repo, assign Briefs (Specs), accept only when converge passes.
 
 Usage:
-  duaer init [dir] [options]   Install Duaer into a project
-  duaer check [dir]            Verify install shape
+  duaer init [dir] [options]   Hire / onboard into a project
+  duaer check [dir]            Verify install (workplace ready)
   duaer version                Print version
   duaer help                   Show this help
 
 Init options:
-  --all          Agent ops + method (default)
-  --method       Method only (.duaer, skills, DUADER.md, duaer-spec rule)
-  --ops          Agent ops only (AGENTS.md, docs/agent, ops rules)
+  --all          Full hire: agent ops + method (default)
+  --method       Lite: method only (.duaer, skills, DUADER.md, duaer-spec rule)
+  --ops          Ops only (AGENTS.md, docs/agent, ops rules)
   --force        Overwrite existing managed files
   --branch <n>   Integration branch for baseline note (default: main)
   --here         Same as dir=.
 
 Examples:
+  npx duaer-spec init --here
   npx github:fujiezee/duaer-spec duaer init --here
   node bin/duaer.mjs init ../my-app --all
   duaer check .
@@ -218,14 +221,17 @@ function cmdInit(opts) {
   }
 
   console.log(`
-Done.
+Hired.
 
-Next:
-  1. Edit .duaer/memory/constitution.md and project-context.md for this product
-  2. Confirm docs/baseline.md (integration branch: ${opts.branch})
-  3. In Cursor, use /duaer-specify → /duaer-plan → /duaer-tasks → /duaer-implement → /duaer-converge
-  4. Agent ops: AGENTS.md wins over DUADER.md when they conflict
+Next (digital employee loop):
+  1. Orient  — edit .duaer/memory/constitution.md and project-context.md
+  2. Workplace — confirm docs/baseline.md (integration branch: ${opts.branch})
+  3. Assign  — /duaer-specify  (Brief: what / why / acceptance)
+  4. Work    — /duaer-plan → /duaer-tasks → /duaer-implement
+  5. Accept  — /duaer-converge  (gaps are not done; append tasks)
+  6. Gates   — AGENTS.md wins over DUADER.md when they conflict
 
+No Spec = not assigned. Failed converge = not accepted.
 See DUADER.md and AGENTS.md in the target project.
 `)
 }
@@ -252,7 +258,7 @@ function cmdCheck(dir) {
     console.log(`\n${missing} missing — run: duaer init ${dir} --all`)
     process.exitCode = 1
   } else {
-    console.log('\nInstall looks complete.')
+    console.log('\nWorkplace ready — assign with /duaer-specify, accept with /duaer-converge.')
   }
 }
 
