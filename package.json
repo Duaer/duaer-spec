@@ -1,6 +1,6 @@
 {
   "name": "duaer-spec",
-  "version": "0.6.2",
+  "version": "0.6.3",
   "description": "Digital employees: autonomous delivery; main/develop/feat/fix; simple update",
   "type": "module",
   "bin": {
@@ -18,7 +18,8 @@
     "docs/agent",
     "docs/baseline.md",
     "LICENSE",
-    "README.md"
+    "README.md",
+    "README.zh-CN.md"
   ],
   "publishConfig": {
     "access": "public"
