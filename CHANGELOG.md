@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-09-15
+
+### Job handoff (not a repo lock)
+
+- Default policy **`coach`**: guide the employee; do not claim "done" until the
+  **active job** is accepted — git merge is not blocked
+- `.duaer/delivery-policy.json` modes: `off` | `coach` | `strict`
+- `.duaer/active-job.json` set by `/duaer-specify`; `duaer job` reports status
+- `duaer policy` to show/set mode
+- `duaer check` defaults to active-job scope; `--strict` / policy `strict` optional
+- `--gate` kept as deprecated alias for `--strict` (job handoff, not CI)
+- `--all-jobs` optional; historical features no longer fail the default path
+- Docs/rules/constitution demote merge-gate language
+
+### E2E
+
+- E2E-004–007 for coach default, strict optional, active-job scope
+
 ## 0.2.0 — 2026-09-15
 
 ### Controllable delivery (machine gate)
@@ -46,9 +64,6 @@ First public methodology release.
 ### Install
 
 ```bash
-# From GitHub (works now)
 npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
-
-# From npm (after publish)
 npx duaer-spec init --here
 ```

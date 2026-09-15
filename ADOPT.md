@@ -1,7 +1,7 @@
 # Adopt duaer-spec
 
-Onboard a **digital employee** into another repository: install the Duaer
-delivery OS (method) and the agent-ops contract (how they are allowed to work).
+Onboard a **digital employee**: install the Duaer delivery OS (method) and the
+agent-ops contract. Controllability is **job handoff**, not a git merge lock.
 
 ## Recommended: CLI
 
@@ -11,7 +11,7 @@ From the target project (Node 18+):
 npx duaer-spec init --here
 
 # Pin a release
-npx github:fujiezee/duaer-spec@v0.2.0 duaer init --here
+npx github:fujiezee/duaer-spec@v0.3.0 duaer init --here
 
 # Lite (method only) / ops only / other integration branch
 npx duaer-spec init --here --method
@@ -22,7 +22,8 @@ From a clone of this repo:
 
 ```bash
 node bin/duaer.mjs init /path/to/project --all
-node bin/duaer.mjs check /path/to/project
+node bin/duaer.mjs job /path/to/project
+node bin/duaer.mjs policy /path/to/project
 ```
 
 `--force` overwrites managed files.
@@ -30,11 +31,11 @@ node bin/duaer.mjs check /path/to/project
 Then:
 
 1. **Orient** — edit `.duaer/memory/constitution.md` and `project-context.md`
-2. **Confirm workplace** — `docs/baseline.md` (integration branch)
-3. **Assign → work → accept → gate** — `/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge` → `duaer check . --gate`
+2. **Policy** — `duaer policy .` (default `coach`; optional `off` | `strict`)
+3. **Assign → work → accept → handoff** — `/duaer-specify` → … → `/duaer-converge` → `duaer job .`
 
-A job without Spec is not assigned. Open tasks or a non-`accepted` `delivery.json`
-is not accepted. `duaer check --gate` is the machine merge check.
+A job without Spec is not assigned. An unaccepted active job must not be reported
+as done under `coach`/`strict`. Git is not blocked by default.
 
 ## Manual copy (optional)
 

@@ -265,15 +265,18 @@ Append to the **end** of `tasks.md`, per the append contract:
   path instead — do not stamp accepted).
 - Report: **"✅ Converged — the implementation satisfies the spec, plan, and tasks."**
 - Include the summary counts of what was checked.
-- Tell the user they can run `duaer check . --gate` to verify the machine gate.
+- Tell the user they can run `duaer job .` to see handoff status (policy default: coach).
+- Reminder: this is **job acceptance**, not a repository merge lock.
 ### 8. Provide Next Actions (Handoff)
 
 - On `tasks_appended`: state how many tasks were appended under which phase, and recommend
   running `/duaer-implement` to complete them; note that a follow-up converge
   run will find fewer or no remaining items. Remind: `delivery.json` is `open` —
-  `duaer check --gate` will fail until accepted.
-- On `converged`: recommend `duaer check . --gate`, then review / opening a PR. No further
-  implement pass is needed for this feature's specified scope.
+  under coach/strict, do **not** claim the job is done; `duaer job .` will show unfinished.
+- On `converged`: recommend `duaer job .`, then ask the user to review. No further
+  implement pass is needed for this feature's specified scope. Use the handoff script:
+  "✅ Job accepted — Brief satisfied per converge; ready for your review."
+  Do not frame this as a git/CI merge requirement.
 
 ### 9. Check for extension hooks
 

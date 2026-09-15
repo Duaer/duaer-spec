@@ -1,15 +1,31 @@
 ---
-description: Features and hotfixes must go through Duaer; no code from verbal asks alone
+description: Features and hotfixes must go through Duaer; job handoff before claiming done
 alwaysApply: true
 ---
 
 # Duaer required (NON-NEGOTIABLE)
 
-Treat agents as digital employees: assign a Brief (Spec) before code; accept
-only via converge. See `DUADER.md` and `.duaer/memory/constitution.md`.
+Treat agents as **digital employees**: assign a Brief (Spec) before code; accept
+via converge; only then claim the **job** is done. See `DUADER.md` and
+`.duaer/memory/constitution.md`.
 
 If this rule conflicts with root `AGENTS.md` / `docs/agent/` (worktrees, commits,
 Issue/PR), **AGENTS.md wins**.
+
+## Handoff policy (job-level, not a repo lock)
+
+Read `.duaer/delivery-policy.json` (`off` | `coach` | `strict`, default **coach**).
+
+- This controls whether you may **report the active job complete** — not whether
+  git may commit or merge.
+- Active job: `.duaer/active-job.json` → `feature`, else the latest `.duaer/specs/*`.
+- Check with `duaer job .` before telling the user work is finished.
+
+| Mode | Agent behavior when active job is not accepted |
+|---|---|
+| `off` | May continue; do not invent an accept stamp |
+| `coach` | Warn; guide to specify / tasks / converge; **do not say "done"** |
+| `strict` | **Refuse** to report delivery complete until `duaer job` shows accepted |
 
 ## When Duaer is mandatory
 
@@ -23,7 +39,7 @@ Forbidden: jump from chat to code with no `spec.md` / feature directory under `.
 
 ## Default flow
 
-`/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge`
+`/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge` → `duaer job`
 
 ## Hotfix (still Spec, shortened)
 
@@ -31,5 +47,5 @@ Forbidden: jump from chat to code with no `spec.md` / feature directory under `.
 
 - Implement only from `tasks.md` when it exists
 - Update `.duaer/memory/project-context.md` when architecture changes
-- Run the verification named in the feature docs before merge
-- Before merge: `duaer check . --gate` (Spec present, no open tasks, `delivery.json` accepted)
+- Run the verification named in the feature docs
+- Before claiming done: `duaer job .` shows accepted (coach/strict)

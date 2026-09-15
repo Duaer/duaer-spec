@@ -3,72 +3,70 @@
 **Duaer** is a delivery operating system for AI coding agents treated as
 **digital employees**.
 
-Agents write the code. Duaer makes the **handoff controllable**: every job has a
-Brief (Spec), follows a fixed work order, and only counts as done when the
-**delivery gate** passes — not after a lucky chat.
+Agents write the code. Duaer makes the **job handoff controllable**: every job
+has a Brief (Spec), follows a fixed work order, and only counts as done when
+that **job** is accepted — not after a lucky chat.
 
-Cursor is the labor. Duaer is hire → assign → accept.
+Cursor is the labor. Duaer is hire → assign → accept.  
+**Not** a git merge lock. Controllability is job etiquette + optional strictness.
 
 ## Install (onboard the employee)
 
 ```bash
 npx duaer-spec init --here
-# or pin: npx github:fujiezee/duaer-spec@v0.2.0 duaer init --here
+# or pin: npx github:fujiezee/duaer-spec@v0.3.0 duaer init --here
 ```
 
 ```bash
-# Lite: method only (personal / small changes)
 npx duaer-spec init --here --method
-
-# Full ops on another integration branch
 npx duaer-spec init --here --ops --branch develop
 ```
 
-Verify: `npx duaer-spec check .`  
-Merge gate: `npx duaer-spec check . --gate`  
+```bash
+duaer policy .          # default: coach
+duaer job .             # active job handoff status
+duaer check .
+```
+
 Details: [`ADOPT.md`](ADOPT.md)
 
 ## How you run them
 
 | Step | Meaning | Command |
 |---|---|---|
-| **Hire** | Install SOP + gates into the repo | `duaer init` |
-| **Assign** | Write the Brief (what / why / acceptance) | `/duaer-specify` |
+| **Hire** | Install SOP into the project | `duaer init` |
+| **Assign** | Brief + set active job | `/duaer-specify` |
 | **Work** | Plan, break down, implement | `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` |
-| **Accept** | Converge stamps `delivery.json`; gaps stay open | `/duaer-converge` |
-| **Gate** | Machine check before merge | `duaer check . --gate` |
+| **Accept** | Converge stamps `delivery.json` | `/duaer-converge` |
+| **Handoff** | See if this job may be reported done | `duaer job .` |
 
-Never skip **Assign** or **Accept**. Hotfix may shorten the middle; Spec,
-converge, and the gate stay.
+### Policy (job-level)
 
-### What the gate actually enforces
+Stored in `.duaer/delivery-policy.json`:
 
-`duaer check --gate` fails when any feature under `.duaer/specs/` has:
+| Mode | Behavior |
+|---|---|
+| `off` | Record only |
+| `coach` | **Default** — guide; do not claim "done" until accepted |
+| `strict` | Refuse to report done; `duaer check --strict` exits 1 on unfinished job |
 
-- missing `spec.md`
-- open `- [ ]` tasks in `tasks.md`
-- missing `delivery.json`, or `status` other than `accepted`
-
-Converge judgment is still agent-assisted. The gate makes **handoff state**
-checkable (and CI-friendly), not a substitute for tests.
+Scope is the **active job** (`.duaer/active-job.json`), not every historical feature.
+Git commit/merge is never blocked by default.
 
 ## Two layers
 
 | Layer | Role | Where |
 |---|---|---|
-| **Agent ops** | How the employee is allowed to operate | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
-| **Duaer method** | What to build (Spec → Plan → Tasks → Implement → Converge) | [`DUADER.md`](DUADER.md), [`.duaer/`](.duaer/), [`.cursor/skills/`](.cursor/skills/) |
+| **Agent ops** | How the employee may operate | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
+| **Duaer method** | What to build | [`DUADER.md`](DUADER.md), [`.duaer/`](.duaer/), skills |
 
-When they conflict, **agent ops win** — process beats improvisation.
+When they conflict, **agent ops win**.
 
 ## Default loop
 
 ```text
-constitution → specify → plan → tasks → implement → converge → check --gate
+constitution → specify → plan → tasks → implement → converge → duaer job
 ```
-
-Small change: `specify → plan → tasks → implement → converge`  
-Hotfix: `specify (hotfix) → tasks → implement → converge`
 
 Slash skills: `/duaer-specify`, `/duaer-plan`, `/duaer-tasks`, `/duaer-implement`,
 `/duaer-converge`, …
@@ -76,26 +74,11 @@ Slash skills: `/duaer-specify`, `/duaer-plan`, `/duaer-tasks`, `/duaer-implement
 ## Layout
 
 ```text
-bin/duaer.mjs             CLI (duaer init | check | version)
-package.json              npm package metadata
-AGENTS.md                 Agent-ops contract (how employees operate)
-DUADER.md                 Methodology conventions (how work is briefed)
-ADOPT.md                  Onboarding guide
-.duaer/                   Memory, templates, workflows, scripts
-.duaer/specs/<feature>/   Brief + tasks + delivery.json stamp
-.cursor/rules/            Agent-ops + Duaer rules
-.cursor/skills/           duaer-* skills
-docs/agent/               Workflow detail + checklists
-docs/maintaining.md       How maintainers evolve the method
-docs/npm-trusted-publishing.md  npm Trusted Publishing (OIDC) setup
-examples/                 Optional product overlays (not defaults)
+bin/duaer.mjs                  CLI (init | check | job | policy | version)
+.duaer/delivery-policy.json    off | coach | strict
+.duaer/active-job.json         current job pointer
+.duaer/specs/<feature>/        Brief + tasks + delivery.json
 ```
-
-## Defaults (this repo)
-
-- Integration branch: **`main`**
-- One request → one branch + one worktree → merge → delete worktree
-- Push only when explicitly requested
 
 ## Learn more
 

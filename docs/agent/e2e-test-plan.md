@@ -27,9 +27,11 @@ the table for their app.
 |---|---|---|
 | E2E-001 | After `duaer init`, CLI prints hire → assign → accept next steps | manual |
 | E2E-002 | README positions Duaer as delivery OS for digital employees | manual |
-| E2E-003 | `duaer check --delivery` reports open tasks as blocked | manual |
-| E2E-004 | `duaer check --gate` fails without `delivery.json` accepted | manual |
-| E2E-005 | After converge stamps `accepted`, `--gate` passes | manual |
+| E2E-003 | `duaer check --job` reports open tasks on active job | manual |
+| E2E-004 | Default `coach` policy: unfinished job warns but check exits 0 | manual |
+| E2E-005 | After converge stamps `accepted`, `duaer job` shows accepted | manual |
+| E2E-006 | `duaer policy . strict` then unfinished job makes check exit 1 | manual |
+| E2E-007 | `--all-jobs` is optional; default scope is active job only | manual |
 
 ## Traceability
 
@@ -37,8 +39,10 @@ Keep this matrix current when scenarios or specs change.
 
 | Scenario | Spec / feature | Notes |
 |---|---|---|
-| E2E-001 | `bin/duaer.mjs` init banner | Controllable-delivery onboarding |
+| E2E-001 | `bin/duaer.mjs` init banner | Onboarding |
 | E2E-002 | `README.md` / `ADOPT.md` | Product identity |
-| E2E-003 | `bin/duaer.mjs` delivery check | Open `- [ ]` tasks |
-| E2E-004 | `bin/duaer.mjs` `--gate` | Merge gate |
+| E2E-003 | active job delivery check | Open `- [ ]` |
+| E2E-004 | `delivery-policy.json` coach | Not a repo lock |
 | E2E-005 | `/duaer-converge` → `delivery.json` | Accept stamp |
+| E2E-006 | policy strict | Optional hardness |
+| E2E-007 | `--all-jobs` vs active | Scope |

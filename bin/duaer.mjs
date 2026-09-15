@@ -3,7 +3,9 @@
  * duaer — CLI for the duaer-spec delivery OS (digital employees)
  *
  *   duaer init [dir] [--all|--method|--ops] [--force] [--branch <name>]
- *   duaer check [dir] [--workplace|--delivery|--gate]
+ *   duaer check [dir] [--workplace|--delivery|--job|--all-jobs|--strict]
+ *   duaer job [dir]
+ *   duaer policy [dir] [off|coach|strict]
  *   duaer version
  *   duaer help
  */
@@ -24,35 +26,48 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const PKG_ROOT = resolve(__dirname, '..')
 const PKG = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
 
+const POLICY_MODES = new Set(['off', 'coach', 'strict'])
+
 const USAGE = `duaer — Delivery OS for AI digital employees (duaer-spec ${PKG.version})
 
-Hire agents into a repo, assign Briefs (Specs), accept only when the gate passes.
+Job-level handoff (not a repo merge lock). Default policy: coach.
 
 Usage:
-  duaer init [dir] [options]     Hire / onboard into a project
-  duaer check [dir] [options]    Workplace + delivery status
-  duaer version                  Print version
-  duaer help                     Show this help
+  duaer init [dir] [options]              Hire / onboard into a project
+  duaer check [dir] [options]             Workplace + active-job handoff
+  duaer job [dir]                         Show the active job status
+  duaer policy [dir] [off|coach|strict]   Show or set handoff policy
+  duaer version                           Print version
+  duaer help                              Show this help
 
 Init options:
   --all          Full hire: agent ops + method (default)
-  --method       Lite: method only (.duaer, skills, DUADER.md, duaer-spec rule)
-  --ops          Ops only (AGENTS.md, docs/agent, ops rules)
+  --method       Lite: method only
+  --ops          Ops only
   --force        Overwrite existing managed files
   --branch <n>   Integration branch for baseline note (default: main)
   --here         Same as dir=.
 
 Check options:
   --workplace    Only verify install files
-  --delivery     Only report feature Brief / open tasks / delivery.json
-  --gate         Fail unless every feature is accepted (merge gate)
-  (default)      Workplace + delivery report; exit 1 on workplace miss
-                 or delivery blockers (missing Spec / open tasks / open stamp)
+  --delivery     Alias for active-job handoff report
+  --job          Active job only (default for delivery)
+  --all-jobs     Report every feature under .duaer/specs/
+  --strict       Exit 1 if active job is not accepted (optional)
+  --gate         Deprecated alias for --strict (job handoff, not CI)
+
+Policy modes (stored in .duaer/delivery-policy.json):
+  off     Record only; never fail handoff
+  coach   Default — guide / warn; do not claim "done" until accepted
+  strict  Agents must not report delivery complete until accepted;
+          duaer check exits 1 on unfinished active job
 
 Examples:
   npx duaer-spec init --here
+  duaer job .
+  duaer policy . coach
   duaer check .
-  duaer check . --gate
+  duaer check . --strict
 `
 
 function parseArgs(argv) {
@@ -65,7 +80,10 @@ function parseArgs(argv) {
     branch: 'main',
     workplace: false,
     delivery: false,
-    gate: false,
+    job: false,
+    allJobs: false,
+    strict: false,
+    policyMode: null,
   }
   const rest = args.slice(1)
   for (let i = 0; i < rest.length; i++) {
@@ -77,12 +95,18 @@ function parseArgs(argv) {
     else if (a === '--here') out.dir = '.'
     else if (a === '--workplace') out.workplace = true
     else if (a === '--delivery') out.delivery = true
-    else if (a === '--gate') out.gate = true
+    else if (a === '--job') out.job = true
+    else if (a === '--all-jobs') out.allJobs = true
+    else if (a === '--strict' || a === '--gate') out.strict = true
     else if (a === '--branch') {
       out.branch = rest[++i]
       if (!out.branch) throw new Error('--branch requires a value')
+    } else if (POLICY_MODES.has(a) && out.cmd === 'policy') {
+      out.policyMode = a
     } else if (a.startsWith('-')) {
       throw new Error(`Unknown flag: ${a}`)
+    } else if (out.cmd === 'policy' && POLICY_MODES.has(a)) {
+      out.policyMode = a
     } else {
       out.dir = a
     }
@@ -124,10 +148,62 @@ function writeIfNeeded(path, content, { force }) {
   console.log(`wrote ${path}`)
 }
 
+function readJson(path, fallback = null) {
+  if (!existsSync(path)) return fallback
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return fallback
+  }
+}
+
+function defaultPolicy() {
+  return {
+    schemaVersion: 1,
+    mode: 'coach',
+    scope: 'active',
+    notes:
+      'Job-level handoff. off=record only; coach=guide (default); strict=do not claim done until accepted. Not a git merge lock.',
+  }
+}
+
+function policyPath(target) {
+  return join(target, '.duaer', 'delivery-policy.json')
+}
+
+function activeJobPath(target) {
+  return join(target, '.duaer', 'active-job.json')
+}
+
+function loadPolicy(target) {
+  const p = readJson(policyPath(target), null)
+  if (!p) return defaultPolicy()
+  const mode = POLICY_MODES.has(p.mode) ? p.mode : 'coach'
+  return { ...defaultPolicy(), ...p, mode }
+}
+
+function writePolicy(target, mode) {
+  const next = { ...defaultPolicy(), mode, updatedAt: new Date().toISOString() }
+  ensureDir(join(target, '.duaer'))
+  writeFileSync(policyPath(target), JSON.stringify(next, null, 2) + '\n')
+  return next
+}
+
+function writeDefaultPolicy(target, { force }) {
+  const path = policyPath(target)
+  if (existsSync(path) && !force) {
+    console.log(`skip (exists): ${path}`)
+    return
+  }
+  writeFileSync(path, JSON.stringify(defaultPolicy(), null, 2) + '\n')
+  console.log('  .duaer/delivery-policy.json (mode=coach)')
+}
+
 function installMethod(target, opts) {
   console.log('Installing Duaer method…')
   copyPath(join(PKG_ROOT, '.duaer'), join(target, '.duaer'), opts)
   console.log('  .duaer/')
+  writeDefaultPolicy(target, opts)
 
   ensureDir(join(target, '.cursor', 'skills'))
   const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
@@ -234,17 +310,17 @@ function cmdInit(opts) {
   console.log(`
 Hired.
 
-Next (digital employee loop):
+Next (digital employee loop — job handoff, not a repo lock):
   1. Orient  — edit .duaer/memory/constitution.md and project-context.md
-  2. Workplace — confirm docs/baseline.md (integration branch: ${opts.branch})
-  3. Assign  — /duaer-specify  (Brief: what / why / acceptance)
+  2. Policy  — duaer policy .   (default coach; optional: off | strict)
+  3. Assign  — /duaer-specify   (sets active job + Brief)
   4. Work    — /duaer-plan → /duaer-tasks → /duaer-implement
-  5. Accept  — /duaer-converge  (writes delivery.json; gaps stay open)
-  6. Gate    — duaer check . --gate  before merge
-  7. Policy  — AGENTS.md wins over DUADER.md when they conflict
+  5. Accept  — /duaer-converge  (stamps delivery.json)
+  6. Job     — duaer job .      (see if this job can be reported done)
+  7. Ops     — AGENTS.md wins over DUADER.md when they conflict
 
-No Spec = not assigned. Open tasks or open delivery.json = not accepted.
-See DUADER.md and AGENTS.md in the target project.
+No Spec = not assigned. Unaccepted active job = do not claim "done".
+Git merge is not blocked by default.
 `)
 }
 
@@ -265,6 +341,55 @@ function readDelivery(path) {
   }
 }
 
+function featureVerdict(name, dir) {
+  const specPath = join(dir, 'spec.md')
+  const tasksPath = join(dir, 'tasks.md')
+  const deliveryPath = join(dir, 'delivery.json')
+  const tasks = countOpenTasks(tasksPath)
+  const delivery = readDelivery(deliveryPath)
+  const hasSpec = existsSync(specPath)
+  const stamp = delivery?.status || 'none'
+  let verdict = 'accepted'
+  const blockers = []
+
+  if (!hasSpec) {
+    verdict = 'blocked'
+    blockers.push('missing spec.md')
+  }
+  if (tasks && tasks.open > 0) {
+    verdict = 'blocked'
+    blockers.push(`${tasks.open} open task(s)`)
+  }
+  if (stamp === 'open' || stamp === 'invalid') {
+    verdict = 'blocked'
+    blockers.push(`delivery.json status=${stamp}`)
+  }
+  if (hasSpec && tasks && tasks.open === 0 && (stamp === 'none' || !delivery)) {
+    verdict = 'unaccepted'
+    blockers.push('no delivery.json (run /duaer-converge)')
+  }
+  if (hasSpec && !tasks && (stamp === 'none' || !delivery)) {
+    verdict = 'unaccepted'
+    blockers.push('no tasks.md / no delivery.json')
+  }
+  if (stamp === 'accepted' && tasks && tasks.open === 0 && hasSpec) {
+    verdict = 'accepted'
+    blockers.length = 0
+  } else if (stamp === 'accepted' && (!tasks || tasks.open === 0) && hasSpec && !tasks) {
+    // accepted stamp with no tasks file — treat as accepted only if stamp says so
+    // keep unaccepted path above for !tasks && no stamp
+  }
+
+  // Stamp accepted but open tasks remain → blocked (fake stamp)
+  if (stamp === 'accepted' && tasks && tasks.open > 0) {
+    verdict = 'blocked'
+    blockers.length = 0
+    blockers.push('delivery.json accepted but open tasks remain')
+  }
+
+  return { name, hasSpec, tasks, stamp, verdict, blockers }
+}
+
 function listFeatures(target) {
   const root = join(target, '.duaer', 'specs')
   if (!existsSync(root)) return []
@@ -277,53 +402,28 @@ function listFeatures(target) {
       }
     })
     .sort()
-    .map((name) => {
-      const dir = join(root, name)
-      const specPath = join(dir, 'spec.md')
-      const tasksPath = join(dir, 'tasks.md')
-      const deliveryPath = join(dir, 'delivery.json')
-      const tasks = countOpenTasks(tasksPath)
-      const delivery = readDelivery(deliveryPath)
-      const hasSpec = existsSync(specPath)
-      const stamp = delivery?.status || 'none'
-      let verdict = 'accepted'
-      const blockers = []
+    .map((name) => featureVerdict(name, join(root, name)))
+}
 
-      if (!hasSpec) {
-        verdict = 'blocked'
-        blockers.push('missing spec.md')
-      }
-      if (tasks && tasks.open > 0) {
-        verdict = 'blocked'
-        blockers.push(`${tasks.open} open task(s)`)
-      }
-      if (stamp === 'open' || stamp === 'invalid') {
-        verdict = 'blocked'
-        blockers.push(`delivery.json status=${stamp}`)
-      }
-      if (hasSpec && tasks && tasks.open === 0 && (stamp === 'none' || !delivery)) {
-        // Brief exists and tasks clear, but never stamped by converge
-        verdict = 'unaccepted'
-        blockers.push('no delivery.json (run /duaer-converge)')
-      }
-      if (hasSpec && !tasks && (stamp === 'none' || !delivery)) {
-        verdict = 'unaccepted'
-        blockers.push('no tasks.md / no delivery.json')
-      }
-      if (stamp === 'accepted' && tasks && tasks.open === 0 && hasSpec) {
-        verdict = 'accepted'
-        blockers.length = 0
-      }
+function resolveActiveJobName(target, features) {
+  const marker = readJson(activeJobPath(target), null)
+  if (marker?.feature && features.some((f) => f.name === marker.feature)) {
+    return marker.feature
+  }
+  if (features.length === 0) return null
+  // Prefer newest directory name (lexicographic works for NNN-slug)
+  return features[features.length - 1].name
+}
 
-      return {
-        name,
-        hasSpec,
-        tasks,
-        stamp,
-        verdict,
-        blockers,
-      }
-    })
+function printFeature(f, { label } = {}) {
+  const taskInfo = f.tasks
+    ? `tasks open=${f.tasks.open} done=${f.tasks.done}`
+    : 'no tasks.md'
+  const prefix = label ? `${label} ` : ''
+  console.log(
+    `${prefix}${f.verdict.padEnd(10)} ${f.name}  spec=${f.hasSpec ? 'yes' : 'NO'}  stamp=${f.stamp}  ${taskInfo}`,
+  )
+  for (const b of f.blockers) console.log(`           · ${b}`)
 }
 
 function checkWorkplace(target) {
@@ -346,51 +446,91 @@ function checkWorkplace(target) {
   return missing
 }
 
-function checkDelivery(target, { gate }) {
+function checkDelivery(target, { allJobs, policy }) {
   const features = listFeatures(target)
-  console.log('\n## Delivery\n')
+  const activeName = resolveActiveJobName(target, features)
+  const active = features.find((f) => f.name === activeName) || null
+
+  console.log('\n## Handoff (jobs)\n')
+  console.log(`policy: ${policy.mode}  scope: ${allJobs ? 'all' : 'active'}`)
+
   if (features.length === 0) {
-    console.log('ok   no features under .duaer/specs/ (nothing to accept)')
-    return { blocked: 0, unaccepted: 0, features: 0 }
+    console.log('ok   no features under .duaer/specs/ (nothing to hand off)')
+    return { blocked: 0, unaccepted: 0, features: 0, active: null, unfinished: false }
   }
 
+  if (allJobs) {
+    for (const f of features) {
+      printFeature(f, { label: f.name === activeName ? '★' : ' ' })
+    }
+  } else if (active) {
+    printFeature(active, { label: '★' })
+    console.log(`\nactive job: ${active.name}  (from .duaer/active-job.json or latest spec)`)
+  } else {
+    console.log('ok   no resolvable active job')
+  }
+
+  const focus = allJobs ? features : active ? [active] : []
   let blocked = 0
   let unaccepted = 0
-  for (const f of features) {
-    const taskInfo = f.tasks
-      ? `tasks open=${f.tasks.open} done=${f.tasks.done}`
-      : 'no tasks.md'
-    const line = `${f.verdict.padEnd(10)} ${f.name}  spec=${f.hasSpec ? 'yes' : 'NO'}  stamp=${f.stamp}  ${taskInfo}`
-    console.log(line)
-    if (f.blockers.length) {
-      for (const b of f.blockers) console.log(`           · ${b}`)
-    }
+  for (const f of focus) {
     if (f.verdict === 'blocked') blocked++
     if (f.verdict === 'unaccepted') unaccepted++
   }
+  const unfinished = blocked + unaccepted > 0
+  return { blocked, unaccepted, features: focus.length, active, unfinished }
+}
 
-  if (gate) {
-    console.log('\nGate mode: every feature must be accepted.')
+function handoffAdvice(policy, unfinished, strictFlag) {
+  if (!unfinished) {
+    console.log('\nActive job accepted — employee may report delivery complete.')
+    return
   }
-  return { blocked, unaccepted, features: features.length }
+  if (policy.mode === 'off' && !strictFlag) {
+    console.log('\nHandoff incomplete (policy=off) — recorded only.')
+    return
+  }
+  if (policy.mode === 'coach' && !strictFlag) {
+    console.log(`
+Coach: this job is not accepted yet.
+  → close open tasks, run /duaer-converge, then duaer job .
+  → do not tell the user the work is "done" until status=accepted
+  → git is not blocked; this is job etiquette, not a merge lock
+`)
+    return
+  }
+  console.log(`
+Strict: active job not accepted — exit 1.
+  → /duaer-converge until delivery.json status=accepted and tasks clear
+`)
 }
 
 function cmdCheck(opts) {
   const target = resolve(opts.dir)
-  // Default: workplace + delivery. --gate alone is delivery-only (merge gate).
-  const runWorkplace = opts.workplace || (!opts.delivery && !opts.gate)
-  const runDelivery = opts.delivery || opts.gate || !opts.workplace
+  const policy = loadPolicy(target)
+  const strictFlag = opts.strict || policy.mode === 'strict'
 
-  console.log(`Checking ${target}${opts.gate ? ' (gate)' : ''}\n`)
-
-  let workplaceMissing = 0
-  if (runWorkplace) {
-    workplaceMissing = checkWorkplace(target)
+  // default: workplace + delivery; --workplace alone; job/delivery/strict/all-jobs → delivery
+  let wp = false
+  let del = false
+  if (opts.workplace && !opts.delivery && !opts.job && !opts.allJobs && !opts.strict) {
+    wp = true
+  } else if (opts.delivery || opts.job || opts.allJobs || opts.strict) {
+    del = true
+    if (opts.workplace) wp = true
+  } else {
+    wp = true
+    del = true
   }
 
-  let delivery = { blocked: 0, unaccepted: 0, features: 0 }
-  if (runDelivery) {
-    delivery = checkDelivery(target, { gate: opts.gate })
+  console.log(`Checking ${target}${strictFlag ? ' (strict handoff)' : ''}\n`)
+
+  let workplaceMissing = 0
+  if (wp) workplaceMissing = checkWorkplace(target)
+
+  let delivery = { unfinished: false }
+  if (del) {
+    delivery = checkDelivery(target, { allJobs: opts.allJobs, policy })
   }
 
   let fail = false
@@ -399,34 +539,74 @@ function cmdCheck(opts) {
     fail = true
   }
 
-  if (runDelivery) {
-    if (delivery.blocked) {
-      console.log(`\n${delivery.blocked} feature(s) blocked — close open tasks / fix Spec / re-run converge`)
+  if (del) {
+    handoffAdvice(policy, delivery.unfinished, opts.strict)
+    if (delivery.unfinished && strictFlag) {
       fail = true
-    }
-    if (opts.gate && delivery.unaccepted) {
-      console.log(
-        `\n${delivery.unaccepted} feature(s) not accepted — run /duaer-converge until delivery.json status=accepted`,
-      )
-      fail = true
-    } else if (!opts.gate && delivery.unaccepted) {
-      console.log(
-        `\n${delivery.unaccepted} feature(s) not yet accepted (warning). Use --gate to fail the merge check.`,
-      )
     }
   }
 
   if (!fail) {
-    if (opts.gate) {
-      console.log('\nGate passed — deliverable.')
-    } else if (runWorkplace && !workplaceMissing) {
-      console.log('\nWorkplace ready. Use --gate before merge when features exist.')
+    if (wp && !workplaceMissing && !del) {
+      console.log('\nWorkplace ready.')
+    } else if (!delivery.unfinished) {
+      console.log('\nCheck ok.')
     } else {
-      console.log('\nDelivery report done.')
+      console.log('\nCheck ok (handoff still open under coach/off — see above).')
     }
   } else {
     process.exitCode = 1
   }
+}
+
+function cmdJob(opts) {
+  const target = resolve(opts.dir)
+  const policy = loadPolicy(target)
+  const features = listFeatures(target)
+  const activeName = resolveActiveJobName(target, features)
+  const active = features.find((f) => f.name === activeName) || null
+
+  console.log(`Active job @ ${target}`)
+  console.log(`policy: ${policy.mode}\n`)
+  if (!active) {
+    console.log('No active job. Assign with /duaer-specify (writes .duaer/active-job.json).')
+    return
+  }
+  printFeature(active)
+  if (active.verdict === 'accepted') {
+    console.log('\nHandoff script: "✅ Job accepted — Brief satisfied per converge; ready for your review."')
+  } else {
+    console.log('\nHandoff script: "This job is not accepted yet — Spec/tasks/converge still open."')
+    if (policy.mode !== 'off') {
+      console.log('Do not claim delivery complete until duaer job shows accepted.')
+    }
+  }
+}
+
+function cmdPolicy(opts) {
+  const target = resolve(opts.dir)
+  if (opts.policyMode) {
+    if (!POLICY_MODES.has(opts.policyMode)) {
+      throw new Error(`Unknown policy mode: ${opts.policyMode}`)
+    }
+    const next = writePolicy(target, opts.policyMode)
+    console.log(`Wrote ${policyPath(target)}`)
+    console.log(`mode: ${next.mode}`)
+    return
+  }
+  const policy = loadPolicy(target)
+  const exists = existsSync(policyPath(target))
+  console.log(`Policy @ ${target}`)
+  console.log(`file:  ${exists ? policyPath(target) : '(defaults; run init or: duaer policy . coach)'}`)
+  console.log(`mode:  ${policy.mode}`)
+  console.log(`scope: ${policy.scope || 'active'}`)
+  console.log(`
+Modes:
+  off     record only
+  coach   guide; do not claim done until accepted (default)
+  strict  check fails + agents must not report done until accepted
+Not a git merge lock.
+`)
 }
 
 function main() {
@@ -446,6 +626,12 @@ function main() {
         break
       case 'check':
         cmdCheck(opts)
+        break
+      case 'job':
+        cmdJob(opts)
+        break
+      case 'policy':
+        cmdPolicy(opts)
         break
       case 'version':
       case '--version':

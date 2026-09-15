@@ -104,11 +104,23 @@ Given that feature description, do this:
      Write the actual resolved directory path value (for example, `specs/003-user-auth`), not the literal string `SPECIFY_FEATURE_DIRECTORY`.
      This allows downstream commands (`/duaer-plan`, `/duaer-tasks`, etc.) to locate the feature directory without relying on git branch name conventions.
 
+   - Also write / overwrite `.duaer/active-job.json` (job handoff pointer):
+     ```json
+     {
+       "schemaVersion": 1,
+       "feature": "<directory-name only, e.g. 003-user-auth>",
+       "featureDirectory": "<resolved feature dir>",
+       "updatedAt": "<ISO-8601 UTC>",
+       "source": "duaer-specify"
+     }
+     ```
+     `feature` is the basename under `.duaer/specs/` (or `specs/`) that `duaer job` resolves.
+
    **IMPORTANT**:
    - You must only create one feature per `/duaer-specify` invocation
    - The spec directory name and the git branch name are independent — they may be the same but that is the user's choice
    - The spec directory and file are always created by this command, never by the hook
-
+   - Setting `active-job.json` makes this the job the employee must hand off; it does **not** lock git
 4. Load the resolved active `spec-template` file to understand required sections.
 
 5. **IF EXISTS**: Load `.duaer/memory/constitution.md` for project principles and governance constraints.

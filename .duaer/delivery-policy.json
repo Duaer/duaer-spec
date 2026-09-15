@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "mode": "coach",
+  "scope": "active",
+  "notes": "Job-level handoff. off=record only; coach=guide (default); strict=do not claim done until accepted. Not a git merge lock."
+}
