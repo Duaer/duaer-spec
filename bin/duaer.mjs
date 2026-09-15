@@ -34,6 +34,7 @@ Then talk to the agent in plain language.
 
 Also:
   duaer live [--port N]              Open 现场开发 (isolated ~/.duaer/live)
+  duaer live config --provider deepseek --api-key …
   duaer live config --base-url … --api-key … --model …
   duaer handoff [--run]   Restart services on develop after worktree remove
   duaer status | check | policy | version | help
@@ -62,6 +63,7 @@ function parseArgs(argv) {
     baseUrl: null,
     apiKey: null,
     model: null,
+    provider: null,
   }
   const rest = args.slice(1)
   // duaer live config …
@@ -91,6 +93,9 @@ function parseArgs(argv) {
     else if (a === '--port') {
       out.port = rest[++i]
       if (!out.port) throw new Error('--port requires a value')
+    } else if (a === '--provider') {
+      out.provider = rest[++i]
+      if (out.provider == null) throw new Error('--provider requires a value')
     } else if (a === '--base-url') {
       out.baseUrl = rest[++i]
       if (out.baseUrl == null) throw new Error('--base-url requires a value')
@@ -971,6 +976,7 @@ function cmdLive(opts) {
   const args = [script]
   if (opts.liveConfig) {
     args.push('config')
+    if (opts.provider) args.push('--provider', opts.provider)
     if (opts.baseUrl) args.push('--base-url', opts.baseUrl)
     if (opts.apiKey) args.push('--api-key', opts.apiKey)
     if (opts.model) args.push('--model', opts.model)

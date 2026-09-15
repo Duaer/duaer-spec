@@ -20,6 +20,56 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const WEB_ROOT = path.join(PACKAGE_ROOT, "web", "live-dev");
 
+/** Built-in OpenAI-compatible provider presets (UI + CLI). */
+const PROVIDERS = {
+  deepseek: {
+    id: "deepseek",
+    label: "DeepSeek",
+    baseUrl: "https://api.deepseek.com",
+    model: "deepseek-flash",
+  },
+  openai: {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+  },
+  custom: {
+    id: "custom",
+    label: "自定义",
+    baseUrl: "",
+    model: "",
+  },
+};
+
+function listProviders() {
+  return Object.values(PROVIDERS).map((p) => ({
+    id: p.id,
+    label: p.label,
+    baseUrl: p.baseUrl,
+    model: p.model,
+  }));
+}
+
+function resolveProvider(id) {
+  const key = String(id || "")
+    .trim()
+    .toLowerCase();
+  if (!key) return null;
+  return PROVIDERS[key] || null;
+}
+
+function inferProviderId(cfg) {
+  const base = String(cfg?.baseUrl || "")
+    .trim()
+    .replace(/\/$/, "")
+    .toLowerCase();
+  if (!base) return "deepseek";
+  if (base.includes("deepseek.com")) return "deepseek";
+  if (base.includes("api.openai.com")) return "openai";
+  return "custom";
+}
+
 function duaerHome() {
   const fromEnv = String(process.env.DUAER_HOME || "").trim();
   if (fromEnv) return path.resolve(fromEnv);
@@ -87,8 +137,10 @@ function publicConfig(cfg = readConfig()) {
     baseUrl: cfg.baseUrl || "",
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
+    provider: inferProviderId(cfg),
     liveRoot: liveRoot(),
     jobsRoot: jobsRoot(),
+    providers: listProviders(),
   };
 }
 
@@ -96,6 +148,7 @@ function parseArgs(argv) {
   const out = {
     cmd: "serve",
     port: 8787,
+    provider: null,
     baseUrl: null,
     apiKey: null,
     model: null,
@@ -108,6 +161,7 @@ function parseArgs(argv) {
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
     if (a === "--port" && args[i + 1]) out.port = Number(args[++i]) || 8787;
+    else if (a === "--provider" && args[i + 1]) out.provider = args[++i];
     else if (a === "--base-url" && args[i + 1]) out.baseUrl = args[++i];
     else if (a === "--api-key" && args[i + 1]) out.apiKey = args[++i];
     else if (a === "--model" && args[i + 1]) out.model = args[++i];
@@ -200,17 +254,22 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 async function callChatModel(cfg, messages) {
   const base = cfg.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
+  const body = {
+    model: cfg.model,
+    temperature: 0.3,
+    messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+  };
+  // DeepSeek Flash defaults to thinking; disable for reliable JSON replies.
+  if (inferProviderId(cfg) === "deepseek") {
+    body.thinking = { type: "disabled" };
+  }
   const res = await fetch(url, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${cfg.apiKey}`,
     },
-    body: JSON.stringify({
-      model: cfg.model,
-      temperature: 0.3,
-      messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-    }),
+    body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -347,6 +406,11 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/presets") {
+    send(res, 200, { providers: listProviders() });
+    return;
+  }
+
   if (req.method === "GET" && url.pathname === "/api/config") {
     send(res, 200, publicConfig());
     return;
@@ -432,6 +496,20 @@ async function handleApi(req, res) {
 
 function cmdConfig(opts) {
   const partial = {};
+  if (opts.provider) {
+    const preset = resolveProvider(opts.provider);
+    if (!preset || preset.id === "custom") {
+      if (opts.provider && String(opts.provider).toLowerCase() !== "custom") {
+        console.error(
+          `未知服务商: ${opts.provider}（可用: deepseek, openai, custom）`,
+        );
+        process.exit(1);
+      }
+    } else {
+      if (opts.baseUrl == null) partial.baseUrl = preset.baseUrl;
+      if (opts.model == null) partial.model = preset.model;
+    }
+  }
   if (opts.baseUrl != null) partial.baseUrl = opts.baseUrl;
   if (opts.apiKey != null) partial.apiKey = opts.apiKey;
   if (opts.model != null) partial.model = opts.model;
@@ -442,7 +520,9 @@ function cmdConfig(opts) {
       console.log(`
 未就绪。请配置模型，例如：
 
-  duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+  duaer live config --provider deepseek --api-key sk-...
+  duaer live config --base-url https://api.deepseek.com --api-key sk-... --model deepseek-flash
+  duaer live config --provider openai --api-key sk-...
 
 或环境变量 DUAER_LIVE_BASE_URL / DUAER_LIVE_API_KEY / DUAER_LIVE_MODEL
 配置写在 ${configPath()}（与用户业务仓库隔离）
@@ -486,8 +566,8 @@ function serve(port) {
     if (!cfg.ready) {
       console.log(`
 模型未配置。请先：
-  duaer live config --base-url <OpenAI兼容地址> --api-key <key> --model <name>
-或在页面里填写。
+  duaer live config --provider deepseek --api-key <key>
+  或页面里点「DeepSeek」再填 Key。
 `);
     } else {
       console.log(`模型      ${cfg.model} @ ${cfg.baseUrl}`);

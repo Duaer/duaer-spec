@@ -22,12 +22,16 @@
     <section id="setup" class="panel setup-panel" hidden>
       <h2 class="card-title">配置模型</h2>
       <p class="hint">
-        使用 OpenAI 兼容接口。配置保存在本机
-        <code>~/.duaer/live/config.json</code>，不会写入你的产品仓库。
+        OpenAI 兼容接口。配置在
+        <code>~/.duaer/live/config.json</code>，不写业务仓库。
       </p>
+      <div class="field">
+        <span>服务商</span>
+        <div id="cfgProviders" class="provider-row" role="group" aria-label="服务商预设"></div>
+      </div>
       <label class="field">
         <span>Base URL</span>
-        <input id="cfgBase" type="url" placeholder="https://api.openai.com/v1" />
+        <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
       </label>
       <label class="field">
         <span>API Key</span>
@@ -35,7 +39,7 @@
       </label>
       <label class="field">
         <span>Model</span>
-        <input id="cfgModel" type="text" placeholder="gpt-4o-mini" />
+        <input id="cfgModel" type="text" placeholder="deepseek-flash" />
       </label>
       <button type="button" class="btn confirm" id="saveCfg">保存并开始</button>
       <p id="cfgErr" class="hint" hidden></p>

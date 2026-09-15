@@ -33,7 +33,7 @@ the table for their app.
 | E2E-003 | Always-on rule requires autonomous job loop without user slash | manual |
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
-| E2E-021 | `duaer live` needs model config; confirm writes under `~/.duaer/live/jobs/` (not product `.duaer/specs/`) | manual / curl |
+| E2E-021 | `duaer live` presets (DeepSeek/OpenAI); confirm writes under `~/.duaer/live/jobs/` | manual / curl |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |

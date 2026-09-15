@@ -2,12 +2,30 @@
  * 现场开发 UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
  */
 
+const FALLBACK_PROVIDERS = [
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    baseUrl: "https://api.deepseek.com",
+    model: "deepseek-flash",
+  },
+  {
+    id: "openai",
+    label: "OpenAI",
+    baseUrl: "https://api.openai.com/v1",
+    model: "gpt-4o-mini",
+  },
+  { id: "custom", label: "自定义", baseUrl: "", model: "" },
+];
+
 const state = {
   ready: false,
   locked: false,
   busy: false,
   rawAsk: "",
   messages: [],
+  providers: FALLBACK_PROVIDERS,
+  providerId: "deepseek",
 };
 
 const el = {
@@ -25,6 +43,7 @@ const el = {
   lockHint: document.getElementById("lockHint"),
   meta: document.getElementById("meta"),
   send: document.getElementById("send"),
+  cfgProviders: document.getElementById("cfgProviders"),
   cfgBase: document.getElementById("cfgBase"),
   cfgKey: document.getElementById("cfgKey"),
   cfgModel: document.getElementById("cfgModel"),
@@ -88,13 +107,54 @@ function applyCard(data) {
   syncConfirmEnabled();
 }
 
+function applyProvider(id, { fillEmptyOnly = false } = {}) {
+  const preset =
+    state.providers.find((p) => p.id === id) || FALLBACK_PROVIDERS[0];
+  state.providerId = preset.id;
+  for (const btn of el.cfgProviders.querySelectorAll(".provider-chip")) {
+    btn.setAttribute(
+      "aria-pressed",
+      btn.dataset.id === preset.id ? "true" : "false",
+    );
+  }
+  if (preset.id === "custom") return;
+  if (!fillEmptyOnly || !el.cfgBase.value.trim()) {
+    el.cfgBase.value = preset.baseUrl;
+  }
+  if (!fillEmptyOnly || !el.cfgModel.value.trim()) {
+    el.cfgModel.value = preset.model;
+  }
+  el.cfgBase.placeholder = preset.baseUrl || "https://…";
+  el.cfgModel.placeholder = preset.model || "model-id";
+}
+
+function renderProviders() {
+  el.cfgProviders.replaceChildren();
+  for (const p of state.providers) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "provider-chip";
+    btn.dataset.id = p.id;
+    btn.textContent = p.label;
+    btn.setAttribute("aria-pressed", "false");
+    btn.addEventListener("click", () => applyProvider(p.id));
+    el.cfgProviders.appendChild(btn);
+  }
+}
+
 function showSetup(cfg) {
   el.setup.hidden = false;
   el.desk.hidden = true;
+  if (Array.isArray(cfg.providers) && cfg.providers.length) {
+    state.providers = cfg.providers;
+  }
+  renderProviders();
   el.cfgBase.value = cfg.baseUrl || "";
   el.cfgModel.value = cfg.model || "";
   el.cfgKey.value = "";
   el.cfgKey.placeholder = cfg.hasApiKey ? "已保存（留空则不改）" : "sk-…";
+  const id = cfg.provider || "deepseek";
+  applyProvider(id, { fillEmptyOnly: Boolean(cfg.baseUrl || cfg.model) });
 }
 
 function showDesk(cfg) {
@@ -204,7 +264,10 @@ el.confirm.addEventListener("click", async () => {
     el.confirm.textContent = "已确认";
     el.result.hidden = false;
     el.result.textContent = `Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
-    addBubble("bot", `已锁定。Brief 在隔离区 ${data.relativeDir || data.featureDir}，未写入业务仓库。`);
+    addBubble(
+      "bot",
+      `已锁定。Brief 在隔离区 ${data.relativeDir || data.featureDir}，未写入业务仓库。`,
+    );
     syncConfirmEnabled();
   } catch (err) {
     el.confirm.disabled = false;

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live model presets
+
+- Setup UI / CLI presets: **DeepSeek** (`https://api.deepseek.com` + `deepseek-flash`), OpenAI, custom
+- `duaer live config --provider deepseek --api-key …`
+- DeepSeek chat calls disable thinking mode for reliable JSON replies
+
 ## 0.10.0 — 2026-09-15
 
 ### 现场开发 Web

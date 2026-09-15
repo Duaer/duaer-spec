@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-15T11:15:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": [
+      "duaer live config --provider deepseek --api-key sk-test (DUAER_HOME temp)",
+      "GET /api/config returns providers including deepseek"
+    ],
+    "result": "pass"
+  }
+}

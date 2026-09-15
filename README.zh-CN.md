@@ -38,10 +38,13 @@ npx duaer-spec update
 与业务仓库隔离。配置与 Brief 写在本机 `~/.duaer/live/`。
 
 ```bash
-# 1) 配置模型（OpenAI 兼容）
+# DeepSeek（推荐）
+duaer live config --provider deepseek --api-key sk-...
+
+# 或任意 OpenAI 兼容接口
 duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
 
-# 2) 启动（任意目录都行，不会写入当前项目）
+# 启动（任意目录都行，不会写入当前项目）
 duaer live
 ```
 

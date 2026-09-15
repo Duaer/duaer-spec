@@ -40,7 +40,12 @@ everyday human UI.
 Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 
 ```bash
+# DeepSeek（推荐）
+duaer live config --provider deepseek --api-key sk-...
+
+# 或任意 OpenAI 兼容接口
 duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+
 duaer live
 ```
 
