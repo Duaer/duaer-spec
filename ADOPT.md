@@ -11,7 +11,7 @@ From the target project (Node 18+):
 npx duaer-spec init --here
 
 # Pin a release
-npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+npx github:fujiezee/duaer-spec@v0.1.1 duaer init --here
 
 # Lite (method only) / ops only / other integration branch
 npx duaer-spec init --here --method

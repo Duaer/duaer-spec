@@ -1,6 +1,6 @@
 {
   "name": "duaer-spec",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Delivery OS for AI digital employees: Spec briefs, agent ops, controllable handoffs",
   "type": "module",
   "bin": {

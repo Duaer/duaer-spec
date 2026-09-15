@@ -13,7 +13,7 @@ Cursor is the labor. Duaer is hire → assign → accept.
 
 ```bash
 npx duaer-spec init --here
-# or pin: npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+# or pin: npx github:fujiezee/duaer-spec@v0.1.1 duaer init --here
 ```
 
 ```bash
