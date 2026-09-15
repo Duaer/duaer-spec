@@ -5,7 +5,9 @@ alwaysApply: true
 
 # Spec Kit required (NON-NEGOTIABLE)
 
-See repo `SPECKIT.md` and `.specify/memory/constitution.md`.
+Part of **duaer-spec** kit. See `SPECKIT.md` and `.specify/memory/constitution.md`.
+
+If this rule conflicts with root `AGENTS.md` / MyDesk agent ops (worktrees, commits, Issue/PR), **AGENTS.md wins**.
 
 ## When Spec Kit is mandatory
 

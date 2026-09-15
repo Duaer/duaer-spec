@@ -1,8 +1,10 @@
-# Spec Kit iteration conventions
+# Spec Kit iteration conventions (duaer-spec kit)
 
-This kit is based on [GitHub Spec Kit](https://github.com/github/spec-kit)
-(plus Cursor `speckit-*` skills), adapted as a reusable drop-in for other
-repositories.
+Part of **duaer-spec**. Based on [GitHub Spec Kit](https://github.com/github/spec-kit)
+(plus Cursor `speckit-*` skills), adapted as a reusable drop-in.
+
+**Precedence:** root `AGENTS.md` / MyDesk agent ops win if anything here
+conflicts with how agents must operate (worktrees, commits, Issue/PR gates).
 
 ## Read before work (order)
 
@@ -32,11 +34,11 @@ repositories.
 ## Install into a project
 
 ```bash
-# From this standards repo root
-rsync -a spec-kit/.specify/ /path/to/project/.specify/
-rsync -a spec-kit/.cursor/skills/ /path/to/project/.cursor/skills/
-cp spec-kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
-cp spec-kit/SPECKIT.md /path/to/project/
+# From the duaer-spec repo root
+rsync -a kit/.specify/ /path/to/project/.specify/
+rsync -a kit/.cursor/skills/ /path/to/project/.cursor/skills/
+cp kit/.cursor/rules/spec-kit.mdc /path/to/project/.cursor/rules/
+cp kit/SPECKIT.md /path/to/project/
 # Edit .specify/memory/* for that product
 ```
 

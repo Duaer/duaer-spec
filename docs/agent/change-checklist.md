@@ -1,7 +1,7 @@
-# 05. Change Checklist
+# Change Checklist
 
 > A practical checklist agents must run before finishing work.  
-> Cross-references: [ai-development-workflow](03-ai-development-workflow.md) · [e2e-test-plan](04-e2e-test-plan.md) · [decisions-log](../08-meta/decisions-log.md) · [ADR index](../../adr/README.md) · [BOARD](../../project/BOARD.md)
+> Brand: **duaer-spec** · Cross-references: [workflow](workflow.md) · [e2e-test-plan](e2e-test-plan.md) · [ADR index](../adr/README.md)
 
 ---
 

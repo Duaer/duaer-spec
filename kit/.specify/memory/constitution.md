@@ -2,6 +2,10 @@
 
 Replace this file per project. Keep it short and enforceable.
 
+Part of **duaer-spec**. If agent-ops rules in the host repo's `AGENTS.md`
+(MyDesk-style) conflict with this constitution, follow `AGENTS.md` for
+isolation, commits, and Issue/PR gates; keep Spec Kit for what to build.
+
 ## Core Principles
 
 ### I. Spec before code (NON-NEGOTIABLE)

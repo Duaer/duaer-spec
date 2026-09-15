@@ -1,11 +1,11 @@
 ---
-description: MyDesk-style AI development workflow (isolated branch/worktree, commits, push opt-in)
+description: duaer-spec / MyDesk AI workflow (isolated branch/worktree, commits, push opt-in)
 alwaysApply: true
 ---
 
 # Agent development workflow
 
-Extracted from MyDesk `AGENTS.md` / AI development workflow. Adapt merge target if the project uses `develop` instead of `main`.
+Part of **duaer-spec**. Extracted from MyDesk `AGENTS.md`. Wins over Spec Kit when they conflict. Adapt merge target if the project uses `develop` instead of `main`.
 
 ## Language
 
@@ -23,7 +23,7 @@ Before editing files for a new request:
 
 ## Immutable habits
 
-- Spec-sync: behavior changes update the relevant docs/spec (and ADR when architecture/security/contracts change)
+- Spec-sync: behavior changes update the relevant project specs/docs (and ADR when architecture/security/contracts change)
 - One logical change per commit; leave the worktree clean
 - User/protocol-visible changes update the project's E2E scenario docs
 - Merge the request branch back into the local integration branch when done

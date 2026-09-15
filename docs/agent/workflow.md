@@ -1,14 +1,15 @@
-# 03. AI-Assisted Development Workflow
+# AI-Assisted Development Workflow
 
-> Scope: AI agents and human collaborators working on PI-Desktop  
+> Scope: AI agents adopting **duaer-spec** / MyDesk-style ops (sourced from PI-Desktop)  
 > Status: Accepted  
-> Cross-references: [00-baseline](../00-baseline.md) · [decisions-log](../08-meta/decisions-log.md) · [acceptance-criteria](02-acceptance-criteria.md) · [e2e-test-plan](04-e2e-test-plan.md) · [change-checklist](05-change-checklist.md) · [ADR index](../../adr/README.md)
+> Brand: duaer-spec — this document and root `AGENTS.md` win over Spec Kit conflicts  
+> Cross-references: [baseline](../baseline.md) · [e2e-test-plan](e2e-test-plan.md) · [change-checklist](change-checklist.md) · [ADR index](../adr/README.md)
 
 ---
 
 ## 1. Core Immutable Rules
 
-The rules below govern every change to the PI-Desktop codebase and documentation. R1–R4 restate the five numbered Immutable Rules in `AGENTS.md` (R4 covers both the merge-back and worktree clean-up rules); R5 and R6 restate its GitHub issue and pull request handling sections. They cannot be relaxed by an agent without explicit human override.
+The rules below govern every change when adopting duaer-spec agent ops. R1–R4 restate the five numbered Immutable Rules in `AGENTS.md` (R4 covers both the merge-back and worktree clean-up rules); R5 and R6 restate its GitHub issue and pull request handling sections. They cannot be relaxed by an agent without explicit human override.
 
 ### R1 — Spec-first / Spec-sync
 
@@ -32,7 +33,7 @@ The rules below govern every change to the PI-Desktop codebase and documentation
 
 - "User-visible": anything the end-user sees or interacts with (UI, CLI output, dialogs, notifications).
 - "Protocol-visible": IPC messages, RPC methods, plugin API surfaces, event payloads.
-- Document the scenario in `06-delivery/04-e2e-test-plan.md` — even before the automated test exists.
+- Document the scenario in [`e2e-test-plan.md`](e2e-test-plan.md) — even before the automated test exists.
 - Internal-only changes (logging format, internal variable rename) do not require e2e doc updates.
 
 ### R4 — Request branch + worktree + merge gate

@@ -1,6 +1,10 @@
 # AGENTS.md
 
-Mandatory rules for AI coding agents working in this repository.
+Mandatory rules for AI coding agents working in **duaer-spec** (and MyDesk-style
+repos that adopt this file).
+
+These MyDesk agent-ops rules are authoritative. If Spec Kit (`kit/`), product
+examples, or other overlays conflict with this file, **follow this file**.
 
 ## Language
 
@@ -8,7 +12,7 @@ Use English for code, identifiers, comments, commits, specifications, and docume
 
 Follow:
 
-* [Baseline](docs/spec/00-baseline.md)
+* [Baseline](docs/baseline.md)
 
 ## GitHub Issue Handling
 
@@ -38,7 +42,7 @@ unless the user explicitly asks.
 
 See:
 
-* [AI development workflow — R5](docs/spec/06-delivery/03-ai-development-workflow.md#r5--verify-linked-github-issues-before-work-then-reply-and-close)
+* [AI development workflow — R5](docs/agent/workflow.md#r5--verify-linked-github-issues-before-work-then-reply-and-close)
 
 ## GitHub Pull Request Handling
 
@@ -84,7 +88,7 @@ Do not comment on or merge unrelated pull requests.
 
 See:
 
-* [AI development workflow — R6](docs/spec/06-delivery/03-ai-development-workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-then-follow-up)
+* [AI development workflow — R6](docs/agent/workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-then-follow-up)
 
 ## AI-Generated Page Content
 
@@ -165,7 +169,7 @@ Every completed logical change must be committed.
 
 Every user-visible or protocol-visible behavior change must add or update a scenario in:
 
-* [E2E test plan](docs/spec/06-delivery/04-e2e-test-plan.md)
+* [E2E test plan](docs/agent/e2e-test-plan.md)
 
 Do not run local E2E commands or manually trigger remote E2E jobs unless
 explicitly requested by the user, **except** when the change comes from a
@@ -318,7 +322,7 @@ READMEs are release surfaces. When a release changes user-visible behavior, refr
 
 See:
 
-* [Release runbook](docs/spec/06-delivery/06-release-runbook.md#41-mandatory-release-version-surface-gate-d164--d260)
+* Release runbook — product-specific (MyDesk: `docs/spec/06-delivery/06-release-runbook.md`); not shipped in duaer-spec
 
 ## Completion Checklist
 

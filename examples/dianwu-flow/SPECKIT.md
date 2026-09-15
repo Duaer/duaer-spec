@@ -1,5 +1,8 @@
 # Spec Kit 迭代约定
 
+> 示例来自 DianWu Flow，归属 **duaer-spec** 的 `examples/dianwu-flow/`。  
+> 与 MyDesk / 根目录 `AGENTS.md` 冲突时，**以 MyDesk agent ops 为准**（隔离 worktree、commit、Issue/PR）；本文件只管 Spec 驱动怎么写需求与任务。
+
 本仓库已接入 [GitHub Spec Kit](https://github.com/github/spec-kit)（`specify-cli` + Cursor `cursor-agent` 集成）。  
 **后续功能与架构迭代默认走 Spec-Driven Development**，不再直接「口头需求 → 改代码」。
 
