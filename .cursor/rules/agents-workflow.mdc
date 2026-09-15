@@ -1,0 +1,47 @@
+---
+description: MyDesk-style AI development workflow (isolated branch/worktree, commits, push opt-in)
+alwaysApply: true
+---
+
+# Agent development workflow
+
+Extracted from MyDesk `AGENTS.md` / AI development workflow. Adapt merge target if the project uses `develop` instead of `main`.
+
+## Language
+
+Use English for code, identifiers, comments, commits, specs, and docs unless the project explicitly overrides.
+
+## Isolated development
+
+Before editing files for a new request:
+
+1. Update local integration branch (`main` or project `develop`)
+2. Create a unique branch: `<type>/<short-description>`
+3. Create a dedicated worktree and develop only there
+4. Never develop in the primary checkout or on the long-lived branch
+5. Never reuse or modify another agent's branch/worktree
+
+## Immutable habits
+
+- Spec-sync: behavior changes update the relevant docs/spec (and ADR when architecture/security/contracts change)
+- One logical change per commit; leave the worktree clean
+- User/protocol-visible changes update the project's E2E scenario docs
+- Merge the request branch back into the local integration branch when done
+- Remove the request worktree and delete the merged branch after merge
+- Push only when the user explicitly asks for this request
+
+## GitHub issue intake
+
+If the user links an issue for this repo: verify the claim first; do not implement until it exists. Comment in the issue's language; close when conclusive. An issue link does not authorize push.
+
+## GitHub PR intake
+
+If the user links a PR: judge the principle first. If sound, merge that PR (preserve commits); completeness gaps are follow-up after merge. Do not silently reimplement. A PR link does not authorize unrelated pushes or force-push of the contributor branch.
+
+## Commits
+
+```text
+type(scope): description
+```
+
+Types: `feat fix docs test chore refactor perf build ci` — English, imperative, one logical change.
