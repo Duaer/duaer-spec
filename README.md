@@ -19,7 +19,9 @@ npx duaer-spec init --here
 npx duaer-spec update
 ```
 
-Then use Cursor as usual — describe what you want.
+Then use **Cursor** or **Claude Code** as usual — describe what you want.
+
+Install writes both `.cursor/` and `.claude/` (plus `CLAUDE.md`).
 
 中文说明：[`README.zh-CN.md`](README.zh-CN.md)
 

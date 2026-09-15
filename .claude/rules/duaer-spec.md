@@ -1,7 +1,4 @@
----
-description: Autonomous digital employee — run Duaer job loop without asking the user to operate
-alwaysApply: true
----
+<!-- Autonomous digital employee — run Duaer job loop without asking the user to operate -->
 
 # Digital employee (autonomous)
 
@@ -22,8 +19,7 @@ For new behavior, fixes, refactors that change product behavior, or architecture
    Brief folder (do **not** use `.worktree/<nnn-slug>` when the Spec is
    `.duaer/specs/<nnn-slug>/`). Work only in the worktree. Never commit
    `.worktree/`. Never develop on `main` or `develop`.
-1. **Silently follow** the procedure in the `duaer-do` skill
-   (`.cursor/skills/duaer-do/SKILL.md` or `.claude/skills/duaer-do/SKILL.md`)
+1. **Silently follow** the procedure in `.claude/skills/duaer-do/SKILL.md`
    (assign Brief → light tasks → implement → converge → handoff line).
 2. Do **not** wait for `/duaer-do` or any other skill invocation.
 3. Do **not** say “please run `/duaer-specify`” — you do it.

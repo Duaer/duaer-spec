@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.6.4",
-  "description": "Digital employees: autonomous delivery; main/develop/feat/fix; simple update",
+  "version": "0.7.0",
+  "description": "Digital employees for Cursor and Claude Code; main/develop/feat/fix",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",
@@ -11,7 +11,9 @@
     "bin",
     ".duaer",
     ".cursor",
+    ".claude",
     "AGENTS.md",
+    "CLAUDE.md",
     "DUADER.md",
     "ADOPT.md",
     "CHANGELOG.md",
@@ -43,7 +45,9 @@
     "agents",
     "cursor",
     "ai-engineering",
-    "controllable-delivery"
+    "controllable-delivery",
+    "claude",
+    "claude-code"
   ],
   "license": "MIT",
   "scripts": {

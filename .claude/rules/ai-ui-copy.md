@@ -1,0 +1,9 @@
+<!-- Keep AI-generated page copy minimal (duaer-spec agent ops) -->
+
+# AI-generated page content
+
+AI-generated pages must not contain redundant explanatory text.
+
+- No filler introductions, repeated summaries, or prose that only explains an obvious control
+- Prefer concise labels, headings, helper text, and empty states
+- Put rationale and implementation detail in docs or code comments, not in the UI, unless the user asks for explanatory content

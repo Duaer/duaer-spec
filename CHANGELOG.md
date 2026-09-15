@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 — 2026-09-15
+
+### Claude Code host
+
+- `init` / `update` install **both** Cursor and Claude Code surfaces
+- Claude: `CLAUDE.md`, `.claude/rules/*.md`, `.claude/skills/duaer-*` (mirrored)
+- Cursor: `.cursor/rules/*.mdc`, `.cursor/skills/duaer-*` (unchanged)
+
 ## 0.6.4 — 2026-09-15
 
 ### Worktree ≠ Brief folder name

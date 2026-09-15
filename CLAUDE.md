@@ -1,0 +1,26 @@
+# CLAUDE.md — duaer-spec
+
+This repository uses **duaer-spec**: coding agents are digital employees.
+
+**Precedence:** `AGENTS.md` (ops) wins over `DUADER.md` / `.duaer/` (method).
+
+## Always on
+
+- Follow `.claude/rules/` in this project.
+- For product work, run the job loop in `.claude/skills/duaer-do/SKILL.md`
+  without waiting for slash commands.
+- Do not ask the human to operate phases, CLI flags, or skill names.
+
+## Layout
+
+| Host | Rules | Skills |
+|---|---|---|
+| Claude Code | `.claude/rules/` | `.claude/skills/` |
+| Cursor | `.cursor/rules/` | `.cursor/skills/` |
+
+Both are installed by `npx duaer-spec init --here` / `update`.
+
+## Branches
+
+See `docs/agent/branching-and-release.md` and `AGENTS.md`.
+Worktree: `.worktree/feat-<name>/` — not the same name as `.duaer/specs/<nnn-slug>/`.

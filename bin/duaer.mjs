@@ -209,6 +209,15 @@ function installMethod(target, opts) {
   writeDefaultPolicy(target, opts)
   writeDefaultHandoff(target, opts)
 
+  installCursorMethod(target, opts)
+  installClaudeMethod(target, opts)
+
+  copyPath(join(PKG_ROOT, 'DUADER.md'), join(target, 'DUADER.md'), opts)
+  console.log('  DUADER.md')
+  ensureWorktreeGitignore(target)
+}
+
+function installCursorMethod(target, opts) {
   ensureDir(join(target, '.cursor', 'skills'))
   const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
   for (const name of readdirSync(skillsRoot)) {
@@ -224,10 +233,62 @@ function installMethod(target, opts) {
     opts,
   )
   console.log('  .cursor/rules/duaer-spec.mdc')
+}
 
-  copyPath(join(PKG_ROOT, 'DUADER.md'), join(target, 'DUADER.md'), opts)
-  console.log('  DUADER.md')
-  ensureWorktreeGitignore(target)
+function installClaudeMethod(target, opts) {
+  ensureDir(join(target, '.claude', 'skills'))
+  const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
+  for (const name of readdirSync(skillsRoot)) {
+    if (!name.startsWith('duaer-')) continue
+    copyPath(join(skillsRoot, name), join(target, '.claude', 'skills', name), opts)
+  }
+  console.log('  .claude/skills/duaer-*  (mirrored from .cursor/skills)')
+
+  ensureDir(join(target, '.claude', 'rules'))
+  const claudeRule = join(PKG_ROOT, '.claude', 'rules', 'duaer-spec.md')
+  if (existsSync(claudeRule)) {
+    copyPath(claudeRule, join(target, '.claude', 'rules', 'duaer-spec.md'), opts)
+  } else {
+    writeIfNeeded(
+      join(target, '.claude', 'rules', 'duaer-spec.md'),
+      cursorRuleToClaude(
+        readFileSync(join(PKG_ROOT, '.cursor', 'rules', 'duaer-spec.mdc'), 'utf8'),
+        '.claude',
+      ),
+      opts,
+    )
+  }
+  console.log('  .claude/rules/duaer-spec.md')
+
+  const claudeMdSrc = join(PKG_ROOT, 'CLAUDE.md')
+  if (existsSync(claudeMdSrc)) {
+    copyPath(claudeMdSrc, join(target, 'CLAUDE.md'), opts)
+  } else {
+    writeIfNeeded(join(target, 'CLAUDE.md'), defaultClaudeMd(), opts)
+  }
+  console.log('  CLAUDE.md')
+}
+
+function cursorRuleToClaude(mdc, skillHost) {
+  let body = mdc.replace(/^---\n[\s\S]*?\n---\n+/, (fm) => {
+    const desc = (fm.match(/^description:\s*(.+)$/m) || [])[1]
+    return desc ? `<!-- ${desc.trim()} -->\n\n` : ''
+  })
+  body = body.replaceAll('.cursor/skills/', `${skillHost}/skills/`)
+  return body.trimEnd() + '\n'
+}
+
+function defaultClaudeMd() {
+  return `# CLAUDE.md — duaer-spec
+
+This project uses **duaer-spec**: coding agents are digital employees.
+
+**Precedence:** \`AGENTS.md\` (ops) wins over \`DUADER.md\` / \`.duaer/\` (method).
+
+- Follow \`.claude/rules/\`
+- Job loop: \`.claude/skills/duaer-do/SKILL.md\` (no slash commands required)
+- Branches / worktrees: see \`AGENTS.md\` and \`docs/agent/branching-and-release.md\`
+`
 }
 
 function ensureWorktreeGitignore(target) {
@@ -258,6 +319,22 @@ function installOps(target, opts) {
     )
   }
   console.log('  .cursor/rules/agents-workflow.mdc, ai-ui-copy.mdc')
+
+  ensureDir(join(target, '.claude', 'rules'))
+  for (const name of ['agents-workflow.md', 'ai-ui-copy.md']) {
+    const src = join(PKG_ROOT, '.claude', 'rules', name)
+    if (existsSync(src)) {
+      copyPath(src, join(target, '.claude', 'rules', name), opts)
+    } else {
+      const mdc = name.replace(/\.md$/, '.mdc')
+      writeIfNeeded(
+        join(target, '.claude', 'rules', name),
+        cursorRuleToClaude(readFileSync(join(PKG_ROOT, '.cursor', 'rules', mdc), 'utf8'), '.claude'),
+        opts,
+      )
+    }
+  }
+  console.log('  .claude/rules/agents-workflow.md, ai-ui-copy.md')
 
   ensureDir(join(target, 'docs', 'agent'))
   for (const name of [
@@ -472,8 +549,12 @@ function checkWorkplace(target) {
     ['DUADER.md', 'method'],
     ['.cursor/rules/duaer-spec.mdc', 'method'],
     ['.cursor/skills/duaer-specify/SKILL.md', 'method'],
+    ['.claude/rules/duaer-spec.md', 'method'],
+    ['.claude/skills/duaer-do/SKILL.md', 'method'],
+    ['CLAUDE.md', 'method'],
     ['AGENTS.md', 'ops'],
     ['.cursor/rules/agents-workflow.mdc', 'ops'],
+    ['.claude/rules/agents-workflow.md', 'ops'],
     ['docs/agent/workflow.md', 'ops'],
   ]
   let missing = 0

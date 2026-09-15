@@ -14,7 +14,7 @@ runs Brief → work → accept. Humans are not the operators of the phase machin
 
 ## Agent procedure (autonomous)
 
-Follow `.cursor/skills/duaer-do/SKILL.md` on every product ask — **without**
+Follow the `duaer-do` skill (`.cursor/skills/` or `.claude/skills/`) on every product ask — **without**
 waiting for a slash invocation:
 
 1. Assign Brief + `active-job.json`  
@@ -38,8 +38,8 @@ Humans need not configure it for everyday use.
   .duaer/active-job.json
   .duaer/specs/<nnn-slug>/             # Brief (≠ worktree folder name)
     spec.md | tasks.md | delivery.json
-.cursor/rules/duaer-spec.mdc           # autonomous behavior
-.cursor/skills/duaer-do/               # default job loop
+.cursor/rules|skills/                  # Cursor host
+.claude/rules|skills/ + CLAUDE.md      # Claude Code host
 ```
 
 Worktree and Brief are different layers. Prefer
