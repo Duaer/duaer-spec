@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-15T10:30:00.000Z",
+  "summary": "现场开发 web: dialogue + four-block confirm + duaer live writes Brief under .duaer/specs.",
+  "verification": {
+    "levels": ["L0", "L3-smoke"],
+    "commands": [
+      "curl /api/health",
+      "POST /api/confirm → .duaer/specs/00N-*"
+    ],
+    "result": "pass"
+  }
+}

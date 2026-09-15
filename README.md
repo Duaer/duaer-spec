@@ -35,6 +35,17 @@ Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
+## Live Dev (web confirm desk)
+
+From an initialized project root:
+
+```bash
+npx duaer-spec live
+```
+
+Opens a local page: multi-round dialogue → four-block confirm card → writes
+`.duaer/specs/<nnn-slug>/` and a copy-paste prompt for the digital employee.
+
 ## Branches (mandatory)
 
 | Branch | Role |

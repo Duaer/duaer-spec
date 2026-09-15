@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### 现场开发 Web
+
+- `duaer live` opens a local page: multi-round dialogue → four-block confirm card
+  → writes `.duaer/specs/<nnn-slug>/` Brief + `active-job.json`
+- Static UI under `web/live-dev/`; no cloud LLM required for v1
+
 ### Understand gate
 
 - `duaer-do` requires **Understand** before Work: restate goal / scope /

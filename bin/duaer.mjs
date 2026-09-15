@@ -33,6 +33,7 @@ Update:   npx duaer-spec update
 Then talk to the agent in plain language.
 
 Also:
+  duaer live [--port N]   Open 现场开发 web (dialogue → confirm → Brief)
   duaer handoff [--run]   Restart services on develop after worktree remove
   duaer status | check | policy | version | help
 
@@ -55,6 +56,7 @@ function parseArgs(argv) {
     policyMode: null,
     run: false,
     modeExplicit: false,
+    port: null,
   }
   const rest = args.slice(1)
   for (let i = 0; i < rest.length; i++) {
@@ -76,7 +78,10 @@ function parseArgs(argv) {
     else if (a === '--all-jobs') out.allJobs = true
     else if (a === '--strict' || a === '--gate') out.strict = true
     else if (a === '--run') out.run = true
-    else if (a === '--branch') {
+    else if (a === '--port') {
+      out.port = rest[++i]
+      if (!out.port) throw new Error('--port requires a value')
+    } else if (a === '--branch') {
       out.branch = rest[++i]
       if (!out.branch) throw new Error('--branch requires a value')
     } else if (POLICY_MODES.has(a) && out.cmd === 'policy') {
@@ -938,6 +943,21 @@ function cmdHandoff(opts) {
   }
 }
 
+function cmdLive(opts) {
+  const target = resolve(opts.dir)
+  const script = join(PKG_ROOT, 'bin', 'duaer-live.mjs')
+  if (!existsSync(script)) {
+    throw new Error('duaer-live.mjs missing from package')
+  }
+  const args = [script, target]
+  if (opts.port) args.push('--port', String(opts.port))
+  const child = spawn(process.execPath, args, {
+    stdio: 'inherit',
+    cwd: target,
+  })
+  child.on('exit', (code) => process.exit(code ?? 0))
+}
+
 function main() {
   let opts
   try {
@@ -955,6 +975,9 @@ function main() {
         break
       case 'update':
         cmdUpdate(opts)
+        break
+      case 'live':
+        cmdLive(opts)
         break
       case 'check':
         cmdCheck(opts)
