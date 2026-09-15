@@ -7,24 +7,27 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="atmosphere" aria-hidden="true"></div>
     <header class="top">
+      <p class="mark">Live desk · isolated</p>
       <p class="brand">现场开发</p>
-      <p class="tag">对话弄清 → 确认卡 → 数字员工干活（与业务仓库隔离）</p>
+      <p class="tag">对话弄清 → 确认卡 → 数字员工开工</p>
+      <div class="sight" aria-hidden="true">
+        <span class="arm arm-h"></span>
+        <span class="arm arm-v"></span>
+        <span class="dot"></span>
+      </div>
     </header>
 
     <section id="setup" class="panel setup-panel" hidden>
+      <p class="mark">Model · OpenAI-compatible</p>
       <h2 class="card-title">配置模型</h2>
-      <p class="hint">
-        OpenAI 兼容接口。配置在
-        <code>~/.duaer/live/config.json</code>，不写业务仓库。
-      </p>
+      <p class="hint">写入 <code>~/.duaer/live/config.json</code></p>
       <div class="field">
         <span>服务商</span>
         <div id="cfgProviders" class="provider-row" role="group" aria-label="服务商预设"></div>
@@ -53,7 +56,7 @@
           <textarea
             id="input"
             rows="2"
-            placeholder="先随便说你想做什么…"
+            placeholder="想做什么…"
             autocomplete="off"
           ></textarea>
           <button type="submit" class="btn primary" id="send">发送</button>
@@ -61,6 +64,7 @@
       </section>
 
       <section class="panel card-panel" aria-label="确认卡">
+        <p class="mark">Confirm card</p>
         <h2 class="card-title">确认卡</h2>
         <p id="meta" class="meta"></p>
         <label class="field">
@@ -79,7 +83,7 @@
           <span>假设</span>
           <textarea id="assumptions" rows="2" placeholder="待确认"></textarea>
         </label>
-        <p id="lockHint" class="hint">四块齐了才能确认。确认前数字员工不会开工。</p>
+        <p id="lockHint" class="hint">填好目标与验收后确认</p>
         <button type="button" class="btn confirm" id="confirm" disabled>
           需求无误，开始干活
         </button>

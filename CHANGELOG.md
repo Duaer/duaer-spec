@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live desk UI
+
+- Restyle 现场开发 to Probe visual language (steel plate, Outfit + Chivo Mono, register/lock accents)
+
 ### Live model presets
 
 - Setup UI / CLI presets: **DeepSeek** (`https://api.deepseek.com` + `deepseek-flash`), OpenAI, custom
