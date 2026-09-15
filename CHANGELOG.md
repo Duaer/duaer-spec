@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.10.0 — 2026-09-15
+
 ### 现场开发 Web
 
 - `duaer live` opens a local page in an **isolated** workspace (`~/.duaer/live`)
