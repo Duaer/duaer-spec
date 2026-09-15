@@ -27,25 +27,16 @@ const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 
 const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
-Human (once / update):
-  duaer init [--here] [--force]   Install or refresh into a project
+Install:  npx duaer-spec init --here
+Update:   npx duaer-spec update
 
-After install: talk to the agent in plain language.
+Then talk to the agent in plain language.
 
-Agent / optional:
-  duaer handoff [dir] [--run]   After merge: print/restart services on develop
-  duaer status [dir]
-  duaer check | policy | version
+Also:
+  duaer handoff [--run]   Restart services on develop after worktree remove
+  duaer status | check | policy | version | help
 
-Init: --all (default) | --method | --ops | --force | --branch <n> (default: develop) | --here
-
-Update existing install:
-  npx duaer-spec@latest init --here --force
-  # then review git diff; keep project-specific constitution / baseline / handoff commands
-
-Example:
-  npx duaer-spec init --here
-  duaer handoff --run
+Init options: --all | --method | --ops | --force | --branch <n> | --here
 `
 
 function parseArgs(argv) {
@@ -63,14 +54,21 @@ function parseArgs(argv) {
     strict: false,
     policyMode: null,
     run: false,
+    modeExplicit: false,
   }
   const rest = args.slice(1)
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]
-    if (a === '--all') out.mode = 'all'
-    else if (a === '--method') out.mode = 'method'
-    else if (a === '--ops') out.mode = 'ops'
-    else if (a === '--force') out.force = true
+    if (a === '--all') {
+      out.mode = 'all'
+      out.modeExplicit = true
+    } else if (a === '--method') {
+      out.mode = 'method'
+      out.modeExplicit = true
+    } else if (a === '--ops') {
+      out.mode = 'ops'
+      out.modeExplicit = true
+    } else if (a === '--force') out.force = true
     else if (a === '--here') out.dir = '.'
     else if (a === '--workplace') out.workplace = true
     else if (a === '--delivery') out.delivery = true
@@ -338,11 +336,31 @@ function cmdInit(opts) {
   console.log(`
 Hired.
 
-You: describe work in Cursor (plain language).
-Agent: runs Brief → work → accept; uses develop + .worktree/; after merge runs handoff.
+Talk to the agent in plain language.
+Later update:  npx duaer-spec update
+`)
+}
 
-Update later: npx duaer-spec@latest init --here --force  (review the diff)
-Handoff:      duaer handoff [--run]   # restart services on develop after worktree remove
+function cmdUpdate(opts) {
+  const target = resolve(opts.dir)
+  const marker = readJson(join(target, '.duaer', 'duaer-init.json'), null)
+  if (!marker && !existsSync(join(target, '.duaer')) && !existsSync(join(target, 'DUADER.md'))) {
+    console.log('No duaer install found here. Use: npx duaer-spec init --here')
+    process.exitCode = 1
+    return
+  }
+
+  if (!opts.modeExplicit && marker?.mode && ['all', 'method', 'ops'].includes(marker.mode)) {
+    opts.mode = marker.mode
+  }
+  if (marker?.branch) opts.branch = marker.branch
+  opts.force = true
+
+  console.log(`Updating → ${PKG.version}`)
+  cmdInit(opts)
+  console.log(`
+Updated.
+If you customized constitution / baseline / handoff commands, check git diff once.
 `)
 }
 
@@ -689,6 +707,9 @@ function main() {
     switch (opts.cmd) {
       case 'init':
         cmdInit(opts)
+        break
+      case 'update':
+        cmdUpdate(opts)
         break
       case 'check':
         cmdCheck(opts)

@@ -34,7 +34,7 @@ the table for their app.
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
-| E2E-010 | ADOPT documents `init --force` update path for existing installs | manual |
+| E2E-010 | `npx duaer-spec update` refreshes an existing install | manual |
 
 ## Traceability
 
@@ -49,4 +49,4 @@ the table for their app.
 | E2E-007 | `.worktree/` + `.gitignore` | Mandatory isolation |
 | E2E-008 | `branching-and-release.md` | Branch + release matrix |
 | E2E-009 | `.duaer/handoff.json` / `duaer handoff` | Service handoff |
-| E2E-010 | `ADOPT.md` Updating | Existing installs |
+| E2E-010 | `duaer update` | One-line refresh |

@@ -13,8 +13,13 @@ talk; the employee runs the process.
 npx duaer-spec init --here
 ```
 
-Then use Cursor as usual — describe what you want. No slash-command chain
-required.
+## Update
+
+```bash
+npx duaer-spec update
+```
+
+Then use Cursor as usual — describe what you want.
 
 ## What the employee does (by itself)
 
@@ -41,18 +46,10 @@ Go-live and flows by issue type:
 **After merge:** `duaer handoff [--run]` restarts local services on `develop`
 (configure commands in `.duaer/handoff.json`).
 
-## Updating
-
-```bash
-npx duaer-spec@latest init --here --force   # review diff; keep handoff commands
-```
-
-Details: [`ADOPT.md`](ADOPT.md)#updating-an-existing-install
-
 ## Optional
 
 ```bash
-npx duaer-spec@0.6.1 init --here --method
+npx duaer-spec init --here --method
 ```
 
 Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)

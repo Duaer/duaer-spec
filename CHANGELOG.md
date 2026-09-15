@@ -1,21 +1,23 @@
 # Changelog
 
+## 0.6.2 — 2026-09-15
+
+### Simple update
+
+- `npx duaer-spec update` refreshes an existing install (no `--force` flags to remember)
+- Remembers prior init mode from `.duaer/duaer-init.json`
+- README / ADOPT: install + update are each one line
+
 ## 0.6.1 — 2026-09-15
 
 ### Worktree → develop service handoff
 
-- Mandatory handoff after merge: stop worktree-bound processes, remove
-  `.worktree/<id>`, restart from primary checkout on `develop`
-- `.duaer/handoff.json` configures restart commands (e.g. `npm run dev`)
-- CLI: `duaer handoff` / `duaer handoff --run`
-- Docs: update path for existing installs (`init --force` + review diff)
+- `.duaer/handoff.json` + `duaer handoff [--run]`
+- Mandatory restart on develop after worktree remove
 
 ## 0.6.0 — 2026-09-15
 
-### Mandatory branch model + release flows
-
-- Required: `main` / `develop` / `feat/*` / `fix/*`
-- [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
+- Mandatory `main` / `develop` / `feat/*` / `fix/*` + release flows
 
 ## 0.5.1 — 2026-09-15
 
@@ -23,24 +25,8 @@
 
 ## 0.5.0 — 2026-09-15
 
-- Autonomous digital employee (ask, don’t operate phases)
+- Autonomous digital employee
 
-## 0.4.0 — 2026-09-15
+## 0.4.0 — 0.1.0
 
-- Everyday `/duaer-do` path (later agent-internal)
-
-## 0.3.0 — 2026-09-15
-
-- Job handoff policy
-
-## 0.2.0 — 2026-09-15
-
-- `delivery.json`
-
-## 0.1.1 — 2026-09-15
-
-- Digital-employee positioning
-
-## 0.1.0 — 2026-09-15
-
-- First public release
+See git history for earlier notes.
