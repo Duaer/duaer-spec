@@ -39,6 +39,7 @@ the table for their app.
 | E2E-012 | `README.zh-CN.md` covers install, update, branch model | manual |
 | E2E-013 | Worktree id ≠ Brief `<nnn-slug>`; path is `.worktree/feat-…/.duaer/specs/…` | manual |
 | E2E-014 | Init installs Cursor + Claude hosts (`CLAUDE.md`, `.claude/skills`) | manual |
+| E2E-015 | Init installs Codex skills under `.agents/skills/` | manual |
 
 ## Traceability
 
@@ -58,3 +59,4 @@ the table for their app.
 | E2E-012 | `README.zh-CN.md` | Chinese 说明文档 |
 | E2E-013 | AGENTS / branching naming | Avoid double `<nnn-slug>` |
 | E2E-014 | Claude + Cursor install | Dual host |
+| E2E-015 | Codex `.agents/skills` | Triple host |

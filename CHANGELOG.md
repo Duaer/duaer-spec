@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 — 2026-09-15
+
+### Codex host
+
+- Mirror `duaer-*` skills to `.agents/skills/` (Codex discovery path)
+- `AGENTS.md` always-on section names the Codex / Cursor / Claude skill roots
+- Cursor and Claude Code installs unchanged
+
 ## 0.7.0 — 2026-09-15
 
 ### Claude Code host

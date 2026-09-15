@@ -19,9 +19,9 @@ npx duaer-spec init --here
 npx duaer-spec update
 ```
 
-Then use **Cursor** or **Claude Code** as usual — describe what you want.
+Then use **Cursor**, **Claude Code**, or **Codex** — describe what you want.
 
-Install writes both `.cursor/` and `.claude/` (plus `CLAUDE.md`).
+Install writes `.cursor/`, `.claude/` (+ `CLAUDE.md`), and `.agents/skills/` (Codex).
 
 中文说明：[`README.zh-CN.md`](README.zh-CN.md)
 

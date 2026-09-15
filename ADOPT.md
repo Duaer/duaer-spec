@@ -32,13 +32,14 @@ npx duaer-spec init --here --ops
 npx duaer-spec update --method    # rare; usually omit
 ```
 
-Works with **Cursor** and **Claude Code** (both hosts installed by default).
+Works with **Cursor**, **Claude Code**, and **Codex** (all hosts installed by default).
 
 ## What you get
 
 - Autonomous job loop (ask → Brief → work → accept)  
 - Cursor: `.cursor/rules` + `.cursor/skills`  
 - Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills`  
+- Codex: `AGENTS.md` + `.agents/skills`  
 - `.duaer/handoff.json` + `duaer handoff` after worktree remove  
 - Agent ops: `main` / `develop` / `feat` / `fix` + `.worktree/`  
 

@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.7.0",
-  "description": "Digital employees for Cursor and Claude Code; main/develop/feat/fix",
+  "version": "0.8.0",
+  "description": "Digital employees for Cursor, Claude Code, and Codex; main/develop/feat/fix",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",
@@ -47,7 +47,9 @@
     "ai-engineering",
     "controllable-delivery",
     "claude",
-    "claude-code"
+    "claude-code",
+    "codex",
+    "openai-codex"
   ],
   "license": "MIT",
   "scripts": {

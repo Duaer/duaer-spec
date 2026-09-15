@@ -13,12 +13,13 @@ This repository uses **duaer-spec**: coding agents are digital employees.
 
 ## Layout
 
-| Host | Rules | Skills |
+| Host | Always-on | Skills |
 |---|---|---|
-| Claude Code | `.claude/rules/` | `.claude/skills/` |
 | Cursor | `.cursor/rules/` | `.cursor/skills/` |
+| Claude Code | `CLAUDE.md` + `.claude/rules/` | `.claude/skills/` |
+| Codex | `AGENTS.md` | `.agents/skills/` |
 
-Both are installed by `npx duaer-spec init --here` / `update`.
+Installed by `npx duaer-spec init --here` / `update`.
 
 ## Branches
 

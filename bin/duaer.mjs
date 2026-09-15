@@ -211,20 +211,25 @@ function installMethod(target, opts) {
 
   installCursorMethod(target, opts)
   installClaudeMethod(target, opts)
+  installCodexMethod(target, opts)
 
   copyPath(join(PKG_ROOT, 'DUADER.md'), join(target, 'DUADER.md'), opts)
   console.log('  DUADER.md')
   ensureWorktreeGitignore(target)
 }
 
-function installCursorMethod(target, opts) {
-  ensureDir(join(target, '.cursor', 'skills'))
+function mirrorDuaerSkills(target, skillsDir, opts, label) {
+  ensureDir(skillsDir)
   const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
   for (const name of readdirSync(skillsRoot)) {
     if (!name.startsWith('duaer-')) continue
-    copyPath(join(skillsRoot, name), join(target, '.cursor', 'skills', name), opts)
+    copyPath(join(skillsRoot, name), join(skillsDir, name), opts)
   }
-  console.log('  .cursor/skills/duaer-*')
+  console.log(`  ${label}`)
+}
+
+function installCursorMethod(target, opts) {
+  mirrorDuaerSkills(target, join(target, '.cursor', 'skills'), opts, '.cursor/skills/duaer-*')
 
   ensureDir(join(target, '.cursor', 'rules'))
   copyPath(
@@ -236,13 +241,12 @@ function installCursorMethod(target, opts) {
 }
 
 function installClaudeMethod(target, opts) {
-  ensureDir(join(target, '.claude', 'skills'))
-  const skillsRoot = join(PKG_ROOT, '.cursor', 'skills')
-  for (const name of readdirSync(skillsRoot)) {
-    if (!name.startsWith('duaer-')) continue
-    copyPath(join(skillsRoot, name), join(target, '.claude', 'skills', name), opts)
-  }
-  console.log('  .claude/skills/duaer-*  (mirrored from .cursor/skills)')
+  mirrorDuaerSkills(
+    target,
+    join(target, '.claude', 'skills'),
+    opts,
+    '.claude/skills/duaer-*  (mirrored from .cursor/skills)',
+  )
 
   ensureDir(join(target, '.claude', 'rules'))
   const claudeRule = join(PKG_ROOT, '.claude', 'rules', 'duaer-spec.md')
@@ -267,6 +271,17 @@ function installClaudeMethod(target, opts) {
     writeIfNeeded(join(target, 'CLAUDE.md'), defaultClaudeMd(), opts)
   }
   console.log('  CLAUDE.md')
+}
+
+function installCodexMethod(target, opts) {
+  // Codex discovers repo skills under .agents/skills (not .codex/skills).
+  // Always-on guidance is AGENTS.md (installed with ops).
+  mirrorDuaerSkills(
+    target,
+    join(target, '.agents', 'skills'),
+    opts,
+    '.agents/skills/duaer-*  (Codex; mirrored from .cursor/skills)',
+  )
 }
 
 function cursorRuleToClaude(mdc, skillHost) {
@@ -413,7 +428,7 @@ function cmdInit(opts) {
   console.log(`
 Hired.
 
-Talk to the agent in plain language.
+Talk to the agent in plain language (Cursor, Claude Code, or Codex).
 Later update:  npx duaer-spec update
 `)
 }
@@ -551,6 +566,7 @@ function checkWorkplace(target) {
     ['.cursor/skills/duaer-specify/SKILL.md', 'method'],
     ['.claude/rules/duaer-spec.md', 'method'],
     ['.claude/skills/duaer-do/SKILL.md', 'method'],
+    ['.agents/skills/duaer-do/SKILL.md', 'method'],
     ['CLAUDE.md', 'method'],
     ['AGENTS.md', 'ops'],
     ['.cursor/rules/agents-workflow.mdc', 'ops'],
