@@ -71,10 +71,17 @@ of remaining work as a new, traceable task** at the bottom of `tasks.md` so that
 This is **not** a diff tool and does **not** track changes. It assesses the present state
 of the code relative to the feature's artifacts — no git, no branch comparison, no history.
 
+**Delivery stamp:** Always update `FEATURE_DIR/delivery.json` after assessment (see Step 7).
+That file is what `duaer check --gate` reads for machine-checkable acceptance.
+
 ## Operating Constraints
 
-**APPEND-ONLY, NEVER REWRITE**: The command's **only** write is appending a new
-`## Phase N: Convergence` section to `tasks.md`. It MUST NOT:
+**APPEND-ONLY FOR TASKS, STAMP FOR DELIVERY**: The command's writes are limited to:
+
+1. appending a new `## Phase N: Convergence` section to `tasks.md` when findings exist;
+2. writing / overwriting `FEATURE_DIR/delivery.json` (the machine-readable accept stamp).
+
+It MUST NOT:
 
 - modify `spec.md` or `plan.md` in any way;
 - rewrite, renumber, reorder, or delete any existing task (including tasks from a prior
@@ -83,7 +90,8 @@ of the code relative to the feature's artifacts — no git, no branch comparison
   job of `/duaer-implement`.
 
 When the codebase already satisfies everything, the command MUST leave `tasks.md`
-**byte-for-byte unchanged** (no empty Convergence header) and report a clean result.
+**byte-for-byte unchanged** (no empty Convergence header) and still write
+`delivery.json` with `status: "accepted"`.
 
 **Constitution Authority**: The project constitution (`.duaer/memory/constitution.md`) is
 **non-negotiable**. Code that violates a MUST principle is the highest-severity finding and
@@ -221,20 +229,51 @@ Append to the **end** of `tasks.md`, per the append contract:
    `CRITICAL`.
 4. Never reuse or renumber existing IDs. If a prior Convergence phase exists, add a new,
    separately-numbered one below it — do not touch the old one.
+5. **Write / overwrite** `FEATURE_DIR/delivery.json`:
+
+   ```json
+   {
+     "schemaVersion": 1,
+     "status": "open",
+     "outcome": "tasks_appended",
+     "checkedAt": "<ISO-8601 UTC>",
+     "openTasks": <count of - [ ] in tasks.md after append>,
+     "findings": <number of findings appended>,
+     "source": "duaer-converge"
+   }
+   ```
 
 **If there are no actionable findings** (`converged` outcome):
 
 - Do **not** modify `tasks.md` at all — no empty phase header.
+- **Write / overwrite** `FEATURE_DIR/delivery.json` with:
+
+  ```json
+  {
+    "schemaVersion": 1,
+    "status": "accepted",
+    "outcome": "converged",
+    "checkedAt": "<ISO-8601 UTC>",
+    "openTasks": 0,
+    "findings": 0,
+    "source": "duaer-converge"
+  }
+  ```
+
+  Set `openTasks` to the count of unchecked `- [ ]` lines currently in `tasks.md`
+  (must be `0` for `status: "accepted"`; if any remain, treat as `tasks_appended`
+  path instead — do not stamp accepted).
 - Report: **"✅ Converged — the implementation satisfies the spec, plan, and tasks."**
 - Include the summary counts of what was checked.
-
+- Tell the user they can run `duaer check . --gate` to verify the machine gate.
 ### 8. Provide Next Actions (Handoff)
 
 - On `tasks_appended`: state how many tasks were appended under which phase, and recommend
   running `/duaer-implement` to complete them; note that a follow-up converge
-  run will find fewer or no remaining items.
-- On `converged`: recommend proceeding to review / opening a PR. No further implement pass
-  is needed for this feature's specified scope.
+  run will find fewer or no remaining items. Remind: `delivery.json` is `open` —
+  `duaer check --gate` will fail until accepted.
+- On `converged`: recommend `duaer check . --gate`, then review / opening a PR. No further
+  implement pass is needed for this feature's specified scope.
 
 ### 9. Check for extension hooks
 

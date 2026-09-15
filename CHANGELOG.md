@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.0 — 2026-09-15
+
+### Controllable delivery (machine gate)
+
+- `/duaer-converge` writes `.duaer/specs/<feature>/delivery.json`
+  (`accepted` | `open`)
+- `duaer check` reports workplace **and** delivery status
+- `duaer check --gate` fails on missing Spec, open tasks, or non-accepted stamp
+- Constitution, DUADER, README, ADOPT, and merge checklist require the gate
+- Honest scope: gate checks **handoff state**; Spec↔code judgment remains
+  agent-assisted
+
+### E2E
+
+- E2E-003 / E2E-004 / E2E-005 for delivery report and gate
+
 ## 0.1.1 — 2026-09-15
 
 ### Docs / product identity

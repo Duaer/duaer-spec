@@ -11,7 +11,7 @@ From the target project (Node 18+):
 npx duaer-spec init --here
 
 # Pin a release
-npx github:fujiezee/duaer-spec@v0.1.1 duaer init --here
+npx github:fujiezee/duaer-spec@v0.2.0 duaer init --here
 
 # Lite (method only) / ops only / other integration branch
 npx duaer-spec init --here --method
@@ -31,9 +31,10 @@ Then:
 
 1. **Orient** — edit `.duaer/memory/constitution.md` and `project-context.md`
 2. **Confirm workplace** — `docs/baseline.md` (integration branch)
-3. **Assign → work → accept** — `/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge`
+3. **Assign → work → accept → gate** — `/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge` → `duaer check . --gate`
 
-A job without Spec is not assigned. A change that fails converge is not accepted.
+A job without Spec is not assigned. Open tasks or a non-`accepted` `delivery.json`
+is not accepted. `duaer check --gate` is the machine merge check.
 
 ## Manual copy (optional)
 

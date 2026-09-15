@@ -32,3 +32,4 @@ Forbidden: jump from chat to code with no `spec.md` / feature directory under `.
 - Implement only from `tasks.md` when it exists
 - Update `.duaer/memory/project-context.md` when architecture changes
 - Run the verification named in the feature docs before merge
+- Before merge: `duaer check . --gate` (Spec present, no open tasks, `delivery.json` accepted)

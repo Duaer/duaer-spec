@@ -4,8 +4,8 @@
 **digital employees**.
 
 Agents write the code. Duaer makes the **handoff controllable**: every job has a
-Brief (Spec), follows a fixed work order, and only counts as done after
-acceptance — not after a lucky chat.
+Brief (Spec), follows a fixed work order, and only counts as done when the
+**delivery gate** passes — not after a lucky chat.
 
 Cursor is the labor. Duaer is hire → assign → accept.
 
@@ -13,7 +13,7 @@ Cursor is the labor. Duaer is hire → assign → accept.
 
 ```bash
 npx duaer-spec init --here
-# or pin: npx github:fujiezee/duaer-spec@v0.1.1 duaer init --here
+# or pin: npx github:fujiezee/duaer-spec@v0.2.0 duaer init --here
 ```
 
 ```bash
@@ -25,6 +25,7 @@ npx duaer-spec init --here --ops --branch develop
 ```
 
 Verify: `npx duaer-spec check .`  
+Merge gate: `npx duaer-spec check . --gate`  
 Details: [`ADOPT.md`](ADOPT.md)
 
 ## How you run them
@@ -34,10 +35,22 @@ Details: [`ADOPT.md`](ADOPT.md)
 | **Hire** | Install SOP + gates into the repo | `duaer init` |
 | **Assign** | Write the Brief (what / why / acceptance) | `/duaer-specify` |
 | **Work** | Plan, break down, implement | `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` |
-| **Accept** | Compare result to Spec; gaps become more work | `/duaer-converge` + `duaer check` |
+| **Accept** | Converge stamps `delivery.json`; gaps stay open | `/duaer-converge` |
+| **Gate** | Machine check before merge | `duaer check . --gate` |
 
-Never skip **Assign** or **Accept**. Hotfix may shorten the middle; Spec and
-converge stay.
+Never skip **Assign** or **Accept**. Hotfix may shorten the middle; Spec,
+converge, and the gate stay.
+
+### What the gate actually enforces
+
+`duaer check --gate` fails when any feature under `.duaer/specs/` has:
+
+- missing `spec.md`
+- open `- [ ]` tasks in `tasks.md`
+- missing `delivery.json`, or `status` other than `accepted`
+
+Converge judgment is still agent-assisted. The gate makes **handoff state**
+checkable (and CI-friendly), not a substitute for tests.
 
 ## Two layers
 
@@ -51,7 +64,7 @@ When they conflict, **agent ops win** — process beats improvisation.
 ## Default loop
 
 ```text
-constitution → specify → plan → tasks → implement → converge
+constitution → specify → plan → tasks → implement → converge → check --gate
 ```
 
 Small change: `specify → plan → tasks → implement → converge`  
@@ -69,6 +82,7 @@ AGENTS.md                 Agent-ops contract (how employees operate)
 DUADER.md                 Methodology conventions (how work is briefed)
 ADOPT.md                  Onboarding guide
 .duaer/                   Memory, templates, workflows, scripts
+.duaer/specs/<feature>/   Brief + tasks + delivery.json stamp
 .cursor/rules/            Agent-ops + Duaer rules
 .cursor/skills/           duaer-* skills
 docs/agent/               Workflow detail + checklists

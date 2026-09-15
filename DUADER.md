@@ -28,12 +28,13 @@ over anything here for isolation, commits, and Issue/PR gates.
 6. `/duaer-tasks` — checkbox task breakdown
 7. `/duaer-analyze` — optional consistency check
 8. `/duaer-implement` — implement tasks only
-9. `/duaer-converge` — **Accept**: compare result to Spec; append remaining tasks if gaps
+9. `/duaer-converge` — **Accept**: compare result to Spec; write `delivery.json`; append remaining tasks if gaps
+10. `duaer check . --gate` — **Gate**: fail merge if Spec missing, tasks open, or stamp not accepted
 
-**Small feature:** specify → plan → tasks → implement → converge  
+**Small feature:** specify → plan → tasks → implement → converge → `check --gate`  
 
-**Hotfix:** specify (mark hotfix) → tasks → implement → converge  
-Never skip specify (assign) or converge (accept).
+**Hotfix:** specify (mark hotfix) → tasks → implement → converge → `check --gate`  
+Never skip specify (assign), converge (accept), or the gate.
 
 ## Install
 
@@ -48,10 +49,11 @@ installs this repository's method files into the target project.
 
 ```text
 .duaer/specs/<nnn-slug>/
-  spec.md      # Brief
-  plan.md      # after /duaer-plan
-  tasks.md     # after /duaer-tasks
-  …            # research / contracts as needed
+  spec.md         # Brief
+  plan.md         # after /duaer-plan
+  tasks.md        # after /duaer-tasks
+  delivery.json   # after /duaer-converge (accepted | open)
+  …               # research / contracts as needed
 ```
 
 ## Related

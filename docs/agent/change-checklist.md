@@ -94,6 +94,7 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 
 ## 6. Merge / PR
 
+- [ ] `duaer check . --gate` passed (or no `.duaer/specs/` features yet).
 - [ ] Branch refreshed against latest `main`.
 - [ ] Merged into local `main` (and/or remote PR/MR when required).
 - [ ] Only this request's logical changes included.
@@ -121,6 +122,7 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 | 3 | Impacted specs updated | [R1](workflow.md#r1--spec-first--spec-sync) |
 | 4 | E2E docs updated or confirmed unnecessary | [R3](workflow.md#r3--e2e-coverage-doc) |
 | 5 | Targeted validation done or waived with reason | Development loop |
+| 5a | `duaer check . --gate` when features exist | Delivery OS gate |
 | 6 | Conventional commits | [R2](workflow.md#r2--commit-per-change) |
 | 7 | No secrets or local data | [§4](workflow.md#4-what-never-to-commit) |
 | 8 | Merged into `main`; worktree and branch removed | [R4](workflow.md#r4--request-branch--worktree--merge-gate) · [§6.1](#61-merge-cleanup) |

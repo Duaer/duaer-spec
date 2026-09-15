@@ -3,7 +3,7 @@
  * duaer — CLI for the duaer-spec delivery OS (digital employees)
  *
  *   duaer init [dir] [--all|--method|--ops] [--force] [--branch <name>]
- *   duaer check [dir]
+ *   duaer check [dir] [--workplace|--delivery|--gate]
  *   duaer version
  *   duaer help
  */
@@ -26,13 +26,13 @@ const PKG = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
 
 const USAGE = `duaer — Delivery OS for AI digital employees (duaer-spec ${PKG.version})
 
-Hire agents into a repo, assign Briefs (Specs), accept only when converge passes.
+Hire agents into a repo, assign Briefs (Specs), accept only when the gate passes.
 
 Usage:
-  duaer init [dir] [options]   Hire / onboard into a project
-  duaer check [dir]            Verify install (workplace ready)
-  duaer version                Print version
-  duaer help                   Show this help
+  duaer init [dir] [options]     Hire / onboard into a project
+  duaer check [dir] [options]    Workplace + delivery status
+  duaer version                  Print version
+  duaer help                     Show this help
 
 Init options:
   --all          Full hire: agent ops + method (default)
@@ -42,11 +42,17 @@ Init options:
   --branch <n>   Integration branch for baseline note (default: main)
   --here         Same as dir=.
 
+Check options:
+  --workplace    Only verify install files
+  --delivery     Only report feature Brief / open tasks / delivery.json
+  --gate         Fail unless every feature is accepted (merge gate)
+  (default)      Workplace + delivery report; exit 1 on workplace miss
+                 or delivery blockers (missing Spec / open tasks / open stamp)
+
 Examples:
   npx duaer-spec init --here
-  npx github:fujiezee/duaer-spec duaer init --here
-  node bin/duaer.mjs init ../my-app --all
   duaer check .
+  duaer check . --gate
 `
 
 function parseArgs(argv) {
@@ -57,6 +63,9 @@ function parseArgs(argv) {
     mode: 'all',
     force: false,
     branch: 'main',
+    workplace: false,
+    delivery: false,
+    gate: false,
   }
   const rest = args.slice(1)
   for (let i = 0; i < rest.length; i++) {
@@ -66,6 +75,9 @@ function parseArgs(argv) {
     else if (a === '--ops') out.mode = 'ops'
     else if (a === '--force') out.force = true
     else if (a === '--here') out.dir = '.'
+    else if (a === '--workplace') out.workplace = true
+    else if (a === '--delivery') out.delivery = true
+    else if (a === '--gate') out.gate = true
     else if (a === '--branch') {
       out.branch = rest[++i]
       if (!out.branch) throw new Error('--branch requires a value')
@@ -89,7 +101,6 @@ function copyPath(from, to, { force }) {
   if (existsSync(to) && !force) {
     const st = statSync(to)
     if (st.isDirectory()) {
-      // merge: copy children carefully
       for (const name of readdirSync(from)) {
         copyPath(join(from, name), join(to, name), { force })
       }
@@ -228,16 +239,94 @@ Next (digital employee loop):
   2. Workplace — confirm docs/baseline.md (integration branch: ${opts.branch})
   3. Assign  — /duaer-specify  (Brief: what / why / acceptance)
   4. Work    — /duaer-plan → /duaer-tasks → /duaer-implement
-  5. Accept  — /duaer-converge  (gaps are not done; append tasks)
-  6. Gates   — AGENTS.md wins over DUADER.md when they conflict
+  5. Accept  — /duaer-converge  (writes delivery.json; gaps stay open)
+  6. Gate    — duaer check . --gate  before merge
+  7. Policy  — AGENTS.md wins over DUADER.md when they conflict
 
-No Spec = not assigned. Failed converge = not accepted.
+No Spec = not assigned. Open tasks or open delivery.json = not accepted.
 See DUADER.md and AGENTS.md in the target project.
 `)
 }
 
-function cmdCheck(dir) {
-  const target = resolve(dir)
+function countOpenTasks(tasksPath) {
+  if (!existsSync(tasksPath)) return null
+  const text = readFileSync(tasksPath, 'utf8')
+  const open = (text.match(/^\s*-\s*\[\s\]/gm) || []).length
+  const done = (text.match(/^\s*-\s*\[x\]/gim) || []).length
+  return { open, done }
+}
+
+function readDelivery(path) {
+  if (!existsSync(path)) return null
+  try {
+    return JSON.parse(readFileSync(path, 'utf8'))
+  } catch {
+    return { status: 'invalid', error: 'unreadable delivery.json' }
+  }
+}
+
+function listFeatures(target) {
+  const root = join(target, '.duaer', 'specs')
+  if (!existsSync(root)) return []
+  return readdirSync(root)
+    .filter((name) => {
+      try {
+        return statSync(join(root, name)).isDirectory()
+      } catch {
+        return false
+      }
+    })
+    .sort()
+    .map((name) => {
+      const dir = join(root, name)
+      const specPath = join(dir, 'spec.md')
+      const tasksPath = join(dir, 'tasks.md')
+      const deliveryPath = join(dir, 'delivery.json')
+      const tasks = countOpenTasks(tasksPath)
+      const delivery = readDelivery(deliveryPath)
+      const hasSpec = existsSync(specPath)
+      const stamp = delivery?.status || 'none'
+      let verdict = 'accepted'
+      const blockers = []
+
+      if (!hasSpec) {
+        verdict = 'blocked'
+        blockers.push('missing spec.md')
+      }
+      if (tasks && tasks.open > 0) {
+        verdict = 'blocked'
+        blockers.push(`${tasks.open} open task(s)`)
+      }
+      if (stamp === 'open' || stamp === 'invalid') {
+        verdict = 'blocked'
+        blockers.push(`delivery.json status=${stamp}`)
+      }
+      if (hasSpec && tasks && tasks.open === 0 && (stamp === 'none' || !delivery)) {
+        // Brief exists and tasks clear, but never stamped by converge
+        verdict = 'unaccepted'
+        blockers.push('no delivery.json (run /duaer-converge)')
+      }
+      if (hasSpec && !tasks && (stamp === 'none' || !delivery)) {
+        verdict = 'unaccepted'
+        blockers.push('no tasks.md / no delivery.json')
+      }
+      if (stamp === 'accepted' && tasks && tasks.open === 0 && hasSpec) {
+        verdict = 'accepted'
+        blockers.length = 0
+      }
+
+      return {
+        name,
+        hasSpec,
+        tasks,
+        stamp,
+        verdict,
+        blockers,
+      }
+    })
+}
+
+function checkWorkplace(target) {
   const checks = [
     ['.duaer/memory/constitution.md', 'method'],
     ['DUADER.md', 'method'],
@@ -248,17 +337,95 @@ function cmdCheck(dir) {
     ['docs/agent/workflow.md', 'ops'],
   ]
   let missing = 0
-  console.log(`Checking ${target}\n`)
+  console.log('## Workplace\n')
   for (const [rel, kind] of checks) {
     const ok = existsSync(join(target, rel))
     console.log(`${ok ? 'ok ' : 'MISS'}  [${kind}] ${rel}`)
     if (!ok) missing++
   }
-  if (missing) {
-    console.log(`\n${missing} missing — run: duaer init ${dir} --all`)
-    process.exitCode = 1
+  return missing
+}
+
+function checkDelivery(target, { gate }) {
+  const features = listFeatures(target)
+  console.log('\n## Delivery\n')
+  if (features.length === 0) {
+    console.log('ok   no features under .duaer/specs/ (nothing to accept)')
+    return { blocked: 0, unaccepted: 0, features: 0 }
+  }
+
+  let blocked = 0
+  let unaccepted = 0
+  for (const f of features) {
+    const taskInfo = f.tasks
+      ? `tasks open=${f.tasks.open} done=${f.tasks.done}`
+      : 'no tasks.md'
+    const line = `${f.verdict.padEnd(10)} ${f.name}  spec=${f.hasSpec ? 'yes' : 'NO'}  stamp=${f.stamp}  ${taskInfo}`
+    console.log(line)
+    if (f.blockers.length) {
+      for (const b of f.blockers) console.log(`           · ${b}`)
+    }
+    if (f.verdict === 'blocked') blocked++
+    if (f.verdict === 'unaccepted') unaccepted++
+  }
+
+  if (gate) {
+    console.log('\nGate mode: every feature must be accepted.')
+  }
+  return { blocked, unaccepted, features: features.length }
+}
+
+function cmdCheck(opts) {
+  const target = resolve(opts.dir)
+  // Default: workplace + delivery. --gate alone is delivery-only (merge gate).
+  const runWorkplace = opts.workplace || (!opts.delivery && !opts.gate)
+  const runDelivery = opts.delivery || opts.gate || !opts.workplace
+
+  console.log(`Checking ${target}${opts.gate ? ' (gate)' : ''}\n`)
+
+  let workplaceMissing = 0
+  if (runWorkplace) {
+    workplaceMissing = checkWorkplace(target)
+  }
+
+  let delivery = { blocked: 0, unaccepted: 0, features: 0 }
+  if (runDelivery) {
+    delivery = checkDelivery(target, { gate: opts.gate })
+  }
+
+  let fail = false
+  if (workplaceMissing) {
+    console.log(`\n${workplaceMissing} workplace file(s) missing — run: duaer init ${opts.dir} --all`)
+    fail = true
+  }
+
+  if (runDelivery) {
+    if (delivery.blocked) {
+      console.log(`\n${delivery.blocked} feature(s) blocked — close open tasks / fix Spec / re-run converge`)
+      fail = true
+    }
+    if (opts.gate && delivery.unaccepted) {
+      console.log(
+        `\n${delivery.unaccepted} feature(s) not accepted — run /duaer-converge until delivery.json status=accepted`,
+      )
+      fail = true
+    } else if (!opts.gate && delivery.unaccepted) {
+      console.log(
+        `\n${delivery.unaccepted} feature(s) not yet accepted (warning). Use --gate to fail the merge check.`,
+      )
+    }
+  }
+
+  if (!fail) {
+    if (opts.gate) {
+      console.log('\nGate passed — deliverable.')
+    } else if (runWorkplace && !workplaceMissing) {
+      console.log('\nWorkplace ready. Use --gate before merge when features exist.')
+    } else {
+      console.log('\nDelivery report done.')
+    }
   } else {
-    console.log('\nWorkplace ready — assign with /duaer-specify, accept with /duaer-converge.')
+    process.exitCode = 1
   }
 }
 
@@ -278,7 +445,7 @@ function main() {
         cmdInit(opts)
         break
       case 'check':
-        cmdCheck(opts.dir)
+        cmdCheck(opts)
         break
       case 'version':
       case '--version':

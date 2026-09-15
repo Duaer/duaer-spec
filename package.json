@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.1.1",
-  "description": "Delivery OS for AI digital employees: Spec briefs, agent ops, controllable handoffs",
+  "version": "0.2.0",
+  "description": "Delivery OS for AI digital employees: Spec briefs, agent ops, check --gate handoffs",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",

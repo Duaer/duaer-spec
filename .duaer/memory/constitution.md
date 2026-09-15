@@ -35,3 +35,8 @@ Do not expand scope without updating the spec and tasks.
 
 Mark tasks complete only when the stated verification (tests, manual checks,
 or converge) has been performed or explicitly waived in the feature docs.
+
+Before merge, run `duaer check . --gate`. It fails on missing Spec, open
+`- [ ]` tasks, or `delivery.json` that is not `status: "accepted"`. Converge
+assessment is still agent-assisted; the gate makes the **handoff state**
+machine-checkable.

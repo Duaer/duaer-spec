@@ -27,6 +27,9 @@ the table for their app.
 |---|---|---|
 | E2E-001 | After `duaer init`, CLI prints hire → assign → accept next steps | manual |
 | E2E-002 | README positions Duaer as delivery OS for digital employees | manual |
+| E2E-003 | `duaer check --delivery` reports open tasks as blocked | manual |
+| E2E-004 | `duaer check --gate` fails without `delivery.json` accepted | manual |
+| E2E-005 | After converge stamps `accepted`, `--gate` passes | manual |
 
 ## Traceability
 
@@ -36,3 +39,6 @@ Keep this matrix current when scenarios or specs change.
 |---|---|---|
 | E2E-001 | `bin/duaer.mjs` init banner | Controllable-delivery onboarding |
 | E2E-002 | `README.md` / `ADOPT.md` | Product identity |
+| E2E-003 | `bin/duaer.mjs` delivery check | Open `- [ ]` tasks |
+| E2E-004 | `bin/duaer.mjs` `--gate` | Merge gate |
+| E2E-005 | `/duaer-converge` → `delivery.json` | Accept stamp |
