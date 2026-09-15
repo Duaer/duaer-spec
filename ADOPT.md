@@ -32,7 +32,9 @@ npx duaer-spec init --here --ops
 npx duaer-spec update --method    # rare; usually omit
 ```
 
-Works with **Cursor**, **Claude Code**, and **Codex** (all hosts installed by default).
+Works with **Cursor**, **Claude Code**, **Codex**, **GitHub Copilot**,
+**Windsurf / Devin**, **Cline**, **Continue**, **Gemini CLI**, and **Aider**
+(adapters installed by default).
 
 ## What you get
 
@@ -40,6 +42,12 @@ Works with **Cursor**, **Claude Code**, and **Codex** (all hosts installed by de
 - Cursor: `.cursor/rules` + `.cursor/skills`  
 - Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills`  
 - Codex: `AGENTS.md` + `.agents/skills`  
+- Copilot: `.github/copilot-instructions.md`  
+- Windsurf / Devin: `.windsurf/rules`, `.devin/rules`  
+- Cline: `.clinerules/`  
+- Continue: `.continue/rules/`  
+- Gemini CLI: `GEMINI.md`  
+- Aider: `.aider.conf.yml` → reads `AGENTS.md`  
 - `.duaer/handoff.json` + `duaer handoff` after worktree remove  
 - Agent ops: `main` / `develop` / `feat` / `fix` + `.worktree/`  
 

@@ -27,10 +27,12 @@ flags.
 
 1. Isolate: `feat|fix/<name>` + `.worktree/feat-<name>/` (or `fix-…`); never
    reuse the Brief folder name as the worktree id.
-2. Follow the `duaer-do` skill under the host skill root:
-   - Codex: `.agents/skills/duaer-do/SKILL.md`
+2. Follow the `duaer-do` skill under the host skill root (when the host has skills):
+   - Codex / shared: `.agents/skills/duaer-do/SKILL.md`
    - Cursor: `.cursor/skills/duaer-do/SKILL.md`
    - Claude Code: `.claude/skills/duaer-do/SKILL.md`
+   - Copilot / Windsurf / Cline / Continue / Gemini / Aider: follow this section
+     and the host adapter files installed by `duaer init`
 3. Briefs live in `.duaer/specs/<nnn-slug>/`. Method notes: [`DUADER.md`](DUADER.md).
 4. One handoff line; never claim done unless `delivery.json` is `accepted`.
 

@@ -38,9 +38,13 @@ Humans need not configure it for everyday use.
   .duaer/active-job.json
   .duaer/specs/<nnn-slug>/             # Brief (≠ worktree folder name)
     spec.md | tasks.md | delivery.json
-.cursor/rules|skills/                  # Cursor host
-.claude/rules|skills/ + CLAUDE.md      # Claude Code host
-.agents/skills/ + AGENTS.md            # Codex host
+.cursor/rules|skills/                  # Cursor
+.claude/rules|skills/ + CLAUDE.md      # Claude Code
+.agents/skills/ + AGENTS.md            # Codex (+ shared skills)
+.github/copilot-instructions.md        # Copilot
+.windsurf/rules/ + .devin/rules/       # Windsurf / Devin
+.clinerules/ + .continue/rules/        # Cline / Continue
+GEMINI.md + .aider.conf.yml            # Gemini / Aider
 ```
 
 Worktree and Brief are different layers. Prefer

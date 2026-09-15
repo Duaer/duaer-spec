@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.9.0 — 2026-09-15
+
+### More common agent hosts
+
+- GitHub Copilot: `.github/copilot-instructions.md`
+- Windsurf + Devin: `.windsurf/rules/`, `.devin/rules/`
+- Cline: `.clinerules/`
+- Continue: `.continue/rules/`
+- Gemini CLI: `GEMINI.md`
+- Aider: `.aider.conf.yml` (reads `AGENTS.md`)
+- Cursor / Claude Code / Codex unchanged
+
 ## 0.8.0 — 2026-09-15
 
 ### Codex host

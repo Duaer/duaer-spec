@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.8.0",
-  "description": "Digital employees for Cursor, Claude Code, and Codex; main/develop/feat/fix",
+  "version": "0.9.0",
+  "description": "Digital employees for Cursor, Claude, Codex, Copilot, Windsurf, Cline, Continue, Gemini, Aider",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",
@@ -14,6 +14,7 @@
     ".claude",
     "AGENTS.md",
     "CLAUDE.md",
+    "GEMINI.md",
     "DUADER.md",
     "ADOPT.md",
     "CHANGELOG.md",
@@ -49,7 +50,14 @@
     "claude",
     "claude-code",
     "codex",
-    "openai-codex"
+    "openai-codex",
+    "copilot",
+    "windsurf",
+    "cline",
+    "continue",
+    "gemini",
+    "aider",
+    "devin"
   ],
   "license": "MIT",
   "scripts": {

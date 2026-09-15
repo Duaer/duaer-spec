@@ -13,11 +13,17 @@ This repository uses **duaer-spec**: coding agents are digital employees.
 
 ## Layout
 
-| Host | Always-on | Skills |
+| Host | Always-on | Skills / notes |
 |---|---|---|
 | Cursor | `.cursor/rules/` | `.cursor/skills/` |
 | Claude Code | `CLAUDE.md` + `.claude/rules/` | `.claude/skills/` |
 | Codex | `AGENTS.md` | `.agents/skills/` |
+| Copilot | `.github/copilot-instructions.md` | also reads `AGENTS.md` |
+| Windsurf / Devin | `.windsurf/rules/`, `.devin/rules/` | — |
+| Cline | `.clinerules/` | — |
+| Continue | `.continue/rules/` | — |
+| Gemini CLI | `GEMINI.md` | — |
+| Aider | `.aider.conf.yml` | reads `AGENTS.md` |
 
 Installed by `npx duaer-spec init --here` / `update`.
 

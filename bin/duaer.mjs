@@ -284,6 +284,144 @@ function installCodexMethod(target, opts) {
   )
 }
 
+function stripRuleComment(md) {
+  return md.replace(/^<!--[\s\S]*?-->\s*/, '').trim()
+}
+
+function withYamlFrontmatter(body, lines) {
+  return `---\n${lines.join('\n')}\n---\n\n${stripRuleComment(body)}\n`
+}
+
+function loadPackagedRule(name) {
+  const claudePath = join(PKG_ROOT, '.claude', 'rules', name)
+  if (existsSync(claudePath)) return readFileSync(claudePath, 'utf8')
+  const mdc = name.replace(/\.md$/, '.mdc')
+  return cursorRuleToClaude(readFileSync(join(PKG_ROOT, '.cursor', 'rules', mdc), 'utf8'), '.claude')
+}
+
+function genericHostRuleBody(name) {
+  let body = loadPackagedRule(name)
+  body = body.replaceAll(
+    '.claude/skills/duaer-do/SKILL.md',
+    'AGENTS.md § Autonomous job loop (and `.agents/skills/duaer-do/SKILL.md` when present)',
+  )
+  body = body.replaceAll('.claude/skills/', '.agents/skills/')
+  return body
+}
+
+function defaultGeminiMd() {
+  return `# GEMINI.md — duaer-spec
+
+This project uses **duaer-spec**: coding agents are digital employees.
+
+**Precedence:** \`AGENTS.md\` (ops) wins over \`DUADER.md\` / \`.duaer/\` (method).
+
+- Follow \`AGENTS.md\` § Autonomous job loop
+- Job skill (when available): \`.agents/skills/duaer-do/SKILL.md\`
+- Branches / worktrees: \`docs/agent/branching-and-release.md\`
+`
+}
+
+function defaultCopilotInstructions() {
+  return `# GitHub Copilot — duaer-spec
+
+Treat agents as **digital employees**. Humans state intent; you run Brief → work → accept.
+
+**Precedence:** \`AGENTS.md\` > \`DUADER.md\` / \`.duaer/\`
+
+1. Isolate on \`feat|fix/<name>\` under \`.worktree/feat-<name>/\` (never name the worktree after \`.duaer/specs/<nnn-slug>/\`).
+2. Follow \`AGENTS.md\` § Autonomous job loop (skill: \`.agents/skills/duaer-do/SKILL.md\` when present).
+3. Do not ask the human to operate slash commands or phase names.
+4. One handoff line; never claim done unless \`delivery.json\` is \`accepted\`.
+
+See also: \`DUADER.md\`, \`docs/agent/branching-and-release.md\`.
+`
+}
+
+function defaultAiderConf() {
+  return `# duaer-spec — point Aider at the shared agent contract
+read: [AGENTS.md, DUADER.md]
+`
+}
+
+function installRuleSet(target, relDir, names, frontmatterLines, opts, label) {
+  const dir = join(target, ...relDir.split('/'))
+  ensureDir(dir)
+  for (const name of names) {
+    const dest = join(dir, name)
+    if (existsSync(dest) && !opts.force) {
+      console.log(`skip (exists): ${dest}  (use --force to overwrite)`)
+      continue
+    }
+    const body = genericHostRuleBody(name)
+    const content = frontmatterLines?.length
+      ? withYamlFrontmatter(body, frontmatterLines)
+      : `${stripRuleComment(body)}\n`
+    ensureDir(dirname(dest))
+    writeFileSync(dest, content, 'utf8')
+  }
+  console.log(`  ${label}`)
+}
+
+function installExtraHosts(target, opts) {
+  console.log('Installing common host adapters…')
+
+  // GitHub Copilot
+  ensureDir(join(target, '.github'))
+  writeIfNeeded(
+    join(target, '.github', 'copilot-instructions.md'),
+    defaultCopilotInstructions(),
+    opts,
+  )
+  console.log('  .github/copilot-instructions.md')
+
+  // Gemini CLI
+  const geminiSrc = join(PKG_ROOT, 'GEMINI.md')
+  if (existsSync(geminiSrc)) {
+    copyPath(geminiSrc, join(target, 'GEMINI.md'), opts)
+  } else {
+    writeIfNeeded(join(target, 'GEMINI.md'), defaultGeminiMd(), opts)
+  }
+  console.log('  GEMINI.md')
+
+  // Aider
+  writeIfNeeded(join(target, '.aider.conf.yml'), defaultAiderConf(), opts)
+  console.log('  .aider.conf.yml')
+
+  const ruleNames = ['duaer-spec.md', 'agents-workflow.md', 'ai-ui-copy.md']
+
+  // Windsurf (Cascade) + Devin Desktop
+  installRuleSet(
+    target,
+    '.windsurf/rules',
+    ruleNames,
+    ['trigger: always_on'],
+    opts,
+    '.windsurf/rules/*',
+  )
+  installRuleSet(
+    target,
+    '.devin/rules',
+    ruleNames,
+    ['trigger: always_on'],
+    opts,
+    '.devin/rules/*',
+  )
+
+  // Cline
+  installRuleSet(target, '.clinerules', ruleNames, null, opts, '.clinerules/*')
+
+  // Continue.dev
+  installRuleSet(
+    target,
+    '.continue/rules',
+    ruleNames,
+    ['alwaysApply: true'],
+    opts,
+    '.continue/rules/*',
+  )
+}
+
 function cursorRuleToClaude(mdc, skillHost) {
   let body = mdc.replace(/^---\n[\s\S]*?\n---\n+/, (fm) => {
     const desc = (fm.match(/^description:\s*(.+)$/m) || [])[1]
@@ -421,6 +559,9 @@ function cmdInit(opts) {
   if (opts.mode === 'all' || opts.mode === 'ops') {
     installOps(target, opts)
   }
+  if (opts.mode === 'all' || opts.mode === 'method' || opts.mode === 'ops') {
+    installExtraHosts(target, opts)
+  }
   if (opts.mode === 'all' || opts.mode === 'method') {
     writeInitMarker(target, opts)
   }
@@ -428,7 +569,7 @@ function cmdInit(opts) {
   console.log(`
 Hired.
 
-Talk to the agent in plain language (Cursor, Claude Code, or Codex).
+Talk to the agent in plain language (Cursor, Claude, Codex, Copilot, and more).
 Later update:  npx duaer-spec update
 `)
 }
@@ -568,6 +709,12 @@ function checkWorkplace(target) {
     ['.claude/skills/duaer-do/SKILL.md', 'method'],
     ['.agents/skills/duaer-do/SKILL.md', 'method'],
     ['CLAUDE.md', 'method'],
+    ['GEMINI.md', 'method'],
+    ['.github/copilot-instructions.md', 'method'],
+    ['.windsurf/rules/duaer-spec.md', 'method'],
+    ['.clinerules/duaer-spec.md', 'method'],
+    ['.continue/rules/duaer-spec.md', 'method'],
+    ['.aider.conf.yml', 'method'],
     ['AGENTS.md', 'ops'],
     ['.cursor/rules/agents-workflow.mdc', 'ops'],
     ['.claude/rules/agents-workflow.md', 'ops'],

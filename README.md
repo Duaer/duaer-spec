@@ -19,9 +19,9 @@ npx duaer-spec init --here
 npx duaer-spec update
 ```
 
-Then use **Cursor**, **Claude Code**, or **Codex** — describe what you want.
+Then use **Cursor**, **Claude Code**, **Codex**, **Copilot**, **Windsurf**, **Cline**, **Continue**, **Gemini**, or **Aider** — describe what you want.
 
-Install writes `.cursor/`, `.claude/` (+ `CLAUDE.md`), and `.agents/skills/` (Codex).
+Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
 
 中文说明：[`README.zh-CN.md`](README.zh-CN.md)
 
