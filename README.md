@@ -43,13 +43,13 @@ Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 # DeepSeek（推荐）
 duaer live config --provider deepseek --api-key sk-...
 
-# 或任意 OpenAI 兼容接口
-duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+# 在产品仓登记，派工时点选（可选）
+duaer live repo add
 
 duaer live
 ```
 
-Dialogue → confirm + auto-accept → **dispatch** into a product repo worktree (Brief under that worktree’s `.duaer/specs/`) → hand the prompt to the digital employee.
+Dialogue → confirm + auto-accept → **dispatch** (browse / scan / remembered repos) into a product worktree → hand the prompt to the digital employee.
 
 ## Branches (mandatory)
 

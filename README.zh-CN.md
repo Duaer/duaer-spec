@@ -41,6 +41,9 @@ npx duaer-spec update
 # DeepSeek（推荐）
 duaer live config --provider deepseek --api-key sk-...
 
+# 在产品仓登记，派工时点选（可选）
+duaer live repo add
+
 # 或任意 OpenAI 兼容接口
 duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
 
@@ -48,7 +51,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
 duaer live
 ```
 
-浏览器打开提示地址。多轮对话 → 确认卡 → 自动验收 → **选择产品仓库派工**（建 worktree + 写入 Brief）→ 把开工说明给数字员工。
+浏览器打开提示地址。多轮对话 → 确认卡 → 自动验收 → **浏览/扫描/点选产品仓派工** → 把开工说明给数字员工。
 
 ### 目录不要同名套娃
 

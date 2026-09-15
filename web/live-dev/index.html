@@ -92,9 +92,17 @@
         <section id="dispatch" class="dispatch" hidden>
           <p class="mark">Dispatch · product repo</p>
           <h3 class="dispatch-title">派工到产品仓库</h3>
+          <div class="repo-actions">
+            <button type="button" class="btn primary" id="repoBrowse">浏览…</button>
+            <button type="button" class="btn" id="repoScan">扫描本机</button>
+          </div>
+          <label class="field">
+            <span>筛选</span>
+            <input id="repoFilter" type="text" placeholder="按名称过滤…" autocomplete="off" />
+          </label>
           <div id="repoList" class="repo-list"></div>
           <label class="field">
-            <span>仓库路径</span>
+            <span>或粘贴路径</span>
             <input id="repoPath" type="text" placeholder="/Users/…/your-product" />
           </label>
           <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并建 worktree</button>

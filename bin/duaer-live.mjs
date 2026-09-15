@@ -153,11 +153,19 @@ function parseArgs(argv) {
     baseUrl: null,
     apiKey: null,
     model: null,
+    repoPath: null,
   };
   const args = argv.slice(2);
   if (args[0] === "config") {
     out.cmd = "config";
     args.shift();
+  } else if (args[0] === "repo" && args[1] === "add") {
+    out.cmd = "repo-add";
+    args.shift();
+    args.shift();
+    if (args[0] && !args[0].startsWith("-")) {
+      out.repoPath = args.shift();
+    }
   }
   for (let i = 0; i < args.length; i += 1) {
     const a = args[i];
@@ -167,6 +175,7 @@ function parseArgs(argv) {
     else if (a === "--api-key" && args[i + 1]) out.apiKey = args[++i];
     else if (a === "--model" && args[i + 1]) out.model = args[++i];
     else if (a.startsWith("-")) throw new Error(`Unknown flag: ${a}`);
+    else if (out.cmd === "repo-add" && out.repoPath == null) out.repoPath = a;
   }
   return out;
 }
@@ -648,6 +657,165 @@ function rememberRepo(repoPath, extra = {}) {
   return next;
 }
 
+function discoverRoots() {
+  const home = os.homedir();
+  const roots = new Set([
+    path.join(home, "Projects"),
+    path.join(home, "projects"),
+    path.join(home, "Developer"),
+    path.join(home, "dev"),
+    path.join(home, "code"),
+    path.join(home, "src"),
+    path.join(home, "workspace"),
+    path.join(home, "work"),
+    home,
+  ]);
+  for (const r of readRepos()) {
+    if (r?.path) roots.add(path.dirname(r.path));
+  }
+  return [...roots].filter((p) => {
+    try {
+      return fs.existsSync(p) && fs.statSync(p).isDirectory();
+    } catch {
+      return false;
+    }
+  });
+}
+
+function looksLikeGitRepo(dir) {
+  const gitPath = path.join(dir, ".git");
+  return fs.existsSync(gitPath);
+}
+
+function discoverRepos({ max = 40 } = {}) {
+  const found = new Map();
+  const skip = new Set([
+    "node_modules",
+    ".git",
+    ".worktree",
+    "Library",
+    "Applications",
+    ".Trash",
+    "Caches",
+  ]);
+
+  function visit(dir, depth, fromHomeRoot) {
+    if (found.size >= max) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const ent of entries) {
+      if (found.size >= max) return;
+      if (!ent.isDirectory()) continue;
+      if (ent.name.startsWith(".") && ent.name !== ".duaer") continue;
+      if (skip.has(ent.name)) continue;
+      const full = path.join(dir, ent.name);
+      if (looksLikeGitRepo(full)) {
+        try {
+          const probe = probeRepo(full);
+          found.set(probe.path, {
+            path: probe.path,
+            name: probe.name,
+            baseBranch: probe.baseBranch,
+            source: "discover",
+          });
+        } catch {
+          // skip invalid / no develop|main
+        }
+        continue;
+      }
+      // Do not deep-walk all of $HOME — only one level under home itself.
+      const nextDepth = depth + 1;
+      if (fromHomeRoot && nextDepth > 1) continue;
+      if (nextDepth > 2) continue;
+      visit(full, nextDepth, fromHomeRoot);
+    }
+  }
+
+  const home = os.homedir();
+  for (const root of discoverRoots()) {
+    const fromHomeRoot = path.resolve(root) === path.resolve(home);
+    // If root itself is a repo, include it.
+    if (looksLikeGitRepo(root)) {
+      try {
+        const probe = probeRepo(root);
+        found.set(probe.path, {
+          path: probe.path,
+          name: probe.name,
+          baseBranch: probe.baseBranch,
+          source: "discover",
+        });
+      } catch {
+        // ignore
+      }
+    }
+    visit(root, 0, fromHomeRoot);
+  }
+
+  return [...found.values()].sort((a, b) =>
+    a.name.localeCompare(b.name, "en"),
+  );
+}
+
+function pickFolderNative() {
+  if (process.platform === "darwin") {
+    const r = spawnSync(
+      "osascript",
+      ["-e", 'POSIX path of (choose folder with prompt "选择产品仓库")'],
+      { encoding: "utf8" },
+    );
+    if (r.status !== 0) {
+      const err = String(r.stderr || r.stdout || "").trim();
+      if (/User canceled|取消/i.test(err) || r.status === 1) {
+        const e = new Error("已取消选择");
+        e.code = "CANCELLED";
+        throw e;
+      }
+      throw new Error(err || "无法打开系统文件夹选择");
+    }
+    return path.resolve(String(r.stdout || "").trim());
+  }
+  if (process.platform === "linux") {
+    const r = spawnSync(
+      "zenity",
+      ["--file-selection", "--directory", "--title=选择产品仓库"],
+      { encoding: "utf8" },
+    );
+    if (r.status !== 0) {
+      const e = new Error("已取消选择");
+      e.code = "CANCELLED";
+      throw e;
+    }
+    return path.resolve(String(r.stdout || "").trim());
+  }
+  const e = new Error(
+    "当前系统暂不支持弹窗选文件夹，请用扫描列表或：duaer live repo add",
+  );
+  e.code = "UNSUPPORTED";
+  throw e;
+}
+
+function listReposForUi() {
+  const recent = readRepos();
+  const recentPaths = new Set(recent.map((r) => r.path));
+  return {
+    recent,
+    discovered: discoverRepos().filter((r) => !recentPaths.has(r.path)),
+  };
+}
+
+function cmdRepoAdd(opts) {
+  const target = path.resolve(opts.repoPath || process.cwd());
+  const probe = probeRepo(target);
+  rememberRepo(probe.path, { baseBranch: probe.baseBranch });
+  console.log("已登记产品仓库", probe.path);
+  console.log(JSON.stringify(probe, null, 2));
+  console.log("现场开发派工时可直接点选。");
+}
+
 function runGit(cwd, args) {
   const r = spawnSync("git", args, {
     cwd,
@@ -1059,7 +1227,42 @@ async function handleApi(req, res) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/repos") {
-    send(res, 200, { repos: readRepos() });
+    const discover = url.searchParams.get("discover") === "1";
+    if (discover) {
+      send(res, 200, listReposForUi());
+    } else {
+      send(res, 200, { recent: readRepos(), discovered: [] });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/repos/pick") {
+    try {
+      const chosen = pickFolderNative();
+      const probe = probeRepo(chosen);
+      rememberRepo(probe.path, { baseBranch: probe.baseBranch });
+      send(res, 200, { ok: true, ...probe });
+    } catch (err) {
+      const code = err && err.code;
+      send(res, code === "CANCELLED" ? 400 : 400, {
+        error: err instanceof Error ? err.message : "pick failed",
+        cancelled: code === "CANCELLED",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/repos/add") {
+    try {
+      const body = await readJson(req);
+      const probe = probeRepo(body.path);
+      rememberRepo(probe.path, { baseBranch: probe.baseBranch });
+      send(res, 200, { ok: true, ...probe, repos: readRepos() });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "add failed",
+      });
+    }
     return;
   }
 
@@ -1198,6 +1401,15 @@ function main() {
   }
   if (opts.cmd === "config") {
     cmdConfig(opts);
+    return;
+  }
+  if (opts.cmd === "repo-add") {
+    try {
+      cmdRepoAdd(opts);
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err);
+      process.exit(1);
+    }
     return;
   }
   serve(opts.port);

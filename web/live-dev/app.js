@@ -28,6 +28,7 @@ const state = {
   providerId: "deepseek",
   jobId: null,
   statusTimer: null,
+  repoCatalog: { recent: [], discovered: [] },
 };
 
 const el = {
@@ -54,6 +55,9 @@ const el = {
   dispatch: document.getElementById("dispatch"),
   repoList: document.getElementById("repoList"),
   repoPath: document.getElementById("repoPath"),
+  repoFilter: document.getElementById("repoFilter"),
+  repoBrowse: document.getElementById("repoBrowse"),
+  repoScan: document.getElementById("repoScan"),
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
@@ -405,16 +409,68 @@ async function showDispatchPanel() {
   el.dispatchStatus.hidden = true;
   el.doDispatch.disabled = false;
   el.doDispatch.textContent = "写入 Brief 并建 worktree";
-  const res = await fetch("/api/repos");
-  const data = await res.json();
+  state.repoCatalog = { recent: [], discovered: [] };
+  await loadRepoCatalog(false);
+}
+
+async function loadRepoCatalog(discover) {
+  el.repoScan.disabled = true;
+  el.repoScan.textContent = discover ? "扫描中…" : "扫描本机";
+  try {
+    const q = discover ? "?discover=1" : "";
+    const res = await fetch(`/api/repos${q}`);
+    const data = await res.json();
+    state.repoCatalog = {
+      recent: data.recent || data.repos || [],
+      discovered: data.discovered || [],
+    };
+    renderRepoList();
+  } finally {
+    el.repoScan.disabled = false;
+    el.repoScan.textContent = "扫描本机";
+  }
+}
+
+function renderRepoList() {
+  const filter = (el.repoFilter?.value || "").trim().toLowerCase();
+  const selected = el.repoPath.value.trim();
+  const rows = [
+    ...(state.repoCatalog.recent || []).map((r) => ({ ...r, kind: "recent" })),
+    ...(state.repoCatalog.discovered || []).map((r) => ({
+      ...r,
+      kind: "discover",
+    })),
+  ].filter((r) => {
+    if (!filter) return true;
+    return (
+      String(r.name || "").toLowerCase().includes(filter) ||
+      String(r.path || "").toLowerCase().includes(filter)
+    );
+  });
+
   el.repoList.replaceChildren();
-  for (const repo of data.repos || []) {
+  if (!rows.length) {
+    const p = document.createElement("p");
+    p.className = "repo-empty";
+    p.textContent = filter
+      ? "无匹配仓库"
+      : "点「浏览…」或「扫描本机」，也可在产品仓执行 duaer live repo add";
+    el.repoList.appendChild(p);
+    return;
+  }
+  for (const repo of rows) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "repo-chip";
-    btn.innerHTML = `<strong>${escapeHtml(repo.name || pathBasename(repo.path))}</strong><span>${escapeHtml(repo.path)}</span>`;
+    btn.setAttribute(
+      "aria-pressed",
+      repo.path === selected ? "true" : "false",
+    );
+    const tag = repo.kind === "recent" ? "最近" : "发现";
+    btn.innerHTML = `<strong>${escapeHtml(repo.name || pathBasename(repo.path))} · ${tag}</strong><span>${escapeHtml(repo.path)}</span>`;
     btn.addEventListener("click", () => {
       el.repoPath.value = repo.path;
+      renderRepoList();
     });
     el.repoList.appendChild(btn);
   }
@@ -433,12 +489,42 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
+el.repoBrowse?.addEventListener("click", async () => {
+  el.dispatchErr.hidden = true;
+  el.repoBrowse.disabled = true;
+  el.repoBrowse.textContent = "选择中…";
+  try {
+    const res = await fetch("/api/repos/pick", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.cancelled) return;
+      throw new Error(data.error || "选择失败");
+    }
+    el.repoPath.value = data.path;
+    await loadRepoCatalog(false);
+    addBubble("bot", `已选择仓库 ${data.name}（${data.path}）`);
+  } catch (err) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent =
+      err instanceof Error ? err.message : String(err);
+  } finally {
+    el.repoBrowse.disabled = false;
+    el.repoBrowse.textContent = "浏览…";
+  }
+});
+
+el.repoScan?.addEventListener("click", () => {
+  void loadRepoCatalog(true);
+});
+
+el.repoFilter?.addEventListener("input", () => renderRepoList());
+
 el.doDispatch.addEventListener("click", async () => {
   if (!state.jobId || state.busy) return;
   const repoPath = el.repoPath.value.trim();
   if (!repoPath) {
     el.dispatchErr.hidden = false;
-    el.dispatchErr.textContent = "填写产品仓库绝对路径";
+    el.dispatchErr.textContent = "先点选仓库，或浏览 / 扫描";
     return;
   }
   el.dispatchErr.hidden = true;

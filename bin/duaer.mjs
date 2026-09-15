@@ -36,6 +36,7 @@ Also:
   duaer live [--port N]              Open 现场开发 (isolated ~/.duaer/live)
   duaer live config --provider deepseek --api-key …
   duaer live config --base-url … --api-key … --model …
+  duaer live repo add [path]         Remember a product repo for dispatch (default: cwd)
   duaer handoff [--run]   Restart services on develop after worktree remove
   duaer status | check | policy | version | help
 
@@ -60,16 +61,25 @@ function parseArgs(argv) {
     modeExplicit: false,
     port: null,
     liveConfig: false,
+    liveRepoAdd: false,
     baseUrl: null,
     apiKey: null,
     model: null,
     provider: null,
+    repoPath: null,
   }
   const rest = args.slice(1)
-  // duaer live config …
+  // duaer live config …  |  duaer live repo add …
   if (out.cmd === 'live' && rest[0] === 'config') {
     out.liveConfig = true
     rest.shift()
+  } else if (out.cmd === 'live' && rest[0] === 'repo' && rest[1] === 'add') {
+    out.liveRepoAdd = true
+    rest.shift()
+    rest.shift()
+    if (rest[0] && !rest[0].startsWith('-')) {
+      out.repoPath = rest.shift()
+    }
   }
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]
@@ -114,7 +124,9 @@ function parseArgs(argv) {
       throw new Error(`Unknown flag: ${a}`)
     } else if (out.cmd === 'policy' && POLICY_MODES.has(a)) {
       out.policyMode = a
-    } else if (!out.liveConfig) {
+    } else if (out.liveRepoAdd && out.repoPath == null) {
+      out.repoPath = a
+    } else if (!out.liveConfig && !out.liveRepoAdd) {
       out.dir = a
     }
   }
@@ -972,9 +984,13 @@ function cmdLive(opts) {
   if (!existsSync(script)) {
     throw new Error('duaer-live.mjs missing from package')
   }
-  // Isolated desk: do NOT pass the user's cwd as a project root.
+  // Isolated desk: do NOT pass the user's cwd as a project root for serve/config.
   const args = [script]
-  if (opts.liveConfig) {
+  if (opts.liveRepoAdd) {
+    args.push('repo', 'add')
+    const target = opts.repoPath || resolve(opts.dir || '.')
+    args.push(target)
+  } else if (opts.liveConfig) {
     args.push('config')
     if (opts.provider) args.push('--provider', opts.provider)
     if (opts.baseUrl) args.push('--base-url', opts.baseUrl)
@@ -985,7 +1001,7 @@ function cmdLive(opts) {
   }
   const child = spawn(process.execPath, args, {
     stdio: 'inherit',
-    cwd: PKG_ROOT,
+    cwd: opts.liveRepoAdd ? resolve(opts.dir || '.') : PKG_ROOT,
   })
   child.on('exit', (code) => process.exit(code ?? 0))
 }

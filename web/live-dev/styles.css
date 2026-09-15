@@ -404,11 +404,25 @@ input:focus {
   letter-spacing: 0.03em;
 }
 
+.repo-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+}
+
+.repo-actions .btn {
+  min-width: auto;
+  flex: 1;
+}
+
 .repo-list {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   margin-bottom: 0.85rem;
+  max-height: 220px;
+  overflow: auto;
 }
 
 .repo-chip {
@@ -428,6 +442,11 @@ input:focus {
   outline: none;
 }
 
+.repo-chip[aria-pressed="true"] {
+  border-color: var(--lock);
+  background: rgba(47, 158, 143, 0.1);
+}
+
 .repo-chip strong {
   display: block;
   font-weight: 700;
@@ -438,6 +457,12 @@ input:focus {
   font-size: 0.68rem;
   color: var(--mute);
   letter-spacing: 0.02em;
+}
+
+.repo-empty {
+  margin: 0;
+  color: var(--mute);
+  font-size: 0.82rem;
 }
 
 .setup-panel {

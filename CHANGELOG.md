@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live repo pick
+
+- Dispatch: system folder picker, scan common dirs, filterable list
+- `duaer live repo add [path]` remembers a product repo (default cwd)
+
 ### Live dispatch
 
 - After confirm + auto-accept: pick a product repo, create `.worktree/feat-*`, write Brief under that worktree’s `.duaer/specs/`

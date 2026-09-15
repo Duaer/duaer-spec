@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T00:45:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["duaer live repo add", "GET /api/repos?discover=1"],
+    "result": "pass"
+  }
+}
