@@ -43,11 +43,12 @@ See [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-th
 ## 1. Request Start
 
 - [ ] Existing uncommitted work is identified and preserved.
-- [ ] `origin/main` fetched; local `main` fast-forwarded when clean.
-- [ ] Dedicated `<type>/<short-description>` branch and worktree created from
-  that commit under **`.worktree/<request-id>`** (mandatory; never commit `.worktree/`).
+- [ ] `origin/develop` fetched; local `develop` fast-forwarded when clean
+  (hotfix: `main`).
+- [ ] Dedicated `feat/` or `fix/` branch and worktree under
+  **`.worktree/<request-id>`** (mandatory; never commit `.worktree/`).
 - [ ] Shared toolchains/caches reused where safe; mutable state stays local.
-- [ ] Current branch is not `main` before implementation begins.
+- [ ] Current branch is not `main` or `develop` before implementation begins.
 
 ---
 
@@ -95,10 +96,12 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 ## 6. Merge / PR
 
 - [ ] Active job handoff considered by the **agent** (do not require the human to run CLI for routine work).
-- [ ] Branch refreshed against latest `main`.
-- [ ] Merged into local `main` (and/or remote PR/MR when required).
+- [ ] Branch refreshed against latest `develop` (hotfix: `main`).
+- [ ] Merged into local `develop` (hotfix: `main`, then back-merge `develop`).
+- [ ] Worktree services stopped; worktree removed; short branch deleted.
 - [ ] Only this request's logical changes included.
 - [ ] Push performed only if the user explicitly asked for this request.
+- [ ] `develop` → `main` promotion only if the user asked to go online.
 
 ---
 
@@ -117,15 +120,16 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 
 | # | Gate | Source |
 |---|---|---|
-| 1 | Branch + worktree from up-to-date `main` | [R4](workflow.md#r4--request-branch--worktree--merge-gate) |
+| 1 | Branch + `.worktree/` from up-to-date `develop` (hotfix: `main`) | [R4](workflow.md#r4--request-branch--worktree--merge-gate) · [branching](branching-and-release.md) |
 | 2 | Change implements the planned work | [Development loop](workflow.md#2-development-loop) |
 | 3 | Impacted specs updated | [R1](workflow.md#r1--spec-first--spec-sync) |
 | 4 | E2E docs updated or confirmed unnecessary | [R3](workflow.md#r3--e2e-coverage-doc) |
 | 5 | Targeted validation done or waived with reason | Development loop |
-| 5a | Active job handoff via `duaer job` (coach/strict) | Delivery OS — not a git lock |
+| 5a | Active job handoff by the agent (coach/strict) | Delivery OS — not a git lock |
 | 6 | Conventional commits | [R2](workflow.md#r2--commit-per-change) |
-| 7 | No secrets or local data | [§4](workflow.md#4-what-never-to-commit) |
-| 8 | Merged into `main`; worktree and branch removed | [R4](workflow.md#r4--request-branch--worktree--merge-gate) · [§6.1](#61-merge-cleanup) |
+| 7 | No secrets, local data, or `.worktree/` | [§4](workflow.md#4-what-never-to-commit) |
+| 8 | Merged to `develop` (hotfix: `main` + back-merge); worktree cleaned | [R4](workflow.md#r4--request-branch--worktree--merge-gate) |
+| 8a | `develop` → `main` only if user asked to go online | [branching-and-release](branching-and-release.md) |
 | 9 | Linked issue: verified, commented, closed when conclusive | [R5](workflow.md#r5--verify-linked-github-issues-before-work-then-reply-and-close) |
 | 10 | Linked PR: principle reviewed; merged when sound; follow-up after | [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-then-follow-up) |
 

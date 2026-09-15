@@ -1,52 +1,56 @@
 ---
-description: duaer-spec agent ops (isolated branch/worktree, commits, push opt-in)
+description: duaer-spec agent ops (develop+main, feat/fix, .worktree, push opt-in)
 alwaysApply: true
 ---
 
 # Agent development workflow
 
-Part of **duaer-spec**. Authoritative over Duaer when they conflict. This
-repository integrates on `main`. Adopting projects may document another
-integration branch in their baseline.
+Part of **duaer-spec**. Authoritative over Duaer when they conflict.
 
-## Language
+## Required branches
 
-Use English for code, identifiers, comments, commits, specs, and docs unless
-the project explicitly overrides.
+| Branch | Role |
+|---|---|
+| `main` | Production / online |
+| `develop` | Day-to-day integration |
+| `feat/<name>` | Feature → merge to `develop` |
+| `fix/<name>` | Bugfix → `develop` (hotfix: from `main` → `main` then `develop`) |
+
+Detail: `docs/agent/branching-and-release.md`.
 
 ## Isolated development (mandatory worktree)
 
 Before editing files for a new request:
 
-1. Update local integration branch (`main` here; or project override)
-2. Create a unique branch: `<type>/<short-description>`
-3. Create a dedicated worktree at **`.worktree/<request-id>`** (required — not optional)
+1. Update local **`develop`** (hotfix: **`main`**)
+2. Create `feat/<name>` or `fix/<name>`
+3. Create worktree at **`.worktree/<request-id>`** (required)
 4. Develop only inside that worktree
-5. Never develop in the primary checkout or on the long-lived branch
-6. Never reuse or modify another agent's branch/worktree
-7. Never commit `.worktree/` (must stay gitignored)
+5. Never develop on `main` / `develop` or in the primary checkout
+6. Never reuse another agent's branch/worktree
+7. Never commit `.worktree/`
 
 ```bash
 mkdir -p .worktree
-git worktree add .worktree/<request-id> -b <type>/<request-id> main
+git worktree add .worktree/<request-id> -b feat/<name> develop
 cd .worktree/<request-id>
 ```
+
 ## Immutable habits
 
-- Spec-sync: behavior changes update the relevant project specs/docs (and ADR when architecture/security/contracts change)
+- Spec-sync for behavior changes; ADR when architecture/security/contracts change
 - One logical change per commit; leave the worktree clean
-- User/protocol-visible changes update the project's E2E scenario docs
-- Merge the request branch back into the local integration branch when done
-- Remove the request worktree and delete the merged branch after merge
-- Push only when the user explicitly asks for this request
+- User/protocol-visible changes update E2E scenario docs
+- Merge into **`develop`** when done (hotfix: **`main`**, then back-merge **`develop`**)
+- Stop worktree services → remove worktree → delete short branch
+- Push only when the user explicitly asks
+- Promote **`develop` → `main`** only when the user asks to go online
 
-## GitHub issue intake
+## GitHub issue / PR intake
 
-If the user links an issue for this repo: verify the claim first; do not implement until it exists. Comment in the issue's language; close when conclusive. An issue link does not authorize push.
-
-## GitHub PR intake
-
-If the user links a PR: judge the principle first. If sound, merge that PR (preserve commits); completeness gaps are follow-up after merge. Do not silently reimplement. A PR link does not authorize unrelated pushes or force-push of the contributor branch.
+Issue: verify before work; comment in issue language; close when conclusive.  
+PR: judge principle; merge sound PRs; no silent reimplementation.  
+Neither authorizes push by itself.
 
 ## Commits
 
@@ -54,4 +58,4 @@ If the user links a PR: judge the principle first. If sound, merge that PR (pres
 type(scope): description
 ```
 
-Types: `feat fix docs test chore refactor perf build ci` — English, imperative, one logical change.
+Types: `feat fix docs test chore refactor perf build ci` — English, imperative.

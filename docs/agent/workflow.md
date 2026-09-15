@@ -41,27 +41,29 @@ handling. They cannot be relaxed without explicit human override.
 
 ### R4 — Request branch + worktree + merge gate
 
-> **Every new request starts from `main` in a dedicated worktree on a dedicated
-> branch and finishes only after it is merged into `main`.**
+> **Every new request starts from `develop` (hotfix: `main`) in a dedicated
+> `.worktree/<id>` on a `feat/*` or `fix/*` branch, and finishes after merge
+> into that long-lived target. Going online is a separate `develop` → `main`
+> promotion when the user asks to ship.**
 
 - Before editing: preserve existing uncommitted work; fetch and fast-forward
-  local `main` when clean; create a new request branch and a dedicated worktree
-  at **`.worktree/<request-id>`** under the project root. Worktrees are
+  local **`develop`** when clean (hotfix: **`main`**); create a new request
+  branch and worktree at **`.worktree/<request-id>`**. Worktrees are
   **mandatory**. Never stash or overwrite another agent's work merely to start.
-- Name branches `<type>/<short-description>` (for example `feat/adopt-docs`).
-- Do not implement in the primary checkout or reuse another request's worktree.
+- Name branches `feat/<short-description>` or `fix/<short-description>`.
+- Do not implement in the primary checkout or on `main` / `develop`.
 - Keep `.worktree/` gitignored — never commit request worktrees.
-- Reuse shared toolchains and caches where safe; keep mutable or
-  concurrency-sensitive state worktree-local and ignored.
-- After validation: merge into local `main` (or via PR/MR when required), then
-  remove the request worktree and delete the merged branch immediately.
-- Push only when the user explicitly requests remote publishing for this
-  request.
+- After validation: merge into local **`develop`** (hotfix: **`main`**, then
+  back-merge **`develop`**), stop worktree-bound services, remove the worktree,
+  delete the short branch.
+- Push only when the user explicitly requests remote publishing.
+- Promote **`develop` → `main`** only when the user explicitly asks to go online.
 
-Adopting projects may replace `main` with another integration branch; document
-it in the project baseline. **duaer-spec itself uses `main`.** Example overlays
-under `examples/` do not change this repo's default.
+Full matrix by issue type:
+[branching-and-release](branching-and-release.md).
 
+**duaer-spec itself** requires `main` + `develop` + `feat/*` + `fix/*`.
+Example overlays under `examples/` do not change this.
 ### R5 — Verify linked GitHub issues before work, then reply and close
 
 > **A linked GitHub issue is not a task until the reported problem is shown to
@@ -84,16 +86,18 @@ unrelated pushes.
 ## 2. Development Loop
 
 1. **Intake** — If an issue or PR is linked, complete R5 / R6 first.
-2. **Isolate** — Update `main`, create branch + worktree (R4).
+2. **Isolate** — Update `develop` (hotfix: `main`), create `feat|fix` + `.worktree/` (R4).
 3. **Orient** — Read baseline, relevant specs, and Duaer memory when present.
-4. **Specify (when using Duaer)** — Feature / hotfix specs before coding.
+4. **Specify (when using Duaer)** — Agent runs Brief → work → accept autonomously.
 5. **Implement** — Smallest coherent change; update specs alongside (R1).
 6. **Verify** — Targeted checks; E2E runs only if the user asks (except fork
    landing rules in `AGENTS.md`).
 7. **Commit** — One logical change per commit (R2).
-8. **Merge & clean** — Refresh against `main`, merge, remove worktree (R4 / R5).
-9. **Report** — Use the Final Report section in `AGENTS.md`.
-
+8. **Merge & clean** — Merge to `develop` (hotfix: `main` + back-merge), stop
+   worktree services, remove worktree (R4).
+9. **Go online** — Only if asked: promote `develop` → `main`
+   ([branching-and-release](branching-and-release.md)).
+10. **Report** — Use the Final Report section in `AGENTS.md`.
 ---
 
 ## 3. Spec Update Guidance
@@ -114,6 +118,7 @@ when changing duaer-spec's own agent-ops contract.
 
 - Secrets, tokens, credentials, private keys
 - Local databases, caches, build artifacts, `node_modules/`
+- `.worktree/` (mandatory request worktrees)
 - Machine-specific paths or environment files with secrets
 - Unrelated changes from another request or agent
 

@@ -35,7 +35,8 @@ until the reported problem has been independently verified.
    close the issue when the conclusion is clear. If verification is
    inconclusive, comment with what was tried and leave the issue open.
 4. If the problem **does** exist: follow the isolated development workflow,
-   implement the smallest coherent fix, merge into local `main`, then comment
+   implement the smallest coherent fix, merge into local `develop` (or
+   hotfix into `main` then back-merge `develop`), then comment
    on the issue and close it.
 5. Write the issue comment in the issue's language (the language of the
    original title and body). Repository docs, code, and commits stay English
@@ -103,6 +104,23 @@ copy limited to the information and actions users need to complete the task:
 * Put rationale and implementation detail in documentation or code comments,
   not in the page UI, unless the user explicitly requests explanatory content.
 
+## Mandatory branch model
+
+Repositories that adopt this agent-ops contract **must** use:
+
+| Branch | Role |
+|---|---|
+| **`main`** | Production / officially online |
+| **`develop`** | Day-to-day integration and debugging |
+| **`feat/<name>`** | Feature work (from `develop` → merge to `develop`) |
+| **`fix/<name>`** | Bug fixes (from `develop` → `develop`; hotfixes from `main` → `main` then back to `develop`) |
+
+Do **not** develop on `main` or `develop`. Full flows (including go-live by
+issue type): [branching-and-release](docs/agent/branching-and-release.md).
+
+**duaer-spec itself** uses this model: integrate on **`develop`**, promote to
+**`main`** only when shipping.
+
 ## Mandatory Isolated Development
 
 Every request must use its own dedicated branch and worktree.
@@ -113,8 +131,9 @@ Landing-blocker commits, if needed, go on top of the author's branch.
 
 Before modifying any file, the agent must:
 
-1. Update the primary checkout's local `main`
-2. Create a unique branch from the updated `main`
+1. Update the primary checkout's local **`develop`** (or **`main`** for a
+   production hotfix)
+2. Create a unique branch from that base (`feat/…` or `fix/…`)
 3. Create a dedicated worktree **under the project** at `.worktree/<request-id>`
 4. Enter that worktree
 5. Only then begin development
@@ -122,13 +141,13 @@ Before modifying any file, the agent must:
 Worktrees live in **`.worktree/`** at the repository root. That directory is
 **mandatory**, not optional, and **must never be committed** (see `.gitignore`).
 
-Example:
+Example (normal feature):
 
 ```bash
-git switch main
+git switch develop
 git pull --ff-only
 mkdir -p .worktree
-git worktree add .worktree/<request-id> -b <type>/<request-id> main
+git worktree add .worktree/<request-id> -b feat/<request-id> develop
 cd .worktree/<request-id>
 ```
 
@@ -136,26 +155,21 @@ Branch and worktree names must be unique and clearly associated with the request
 Do **not** place request worktrees outside the repo (for example `../worktrees/`)
 unless the project baseline explicitly overrides this and still keeps them
 untracked.
-
-**This repository's default integration branch is `main`.** Adopting projects
-may substitute another long-lived branch (for example `develop`); document that
-override in the project baseline. Do not inherit git policy from `examples/`.
-
 ## Multi-Agent Isolation
 
 * Each agent must use its own branch and worktree
 * Never develop directly in the primary checkout
-* Never develop directly on `main` (or the project's integration branch)
+* Never develop directly on `main` or `develop`
 * Never reuse another agent's branch or worktree
 * Never modify files inside another request's worktree
 * Never switch another agent's branch
 * Never delete another agent's branch or worktree
 * Never include unrelated changes from another request
-* Do not commit local environment files, caches, databases, or secrets
+* Do not commit local environment files, caches, databases, secrets, or `.worktree/`
 
-The primary checkout is reserved for synchronizing and merging the integration
-branch. Shared toolchains and caches may be reused when that cannot modify
-tracked files or interfere with another worktree.
+The primary checkout is reserved for synchronizing and merging **`develop`**
+(and **`main`** on promote / hotfix). Shared toolchains and caches may be
+reused when that cannot modify tracked files or interfere with another worktree.
 
 ## Immutable Rules
 
@@ -186,25 +200,33 @@ explicitly requested by the user, **except** for forked third-party pull
 request heads when the project requires local suites before merge. Record the
 result in the pull request comment.
 
-### 4. Merge Back into Local `main`
+### 4. Merge Back into Local `develop` (or hotfix `main`)
 
-After development:
+After normal development:
 
 1. Complete targeted validation
 2. Review the complete diff
 3. Commit all logical changes
-4. Update the request branch with the latest local `main`
+4. Update the request branch with the latest local **`develop`**
 5. Resolve conflicts inside the request worktree
 6. Return to the primary checkout
-7. Merge the request branch into local `main`
+7. Merge the request branch into local **`develop`**
 8. Verify the expected commits are present
-9. Remove the request worktree
-10. Delete the merged request branch
-11. Push only when the user explicitly requested remote publishing for the
+9. Stop any server/process started from the request worktree; if the user still
+   needs a local service, start it from the primary checkout on **`develop`**
+10. Remove the request worktree
+11. Delete the merged request branch
+12. Push only when the user explicitly requested remote publishing for the
     current request
+13. Promote **`develop` → `main`** only when the user explicitly asks to ship /
+    go online (see [branching-and-release](docs/agent/branching-and-release.md))
 
-If another agent has updated `main`, refresh the request branch before merging
-(`git fetch` then `git rebase main`, or merge if project policy requires it).
+**Production hotfix:** base and merge into **`main`**, then merge the fix into
+**`develop`** so integration does not regress. Then clean up the worktree.
+
+If another agent has updated `develop`, refresh the request branch before
+merging (`git fetch` then `git rebase develop`, or merge if project policy
+requires it).
 
 Do not overwrite, reset, or discard changes already merged by another agent.
 
@@ -214,26 +236,28 @@ explicitly requests that exact operation.
 
 ### 5. Clean Up the Request Worktree
 
-Once the request branch is merged into local `main`, remove its worktree and
-delete the merged branch. Never leave a merged worktree on disk.
+Once the request branch is merged into local **`develop`** (or **`main`** for a
+hotfix), remove its worktree and delete the merged branch. Never leave a merged
+worktree on disk.
 
 ```bash
 git worktree remove .worktree/<request-id>
-git branch -d <type>/<request-id>
+git branch -d feat|fix/<request-id>
 git worktree prune
 ```
 
-* Remove only after verifying merge commits are present in local `main`
+* Remove only after verifying merge commits are present on the target long-lived branch
 * The worktree must be clean first
 * Use `git branch -d` (not `-D`)
 * Delete only your own worktree and branch
 * Never commit `.worktree/` (ignored)
+* Stop worktree-bound services before remove; restart from primary checkout if needed
 
 ## Development Workflow
 
-1. Update local `main`
-2. Create a unique request branch
-3. Create and enter a dedicated worktree
+1. Update local **`develop`** (or **`main`** for hotfix)
+2. Create a unique `feat/` or `fix/` branch
+3. Create and enter `.worktree/<request-id>`
 4. Read the baseline and relevant specs (and Duaer memory when present)
 5. Identify affected specs, ADRs, E2E scenarios, and validation
 6. Implement the smallest coherent change
@@ -241,16 +265,18 @@ git worktree prune
 8. Run targeted, risk-based checks
 9. Review the complete diff
 10. Commit each logical change
-11. Refresh the branch against the latest local `main`
-12. Merge into local `main`
-13. Remove the request worktree and delete the merged branch
-14. Push only when explicitly requested for the current request
+11. Refresh against latest **`develop`** (or **`main`** for hotfix)
+12. Merge into local **`develop`** (hotfix: **`main`**, then back-merge to **`develop`**)
+13. Stop worktree services; remove worktree; delete short branch
+14. Push only when explicitly requested
+15. Promote **`develop` → `main`** only when the user explicitly asks to go online
 
-Development must not begin before steps 1–3 are complete.
+Development must not begin before isolation steps 1–3 are complete.
 
-For feature work that uses Duaer, prefer
-`specify → plan → tasks → implement → converge` (or the hotfix short path).
-Agent ops in this file still govern isolation, commits, and merge.
+For feature work that uses Duaer, the agent runs the job loop autonomously
+(Brief → work → accept). Agent ops in this file still govern isolation, commits,
+and merge. Branch/release detail:
+[branching-and-release](docs/agent/branching-and-release.md).
 
 ## Commit Format
 
@@ -266,20 +292,20 @@ Allowed types: `feat fix docs test chore refactor perf build ci`
 
 ## Completion Checklist
 
-* [ ] Local `main` was updated before development
-* [ ] A unique request branch was created
-* [ ] A dedicated worktree was created
+* [ ] Local **`develop`** was updated before development (or **`main`** for hotfix)
+* [ ] A unique `feat/` or `fix/` branch was created
+* [ ] A dedicated worktree was created under `.worktree/`
 * [ ] All development occurred inside that worktree
 * [ ] No other agent's branch or worktree was modified
 * [ ] Relevant specs and E2E scenarios were updated
 * [ ] Targeted validation passed or was documented as unnecessary
-* [ ] No secrets, local data, or unrelated changes are included
+* [ ] No secrets, local data, `.worktree/`, or unrelated changes are included
 * [ ] All logical changes were committed
-* [ ] The branch was refreshed against the latest local `main`
-* [ ] Changes were merged into local `main`
-* [ ] The request worktree was removed after the merge
-* [ ] The merged request branch was deleted
+* [ ] The branch was refreshed against the latest local **`develop`** (or hotfix base)
+* [ ] Changes were merged into local **`develop`** (hotfix: **`main`** + back-merge **`develop`**)
+* [ ] Worktree-bound services stopped; worktree removed; short branch deleted
 * [ ] Remote publishing was skipped unless explicitly requested
+* [ ] Promotion **`develop` → `main`** only if the user asked to go online
 * [ ] If pushed, the remote, branch, commit set, and Git identity were verified
 * [ ] If a GitHub issue was linked: verified before work; commented in its
       language; closed when conclusive
@@ -295,7 +321,9 @@ Report:
 * Documentation updated
 * Validation performed or skipped
 * Commit hashes and messages
-* Merge result
+* Merge target (`develop` / `main`) and result
 * Worktree and branch cleanup result
+* Service handoff (stopped in worktree / restarted on develop) if applicable
 * Push target and result, or confirmation that nothing was pushed
+* Whether `main` was promoted (or N/A)
 * Linked GitHub issue / PR outcomes (or N/A)

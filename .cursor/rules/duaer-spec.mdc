@@ -16,14 +16,18 @@ If this conflicts with root `AGENTS.md` (worktrees, commits, Issue/PR),
 
 For new behavior, fixes, refactors that change product behavior, or architecture:
 
-0. **Isolate first (mandatory):** update integration branch, create
-   `<type>/<short-description>`, add worktree at `.worktree/<request-id>`,
+0. **Isolate first (mandatory):** update **`develop`** (hotfix: **`main`**),
+   create `feat|fix/<name>`, add worktree at `.worktree/<request-id>`,
    work only there. Never skip the worktree. Never commit `.worktree/`.
+   Never develop on `main` or `develop`.
 1. **Silently follow** the procedure in `.cursor/skills/duaer-do/SKILL.md`
    (assign Brief → light tasks → implement → converge → handoff line).
 2. Do **not** wait for `/duaer-do` or any other skill invocation.
 3. Do **not** say “please run `/duaer-specify`” — you do it.
 4. Do **not** dump a methodology tutorial unless they ask how Duaer works.
+5. Merge to **`develop`** when done (hotfix: **`main`**, then back-merge
+   **`develop`**). Promote to **`main`** only if the user asks to go online.
+   See `docs/agent/branching-and-release.md`.
 
 ## Handoff
 

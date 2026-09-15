@@ -1,10 +1,22 @@
 # Baseline (project-specific)
 
 Frozen decisions for the adopting project: language, stack, architecture
-boundaries, and integration-branch override (if not `main`).
+boundaries, and branch model.
 
-**duaer-spec itself:** English docs and commits; integration branch `main`;
-no application runtime.
+## Branch model (mandatory)
 
-When you copy agent ops into another repository, replace this file with that
-product's baseline (or point agents at the project's existing baseline path).
+| Branch | Role |
+|---|---|
+| `main` | Production / officially online |
+| `develop` | Day-to-day integration |
+| `feat/<name>` | Features |
+| `fix/<name>` | Bug fixes |
+
+See [branching-and-release](agent/branching-and-release.md).
+
+**duaer-spec itself:** English docs and commits; integrate on **`develop`**;
+promote to **`main`** when shipping; no application runtime.
+
+When you copy agent ops into another repository, keep this branch model unless
+the project explicitly documents a justified exception in an ADR (not
+recommended).

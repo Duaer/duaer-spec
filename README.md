@@ -26,10 +26,22 @@ required.
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
+## Branches (mandatory)
+
+| Branch | Role |
+|---|---|
+| `main` | Production / online |
+| `develop` | Day-to-day integration |
+| `feat/<name>` | Features → `develop` |
+| `fix/<name>` | Fixes → `develop` (hotfix via `main`) |
+
+Go-live and flows by issue type:
+[`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md).
+
 ## Optional
 
 ```bash
-npx duaer-spec@0.5.0 init --here --method   # method only
+npx duaer-spec@0.6.0 init --here --method   # method only
 ```
 
 Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)

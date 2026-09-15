@@ -1,44 +1,46 @@
 # Changelog
 
+## 0.6.0 — 2026-09-15
+
+### Mandatory branch model + release flows
+
+- Required branches: **`main`** (production), **`develop`** (integration),
+  **`feat/*`**, **`fix/*`**
+- New doc: [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
+  — day-to-day, go-live, feature / bug / hotfix / issue / PR flows
+- Agent ops merge target is **`develop`**; promote to **`main`** only when
+  shipping; hotfixes from `main` then back-merge `develop`
+- Worktree cleanup includes stopping services and restarting on `develop` if needed
+- `duaer init` default `--branch` is `develop`
+
 ## 0.5.1 — 2026-09-15
 
 ### Mandatory in-repo worktrees
 
-- Request worktrees **must** live under **`.worktree/<request-id>`** (not optional)
-- `.worktree/` is gitignored and must never be committed
-- `duaer init` ensures `.gitignore` contains `.worktree/`
-- AGENTS / R4 / agent rules updated; `../worktrees/` is no longer the default
+- Request worktrees **must** live under **`.worktree/<request-id>`**
+- `.worktree/` is gitignored; `duaer init` ensures the ignore rule
 
 ## 0.5.0 — 2026-09-15
 
 ### Autonomous digital employee
 
-- **Simplicity = humans do not operate the workflow**
-- Always-on rule: on product asks, the agent runs Brief → work → accept itself
-- Do not require `/duaer-do`, phase slash commands, or `duaer status` from humans
-- `duaer-do` is the agent’s internal playbook; install once, then talk
-- README / init / ADOPT / DUADER rewritten around “ask, don’t operate”
+- Humans ask; agents run Brief → work → accept without slash-command ops
 
 ## 0.4.0 — 2026-09-15
 
-### Simple everyday ops
-
-- `/duaer-do` one-shot skill + `duaer status`
-- Step skills demoted to advanced (later reframed as agent-only in 0.5)
+- `/duaer-do` + `duaer status` everyday path (later reframed as agent-internal)
 
 ## 0.3.0 — 2026-09-15
 
-### Job handoff (not a repo lock)
-
-- `coach` / `strict` / `off` policy; active job; `duaer job` / `policy`
+- Job handoff policy (`coach` / `strict` / `off`)
 
 ## 0.2.0 — 2026-09-15
 
-- `delivery.json` + checkable handoff state
+- `delivery.json` handoff stamp
 
 ## 0.1.1 — 2026-09-15
 
-- Digital-employee delivery OS positioning
+- Digital-employee positioning
 
 ## 0.1.0 — 2026-09-15
 

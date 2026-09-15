@@ -32,6 +32,7 @@ the table for their app.
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
 | E2E-006 | `duaer-do` skill describes agent-triggered loop | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
+| E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 
 ## Traceability
 
@@ -44,3 +45,4 @@ the table for their app.
 | E2E-005 | `delivery.json` | Accept stamp |
 | E2E-006 | `duaer-do` | Internal playbook |
 | E2E-007 | `.worktree/` + `.gitignore` | Mandatory isolation |
+| E2E-008 | `branching-and-release.md` | Branch + release matrix |

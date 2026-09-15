@@ -35,7 +35,7 @@ Agent / optional diagnostics:
   duaer status [dir]
   duaer check | policy | version
 
-Init: --all (default) | --method | --ops | --force | --branch <n> | --here
+Init: --all (default) | --method | --ops | --force | --branch <n> (default: develop) | --here
 
 Example:
   npx duaer-spec init --here
@@ -48,7 +48,7 @@ function parseArgs(argv) {
     dir: '.',
     mode: 'all',
     force: false,
-    branch: 'main',
+    branch: 'develop',
     workplace: false,
     delivery: false,
     job: false,
@@ -227,7 +227,13 @@ function installOps(target, opts) {
   console.log('  .cursor/rules/agents-workflow.mdc, ai-ui-copy.mdc')
 
   ensureDir(join(target, 'docs', 'agent'))
-  for (const name of ['workflow.md', 'change-checklist.md', 'e2e-test-plan.md', 'README.md']) {
+  for (const name of [
+    'workflow.md',
+    'change-checklist.md',
+    'e2e-test-plan.md',
+    'branching-and-release.md',
+    'README.md',
+  ]) {
     copyPath(
       join(PKG_ROOT, 'docs', 'agent', name),
       join(target, 'docs', 'agent', name),

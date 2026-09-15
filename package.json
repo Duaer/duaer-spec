@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
-  "version": "0.5.1",
-  "description": "Digital employees that run Spec→work→accept themselves — humans just ask",
+  "version": "0.6.0",
+  "description": "Digital employees: autonomous Spec→work→accept; mandatory main/develop/feat/fix",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",
