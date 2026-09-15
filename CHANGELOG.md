@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Understand gate
+
+- `duaer-do` requires **Understand** before Work: restate goal / scope /
+  acceptance; vague asks wait for human confirm (≤3 blocking questions)
+- DUADER / AGENTS / Cursor + Claude always-on rules mention the gate
+- `duaer-clarify` remains the deep Spec clarifier; Understand is the front door
+- E2E-006 updated
+
 ### Verification gate
 
 - `.duaer/memory/testing.md` is an actionable risk-based verification contract

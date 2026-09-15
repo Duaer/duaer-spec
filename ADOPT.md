@@ -38,7 +38,7 @@ Works with **Cursor**, **Claude Code**, **Codex**, **GitHub Copilot**,
 
 ## What you get
 
-- Autonomous job loop (ask → Brief → work → accept)  
+- Autonomous job loop (ask → Brief → **understand** → work → accept)  
 - Cursor: `.cursor/rules` + `.cursor/skills`  
 - Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills`  
 - Codex: `AGENTS.md` + `.agents/skills`  

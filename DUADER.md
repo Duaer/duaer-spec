@@ -1,7 +1,8 @@
 # Duaer methodology
 
 AI coding agents are **digital employees**. The human states intent; the agent
-runs Brief → work → accept. Humans are not the operators of the phase machine.
+runs Brief → **understand** → work → accept. Humans are not the operators of
+the phase machine.
 
 **Precedence:** [`AGENTS.md`](AGENTS.md) wins on isolation, commits, Issue/PR.
 
@@ -18,10 +19,13 @@ Follow the `duaer-do` skill (`.cursor/skills/`, `.claude/skills/`, or `.agents/s
 waiting for a slash invocation:
 
 1. Assign Brief + `active-job.json`  
-2. Light `tasks.md` if needed (include verification tasks from `testing.md`)  
-3. Implement + run risk-based checks  
-4. Converge → `delivery.json` (with verification evidence or waiver)  
-5. One handoff line; never claim done until accepted  
+2. **Understand** — Restate precise goal / scope / acceptance; if the ask is
+   vague, confirm with the human (≤3 blocking questions or recommended
+   defaults) before coding; write the confirmed intent into the Brief  
+3. Light `tasks.md` if needed (include verification tasks from `testing.md`)  
+4. Implement + run risk-based checks  
+5. Converge → `delivery.json` (with verification evidence or waiver)  
+6. One handoff line; never claim done until accepted  
 
 Large jobs may use step playbooks (`duaer-specify`, `duaer-plan`, …) internally.
 

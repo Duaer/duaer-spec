@@ -11,8 +11,9 @@ Duaer for what to build.
 ### I. Spec before code (NON-NEGOTIABLE)
 
 The **agent** starts a Brief before coding — the human does not operate phases.
-Autonomous default: follow `duaer-do` (Brief → tasks → implement → converge).
-Never skip Spec or converge. Never ask the human to run `/duaer-*` for normal work.
+Autonomous default: follow `duaer-do` (Brief → **understand** → tasks →
+implement → converge). Never skip Spec, intent confirm when vague, or converge.
+Never ask the human to run `/duaer-*` for normal work.
 
 ### II. Read as-is before changing
 

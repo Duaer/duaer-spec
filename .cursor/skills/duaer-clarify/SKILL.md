@@ -56,6 +56,11 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 Goal: Detect and reduce ambiguity or missing decision points in the active feature specification and record the clarifications directly in the spec file.
 
+Note: The lightweight **Understand** step in `duaer-do` is the front door for
+casual asks (restate + confirm before coding). Use this skill when a Spec
+already exists and still has high-impact gaps (up to 5 questions). Prefer
+Understand first; escalate here when the Brief is large or architecture-heavy.
+
 Note: This clarification workflow is expected to run (and be completed) BEFORE invoking `/duaer-plan`. If the user explicitly states they are skipping clarification (e.g., exploratory spike), you may proceed, but must warn that downstream rework risk increases.
 
 Execution steps:

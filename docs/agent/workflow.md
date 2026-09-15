@@ -95,7 +95,7 @@ unrelated pushes.
 1. **Intake** — If an issue or PR is linked, complete R5 / R6 first.
 2. **Isolate** — Update `develop` (hotfix: `main`), create `feat|fix` + `.worktree/` (R4).
 3. **Orient** — Read baseline, relevant specs, and Duaer memory when present.
-4. **Specify (when using Duaer)** — Agent runs Brief → work → accept autonomously.
+4. **Specify (when using Duaer)** — Agent runs Brief → understand → work → accept autonomously.
 5. **Implement** — Smallest coherent change; update specs alongside (R1).
 6. **Verify** — Risk-based checks per `testing.md` (E2E subset when UI/UX
    touched; fork landing rules still in `AGENTS.md`).
