@@ -10,13 +10,14 @@ Duaer for what to build.
 
 ### I. Spec before code (NON-NEGOTIABLE)
 
-Features, architecture changes, and hotfixes start with a Duaer feature
-artifact before implementation. Default path:
+Everyday: `/duaer-do` (assigns Spec, implements, converges).  
+Or the full chain. Never skip Spec or converge.
 
-`constitution` → `specify` → (optional `clarify`) → `plan` → (optional `checklist` / `analyze`) → `tasks` → `implement` → `converge`
+Default path for fine control:
 
-Hotfix may shorten to: `specify` (mark hotfix) → `tasks` → `implement` → `converge`.
-Never skip `specify` or `converge`.
+`specify` → (optional plan/tasks) → `implement` → `converge` → `duaer status`
+
+Hotfix may shorten; still Spec + converge (or `/duaer-do`).
 
 ### II. Read as-is before changing
 
@@ -36,13 +37,6 @@ Do not expand scope without updating the spec and tasks.
 Mark tasks complete only when the stated verification (tests, manual checks,
 or converge) has been performed or explicitly waived in the feature docs.
 
-**Job handoff (not a git lock):** before telling the user the work is finished,
-run `duaer job .`. Read `.duaer/delivery-policy.json`:
-
-- `coach` (default): if the active job is not `accepted`, warn and guide — do
-  **not** claim "done"
-- `strict`: refuse to report delivery complete until accepted
-- `off`: record only
-
-Converge still stamps `delivery.json`. Judgment Spec↔code remains
-agent-assisted; the stamp makes the **job** checkable.
+**Job handoff (not a git lock):** prefer `duaer status`. Default policy is
+`coach` — do not claim "done" while the active job is unfinished. Users should
+not need to learn policy modes for everyday work.

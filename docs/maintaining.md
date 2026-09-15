@@ -30,10 +30,9 @@ when a phase's contract changes.
 Adopter install:
 
 ```bash
-npx duaer-spec@0.3.0 init --here
-npx github:fujiezee/duaer-spec@v0.3.0 duaer init --here
-duaer policy . coach
-duaer job .
+npx duaer-spec@0.4.0 init --here
+# then in Cursor: /duaer-do <ask>
+duaer status
 ```
 
 ## Examples

@@ -1,51 +1,28 @@
 ---
-description: Features and hotfixes must go through Duaer; job handoff before claiming done
+description: Prefer simple /duaer-do; Spec before code; handoff before claiming done
 alwaysApply: true
 ---
 
-# Duaer required (NON-NEGOTIABLE)
+# Duaer (keep it simple)
 
-Treat agents as **digital employees**: assign a Brief (Spec) before code; accept
-via converge; only then claim the **job** is done. See `DUADER.md` and
-`.duaer/memory/constitution.md`.
+Treat agents as digital employees. Prefer **one** everyday command:
 
-If this rule conflicts with root `AGENTS.md` / `docs/agent/` (worktrees, commits,
-Issue/PR), **AGENTS.md wins**.
+`/duaer-do <ask>` → then `duaer status` if needed.
 
-## Handoff policy (job-level, not a repo lock)
+If this conflicts with `AGENTS.md` (worktrees, commits, Issue/PR), **AGENTS.md wins**.
 
-Read `.duaer/delivery-policy.json` (`off` | `coach` | `strict`, default **coach**).
+## Everyday
 
-- This controls whether you may **report the active job complete** — not whether
-  git may commit or merge.
-- Active job: `.duaer/active-job.json` → `feature`, else the latest `.duaer/specs/*`.
-- Check with `duaer job .` before telling the user work is finished.
+1. `/duaer-do` — assign Brief, implement, converge  
+2. Do **not** claim "done" unless the job is accepted (`duaer status`)  
+3. Do **not** make the user chain specify → plan → tasks → implement → converge for normal asks  
 
-| Mode | Agent behavior when active job is not accepted |
-|---|---|
-| `off` | May continue; do not invent an accept stamp |
-| `coach` | Warn; guide to specify / tasks / converge; **do not say "done"** |
-| `strict` | **Refuse** to report delivery complete until `duaer job` shows accepted |
+## When to use step skills
 
-## When Duaer is mandatory
+- `/duaer-specify` only — reshape the Brief  
+- `/duaer-plan` / `/duaer-tasks` — large or architectural work  
+- `/duaer-implement` / `/duaer-converge` — resume mid-job  
 
-Always write/update a feature spec (Brief) before coding for:
+Hotfix: still a short Spec + accept (or `/duaer-do`).
 
-- New features / user-visible behavior
-- Architecture or contract changes
-- Hotfixes / regressions (still Spec; shorter path allowed)
-
-Forbidden: jump from chat to code with no `spec.md` / feature directory under `.duaer/specs/`.
-
-## Default flow
-
-`/duaer-specify` → `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge` → `duaer job`
-
-## Hotfix (still Spec, shortened)
-
-`/duaer-specify` (mark hotfix: symptom / root cause / acceptance) → `/duaer-tasks` → `/duaer-implement` → `/duaer-converge`
-
-- Implement only from `tasks.md` when it exists
-- Update `.duaer/memory/project-context.md` when architecture changes
-- Run the verification named in the feature docs
-- Before claiming done: `duaer job .` shows accepted (coach/strict)
+Forbidden: jump from chat to code with no Spec under `.duaer/specs/`.

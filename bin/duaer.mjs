@@ -2,12 +2,8 @@
 /**
  * duaer — CLI for the duaer-spec delivery OS (digital employees)
  *
- *   duaer init [dir] [--all|--method|--ops] [--force] [--branch <name>]
- *   duaer check [dir] [--workplace|--delivery|--job|--all-jobs|--strict]
- *   duaer job [dir]
- *   duaer policy [dir] [off|coach|strict]
- *   duaer version
- *   duaer help
+ * Everyday:  duaer init | duaer status
+ * Advanced:  check | job | policy | version
  */
 
 import {
@@ -28,46 +24,25 @@ const PKG = JSON.parse(readFileSync(join(PKG_ROOT, 'package.json'), 'utf8'))
 
 const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 
-const USAGE = `duaer — Delivery OS for AI digital employees (duaer-spec ${PKG.version})
+const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
-Job-level handoff (not a repo merge lock). Default policy: coach.
+Everyday:
+  duaer init [--here]     Hire into a project
+  duaer status [dir]      Is the active job accepted?
 
-Usage:
-  duaer init [dir] [options]              Hire / onboard into a project
-  duaer check [dir] [options]             Workplace + active-job handoff
-  duaer job [dir]                         Show the active job status
-  duaer policy [dir] [off|coach|strict]   Show or set handoff policy
-  duaer version                           Print version
-  duaer help                              Show this help
+In Cursor:  /duaer-do <what you want>
 
-Init options:
-  --all          Full hire: agent ops + method (default)
-  --method       Lite: method only
-  --ops          Ops only
-  --force        Overwrite existing managed files
-  --branch <n>   Integration branch for baseline note (default: main)
-  --here         Same as dir=.
+Advanced:
+  duaer check [dir] [--workplace|--job|--all-jobs|--strict]
+  duaer job [dir]                    (same as status)
+  duaer policy [dir] [off|coach|strict]
+  duaer version
 
-Check options:
-  --workplace    Only verify install files
-  --delivery     Alias for active-job handoff report
-  --job          Active job only (default for delivery)
-  --all-jobs     Report every feature under .duaer/specs/
-  --strict       Exit 1 if active job is not accepted (optional)
-  --gate         Deprecated alias for --strict (job handoff, not CI)
-
-Policy modes (stored in .duaer/delivery-policy.json):
-  off     Record only; never fail handoff
-  coach   Default — guide / warn; do not claim "done" until accepted
-  strict  Agents must not report delivery complete until accepted;
-          duaer check exits 1 on unfinished active job
+Init: --all (default) | --method | --ops | --force | --branch <n> | --here
 
 Examples:
   npx duaer-spec init --here
-  duaer job .
-  duaer policy . coach
-  duaer check .
-  duaer check . --strict
+  duaer status
 `
 
 function parseArgs(argv) {
@@ -308,19 +283,12 @@ function cmdInit(opts) {
   }
 
   console.log(`
-Hired.
+Hired. Everyday loop:
 
-Next (digital employee loop — job handoff, not a repo lock):
-  1. Orient  — edit .duaer/memory/constitution.md and project-context.md
-  2. Policy  — duaer policy .   (default coach; optional: off | strict)
-  3. Assign  — /duaer-specify   (sets active job + Brief)
-  4. Work    — /duaer-plan → /duaer-tasks → /duaer-implement
-  5. Accept  — /duaer-converge  (stamps delivery.json)
-  6. Job     — duaer job .      (see if this job can be reported done)
-  7. Ops     — AGENTS.md wins over DUADER.md when they conflict
+  1. In Cursor:  /duaer-do <what you want>
+  2. Optional:   duaer status
 
-No Spec = not assigned. Unaccepted active job = do not claim "done".
-Git merge is not blocked by default.
+That is enough for normal work. Advanced: ADOPT.md / DUADER.md
 `)
 }
 
@@ -566,20 +534,21 @@ function cmdJob(opts) {
   const activeName = resolveActiveJobName(target, features)
   const active = features.find((f) => f.name === activeName) || null
 
-  console.log(`Active job @ ${target}`)
-  console.log(`policy: ${policy.mode}\n`)
+  console.log(`Status @ ${target}`)
   if (!active) {
-    console.log('No active job. Assign with /duaer-specify (writes .duaer/active-job.json).')
+    console.log('No active job yet. In Cursor run: /duaer-do <what you want>')
     return
   }
-  printFeature(active)
   if (active.verdict === 'accepted') {
-    console.log('\nHandoff script: "✅ Job accepted — Brief satisfied per converge; ready for your review."')
+    console.log(`✅ accepted  ${active.name}`)
+    console.log('Ready for your review.')
   } else {
-    console.log('\nHandoff script: "This job is not accepted yet — Spec/tasks/converge still open."')
-    if (policy.mode !== 'off') {
-      console.log('Do not claim delivery complete until duaer job shows accepted.')
-    }
+    console.log(`⏳ not done  ${active.name}`)
+    for (const b of active.blockers) console.log(`   · ${b}`)
+    console.log('Next: /duaer-do (resume) or /duaer-converge')
+  }
+  if (policy.mode === 'strict' && active.verdict !== 'accepted') {
+    console.log('(policy=strict — do not claim done yet)')
   }
 }
 
@@ -628,6 +597,7 @@ function main() {
         cmdCheck(opts)
         break
       case 'job':
+      case 'status':
         cmdJob(opts)
         break
       case 'policy':

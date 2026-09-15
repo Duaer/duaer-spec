@@ -1,78 +1,45 @@
 # Adopt duaer-spec
 
-Onboard a **digital employee**: install the Duaer delivery OS (method) and the
-agent-ops contract. Controllability is **job handoff**, not a git merge lock.
+Install Duaer so agents act like digital employees with a simple everyday loop.
 
-## Recommended: CLI
-
-From the target project (Node 18+):
+## Install
 
 ```bash
 npx duaer-spec init --here
+# pin: npx github:fujiezee/duaer-spec@v0.4.0 duaer init --here
+```
 
-# Pin a release
-npx github:fujiezee/duaer-spec@v0.3.0 duaer init --here
-
-# Lite (method only) / ops only / other integration branch
-npx duaer-spec init --here --method
+```bash
+npx duaer-spec init --here --method          # lite
 npx duaer-spec init --here --ops --branch develop
 ```
 
-From a clone of this repo:
+## Everyday use
 
-```bash
-node bin/duaer.mjs init /path/to/project --all
-node bin/duaer.mjs job /path/to/project
-node bin/duaer.mjs policy /path/to/project
-```
+1. `/duaer-do <ask>` in Cursor  
+2. `duaer status` when you want to see if the job is accepted  
 
-`--force` overwrites managed files.
+No need to learn policy modes or the full skill chain for normal work.
 
-Then:
+## Finer control (optional)
 
-1. **Orient** — edit `.duaer/memory/constitution.md` and `project-context.md`
-2. **Policy** — `duaer policy .` (default `coach`; optional `off` | `strict`)
-3. **Assign → work → accept → handoff** — `/duaer-specify` → … → `/duaer-converge` → `duaer job .`
-
-A job without Spec is not assigned. An unaccepted active job must not be reported
-as done under `coach`/`strict`. Git is not blocked by default.
-
-## Manual copy (optional)
-
-### Agent ops
-
-```bash
-cp AGENTS.md /path/to/project/
-mkdir -p /path/to/project/.cursor/rules /path/to/project/docs/agent
-cp .cursor/rules/agents-workflow.mdc /path/to/project/.cursor/rules/
-cp .cursor/rules/ai-ui-copy.mdc /path/to/project/.cursor/rules/
-cp docs/agent/workflow.md docs/agent/change-checklist.md docs/agent/e2e-test-plan.md \
-  /path/to/project/docs/agent/
-```
-
-### Duaer method
-
-```bash
-rsync -a .duaer/ /path/to/project/.duaer/
-mkdir -p /path/to/project/.cursor/skills /path/to/project/.cursor/rules
-rsync -a .cursor/skills/ /path/to/project/.cursor/skills/
-cp .cursor/rules/duaer-spec.mdc /path/to/project/.cursor/rules/
-cp DUADER.md /path/to/project/
-```
+| Command | When |
+|---|---|
+| `/duaer-specify` | Only write / reshape the Brief |
+| `/duaer-plan` · `/duaer-tasks` | Large or architectural jobs |
+| `/duaer-implement` | Resume coding from `tasks.md` |
+| `/duaer-converge` | Re-check Spec vs code |
+| `duaer policy . strict` | Harder “don’t claim done” (still not a git lock) |
 
 ## Precedence
 
-1. `AGENTS.md` / agent-ops — how employees operate  
+1. `AGENTS.md` — how employees operate  
 2. `DUADER.md` / `.duaer/` — what to build  
-3. Product overlays (do not copy `examples/` blindly)
 
 ## Updates
 
-Re-run `duaer init --force` (review the diff) or pin to a commit/tag. Adopters
-are not auto-updated.
+`duaer init --force` (review the diff) or pin a tag. No auto-update.
 
 ## Do not copy
 
-- `examples/` — samples only
-- `SOURCE.md` — provenance for maintainers
-- `bin/` / `package.json` — only needed if you vendor the CLI itself
+`examples/`, `SOURCE.md`, `bin/` / `package.json` (unless vendoring the CLI)

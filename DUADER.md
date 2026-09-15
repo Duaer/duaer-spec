@@ -1,64 +1,51 @@
 # Duaer methodology
 
-**duaer-spec** owns this method. Treat AI coding agents as **digital employees**:
-you assign a Brief (Spec), they follow a fixed work order, and the **job** only
-counts as done after **converge** accepts it — then `duaer job` shows accepted.
+Treat AI coding agents as **digital employees**. Everyday path is short; the
+full chain exists when you need it.
 
-Artifacts live under `.duaer/`; Cursor skills are `duaer-*` at `.cursor/skills/`.
+**Precedence:** [`AGENTS.md`](AGENTS.md) wins on isolation, commits, Issue/PR.
 
-**Precedence:** root [`AGENTS.md`](AGENTS.md) / [`docs/agent/`](docs/agent/) win
-over anything here for isolation, commits, and Issue/PR gates.
+## Everyday (default)
 
-**Handoff is job-level**, not a repository merge lock. Policy:
-`.duaer/delivery-policy.json` (`off` | `coach` | `strict`, default `coach`).
+```text
+/duaer-do <ask>     →  duaer status
+```
 
-## Read before work
+`/duaer-do` assigns a Brief, implements, converges, and reports handoff.
+Do not require the user to run every phase skill.
 
-1. `.duaer/memory/constitution.md` — process principles
-2. `.duaer/memory/project-context.md` — as-is implementation truth
-3. `.duaer/memory/testing.md` — verification expectations
-4. Active job: `.duaer/active-job.json` → feature under `.duaer/specs/<nnn-slug>/`
+## Full path (optional)
 
-## Standard path
+1. `/duaer-specify` — Brief  
+2. `/duaer-plan` — when architecture/contracts change  
+3. `/duaer-tasks` — explicit checkbox breakdown  
+4. `/duaer-implement` — code from tasks  
+5. `/duaer-converge` — accept stamp (`delivery.json`)  
+6. `duaer status` — may we claim this job done?
 
-**Full (recommended):**
+Hotfix: short Spec → tasks → implement → converge (or just `/duaer-do`).
 
-1. `/duaer-constitution` — only when principles change
-2. `/duaer-specify` — **Assign**: Brief + set `active-job.json`
-3. `/duaer-clarify` — optional
-4. `/duaer-plan` — technical plan aligned with project-context
-5. `/duaer-checklist` — optional quality checklist
-6. `/duaer-tasks` — checkbox task breakdown
-7. `/duaer-analyze` — optional consistency check
-8. `/duaer-implement` — implement tasks only
-9. `/duaer-converge` — **Accept**: compare to Spec; write `delivery.json`
-10. `duaer job .` — **Handoff**: may this job be reported done?
-
-**Small feature:** specify → plan → tasks → implement → converge → `duaer job`  
-
-**Hotfix:** specify (mark hotfix) → tasks → implement → converge → `duaer job`  
-Never skip specify (assign) or converge (accept). Under coach/strict, never claim
-"done" while `duaer job` is unfinished.
+Never skip a Brief or an accept step. Under default **coach** policy, do not
+claim "done" while `duaer status` is unfinished. This is **job handoff**, not a
+git merge lock.
 
 ## Install
 
 ```bash
 npx duaer-spec init --here
-duaer policy . coach
 ```
 
-Or see [`ADOPT.md`](ADOPT.md).
+See [`ADOPT.md`](ADOPT.md).
 
-## Feature directory shape
+## Layout
 
 ```text
-.duaer/delivery-policy.json
-.duaer/active-job.json
+.duaer/delivery-policy.json   # default coach — usually ignore
+.duaer/active-job.json        # current job
 .duaer/specs/<nnn-slug>/
-  spec.md         # Brief
-  plan.md
+  spec.md
   tasks.md
-  delivery.json   # accepted | open
+  delivery.json
 ```
 
 ## Related

@@ -1,85 +1,51 @@
 # duaer-spec
 
-**Duaer** is a delivery operating system for AI coding agents treated as
-**digital employees**.
+**Duaer** makes AI coding agents work like digital employees: assign a job,
+get a controllable handoff — without a rigid git lock.
 
-Agents write the code. Duaer makes the **job handoff controllable**: every job
-has a Brief (Spec), follows a fixed work order, and only counts as done when
-that **job** is accepted — not after a lucky chat.
-
-Cursor is the labor. Duaer is hire → assign → accept.  
-**Not** a git merge lock. Controllability is job etiquette + optional strictness.
-
-## Install (onboard the employee)
+## Everyday (this is enough)
 
 ```bash
 npx duaer-spec init --here
-# or pin: npx github:fujiezee/duaer-spec@v0.3.0 duaer init --here
 ```
+
+In Cursor, one command:
+
+```text
+/duaer-do <what you want built or fixed>
+```
+
+See if the job can be reported done:
 
 ```bash
-npx duaer-spec init --here --method
-npx duaer-spec init --here --ops --branch develop
+duaer status
 ```
+
+That’s the whole loop: **hire → do → status**.
+
+## What `/duaer-do` does
+
+1. Writes a short Brief (Spec)  
+2. Implements it  
+3. Checks against the Brief and stamps accept / still-open  
+
+You do **not** need to chain specify → plan → tasks → implement → converge
+for normal work. Those remain available when you want finer control.
+
+## Optional
 
 ```bash
-duaer policy .          # default: coach
-duaer job .             # active job handoff status
-duaer check .
+duaer status          # active job: accepted or not
+npx duaer-spec@0.4.0 init --here --method   # method only
 ```
 
-Details: [`ADOPT.md`](ADOPT.md)
-
-## How you run them
-
-| Step | Meaning | Command |
-|---|---|---|
-| **Hire** | Install SOP into the project | `duaer init` |
-| **Assign** | Brief + set active job | `/duaer-specify` |
-| **Work** | Plan, break down, implement | `/duaer-plan` → `/duaer-tasks` → `/duaer-implement` |
-| **Accept** | Converge stamps `delivery.json` | `/duaer-converge` |
-| **Handoff** | See if this job may be reported done | `duaer job .` |
-
-### Policy (job-level)
-
-Stored in `.duaer/delivery-policy.json`:
-
-| Mode | Behavior |
-|---|---|
-| `off` | Record only |
-| `coach` | **Default** — guide; do not claim "done" until accepted |
-| `strict` | Refuse to report done; `duaer check --strict` exits 1 on unfinished job |
-
-Scope is the **active job** (`.duaer/active-job.json`), not every historical feature.
-Git commit/merge is never blocked by default.
+Advanced (policy, full check, step-by-step skills): [`ADOPT.md`](ADOPT.md) · [`DUADER.md`](DUADER.md)
 
 ## Two layers
 
-| Layer | Role | Where |
-|---|---|---|
-| **Agent ops** | How the employee may operate | [`AGENTS.md`](AGENTS.md), [`docs/agent/`](docs/agent/) |
-| **Duaer method** | What to build | [`DUADER.md`](DUADER.md), [`.duaer/`](.duaer/), skills |
+| Layer | Role |
+|---|---|
+| **Agent ops** | How agents may operate — [`AGENTS.md`](AGENTS.md) |
+| **Duaer method** | How jobs are briefed and accepted — [`.duaer/`](.duaer/), skills |
 
 When they conflict, **agent ops win**.
-
-## Default loop
-
-```text
-constitution → specify → plan → tasks → implement → converge → duaer job
-```
-
-Slash skills: `/duaer-specify`, `/duaer-plan`, `/duaer-tasks`, `/duaer-implement`,
-`/duaer-converge`, …
-
-## Layout
-
-```text
-bin/duaer.mjs                  CLI (init | check | job | policy | version)
-.duaer/delivery-policy.json    off | coach | strict
-.duaer/active-job.json         current job pointer
-.duaer/specs/<feature>/        Brief + tasks + delivery.json
-```
-
-## Learn more
-
-Method: [`DUADER.md`](DUADER.md) · Agent ops: [`AGENTS.md`](AGENTS.md)
