@@ -1,13 +1,12 @@
 name: Publish npm package
 
-# Requires Trusted Publisher on npmjs.com for this package:
+# Requires Trusted Publisher on npmjs.com:
 #   Package → Settings → Trusted Publisher → GitHub Actions
-#   User/org: fujiezee
-#   Repository: duaer-spec
-#   Workflow filename: npm-publish.yml   ← filename only
-#   Allowed actions: npm publish
+#   User/org: fujiezee | Repository: duaer-spec
+#   Workflow filename: npm-publish.yml
+#   Allowed actions: include "npm publish" (not stage-only)
 #
-# No NPM_TOKEN secret needed when Trusted Publishing is configured.
+# Needs npm CLI >= 11.5.1 for OIDC Trusted Publishing.
 
 on:
   release:
@@ -28,12 +27,19 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          # Trusted Publishing needs recent npm (bundled with Node 22.14+)
           node-version: '22'
-          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
 
-      - name: Show tooling
-        run: node -v && npm -v
+      - name: Upgrade npm for Trusted Publishing
+        run: |
+          npm install -g npm@11
+          node -v
+          npm -v
 
       - name: Publish (OIDC Trusted Publishing)
-        run: npm publish --access public --registry https://registry.npmjs.org/
+        run: |
+          # setup-node may write an empty _authToken placeholder that blocks OIDC
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            sed -i '/_authToken/d' "$NPM_CONFIG_USERCONFIG" || true
+          fi
+          npm publish --access public --registry https://registry.npmjs.org/

@@ -50,9 +50,12 @@ Release 发布后，workflow 会自动 `npm publish`。
 
 | 现象 | 原因 |
 |---|---|
-| 404 / ENEEDAUTH | 网站上 workflow 文件名写错，或还没 Save Trusted Publisher |
+| `ENEEDAUTH` | ① Actions 里 npm &lt; 11.5.1（本仓库已强制升到 npm@11）；② 网站上 workflow 文件名写错；③ Trusted Publisher 的 Allowed actions 只勾了 stage、没勾 **npm publish** |
+| 404 | 配置未 Save，或 repository / 用户名大小写不一致 |
 | OIDC 相关错误 | 工作流缺 `id-token: write` |
-| 旧 npm | Node 太旧；保持 Node 22+ |
+| `cannot publish over existing version` | **鉴权已成功**，只是版本号已存在；下次先 bump `package.json` 再发 |
+
+npm 官方要求：**Node ≥ 22.14** 且 **npm CLI ≥ 11.5.1**。
 
 ## 5. 和 token 的关系
 
