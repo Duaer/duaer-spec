@@ -78,7 +78,8 @@ function syncConfirmEnabled() {
 function addBubble(role, text, { options } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
-  div.appendChild(document.createTextNode(text));
+  const textNode = document.createTextNode(text);
+  div.appendChild(textNode);
   if (options?.length) {
     const row = document.createElement("div");
     row.className = "options";
@@ -97,6 +98,133 @@ function addBubble(role, text, { options } = {}) {
   }
   el.log.appendChild(div);
   el.log.scrollTop = el.log.scrollHeight;
+  return { div, textNode };
+}
+
+function startStreamingBubble() {
+  const { div, textNode } = addBubble("bot", "");
+  div.classList.add("streaming");
+  return {
+    append(chunk) {
+      textNode.textContent += chunk;
+      el.log.scrollTop = el.log.scrollHeight;
+    },
+    set(text) {
+      textNode.textContent = text;
+      el.log.scrollTop = el.log.scrollHeight;
+    },
+    finish(options) {
+      div.classList.remove("streaming");
+      if (!options?.length) return;
+      const row = document.createElement("div");
+      row.className = "options";
+      for (const opt of options) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip";
+        b.textContent = opt;
+        b.addEventListener("click", () => {
+          el.input.value = opt;
+          el.form.requestSubmit();
+        });
+        row.appendChild(b);
+      }
+      div.appendChild(row);
+      el.log.scrollTop = el.log.scrollHeight;
+    },
+  };
+}
+
+async function readChatStream(res, onEvent) {
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const chunks = buffer.split("\n\n");
+    buffer = chunks.pop() || "";
+    for (const block of chunks) {
+      const line = block
+        .split("\n")
+        .map((l) => l.trim())
+        .find((l) => l.startsWith("data:"));
+      if (!line) continue;
+      const raw = line.slice(5).trim();
+      if (!raw) continue;
+      try {
+        onEvent(JSON.parse(raw));
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
+async function sendChat(userText) {
+  state.messages.push({ role: "user", content: userText });
+  addBubble("user", userText);
+  if (!state.rawAsk) state.rawAsk = userText;
+
+  state.busy = true;
+  el.send.disabled = true;
+  const streamBubble = startStreamingBubble();
+  try {
+    const history = state.messages.slice(-16);
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: history,
+        card: cardValues(),
+        stream: true,
+      }),
+    });
+    const ctype = res.headers.get("content-type") || "";
+    if (!res.ok && !ctype.includes("text/event-stream")) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "对话失败");
+    }
+
+    if (ctype.includes("text/event-stream") && res.body) {
+      let final = null;
+      let streamError = null;
+      await readChatStream(res, (evt) => {
+        if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
+        else if (evt.type === "done") final = evt;
+        else if (evt.type === "error") {
+          streamError = new Error(evt.error || "对话失败");
+        }
+      });
+      if (streamError) throw streamError;
+      if (!final) throw new Error("流式响应不完整");
+      applyCard(final);
+      if (final.reply) streamBubble.set(final.reply);
+      streamBubble.finish(final.options);
+      state.messages.push({ role: "assistant", content: final.reply });
+      if (final.ready) {
+        addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
+      }
+    } else {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "对话失败");
+      applyCard(data);
+      streamBubble.set(data.reply || "");
+      streamBubble.finish(data.options);
+      state.messages.push({ role: "assistant", content: data.reply });
+      if (data.ready) {
+        addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
+      }
+    }
+  } catch (err) {
+    state.messages.pop();
+    streamBubble.set(`出错：${err instanceof Error ? err.message : err}`);
+    streamBubble.finish();
+  } finally {
+    state.busy = false;
+    el.send.disabled = false;
+  }
 }
 
 function applyCard(data) {
@@ -200,40 +328,6 @@ el.saveCfg.addEventListener("click", async () => {
     el.cfgErr.textContent = err instanceof Error ? err.message : String(err);
   }
 });
-
-async function sendChat(userText) {
-  state.messages.push({ role: "user", content: userText });
-  addBubble("user", userText);
-  if (!state.rawAsk) state.rawAsk = userText;
-
-  state.busy = true;
-  el.send.disabled = true;
-  try {
-    const history = state.messages.slice(-16);
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        messages: history,
-        card: cardValues(),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "对话失败");
-    applyCard(data);
-    state.messages.push({ role: "assistant", content: data.reply });
-    addBubble("bot", data.reply, { options: data.options });
-    if (data.ready) {
-      addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
-    }
-  } catch (err) {
-    state.messages.pop();
-    addBubble("bot", `出错：${err instanceof Error ? err.message : err}`);
-  } finally {
-    state.busy = false;
-    el.send.disabled = false;
-  }
-}
 
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();

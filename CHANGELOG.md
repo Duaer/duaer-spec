@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live streaming chat
+
+- Dialogue replies stream over SSE (`/api/chat`); text appears token-by-token before the confirm card updates
+
 ### Live auto-accept
 
 - Confirm runs model auto-accept of the four-block card; fail returns issues without writing Brief

@@ -246,10 +246,15 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 规则：
 1. 每次只问 1 个最关键的卡点问题（可给 2～4 个选项建议）。
 2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
-3. 四块够清楚、验收可检查时，set ready=true，并给一句请用户确认的话。
+3. 四块够清楚、验收可检查时，ready=true。
 4. 不要写代码。不要假设用户仓库路径。
-5. 必须只输出一个 JSON 对象，不要 markdown 围栏：
-{"reply":"对用户说的话","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+5. 输出格式（严格）：
+   - 先写对用户说的纯文本（可多行，不要 JSON）
+   - 然后单独一行：<<<JSON>>>
+   - 再输出一个 JSON 对象（不要 markdown 围栏）：
+{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+
+const CHAT_JSON_MARKER = "<<<JSON>>>";
 
 const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。请自动验收这份需求。
 
@@ -297,6 +302,58 @@ async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   return content;
 }
 
+async function* streamChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
+  const base = cfg.baseUrl.replace(/\/$/, "");
+  const url = `${base}/chat/completions`;
+  const body = {
+    model: cfg.model,
+    temperature: 0.3,
+    stream: true,
+    messages: [{ role: "system", content: systemPrompt }, ...messages],
+  };
+  if (inferProviderId(cfg) === "deepseek") {
+    body.thinking = { type: "disabled" };
+  }
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${cfg.apiKey}`,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const json = await res.json().catch(() => ({}));
+    const msg =
+      json?.error?.message || json?.message || `HTTP ${res.status}`;
+    throw new Error(`模型调用失败：${msg}`);
+  }
+  if (!res.body) throw new Error("模型未返回流");
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n");
+    buffer = parts.pop() || "";
+    for (const line of parts) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data:")) continue;
+      const data = trimmed.slice(5).trim();
+      if (!data || data === "[DONE]") continue;
+      try {
+        const json = JSON.parse(data);
+        const delta = json?.choices?.[0]?.delta?.content;
+        if (typeof delta === "string" && delta) yield delta;
+      } catch {
+        // ignore malformed SSE chunks
+      }
+    }
+  }
+}
+
 function parseModelJson(content) {
   let text = content.trim();
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -308,9 +365,27 @@ function parseModelJson(content) {
 }
 
 function parseChatResult(content) {
-  const obj = parseModelJson(content);
+  const raw = String(content || "");
+  const markerIdx = raw.indexOf(CHAT_JSON_MARKER);
+  let reply = "";
+  let obj = {};
+  if (markerIdx >= 0) {
+    reply = raw.slice(0, markerIdx).trim();
+    try {
+      obj = parseModelJson(raw.slice(markerIdx + CHAT_JSON_MARKER.length));
+    } catch {
+      obj = {};
+    }
+  } else {
+    try {
+      obj = parseModelJson(raw);
+      reply = String(obj.reply || "").trim();
+    } catch {
+      reply = raw.trim();
+    }
+  }
   return {
-    reply: String(obj.reply || "").trim() || "请继续补充。",
+    reply: reply || "请继续补充。",
     goal: String(obj.goal || "").trim(),
     outOfScope: String(obj.outOfScope || "").trim(),
     acceptance: String(obj.acceptance || "").trim(),
@@ -320,6 +395,57 @@ function parseChatResult(content) {
       ? obj.options.map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
       : [],
   };
+}
+
+function writeSse(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+async function streamChatResponse(cfg, messages, res) {
+  res.writeHead(200, {
+    "content-type": "text/event-stream; charset=utf-8",
+    "cache-control": "no-cache, no-transform",
+    connection: "keep-alive",
+  });
+  let full = "";
+  let emitted = 0;
+  let inJson = false;
+  try {
+    for await (const chunk of streamChatModel(cfg, messages)) {
+      full += chunk;
+      if (inJson) continue;
+      const markerIdx = full.indexOf(CHAT_JSON_MARKER);
+      if (markerIdx >= 0) {
+        inJson = true;
+        const reply = full.slice(0, markerIdx);
+        if (reply.length > emitted) {
+          writeSse(res, { type: "delta", text: reply.slice(emitted) });
+          emitted = reply.length;
+        }
+        continue;
+      }
+      const hold = CHAT_JSON_MARKER.length - 1;
+      const safeLen = Math.max(0, full.length - hold);
+      if (safeLen > emitted) {
+        writeSse(res, { type: "delta", text: full.slice(emitted, safeLen) });
+        emitted = safeLen;
+      }
+    }
+    const parsed = parseChatResult(full);
+    if (!inJson && parsed.reply && emitted < parsed.reply.length) {
+      writeSse(res, {
+        type: "delta",
+        text: parsed.reply.slice(emitted),
+      });
+    }
+    writeSse(res, { type: "done", ...parsed });
+  } catch (err) {
+    writeSse(res, {
+      type: "error",
+      error: err instanceof Error ? err.message : "chat failed",
+    });
+  }
+  res.end();
 }
 
 function parseAcceptResult(content, fallback) {
@@ -561,8 +687,13 @@ async function handleApi(req, res) {
       const card = body.card && typeof body.card === "object" ? body.card : {};
       messages.push({
         role: "user",
-        content: `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话并返回 JSON。`,
+        content: `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`,
       });
+      const wantStream = body.stream !== false;
+      if (wantStream) {
+        await streamChatResponse(cfg, messages, res);
+        return;
+      }
       const result = await callChatModel(cfg, messages);
       send(res, 200, parseChatResult(result));
     } catch (err) {

@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-15T11:35:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["node --check bin/duaer-live.mjs", "parseChatResult marker smoke"],
+    "result": "pass"
+  }
+}
