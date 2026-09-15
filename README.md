@@ -26,7 +26,9 @@ docs/
   agent/                  Workflow + change checklist + E2E template
 kit/                      Portable Spec Kit drop-in
 examples/                 Optional product overlays (not defaults)
-vendor/github-spec-kit/   Official Spec Kit docs/templates snapshot
+vendor/github-spec-kit/   Official Spec Kit docs/templates snapshot (synced)
+scripts/                  Maintainer tooling (upstream Spec Kit sync)
+docs/maintaining.md       How to refresh Spec Kit and promote into kit/
 SOURCE.md                 Historical provenance only
 ```
 
@@ -48,3 +50,5 @@ Spec Kit loop: **specify → plan → tasks → implement → converge**
 Hotfix: **specify (hotfix) → tasks → implement → converge**
 
 Details: [`kit/SPECKIT.md`](kit/SPECKIT.md) · Official upstream: https://github.com/github/spec-kit
+
+Keep Spec Kit fresh: [`docs/maintaining.md`](docs/maintaining.md) (weekly CI + `node scripts/sync-upstream-spec-kit.mjs`).

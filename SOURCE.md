@@ -18,8 +18,11 @@ surfaces, Electron suite names) were removed for the standalone package.
 | Item | Origin | Location here |
 |---|---|---|
 | Portable scaffold / skills | Generalized Spec Kit + Cursor skills | `kit/` |
-| Official Spec Kit snapshot | https://github.com/github/spec-kit | `vendor/github-spec-kit/` |
+| Official Spec Kit snapshot | https://github.com/github/spec-kit | `vendor/github-spec-kit/` (see `docs/maintaining.md`) |
 | Optional product overlay sample | Third-party product conventions | `examples/dianwu-flow/` |
+
+Refresh vendor with `node scripts/sync-upstream-spec-kit.mjs` or the weekly
+GitHub Action. Promoting into `kit/` is intentional and separate.
 
 ## Precedence
 

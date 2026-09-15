@@ -48,6 +48,10 @@ This repository tracks standards on `main`. When adopting, pin to a commit or
 tag if you need a frozen snapshot; otherwise periodically pull updates and
 reconcile overrides in the product baseline.
 
+Upstream Spec Kit snapshots in `vendor/` are refreshed weekly (see
+[docs/maintaining.md](docs/maintaining.md)). Re-copy `kit/` into product repos
+when you intentionally want those updates — adopters are not auto-updated.
+
 ## 5. What not to copy
 
 - `examples/` — product-specific samples only

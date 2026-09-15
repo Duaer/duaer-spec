@@ -52,3 +52,6 @@ uvx --from git+https://github.com/github/spec-kit.git specify init --here
 
 CLI: `specify` (`uv tool install specify-cli` or via `uvx`). Verify with
 `specify version` / `specify check`.
+
+Upstream refresh for maintainers of this package:
+[docs/maintaining.md](../docs/maintaining.md).
