@@ -9,6 +9,7 @@
   },
   "files": [
     "bin",
+    "web",
     ".duaer",
     ".cursor",
     ".claude",
@@ -61,6 +62,7 @@
   ],
   "license": "MIT",
   "scripts": {
-    "duaer": "node ./bin/duaer.mjs"
+    "duaer": "node ./bin/duaer.mjs",
+    "live": "node ./bin/duaer-live.mjs"
   }
 }

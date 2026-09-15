@@ -33,6 +33,17 @@ npx duaer-spec update
 
 合并后：`duaer handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.duaer/handoff.json`）。
 
+## 现场开发（网页确认台）
+
+在**已 init 的业务仓库**根目录：
+
+```bash
+npx duaer-spec live
+# 或：npm run live（在 duaer-spec 本仓）
+```
+
+浏览器打开提示的地址。多轮对话弄清需求 → 改确认卡四块 → 点「需求无误，开始干活」会写入 `.duaer/specs/`，并给出可复制给数字员工的开工说明。
+
 ### 目录不要同名套娃
 
 Worktree 是整仓副本，Brief 在仓库内的 `.duaer/specs/`：

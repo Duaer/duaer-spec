@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>现场开发</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <header class="top">
+      <p class="brand">现场开发</p>
+      <p class="tag">对话弄清 → 确认卡 → 数字员工干活</p>
+    </header>
+
+    <main class="layout">
+      <section class="panel chat-panel" aria-label="对话">
+        <div id="log" class="log"></div>
+        <form id="composer" class="composer">
+          <label class="sr-only" for="input">你的话</label>
+          <textarea
+            id="input"
+            rows="2"
+            placeholder="先随便说你想做什么…"
+            autocomplete="off"
+          ></textarea>
+          <button type="submit" class="btn primary" id="send">发送</button>
+        </form>
+      </section>
+
+      <section class="panel card-panel" aria-label="确认卡">
+        <h2 class="card-title">确认卡</h2>
+        <label class="field">
+          <span>要做什么</span>
+          <textarea id="goal" rows="3" placeholder="待确认"></textarea>
+        </label>
+        <label class="field">
+          <span>不做什么</span>
+          <textarea id="outOfScope" rows="2" placeholder="待确认"></textarea>
+        </label>
+        <label class="field">
+          <span>验收标准</span>
+          <textarea id="acceptance" rows="3" placeholder="待确认"></textarea>
+        </label>
+        <label class="field">
+          <span>假设</span>
+          <textarea id="assumptions" rows="2" placeholder="待确认"></textarea>
+        </label>
+        <p id="lockHint" class="hint">四块齐了才能确认。确认前数字员工不会开工。</p>
+        <button type="button" class="btn confirm" id="confirm" disabled>
+          需求无误，开始干活
+        </button>
+        <pre id="result" class="result" hidden></pre>
+      </section>
+    </main>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
