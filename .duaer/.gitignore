@@ -1,9 +1,10 @@
 # Machine-local Duaer state — not meant to be shared.
-# Managed by the Specify CLI; safe to edit (your changes are preserved on refresh).
 
-# Local pointer to the current feature directory. Rewritten every time you
-# switch features, so it is per-checkout state rather than something to share.
+# Local pointer to the current feature directory. Rewritten when you switch features.
 feature.json
+
+# Written by `duaer init` in adopting projects (optional to commit there).
+duaer-init.json
 
 # Per-machine extension config overrides.
 extensions/*/local-config.yml

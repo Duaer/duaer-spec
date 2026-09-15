@@ -7,6 +7,21 @@ Issue/PR gates.
 Not a wrapper around another toolkit. The method, directories, skills, and rules
 in this repository **are** duaer-spec.
 
+## Install into a project
+
+```bash
+npx github:fujiezee/duaer-spec duaer init --here
+```
+
+```bash
+# method only / ops only / other integration branch
+npx github:fujiezee/duaer-spec duaer init --here --method
+npx github:fujiezee/duaer-spec duaer init --here --ops --branch develop
+```
+
+Verify: `npx github:fujiezee/duaer-spec duaer check .`  
+Details: [`ADOPT.md`](ADOPT.md)
+
 ## Two layers
 
 | Layer | Role | Where |
@@ -31,17 +46,17 @@ Slash skills: `/duaer-specify`, `/duaer-plan`, `/duaer-tasks`, `/duaer-implement
 ## Layout
 
 ```text
+bin/duaer.mjs             CLI (duaer init | check | version)
+package.json              npm package metadata
 AGENTS.md                 Agent-ops contract
 DUADER.md                 Methodology conventions
-ADOPT.md                  Install into another repository
-LICENSE                   MIT
+ADOPT.md                  Install guide
 .duaer/                   Memory, templates, workflows, scripts
 .cursor/rules/            Agent-ops + Duaer rules
 .cursor/skills/           duaer-* skills
 docs/agent/               Workflow detail + checklists
 docs/maintaining.md       How maintainers evolve the method
 examples/                 Optional product overlays (not defaults)
-SOURCE.md                 Historical provenance only
 ```
 
 ## Defaults (this repo)
@@ -50,7 +65,6 @@ SOURCE.md                 Historical provenance only
 - One request → one branch + one worktree → merge → delete worktree
 - Push only when explicitly requested
 
-## Quick start
+## Learn more
 
-Copy into a project: see [`ADOPT.md`](ADOPT.md).  
-Method details: [`DUADER.md`](DUADER.md).
+Method: [`DUADER.md`](DUADER.md) · Agent ops: [`AGENTS.md`](AGENTS.md)

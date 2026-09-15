@@ -34,8 +34,12 @@ Never skip specify or converge.
 
 ## Install
 
-See [`ADOPT.md`](ADOPT.md). There is no third-party `specify` CLI dependency —
-install by copying this repository's method files into the target project.
+```bash
+npx github:fujiezee/duaer-spec duaer init --here
+```
+
+Or see [`ADOPT.md`](ADOPT.md). No third-party Spec CLI is required — `duaer`
+installs this repository's method files into the target project.
 
 ## Feature directory shape
 

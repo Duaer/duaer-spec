@@ -19,8 +19,15 @@ when a phase's contract changes.
 
 ## Releases
 
-Tag meaningful snapshots (`v0.x.y`) when adopters should pin. Summarize method
-deltas in the tag/release notes (phases, paths, breaking renames).
+Tag meaningful snapshots (`v0.x.y`) when adopters should pin. Bump
+`package.json` `version` with the tag. Summarize method deltas in the
+tag/release notes (phases, paths, breaking renames).
+
+Publish path for adopters:
+
+```bash
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+```
 
 ## Examples
 

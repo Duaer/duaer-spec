@@ -1,0 +1,44 @@
+{
+  "name": "duaer-spec",
+  "version": "0.1.0",
+  "description": "Duaer Spec-Driven Development methodology + agent ops for AI coding agents",
+  "type": "module",
+  "bin": {
+    "duaer": "./bin/duaer.mjs"
+  },
+  "files": [
+    "bin",
+    ".duaer",
+    ".cursor",
+    "AGENTS.md",
+    "DUADER.md",
+    "ADOPT.md",
+    "docs/agent",
+    "docs/baseline.md",
+    "LICENSE",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fujiezee/duaer-spec.git"
+  },
+  "bugs": {
+    "url": "https://github.com/fujiezee/duaer-spec/issues"
+  },
+  "homepage": "https://github.com/fujiezee/duaer-spec#readme",
+  "keywords": [
+    "duaer",
+    "spec-driven",
+    "agents",
+    "cursor",
+    "ai-engineering",
+    "methodology"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "duaer": "node ./bin/duaer.mjs"
+  }
+}
