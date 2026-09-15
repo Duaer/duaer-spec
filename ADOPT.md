@@ -8,12 +8,15 @@ repository.
 From the target project (Node 18+):
 
 ```bash
-npx github:fujiezee/duaer-spec duaer init --here
-# or method / ops only:
-npx github:fujiezee/duaer-spec duaer init --here --method
-npx github:fujiezee/duaer-spec duaer init --here --ops
-# integration branch other than main:
-npx github:fujiezee/duaer-spec duaer init --here --branch develop
+# GitHub pin
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+
+# npm (after publish)
+npx duaer-spec init --here
+
+# method only / ops only / other integration branch
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here --method
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here --ops --branch develop
 ```
 
 From a clone of this repo:

@@ -4,7 +4,8 @@
   "description": "Duaer Spec-Driven Development methodology + agent ops for AI coding agents",
   "type": "module",
   "bin": {
-    "duaer": "./bin/duaer.mjs"
+    "duaer": "./bin/duaer.mjs",
+    "duaer-spec": "./bin/duaer.mjs"
   },
   "files": [
     "bin",
@@ -13,11 +14,15 @@
     "AGENTS.md",
     "DUADER.md",
     "ADOPT.md",
+    "CHANGELOG.md",
     "docs/agent",
     "docs/baseline.md",
     "LICENSE",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18"
   },

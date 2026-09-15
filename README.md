@@ -10,7 +10,11 @@ in this repository **are** duaer-spec.
 ## Install into a project
 
 ```bash
-npx github:fujiezee/duaer-spec duaer init --here
+# GitHub (available now)
+npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+
+# npm (after the package is published)
+npx duaer-spec init --here
 ```
 
 ```bash

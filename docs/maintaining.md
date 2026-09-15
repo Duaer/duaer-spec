@@ -19,14 +19,20 @@ when a phase's contract changes.
 
 ## Releases
 
-Tag meaningful snapshots (`v0.x.y`) when adopters should pin. Bump
-`package.json` `version` with the tag. Summarize method deltas in the
-tag/release notes (phases, paths, breaking renames).
+1. Bump `package.json` `version` and add a [`CHANGELOG.md`](../CHANGELOG.md) section
+2. Commit, merge to `main`
+3. Tag `vX.Y.Z` and push the tag
+4. Create a GitHub Release from the tag (notes from CHANGELOG)
+5. npm publish:
+   - One-shot: `npm login` then `npm publish --access public`
+   - Or set repo secret `NPM_TOKEN` and publish via
+     `.github/workflows/npm-publish.yml` (runs on Release published)
 
-Publish path for adopters:
+Adopter install paths:
 
 ```bash
 npx github:fujiezee/duaer-spec@v0.1.0 duaer init --here
+npx duaer-spec@0.1.0 init --here   # after npm publish
 ```
 
 ## Examples
