@@ -31,6 +31,7 @@ the table for their app.
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
 | E2E-006 | `duaer-do` skill describes agent-triggered loop | manual |
+| E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 
 ## Traceability
 
@@ -42,3 +43,4 @@ the table for their app.
 | E2E-004 | policy coach | Handoff etiquette |
 | E2E-005 | `delivery.json` | Accept stamp |
 | E2E-006 | `duaer-do` | Internal playbook |
+| E2E-007 | `.worktree/` + `.gitignore` | Mandatory isolation |
