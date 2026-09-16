@@ -1117,13 +1117,13 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "后台自动开工（agent -p --force）",
+    hint: "后台自动开工 + 打开该 worktree",
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
-    hint: "后台自动开工（claude --bg）",
+    hint: "后台自动开工 + 尽量打开 worktree",
   },
   {
     id: "cursor",
@@ -1369,8 +1369,11 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    // Non-interactive: -p prints/runs without waiting for terminal input.
-    // Do NOT open Cursor IDE here — empty IDE looks like "waiting for user".
+    // Non-interactive background run + open the named worktree in Cursor
+    // so the user can watch/operate the same folder the agent is editing.
+    if (whichCmd("cursor")) {
+      openEditor("cursor", worktreePath, outLog);
+    }
     const agentBin = whichCmd("agent");
     const cmd = agentBin ? agentBin : "cursor";
     const args = agentBin
@@ -1391,10 +1394,18 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
       logPath: outLog,
     });
     launch.mode = "background";
+    launch.openedWorktree = true;
     launch.command = agentBin
       ? "agent -p --force --trust"
       : "cursor agent -p --force --trust";
   } else if (id === "claude") {
+    if (whichCmd("cursor")) {
+      openEditor("cursor", worktreePath, outLog);
+      launch.openedWorktree = true;
+    } else if (whichCmd("code")) {
+      openEditor("code", worktreePath, outLog);
+      launch.openedWorktree = true;
+    }
     launch.pid = spawnBackgroundWorker({
       cmd: "claude",
       args: ["--bg", prompt],

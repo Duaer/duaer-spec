@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live open worktree on auto-start
+
+- Cursor Agent / Claude dispatch also opens the named product worktree in Cursor (or VS Code) for watch/operate, while the agent still runs non-interactively in the background
+
 ### Live agent auto-run (fix)
 
 - Cursor Agent / Claude launch non-interactively (`agent -p --force`, `claude --bg`) so dispatch does not wait for user input in Terminal/IDE

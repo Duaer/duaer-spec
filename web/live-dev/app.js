@@ -682,7 +682,9 @@ el.doDispatch.addEventListener("click", async () => {
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 开工说明（备用） ——\n${data.agentPrompt}`;
     const who =
       launch.mode === "background"
-        ? `已后台自动开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}）——无需再在 Cursor/终端里输入`
+        ? `已后台自动开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}）${
+            launch.openedWorktree ? "，并已用 Cursor 打开该 worktree" : ""
+          }——无需再在输入框里敲任务`
         : launch.agentId && launch.agentId !== "none"
           ? `已用 ${launch.label || launch.agentId} 处理`
           : "已派工；选 Cursor Agent / Claude 才会自动开工";
