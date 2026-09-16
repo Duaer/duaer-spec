@@ -520,6 +520,65 @@ input:focus {
   max-width: 14rem;
 }
 
+.progress-panel {
+  margin-top: 0.85rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.progress-summary {
+  margin: 0 0 0.55rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.progress-tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.progress-tasks li {
+  font-size: 0.8rem;
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+  color: var(--mute);
+}
+
+.progress-tasks li[data-done="true"] {
+  color: var(--ink);
+}
+
+.progress-tasks li .mark {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  min-width: 1.1rem;
+}
+
+.progress-tasks li[data-current="true"] {
+  color: var(--lock);
+  font-weight: 600;
+}
+
+.progress-log {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.6rem;
+  max-height: 120px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--mute);
+  background: rgba(0, 0, 0, 0.04);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .setup-panel {
   position: relative;
   z-index: 1;

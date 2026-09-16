@@ -66,6 +66,10 @@ const el = {
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
+  dispatchProgress: document.getElementById("dispatchProgress"),
+  progressSummary: document.getElementById("progressSummary"),
+  progressTasks: document.getElementById("progressTasks"),
+  progressLog: document.getElementById("progressLog"),
 };
 
 function cardValues() {
@@ -688,8 +692,9 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchStatus.hidden = false;
     el.dispatchStatus.textContent =
       launch.kind === "worker"
-        ? "数字员工已启动 · 等待 stamp delivery.json…"
-        : "等待数字员工 stamp delivery.json…";
+        ? "数字员工已启动 · 监听 tasks.md 进度…"
+        : "等待数字员工 · 监听 tasks.md 进度…";
+    if (el.dispatchProgress) el.dispatchProgress.hidden = false;
     startStatusPoll();
   } catch (err) {
     el.doDispatch.disabled = false;
@@ -702,29 +707,79 @@ el.doDispatch.addEventListener("click", async () => {
   }
 });
 
+function renderProgress(data) {
+  if (!el.dispatchProgress) return;
+  const progress = data.progress;
+  if (!progress) {
+    el.dispatchProgress.hidden = true;
+    return;
+  }
+  el.dispatchProgress.hidden = false;
+  if (el.progressSummary) {
+    el.progressSummary.textContent = `${progress.done}/${progress.total} · ${progress.current || ""}`;
+  }
+  if (el.progressTasks) {
+    el.progressTasks.replaceChildren();
+    const nextId = progress.tasks?.find((t) => !t.done)?.id;
+    for (const t of progress.tasks || []) {
+      const li = document.createElement("li");
+      li.dataset.done = t.done ? "true" : "false";
+      if (!t.done && t.id === nextId) li.dataset.current = "true";
+      const mark = document.createElement("span");
+      mark.className = "mark";
+      mark.textContent = t.done ? "✓" : "·";
+      const text = document.createElement("span");
+      text.textContent = t.text;
+      li.appendChild(mark);
+      li.appendChild(text);
+      el.progressTasks.appendChild(li);
+    }
+  }
+  if (el.progressLog) {
+    const lines = data.logTail || [];
+    if (lines.length) {
+      el.progressLog.hidden = false;
+      el.progressLog.textContent = lines.join("\n");
+    } else {
+      el.progressLog.hidden = true;
+      el.progressLog.textContent = "";
+    }
+  }
+}
+
 function startStatusPoll() {
   if (state.statusTimer) clearInterval(state.statusTimer);
+  let acceptedNotified = false;
   const tick = async () => {
     if (!state.jobId) return;
     try {
       const res = await fetch(`/api/status?jobId=${encodeURIComponent(state.jobId)}`);
       const data = await res.json();
       if (!res.ok) return;
+      renderProgress(data);
+      const st = data.delivery?.status || data.status || "pending";
+      const pct =
+        data.progress && data.progress.total
+          ? `${data.progress.done}/${data.progress.total}`
+          : "";
+      el.dispatchStatus.textContent = `状态：${st}${pct ? ` · ${pct}` : ""}${
+        data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""
+      }`;
       if (data.status === "accepted") {
         el.dispatchStatus.textContent = "delivery accepted · 工单完成";
-        addBubble("bot", "数字员工已验收通过（delivery.json accepted）。");
+        if (!acceptedNotified) {
+          acceptedNotified = true;
+          addBubble("bot", "数字员工已验收通过（delivery.json accepted）。");
+        }
         clearInterval(state.statusTimer);
         state.statusTimer = null;
-        return;
       }
-      const st = data.delivery?.status || data.status || "pending";
-      el.dispatchStatus.textContent = `状态：${st}${data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""}`;
     } catch {
       // ignore poll errors
     }
   };
   void tick();
-  state.statusTimer = setInterval(tick, 5000);
+  state.statusTimer = setInterval(tick, 3000);
 }
 
 void loadConfig();

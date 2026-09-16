@@ -1379,6 +1379,8 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
 - [ ] T001 Implement against this Brief
 - [ ] T002 Risk-based verification per testing.md
 - [ ] T003 Stamp delivery.json accepted
+
+做完一步就立刻把对应项改成 \`- [x]\`，方便现场开发显示进度。
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -1408,9 +1410,10 @@ Brief: ${featureDir}
 要求：
 1. 只做 Brief 范围
 2. 按 .duaer/memory/testing.md（若有）做风险验证
-3. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-4. 不要推远程除非用户明确要求
-5. 合入 develop 并 handoff 清理 worktree
+3. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
+4. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
+5. 不要推远程除非用户明确要求
+6. 合入 develop 并 handoff 清理 worktree
 `;
 
   const chosen =
@@ -1502,6 +1505,49 @@ function extractSection(md, title) {
   return m ? m[1].trim() : "";
 }
 
+function parseTasksProgress(tasksMd) {
+  const tasks = [];
+  const lines = String(tasksMd || "").split(/\r?\n/);
+  for (const line of lines) {
+    const m = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$/);
+    if (!m) continue;
+    const done = m[1].toLowerCase() === "x";
+    const text = m[2].trim();
+    const idMatch = text.match(/^(T\d+)\b/i);
+    tasks.push({
+      id: idMatch ? idMatch[1].toUpperCase() : `S${tasks.length + 1}`,
+      text,
+      done,
+    });
+  }
+  const total = tasks.length;
+  const doneCount = tasks.filter((t) => t.done).length;
+  const next = tasks.find((t) => !t.done) || null;
+  let current = "暂无任务清单";
+  if (total === 0) current = "暂无任务清单";
+  else if (!next) current = "任务已全部勾选 · 等待 delivery accepted";
+  else current = `进行中：${next.text}`;
+  return {
+    total,
+    done: doneCount,
+    current,
+    tasks,
+  };
+}
+
+function readLogTail(logPath, maxLines = 12) {
+  if (!logPath || !fs.existsSync(logPath)) return [];
+  try {
+    const raw = fs.readFileSync(logPath, "utf8");
+    return raw
+      .split(/\r?\n/)
+      .filter((l) => l.trim())
+      .slice(-maxLines);
+  } catch {
+    return [];
+  }
+}
+
 function dispatchStatus(jobId) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch || null;
@@ -1511,6 +1557,8 @@ function dispatchStatus(jobId) {
       status: live.job.status || "confirmed",
       dispatch: null,
       delivery: null,
+      progress: null,
+      logTail: [],
     };
   }
   const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
@@ -1522,12 +1570,34 @@ function dispatchStatus(jobId) {
       delivery = { status: "invalid" };
     }
   }
+  const tasksPath = path.join(dispatch.featureDir, "tasks.md");
+  let progress = parseTasksProgress("");
+  if (fs.existsSync(tasksPath)) {
+    try {
+      progress = parseTasksProgress(fs.readFileSync(tasksPath, "utf8"));
+    } catch {
+      progress = parseTasksProgress("");
+    }
+  }
+  const logPath =
+    dispatch.launch?.logPath ||
+    path.join(dispatch.featureDir, "agent-launch.log");
+  const logTail = readLogTail(logPath);
   const worktreeExists = fs.existsSync(dispatch.worktreePath);
+  const accepted = delivery?.status === "accepted";
+  if (accepted && progress.total > 0) {
+    progress = {
+      ...progress,
+      current: "delivery accepted · 工单完成",
+    };
+  }
   return {
     jobId: live.id,
-    status: delivery?.status === "accepted" ? "accepted" : live.job.status,
+    status: accepted ? "accepted" : live.job.status,
     dispatch: { ...dispatch, worktreeExists },
     delivery,
+    progress,
+    logTail,
   };
 }
 

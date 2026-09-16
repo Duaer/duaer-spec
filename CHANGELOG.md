@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live dispatch progress
+
+- Status poll reads product Brief `tasks.md` checkboxes (`progress.done/total/current`)
+- Dispatch panel shows step list + optional agent-launch.log tail; prompt asks agents to check off as they go
+
 ### Live agent detect + launch
 
 - Detect Cursor Agent / Claude Code / Cursor / VS Code on PATH (`GET /api/agents`)
