@@ -1,6 +1,15 @@
 /**
- * 现场开发 UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
+ * Live desk UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
  */
+
+import {
+  t,
+  initI18n,
+  onLocaleChange,
+  getLocale,
+  setLocale,
+  applyDomI18n,
+} from "./i18n.js";
 
 const FALLBACK_PROVIDERS = [
   {
@@ -15,7 +24,7 @@ const FALLBACK_PROVIDERS = [
     baseUrl: "https://api.openai.com/v1",
     model: "gpt-4o-mini",
   },
-  { id: "custom", label: "自定义", baseUrl: "", model: "" },
+  { id: "custom", label: "Custom", baseUrl: "", model: "" },
 ];
 
 const state = {
@@ -34,7 +43,7 @@ const state = {
   rawAsk: "",
   messages: [],
   reviseMessages: [],
-  providers: FALLBACK_PROVIDERS,
+  providers: FALLBACK_PROVIDERS.map((p) => ({ ...p })),
   providerId: "deepseek",
   jobId: null,
   statusTimer: null,
@@ -42,6 +51,10 @@ const state = {
   agents: [],
   missingAgents: [],
   agentId: "cursor-agent",
+  /** null | "working" | "done" — dispatch button phase */
+  dispatchPhase: null,
+  lastCfg: null,
+  lastUpdate: null,
 };
 
 const el = {
@@ -107,10 +120,54 @@ const el = {
   lblAssume: document.getElementById("lblAssume"),
   chatPanel: document.querySelector(".chat-panel"),
   updateNotice: document.getElementById("updateNotice"),
+  langSelect: document.getElementById("langSelect"),
 };
+
+function providerLabel(p) {
+  return p?.id === "custom" ? t("provider.custom") : p?.label || "";
+}
+
+function syncChatPlaceholder() {
+  if (!el.input) return;
+  el.input.placeholder =
+    state.mode === "revise"
+      ? t("chat.revisePlaceholder")
+      : t("chat.placeholder");
+}
+
+function syncDynamicI18n() {
+  for (const p of state.providers) {
+    if (p.id === "custom") p.label = t("provider.custom");
+  }
+  if (el.setup && !el.setup.hidden) {
+    renderProviders();
+    applyProvider(state.providerId, { fillEmptyOnly: true });
+    if (el.cfgKey && state.lastCfg) {
+      el.cfgKey.placeholder = state.lastCfg.hasApiKey
+        ? t("setup.keySaved")
+        : "sk-…";
+    }
+  }
+  if (el.meta && state.lastCfg?.ready) {
+    el.meta.textContent = t("meta.model", {
+      model: state.lastCfg.model,
+      jobs: state.lastCfg.jobsRoot || "~/.duaer/live/jobs",
+    });
+  }
+  showUpdateNotice(state.lastUpdate);
+  syncChatPlaceholder();
+  syncConfirmEnabled();
+  if (el.agentList && !el.dispatch?.hidden) renderAgentList();
+  if (el.repoList && !el.dispatch?.hidden) renderRepoList();
+  if (el.doDispatch && !el.dispatch?.hidden) syncDispatchButton();
+  if (el.copyInstallCmd && el.agentInstall && !el.agentInstall.hidden) {
+    el.copyInstallCmd.textContent = t("dispatch.copyInstall");
+  }
+}
 
 function showUpdateNotice(update) {
   if (!el.updateNotice) return;
+  state.lastUpdate = update || null;
   if (!update?.outdated || !update.latest) {
     el.updateNotice.hidden = true;
     el.updateNotice.textContent = "";
@@ -118,7 +175,10 @@ function showUpdateNotice(update) {
   }
   const cur = update.current || "?";
   el.updateNotice.hidden = false;
-  el.updateNotice.innerHTML = `新版本 <code>${escapeHtml(update.latest)}</code>（当前 <code>${escapeHtml(cur)}</code>）。终端运行 <code>duaer self-update</code>；业务仓再跑 <code>npx duaer-spec@latest update</code>`;
+  el.updateNotice.innerHTML = t("update.noticeHtml", {
+    latest: escapeHtml(update.latest),
+    current: escapeHtml(cur),
+  });
 }
 
 function cardValues() {
@@ -162,12 +222,12 @@ function restoreConfirmCardFromOriginal() {
 
 /** Top confirm card chrome never becomes 改进卡. */
 function applyConfirmCardChrome() {
-  if (el.cardMark) el.cardMark.textContent = "Confirm card";
-  if (el.cardTitle) el.cardTitle.textContent = "确认卡";
-  if (el.lblGoal) el.lblGoal.textContent = "要做什么";
-  if (el.lblOut) el.lblOut.textContent = "不做什么";
-  if (el.lblAccept) el.lblAccept.textContent = "验收标准";
-  if (el.lblAssume) el.lblAssume.textContent = "假设";
+  if (el.cardMark) el.cardMark.textContent = t("card.mark");
+  if (el.cardTitle) el.cardTitle.textContent = t("card.title");
+  if (el.lblGoal) el.lblGoal.textContent = t("card.goal");
+  if (el.lblOut) el.lblOut.textContent = t("card.out");
+  if (el.lblAccept) el.lblAccept.textContent = t("card.accept");
+  if (el.lblAssume) el.lblAssume.textContent = t("card.assume");
 }
 
 function syncConfirmEnabled() {
@@ -177,9 +237,8 @@ function syncConfirmEnabled() {
     restoreConfirmCardFromOriginal();
     setConfirmFieldsReadonly(true);
     el.confirm.disabled = true;
-    el.confirm.textContent = "已确认";
-    el.lockHint.textContent =
-      "上方确认卡保持原需求。改进内容请看下方改进卡。";
+    el.confirm.textContent = t("card.confirmed");
+    el.lockHint.textContent = t("card.lockHintRevise");
     const v = reviseCardValues();
     const ok =
       state.mode === "revise" &&
@@ -194,13 +253,13 @@ function syncConfirmEnabled() {
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
   el.confirm.disabled = !ok;
   el.lockHint.textContent = state.locked
-    ? "已确认。选择产品仓库派工，Brief 才会进入业务仓 worktree。"
+    ? t("card.lockHintLocked")
     : ok
-      ? "可以确认了。确认后自动验收，再派工。"
-      : "至少填好「要做什么」和「验收标准」。";
-  if (!state.locked) el.confirm.textContent = "需求无误，开始干活";
+      ? t("card.lockHintReady")
+      : t("card.lockHintNeed");
+  if (!state.locked) el.confirm.textContent = t("card.confirm");
   else {
-    el.confirm.textContent = "已确认";
+    el.confirm.textContent = t("card.confirmed");
     el.confirm.disabled = true;
   }
   setConfirmFieldsReadonly(state.locked);
@@ -221,8 +280,8 @@ function syncReviseDispatchButton(ready) {
     !ready || state.busy || state.reviseDispatching;
   if (showDispatch) {
     el.doReviseDispatch.textContent = state.reviseDispatching
-      ? "续派中…"
-      : "改进方案确认，再派一版";
+      ? t("revise.dispatching")
+      : t("revise.dispatch");
   }
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
@@ -234,25 +293,19 @@ function syncReviseDispatchButton(ready) {
   const revising = status === "revising";
   if (el.reviseHint) {
     if (revising && !dialoguing) {
-      el.reviseHint.textContent =
-        "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。";
+      el.reviseHint.textContent = t("revise.hintRevising");
     } else if (state.reviseLocked && !dialoguing) {
-      el.reviseHint.textContent =
-        "本轮改进卡（下方）已确认。改完验收后若仍不满意，再点「再改一版」。";
+      el.reviseHint.textContent = t("revise.hintLocked");
     } else if (!dialoguing) {
-      el.reviseHint.textContent =
-        "成品可用后点「再改一版」；左侧对话，下方填写改进卡。";
+      el.reviseHint.textContent = t("revise.hintIdle");
     } else if (state.reviseDispatching) {
-      el.reviseHint.textContent =
-        "正在送入同一 Terminal（不新开窗口）…";
+      el.reviseHint.textContent = t("revise.hintEnqueue");
     } else if (state.busy) {
-      el.reviseHint.textContent = "正在左侧对话完善下方改进卡…";
+      el.reviseHint.textContent = t("revise.hintBusy");
     } else if (ready) {
-      el.reviseHint.textContent =
-        "下方改进卡已就绪：点「再派一版」，任务送入原 Terminal。";
+      el.reviseHint.textContent = t("revise.hintReady");
     } else {
-      el.reviseHint.textContent =
-        "请在左侧说明哪里不满意；我会填下方改进卡。卡齐后可点再派。";
+      el.reviseHint.textContent = t("revise.hintNeed");
     }
   }
   if (el.startReviseChat || el.startReviseChatAlt) {
@@ -261,12 +314,12 @@ function syncReviseDispatchButton(ready) {
     if (el.startReviseChat) {
       el.startReviseChat.hidden = !(showCta && previewVisible);
       el.startReviseChat.disabled = state.reviseDispatching || state.busy;
-      el.startReviseChat.textContent = "再改一版";
+      el.startReviseChat.textContent = t("revise.again");
     }
     if (el.startReviseChatAlt) {
       el.startReviseChatAlt.hidden = !(showCta && !previewVisible);
       el.startReviseChatAlt.disabled = state.reviseDispatching || state.busy;
-      el.startReviseChatAlt.textContent = "再改一版";
+      el.startReviseChatAlt.textContent = t("revise.again");
     }
   }
   if (el.chatPanel) {
@@ -413,7 +466,7 @@ async function sendChat(userText) {
     const ctype = res.headers.get("content-type") || "";
     if (!res.ok && !ctype.includes("text/event-stream")) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "对话失败");
+      throw new Error(data.error || t("err.chat"));
     }
 
     if (ctype.includes("text/event-stream") && res.body) {
@@ -423,11 +476,11 @@ async function sendChat(userText) {
         if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
         else if (evt.type === "done") final = evt;
         else if (evt.type === "error") {
-          streamError = new Error(evt.error || "对话失败");
+          streamError = new Error(evt.error || t("err.chat"));
         }
       });
       if (streamError) throw streamError;
-      if (!final) throw new Error("流式响应不完整");
+      if (!final) throw new Error(t("err.streamIncomplete"));
       applyCard(final);
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
@@ -436,8 +489,8 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
-            : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
+            ? t("bot.reviseCardReady")
+            : t("bot.cardReady"),
         );
         if (state.mode === "revise") {
           el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -445,7 +498,7 @@ async function sendChat(userText) {
       }
     } else {
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "对话失败");
+      if (!res.ok) throw new Error(data.error || t("err.chat"));
       applyCard(data);
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
@@ -454,8 +507,8 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
-            : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
+            ? t("bot.reviseCardReady")
+            : t("bot.cardReady"),
         );
         if (state.mode === "revise") {
           el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -464,7 +517,11 @@ async function sendChat(userText) {
     }
   } catch (err) {
     bag.pop();
-    streamBubble.set(`出错：${err instanceof Error ? err.message : err}`);
+    streamBubble.set(
+      t("bot.chatError", {
+        msg: err instanceof Error ? err.message : err,
+      }),
+    );
     streamBubble.finish();
   } finally {
     state.busy = false;
@@ -516,7 +573,7 @@ function renderProviders() {
     btn.type = "button";
     btn.className = "provider-chip";
     btn.dataset.id = p.id;
-    btn.textContent = p.label;
+    btn.textContent = providerLabel(p);
     btn.setAttribute("aria-pressed", "false");
     btn.addEventListener("click", () => applyProvider(p.id));
     el.cfgProviders.appendChild(btn);
@@ -526,14 +583,15 @@ function renderProviders() {
 function showSetup(cfg) {
   el.setup.hidden = false;
   el.desk.hidden = true;
+  state.lastCfg = { ...cfg, ready: false };
   if (Array.isArray(cfg.providers) && cfg.providers.length) {
-    state.providers = cfg.providers;
+    state.providers = cfg.providers.map((p) => ({ ...p }));
   }
   renderProviders();
   el.cfgBase.value = cfg.baseUrl || "";
   el.cfgModel.value = cfg.model || "";
   el.cfgKey.value = "";
-  el.cfgKey.placeholder = cfg.hasApiKey ? "已保存（留空则不改）" : "sk-…";
+  el.cfgKey.placeholder = cfg.hasApiKey ? t("setup.keySaved") : "sk-…";
   const id = cfg.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg.baseUrl || cfg.model) });
 }
@@ -542,12 +600,13 @@ function showDesk(cfg) {
   el.setup.hidden = true;
   el.desk.hidden = false;
   state.ready = true;
-  el.meta.textContent = `模型 ${cfg.model} · Brief → ${cfg.jobsRoot || "~/.duaer/live/jobs"}`;
+  state.lastCfg = { ...cfg, ready: true };
+  el.meta.textContent = t("meta.model", {
+    model: cfg.model,
+    jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
+  });
   if (!state.messages.length) {
-    addBubble(
-      "bot",
-      "模型已就绪。随便说你想做什么；我会多轮问清，右侧是确认卡。确认前不会改你的业务仓库。",
-    );
+    addBubble("bot", t("bot.ready"));
   }
   syncConfirmEnabled();
 }
@@ -575,7 +634,7 @@ el.saveCfg.addEventListener("click", async () => {
       body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "保存失败");
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
     showDesk(data);
   } catch (err) {
     el.cfgErr.hidden = false;
@@ -605,7 +664,7 @@ el.confirm.addEventListener("click", async () => {
   const v = cardValues();
   if (!v.goal || !v.acceptance || state.locked || state.busy) return;
   el.confirm.disabled = true;
-  el.confirm.textContent = "自动验收中…";
+  el.confirm.textContent = t("card.accepting");
   state.busy = true;
   try {
     const res = await fetch("/api/confirm", {
@@ -621,16 +680,21 @@ el.confirm.addEventListener("click", async () => {
     if (res.status === 422 || data.passed === false) {
       showAcceptFailed(data);
       el.confirm.disabled = false;
-      el.confirm.textContent = "需求无误，开始干活";
+      el.confirm.textContent = t("card.confirm");
       syncConfirmEnabled();
       return;
     }
-    if (!res.ok) throw new Error(data.error || "confirm failed");
+    if (!res.ok) throw new Error(data.error || t("err.confirm"));
     await applyConfirmSuccess(data);
   } catch (err) {
     el.confirm.disabled = false;
-    el.confirm.textContent = "需求无误，开始干活";
-    addBubble("bot", `确认失败：${err instanceof Error ? err.message : err}`);
+    el.confirm.textContent = t("card.confirm");
+    addBubble(
+      "bot",
+      t("bot.confirmFail", {
+        msg: err instanceof Error ? err.message : err,
+      }),
+    );
   } finally {
     state.busy = false;
   }
@@ -641,11 +705,14 @@ function showAcceptFailed(data) {
   const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
   addBubble(
     "bot",
-    `自动验收未通过：${data.summary || data.error || "请修改确认卡"}${detail}`,
+    t("bot.acceptFailed", {
+      summary: data.summary || data.error || t("bot.acceptFailedDefault"),
+      detail,
+    }),
     {
       actions: [
         {
-          label: "自动修正",
+          label: t("bot.autoFix"),
           onClick: (btn) => autoFixAccept(btn, issues),
         },
       ],
@@ -657,19 +724,21 @@ async function applyConfirmSuccess(data) {
   state.locked = true;
   state.jobId = data.jobId || null;
   state.originalCard = cardValues();
-  el.confirm.textContent = "已确认";
+  el.confirm.textContent = t("card.confirmed");
   el.result.hidden = false;
   const reviewLine = data.review?.summary
-    ? `自动验收：${data.review.summary}\n`
+    ? t("result.review", { summary: data.review.summary })
     : data.fixSummary
-      ? `自动修正：${data.fixSummary}\n`
+      ? t("result.fix", { summary: data.fixSummary })
       : "";
-  el.result.textContent = `${reviewLine}Live Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n下一步：下方选择产品仓库派工。`;
+  el.result.textContent = t("result.confirmOk", {
+    review: reviewLine,
+    dir: data.relativeDir || data.featureDir,
+    branch: data.branch,
+  });
   addBubble(
     "bot",
-    data.fixed
-      ? `已自动修正并验收通过。隔离区 Brief 已就绪；请选择产品仓库派工。`
-      : `自动验收通过。隔离区 Brief 已就绪；请选择产品仓库派工（建 worktree + 写入 Brief）。`,
+    data.fixed ? t("bot.confirmFixed") : t("bot.confirmOk"),
   );
   syncConfirmEnabled();
   await showDispatchPanel();
@@ -681,10 +750,10 @@ async function autoFixAccept(btn, issues) {
   state.busy = true;
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "修正中…";
+    btn.textContent = t("bot.fixing");
   }
   el.confirm.disabled = true;
-  el.confirm.textContent = "自动修正中…";
+  el.confirm.textContent = t("card.fixing");
   try {
     const res = await fetch("/api/confirm/fix", {
       method: "POST",
@@ -699,23 +768,28 @@ async function autoFixAccept(btn, issues) {
     if (data.card) applyCard(data.card);
     if (res.status === 422 || data.passed === false) {
       const note = data.fixSummary ? `（${data.fixSummary}）` : "";
-      addBubble("bot", `自动修正后仍未通过${note}，可再点自动修正或手改确认卡。`);
+      addBubble("bot", t("bot.fixStillFailed", { note }));
       showAcceptFailed(data);
       el.confirm.disabled = false;
-      el.confirm.textContent = "需求无误，开始干活";
+      el.confirm.textContent = t("card.confirm");
       syncConfirmEnabled();
       return;
     }
-    if (!res.ok) throw new Error(data.error || "自动修正失败");
+    if (!res.ok) throw new Error(data.error || t("err.autoFix"));
     await applyConfirmSuccess(data);
   } catch (err) {
-    addBubble("bot", `自动修正失败：${err instanceof Error ? err.message : err}`);
+    addBubble(
+      "bot",
+      t("bot.autoFixFail", {
+        msg: err instanceof Error ? err.message : err,
+      }),
+    );
     el.confirm.disabled = false;
-    el.confirm.textContent = "需求无误，开始干活";
+    el.confirm.textContent = t("card.confirm");
     syncConfirmEnabled();
     if (btn) {
       btn.disabled = false;
-      btn.textContent = "自动修正";
+      btn.textContent = t("bot.autoFix");
     }
   } finally {
     state.busy = false;
@@ -726,6 +800,7 @@ async function showDispatchPanel() {
   el.dispatch.hidden = false;
   el.dispatchErr.hidden = true;
   el.dispatchStatus.hidden = true;
+  state.dispatchPhase = null;
   el.doDispatch.disabled = false;
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
@@ -763,18 +838,18 @@ async function loadAgents() {
     renderAgentList();
     if (el.agentHint) {
       el.agentHint.textContent =
-        err instanceof Error ? err.message : "无法检测本机 CLI";
+        err instanceof Error ? err.message : t("err.agentsDetect");
     }
   }
 }
 
 function defaultStartCommand() {
-  const goal = el.goal?.value?.trim() || "（在此写清要做什么）";
+  const goal = el.goal?.value?.trim() || t("startCmd.goalFallback");
   return `Duaer
 
 ${goal}
 
-按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted（有页面时写入 preview.url，如 index.html）；不要推远程除非明确要求。
+${t("startCmd.body")}
 `;
 }
 
@@ -848,10 +923,10 @@ function renderAgentList() {
     b.style.opacity = "0.55";
     b.setAttribute("aria-pressed", m.id === state.agentId ? "true" : "false");
     const strong = document.createElement("strong");
-    strong.textContent = `${m.label} · 未安装`;
+    strong.textContent = t("agent.notInstalled", { label: m.label });
     b.appendChild(strong);
     const span = document.createElement("span");
-    span.textContent = "点选查看安装命令";
+    span.textContent = t("agent.clickInstall");
     b.appendChild(span);
     b.addEventListener("click", () => {
       state.agentId = m.id;
@@ -867,8 +942,8 @@ function renderAgentList() {
       .map((m) => m.label)
       .filter(Boolean);
     el.agentHint.textContent = miss.length
-      ? `未检测到：${miss.join("、")} — 见下方安装命令`
-      : "已检测本机可用启动器";
+      ? t("agent.missingHint", { list: miss.join(getLocale() === "en" ? ", " : "、") })
+      : t("agent.detected");
   }
   syncInstallHint();
   syncStartCommandField();
@@ -876,24 +951,32 @@ function renderAgentList() {
 
 function syncDispatchButton() {
   if (!el.doDispatch) return;
-  const label = el.doDispatch.textContent;
-  if (label === "已派工" || label === "派工中…") return;
+  if (state.dispatchPhase === "done") {
+    el.doDispatch.textContent = t("dispatch.done");
+    return;
+  }
+  if (state.dispatchPhase === "working") {
+    el.doDispatch.textContent = t("dispatch.working");
+    return;
+  }
   const missingSelected = (state.missingAgents || []).some(
     (m) => m.id === state.agentId,
   );
   if (missingSelected || !state.agents.length) {
-    el.doDispatch.textContent = "请先安装 CLI";
+    el.doDispatch.textContent = t("dispatch.needInstall");
     return;
   }
   const a = state.agents.find((x) => x.id === state.agentId);
   el.doDispatch.textContent = a
-    ? `派工并用 ${a.label} 启动`
-    : "写入 Brief 并启动";
+    ? t("dispatch.doWithAgent", { label: a.label })
+    : t("dispatch.do");
 }
 
 async function loadRepoCatalog(discover) {
   el.repoScan.disabled = true;
-  el.repoScan.textContent = discover ? "扫描中…" : "扫描本机";
+  el.repoScan.textContent = discover
+    ? t("dispatch.scanning")
+    : t("dispatch.scan");
   try {
     const q = discover ? "?discover=1" : "";
     const res = await fetch(`/api/repos${q}`);
@@ -905,7 +988,7 @@ async function loadRepoCatalog(discover) {
     renderRepoList();
   } finally {
     el.repoScan.disabled = false;
-    el.repoScan.textContent = "扫描本机";
+    el.repoScan.textContent = t("dispatch.scan");
   }
 }
 
@@ -930,9 +1013,7 @@ function renderRepoList() {
   if (!rows.length) {
     const p = document.createElement("p");
     p.className = "repo-empty";
-    p.textContent = filter
-      ? "无匹配仓库"
-      : "点「浏览…」或「扫描本机」，也可在产品仓执行 duaer live repo add";
+    p.textContent = filter ? t("repo.emptyFilter") : t("repo.empty");
     el.repoList.appendChild(p);
     return;
   }
@@ -944,7 +1025,7 @@ function renderRepoList() {
       "aria-pressed",
       repo.path === selected ? "true" : "false",
     );
-    const tag = repo.kind === "recent" ? "最近" : "发现";
+    const tag = repo.kind === "recent" ? t("repo.recent") : t("repo.discovered");
     btn.innerHTML = `<strong>${escapeHtml(repo.name || pathBasename(repo.path))} · ${tag}</strong><span>${escapeHtml(repo.path)}</span>`;
     btn.addEventListener("click", () => {
       selectRepo(repo);
@@ -990,7 +1071,7 @@ function selectRepo(repo) {
 el.repoBrowse?.addEventListener("click", async () => {
   el.dispatchErr.hidden = true;
   el.repoBrowse.disabled = true;
-  el.repoBrowse.textContent = "选择中…";
+  el.repoBrowse.textContent = t("dispatch.browsing");
   try {
     const res = await fetch("/api/repos/pick", { method: "POST" });
     const data = await res.json();
@@ -1006,28 +1087,31 @@ el.repoBrowse?.addEventListener("click", async () => {
         };
         renderRepoList();
         el.dispatchErr.hidden = false;
-        el.dispatchErr.textContent = data.error || "请从下方列表点选具体仓库";
+        el.dispatchErr.textContent = data.error || t("err.pickFromList");
         return;
       }
       if (data.path) {
         el.repoPath.value = data.path;
       }
-      throw new Error(data.error || "选择失败");
+      throw new Error(data.error || t("err.pick"));
     }
     if (Array.isArray(data.recent)) {
       state.repoCatalog.recent = data.recent;
     }
     selectRepo(data);
     const prep = [
-      data.baseBranchCreated ? "已创建 develop 分支" : null,
-      data.bootstrapped && !data.baseBranchCreated ? "已 git init" : null,
-      data.duaer?.action === "init" ? "已在此目录安装 Duaer" : null,
+      data.baseBranchCreated ? t("prep.baseBranch") : null,
+      data.bootstrapped && !data.baseBranchCreated ? t("prep.gitInit") : null,
+      data.duaer?.action === "init" ? t("prep.duaerInit") : null,
     ].filter(Boolean);
     addBubble(
       "bot",
       prep.length
-        ? `已准备仓库 ${data.name}（${prep.join(" · ")}）并记住`
-        : `已选择并记住仓库 ${data.name}`,
+        ? t("bot.repoPrepared", {
+            name: data.name,
+            prep: prep.join(" · "),
+          })
+        : t("bot.repoSelected", { name: data.name }),
     );
   } catch (err) {
     el.dispatchErr.hidden = false;
@@ -1035,7 +1119,7 @@ el.repoBrowse?.addEventListener("click", async () => {
       err instanceof Error ? err.message : String(err);
   } finally {
     el.repoBrowse.disabled = false;
-    el.repoBrowse.textContent = "浏览…";
+    el.repoBrowse.textContent = t("dispatch.browse");
   }
 });
 
@@ -1050,7 +1134,7 @@ el.doDispatch.addEventListener("click", async () => {
   const repoPath = el.repoPath.value.trim();
   if (!repoPath) {
     el.dispatchErr.hidden = false;
-    el.dispatchErr.textContent = "先点选仓库，或浏览 / 扫描";
+    el.dispatchErr.textContent = t("err.noRepo");
     return;
   }
   const missingSelected = (state.missingAgents || []).some(
@@ -1060,8 +1144,8 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchErr.hidden = false;
     const m = (state.missingAgents || []).find((x) => x.id === state.agentId);
     el.dispatchErr.textContent = m?.installCommand
-      ? `请先安装：${m.installCommand}`
-      : "请先安装对应 CLI";
+      ? t("err.installAgent", { cmd: m.installCommand })
+      : t("err.needAgentAlt");
     syncInstallHint();
     return;
   }
@@ -1069,7 +1153,8 @@ el.doDispatch.addEventListener("click", async () => {
   const startCommand = el.startCommand?.value?.trim() || "";
   el.dispatchErr.hidden = true;
   el.doDispatch.disabled = true;
-  el.doDispatch.textContent = "派工中…";
+  state.dispatchPhase = "working";
+  el.doDispatch.textContent = t("dispatch.working");
   state.busy = true;
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 60000);
@@ -1086,48 +1171,64 @@ el.doDispatch.addEventListener("click", async () => {
       }),
     });
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "派工失败");
+    if (!res.ok) throw new Error(data.error || t("err.dispatch"));
     const launch = data.launch || {};
-    const launchLine =
-      launch.agentId
-        ? `启动: ${launch.label || launch.agentId}${launch.pid ? ` (pid ${launch.pid})` : ""}${
-            launch.command ? `\nCLI: ${launch.command}` : ""
-          }${launch.commandFile ? `\nTerminal脚本: ${launch.commandFile}` : ""}${
-            launch.logPath ? `\n日志: ${launch.logPath}` : ""
-          }`
-        : "启动: 未启动";
+    const launchLine = launch.agentId
+      ? t("launch.line", {
+          label: launch.label || launch.agentId,
+          pid: launch.pid ? t("launch.pid", { pid: launch.pid }) : "",
+          cli: launch.command ? t("launch.cli", { cmd: launch.command }) : "",
+          script: launch.commandFile
+            ? t("launch.script", { path: launch.commandFile })
+            : "",
+          log: launch.logPath ? t("launch.log", { path: launch.logPath }) : "",
+        })
+      : t("launch.none");
     el.result.hidden = false;
-    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
+    el.result.textContent = t("result.dispatchOk", {
+      repo: data.repoPath,
+      worktree: data.worktreePath,
+      brief: data.featureDir,
+      launch: launchLine,
+      cmd: data.agentPrompt || startCommand,
+    });
+    const whoLabel = launch.command || launch.label || "agent";
     const who =
       launch.mode === "terminal-reuse" || launch.reused
-        ? `已送入原 Terminal（${launch.command || launch.label || "agent"}）`
+        ? t("launch.reused", { who: whoLabel })
         : launch.mode === "terminal"
-          ? `已打开 Terminal，正在执行 CLI（${launch.command || launch.label || "agent"}）`
-          : `已用 ${launch.label || launch.agentId || "CLI"} 启动`;
+          ? t("launch.terminal", { who: whoLabel })
+          : t("launch.spawned", {
+              who: launch.label || launch.agentId || "CLI",
+            });
     const duaerLine =
       data.duaerInstall?.worktree?.action === "init" ||
       data.duaerInstall?.repo?.action === "init"
-        ? "已在指定目录安装 Duaer；"
-        : "Duaer 已就绪；";
+        ? t("launch.duaerInstalled")
+        : t("launch.duaerReady");
     addBubble(
       "bot",
-      `${duaerLine}${who}。进度看下方清单与日志；完成后可「查看成品」。\n${data.worktreePath}`,
+      t("bot.dispatchDone", {
+        duaer: duaerLine,
+        who,
+        path: data.worktreePath,
+      }),
     );
-    el.doDispatch.textContent = "已派工";
+    state.dispatchPhase = "done";
+    el.doDispatch.textContent = t("dispatch.done");
     el.dispatchStatus.hidden = false;
     el.dispatchStatus.textContent =
-      launch.kind === "worker"
-        ? "数字员工已启动 · 监听 tasks.md 进度…"
-        : "等待数字员工 · 监听 tasks.md 进度…";
+      launch.kind === "worker" ? t("status.running") : t("status.waiting");
     if (el.dispatchProgress) el.dispatchProgress.hidden = false;
     startStatusPoll();
   } catch (err) {
+    state.dispatchPhase = null;
     el.doDispatch.disabled = false;
     syncDispatchButton();
     el.dispatchErr.hidden = false;
     const msg =
       err?.name === "AbortError"
-        ? "派工超时（60s）。请刷新重试；若 worktree 已存在需换分支名或删掉旧 worktree。"
+        ? t("err.dispatchTimeout")
         : err instanceof Error
           ? err.message
           : String(err);
@@ -1143,7 +1244,8 @@ el.doDispatch.addEventListener("click", async () => {
   } finally {
     clearTimeout(timer);
     state.busy = false;
-    if (el.doDispatch.textContent === "派工中…") {
+    if (state.dispatchPhase === "working") {
+      state.dispatchPhase = null;
       el.doDispatch.disabled = false;
       syncDispatchButton();
     }
@@ -1155,12 +1257,12 @@ el.copyInstallCmd?.addEventListener("click", async () => {
   if (!cmd) return;
   try {
     await navigator.clipboard.writeText(cmd);
-    el.copyInstallCmd.textContent = "已复制";
+    el.copyInstallCmd.textContent = t("dispatch.copied");
     setTimeout(() => {
-      el.copyInstallCmd.textContent = "复制安装命令";
+      el.copyInstallCmd.textContent = t("dispatch.copyInstall");
     }, 1500);
   } catch {
-    el.copyInstallCmd.textContent = "复制失败";
+    el.copyInstallCmd.textContent = t("err.copy");
   }
 });
 
@@ -1223,12 +1325,14 @@ function renderPreview(data) {
   } else {
     el.previewPanel.hidden = false;
     el.previewLink.href = preview.url;
-    el.previewLink.textContent = preview.label || "查看成品";
+    el.previewLink.textContent = preview.label || t("preview.view");
     if (el.previewMeta) {
       const bits = [];
       if (preview.path) bits.push(preview.path);
       if (preview.source)
-        bits.push(preview.source === "auto" ? "自动发现" : "delivery.preview");
+        bits.push(
+          preview.source === "auto" ? t("preview.auto") : "delivery.preview",
+        );
       if (data?.revision > 0) bits.push(`r${data.revision}`);
       el.previewMeta.textContent = bits.join(" · ");
     }
@@ -1268,7 +1372,7 @@ function enterReviseMode() {
   if (!state.jobId) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
-      el.reviseErr.textContent = "没有可改进的工单";
+      el.reviseErr.textContent = t("err.noJob");
     }
     return;
   }
@@ -1278,7 +1382,7 @@ function enterReviseMode() {
   if (state.mode === "revise") {
     el.input.focus();
     el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    addBubble("bot", "继续在左侧说哪里不满意；改动写在下方改进卡，再点「再派一版」。");
+    addBubble("bot", t("bot.continueRevise"));
     return;
   }
 
@@ -1299,13 +1403,10 @@ function enterReviseMode() {
   if (el.revAssume) el.revAssume.value = "";
   setReviseFieldsReadonly(false);
   applyCardChrome();
-  el.input.placeholder = "说说哪里不满意、为什么…";
+  syncChatPlaceholder();
   el.input.focus();
   el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-  addBubble(
-    "bot",
-    "已进入改进。上方确认卡仍是原需求；请在左侧对话，在下方改进卡填写改动。填齐后点「再派一版」。",
-  );
+  addBubble("bot", t("bot.enterRevise"));
   renderRevisePanel({
     canRevise: true,
     status: "accepted",
@@ -1337,7 +1438,7 @@ async function kickoffReviseDialogue() {
     const ctype = res.headers.get("content-type") || "";
     if (!res.ok && !ctype.includes("text/event-stream")) {
       const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || "改进对话启动失败");
+      throw new Error(data.error || t("err.reviseKickoff"));
     }
     if (ctype.includes("text/event-stream") && res.body) {
       let final = null;
@@ -1346,18 +1447,18 @@ async function kickoffReviseDialogue() {
         if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
         else if (evt.type === "done") final = evt;
         else if (evt.type === "error") {
-          streamError = new Error(evt.error || "对话失败");
+          streamError = new Error(evt.error || t("err.chat"));
         }
       });
       if (streamError) throw streamError;
-      if (!final) throw new Error("流式响应不完整");
+      if (!final) throw new Error(t("err.streamIncomplete"));
       applyCard(final);
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
       state.reviseMessages.push({ role: "assistant", content: final.reply });
     } else {
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "对话失败");
+      if (!res.ok) throw new Error(data.error || t("err.chat"));
       applyCard(data);
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
@@ -1366,7 +1467,9 @@ async function kickoffReviseDialogue() {
   } catch (err) {
     state.reviseMessages.pop();
     streamBubble.set(
-      `改进对话没启动起来：${err instanceof Error ? err.message : err}。你也可以直接在左侧输入哪里不满意。`,
+      t("bot.reviseKickoffFail", {
+        msg: err instanceof Error ? err.message : err,
+      }),
     );
     streamBubble.finish();
   } finally {
@@ -1394,10 +1497,14 @@ function lockReviseCard(data, card) {
   if (el.revAccept) el.revAccept.value = card.acceptance;
   if (el.revAssume) el.revAssume.value = card.assumptions;
   restoreConfirmCardFromOriginal();
-  el.input.placeholder = "想做什么…";
+  syncChatPlaceholder();
   if (el.result) {
     el.result.hidden = false;
-    el.result.textContent = `Revision ${data.revision} 已续派\n要改：${card.goal}\n怎么算好：${card.acceptance}`;
+    el.result.textContent = t("result.revision", {
+      revision: data.revision,
+      goal: card.goal,
+      acceptance: card.acceptance,
+    });
   }
   applyCardChrome();
   if (el.chatPanel) el.chatPanel.classList.remove("revise-active");
@@ -1414,7 +1521,7 @@ async function confirmReviseAndDispatch() {
   if (!v.goal || !v.acceptance) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
-      el.reviseErr.textContent = "先在下方改进卡补全「要改什么」和「怎么算改好」";
+      el.reviseErr.textContent = t("err.reviseFields");
     }
     return;
   }
@@ -1441,33 +1548,42 @@ async function confirmReviseAndDispatch() {
     });
     clearTimeout(timer);
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "继续改进失败");
+    if (!res.ok) throw new Error(data.error || t("err.revise"));
     const restated = data.restated
-      ? `\n改：${data.restated.change || ""}\n验：${data.restated.acceptance || ""}`
+      ? t("bot.reviseRestate", {
+          change: data.restated.change || "",
+          acceptance: data.restated.acceptance || "",
+        })
       : "";
+    const launchLabel =
+      data.launch?.reused || data.launch?.mode === "terminal-reuse"
+        ? t("bot.reviseLaunchReuse")
+        : data.continueSession
+          ? t("bot.reviseLaunchContinue")
+          : t("bot.reviseLaunchNew");
     addBubble(
       "bot",
-      `已确认改进方案并启动 Revision ${data.revision}（${
-        data.launch?.reused || data.launch?.mode === "terminal-reuse"
-          ? "已送入原 Terminal"
-          : data.continueSession
-            ? "Terminal agent/claude --continue"
-            : "新会话"
-      }）。${restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看成品。`,
+      t("bot.reviseDispatched", {
+        revision: data.revision,
+        launch: launchLabel,
+        restated,
+      }),
     );
     lockReviseCard(data, v);
     if (el.dispatchStatus) {
       el.dispatchStatus.hidden = false;
-      el.dispatchStatus.textContent = `状态：revising · r${data.revision} · continue`;
+      el.dispatchStatus.textContent = t("status.revisingLine", {
+        revision: data.revision,
+      });
     }
     startStatusPoll();
   } catch (err) {
     const msg =
       err?.name === "AbortError"
-        ? "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。"
+        ? t("err.timeout")
         : err instanceof Error
           ? err.message
-          : "继续改进失败";
+          : t("err.revise");
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
       el.reviseErr.textContent = msg;
@@ -1497,21 +1613,24 @@ function startStatusPoll() {
           ? `${data.progress.done}/${data.progress.total}`
           : "";
       const rev = data.revision > 0 ? ` · r${data.revision}` : "";
-      el.dispatchStatus.textContent = `状态：${st}${pct ? ` · ${pct}` : ""}${rev}${
-        data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""
-      }`;
+      el.dispatchStatus.textContent = t("status.poll", {
+        st,
+        pct: pct ? ` · ${pct}` : "",
+        rev,
+        wt:
+          data.dispatch?.worktreeExists === false
+            ? t("status.worktreeGone")
+            : "",
+      });
       if (data.status === "accepted" && data.delivery?.status === "accepted") {
-        el.dispatchStatus.textContent = `delivery accepted · 可继续改进${rev}`;
+        el.dispatchStatus.textContent = t("status.acceptedRevise", { rev });
         if (!acceptedNotified || data.revision !== lastRevision) {
           acceptedNotified = true;
           lastRevision = data.revision || 0;
           const link = data.preview?.url
-            ? `\n成品：${data.preview.url}`
-            : "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）";
-          addBubble(
-            "bot",
-            `数字员工已验收通过。可点「查看成品」；不满意再点成品旁「再改一版」。${link}`,
-          );
+            ? t("preview.link", { url: data.preview.url })
+            : t("preview.missing");
+          addBubble("bot", `${t("bot.accepted")}${link}`);
         }
         clearInterval(state.statusTimer);
         state.statusTimer = null;
@@ -1541,5 +1660,19 @@ if (el.doReviseDispatch) {
     void confirmReviseAndDispatch();
   });
 }
+
+onLocaleChange(() => {
+  syncDynamicI18n();
+});
+
+const initialLocale = initI18n();
+if (el.langSelect) {
+  el.langSelect.value = initialLocale;
+  el.langSelect.addEventListener("change", () => {
+    setLocale(el.langSelect.value);
+  });
+}
+applyDomI18n();
+syncChatPlaceholder();
 
 void loadConfig();

@@ -67,6 +67,24 @@ body {
   padding: 2.25rem 1.5rem 1.25rem;
 }
 
+.top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.lang-switch select {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.55rem;
+  border-radius: 0;
+  cursor: pointer;
+}
+
 .mark {
   margin: 0 0 0.55rem;
   font-family: var(--font-mono);

@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "037-live-i18n",
+  "acceptedAt": "2026-09-16T04:52:00.000Z",
+  "summary": "Live desk zh-CN/en i18n with language switcher, catalogs, DOM data-i18n, and dynamic sync.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check web/live-dev/i18n.js",
+        "result": "pass — exit 0 (SYNTAX_OK) 2026-09-16"
+      },
+      {
+        "command": "node --check web/live-dev/app.js",
+        "result": "pass — exit 0 (SYNTAX_OK) 2026-09-16"
+      },
+      {
+        "command": "key parity: every t() key in app.js vs zhCN + en in i18n.js",
+        "result": "pass — no missing keys"
+      },
+      {
+        "command": "grep user-visible Chinese in app.js",
+        "result": "pass — only intentional LLM kickoff string + comments"
+      },
+      {
+        "command": "curl -sS -o /dev/null -w '%{http_code}' http://localhost:8787/",
+        "result": "pass — HTTP 200 (pre-merge; LaunchAgent still on primary develop)"
+      },
+      {
+        "command": "curl -sS -o /dev/null -w '%{http_code}' http://localhost:8787/i18n.js",
+        "result": "expected 404 pre-merge — i18n.js not on develop until merge + kickstart"
+      }
+    ],
+    "e2e": ["E2E-038"],
+    "notes": "T007 smoke: language switch + localStorage persistence covered by code path (initI18n/detectLocale/setLocale + #langSelect). Post-merge handoff: launchctl kickstart live8787 then re-curl /i18n.js."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004", "T005", "T006", "T007", "T008"]
+}

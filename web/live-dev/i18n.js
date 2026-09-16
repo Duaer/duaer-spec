@@ -1,0 +1,477 @@
+/**
+ * Live desk i18n — zh-CN (default) + en.
+ */
+
+export const LOCALES = ["zh-CN", "en"];
+
+const STORAGE_KEY = "duaer.live.locale";
+
+const zhCN = {
+  "doc.title": "现场开发",
+  "header.mark": "Live desk · isolated",
+  "header.brand": "现场开发",
+  "header.tag": "对话弄清 → 确认验收 → 派工 → 看成品 → 可继续改进",
+  "lang.label": "语言",
+  "setup.mark": "Model · OpenAI-compatible",
+  "setup.title": "配置模型",
+  "setup.hint": "写入 ~/.duaer/live/config.json",
+  "setup.provider": "服务商",
+  "setup.providerAria": "服务商预设",
+  "setup.save": "保存并开始",
+  "setup.saveFail": "保存失败",
+  "setup.keySaved": "已保存（留空则不改）",
+  "provider.custom": "自定义",
+  "chat.aria": "对话",
+  "chat.inputLabel": "你的话",
+  "chat.placeholder": "想做什么…",
+  "chat.revisePlaceholder": "说说哪里不满意、为什么…",
+  "chat.send": "发送",
+  "card.mark": "Confirm card",
+  "card.title": "确认卡",
+  "card.aria": "确认卡",
+  "card.goal": "要做什么",
+  "card.out": "不做什么",
+  "card.accept": "验收标准",
+  "card.assume": "假设",
+  "card.placeholder": "待确认",
+  "card.lockHint": "确认时自动验收；通过后选择产品仓派工",
+  "card.lockHintLocked": "已确认。选择产品仓库派工，Brief 才会进入业务仓 worktree。",
+  "card.lockHintReady": "可以确认了。确认后自动验收，再派工。",
+  "card.lockHintNeed": "至少填好「要做什么」和「验收标准」。",
+  "card.lockHintRevise": "上方确认卡保持原需求。改进内容请看下方改进卡。",
+  "card.confirm": "需求无误，开始干活",
+  "card.confirmed": "已确认",
+  "card.accepting": "自动验收中…",
+  "card.fixing": "自动修正中…",
+  "dispatch.mark": "Dispatch · product repo",
+  "dispatch.title": "派工到产品仓库",
+  "dispatch.browse": "浏览…",
+  "dispatch.browsing": "选择中…",
+  "dispatch.scan": "扫描本机",
+  "dispatch.scanning": "扫描中…",
+  "dispatch.filter": "筛选",
+  "dispatch.filterPh": "按名称过滤…",
+  "dispatch.path": "或粘贴路径",
+  "dispatch.pathPh": "/Users/…/your-product",
+  "dispatch.agentLabel": "用哪个 CLI 数字员工启动",
+  "dispatch.agentHint": "检测本机 PATH 上的 Cursor Agent / Claude Code 等",
+  "dispatch.needCli": "需要安装 CLI",
+  "dispatch.needInstall": "请先安装 CLI",
+  "dispatch.copyInstall": "复制安装命令",
+  "dispatch.copied": "已复制",
+  "dispatch.startCmd": "启动命令（开头须为 Duaer）",
+  "dispatch.startCmdPh": "Duaer\n\n在这里写要数字员工做的事…",
+  "dispatch.do": "写入 Brief 并启动",
+  "dispatch.doWithAgent": "派工并用 {label} 启动",
+  "dispatch.done": "已派工",
+  "dispatch.working": "派工中…",
+  "preview.title": "成品",
+  "preview.view": "查看成品",
+  "preview.auto": "自动发现",
+  "preview.link": "\n成品：{url}",
+  "preview.missing":
+    "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）",
+  "revise.mark": "Revise card",
+  "revise.title": "改进卡",
+  "revise.hint": "左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。",
+  "revise.goal": "要改什么",
+  "revise.out": "不要动什么",
+  "revise.accept": "怎么算改好",
+  "revise.assume": "不满意原因",
+  "revise.goalPh": "例如：主色改浅、标题加大",
+  "revise.outPh": "例如：不动文案结构",
+  "revise.acceptPh": "例如：手机端按钮不挤在一起",
+  "revise.assumePh": "例如：主色太沉、看不清",
+  "revise.again": "再改一版",
+  "revise.dispatch": "改进方案确认，再派一版",
+  "revise.dispatching": "续派中…",
+  "revise.hintIdle": "成品可用后点「再改一版」；左侧对话，下方填写改进卡。",
+  "revise.hintBusy": "正在左侧对话完善下方改进卡…",
+  "revise.hintReady": "下方改进卡已就绪：点「再派一版」，任务送入原 Terminal。",
+  "revise.hintNeed": "请在左侧说明哪里不满意；我会填下方改进卡。卡齐后可点再派。",
+  "revise.hintEnqueue": "正在送入同一 Terminal（不新开窗口）…",
+  "revise.hintLocked": "本轮改进卡（下方）已确认。改完验收后若仍不满意，再点「再改一版」。",
+  "revise.hintRevising": "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。",
+  "bot.ready":
+    "模型已就绪。随便说你想做什么；我会多轮问清，右侧是确认卡。确认前不会改你的业务仓库。",
+  "bot.cardReady": "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
+  "bot.reviseCardReady":
+    "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。",
+  "bot.enterRevise":
+    "已进入改进。上方确认卡仍是原需求；请在左侧对话，在下方改进卡填写改动。填齐后点「再派一版」。",
+  "bot.continueRevise":
+    "继续在左侧说哪里不满意；改动写在下方改进卡，再点「再派一版」。",
+  "bot.accepted":
+    "数字员工已验收通过。可点「查看成品」；不满意再点成品旁「再改一版」。",
+  "bot.acceptFailed": "自动验收未通过：{summary}{detail}",
+  "bot.acceptFailedDefault": "请修改确认卡",
+  "bot.autoFix": "自动修正",
+  "bot.fixing": "修正中…",
+  "bot.fixStillFailed":
+    "自动修正后仍未通过{note}，可再点自动修正或手改确认卡。",
+  "bot.confirmFixed":
+    "已自动修正并验收通过。隔离区 Brief 已就绪；请选择产品仓库派工。",
+  "bot.confirmOk":
+    "自动验收通过。隔离区 Brief 已就绪；请选择产品仓库派工（建 worktree + 写入 Brief）。",
+  "bot.confirmFail": "确认失败：{msg}",
+  "bot.autoFixFail": "自动修正失败：{msg}",
+  "bot.repoPrepared": "已准备仓库 {name}（{prep}）并记住",
+  "bot.repoSelected": "已选择并记住仓库 {name}",
+  "bot.dispatchDone":
+    "{duaer}{who}。进度看下方清单与日志；完成后可「查看成品」。\n{path}",
+  "bot.reviseDispatched":
+    "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看成品。",
+  "bot.reviseLaunchReuse": "已送入原 Terminal",
+  "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
+  "bot.reviseLaunchNew": "新会话",
+  "bot.reviseRestate": "\n改：{change}\n验：{acceptance}",
+  "bot.chatError": "出错：{msg}",
+  "bot.reviseKickoffFail":
+    "改进对话没启动起来：{msg}。你也可以直接在左侧输入哪里不满意。",
+  "update.notice":
+    "新版本 {latest}（当前 {current}）。终端运行 duaer self-update；业务仓再跑 npx duaer-spec@latest update",
+  "update.noticeHtml":
+    "新版本 <code>{latest}</code>（当前 <code>{current}</code>）。终端运行 <code>duaer self-update</code>；业务仓再跑 <code>npx duaer-spec@latest update</code>",
+  "repo.recent": "最近",
+  "repo.discovered": "发现",
+  "repo.empty":
+    "点「浏览…」或「扫描本机」，也可在产品仓执行 duaer live repo add",
+  "repo.emptyFilter": "无匹配仓库",
+  "meta.model": "模型 {model} · Brief → {jobs}",
+  "progress.inProgress": "进行中",
+  "status.waiting": "等待数字员工 · 监听 tasks.md 进度…",
+  "status.running": "数字员工已启动 · 监听 tasks.md 进度…",
+  "status.poll": "状态：{st}{pct}{rev}{wt}",
+  "status.worktreeGone": " · worktree 已移除",
+  "status.acceptedRevise": "delivery accepted · 可继续改进{rev}",
+  "status.revisingLine": "状态：revising · r{revision} · continue",
+  "agent.notInstalled": "{label} · 未安装",
+  "agent.clickInstall": "点选查看安装命令",
+  "agent.missingHint": "未检测到：{list} — 见下方安装命令",
+  "agent.detected": "已检测本机可用启动器",
+  "prep.baseBranch": "已创建 develop 分支",
+  "prep.gitInit": "已 git init",
+  "prep.duaerInit": "已在此目录安装 Duaer",
+  "launch.none": "启动: 未启动",
+  "launch.line": "启动: {label}{pid}{cli}{script}{log}",
+  "launch.pid": " (pid {pid})",
+  "launch.cli": "\nCLI: {cmd}",
+  "launch.script": "\nTerminal脚本: {path}",
+  "launch.log": "\n日志: {path}",
+  "launch.reused": "已送入原 Terminal（{who}）",
+  "launch.terminal": "已打开 Terminal，正在执行 CLI（{who}）",
+  "launch.spawned": "已用 {who} 启动",
+  "launch.duaerInstalled": "已在指定目录安装 Duaer；",
+  "launch.duaerReady": "Duaer 已就绪；",
+  "result.review": "自动验收：{summary}\n",
+  "result.fix": "自动修正：{summary}\n",
+  "result.confirmOk":
+    "{review}Live Brief: {dir}\n分支建议: {branch}\n\n下一步：下方选择产品仓库派工。",
+  "result.dispatchOk":
+    "派工完成\n仓库: {repo}\nWorktree: {worktree}\nBrief: {brief}\n{launch}\n\n—— 启动命令 ——\n{cmd}",
+  "result.revision":
+    "Revision {revision} 已续派\n要改：{goal}\n怎么算好：{acceptance}",
+  "startCmd.goalFallback": "（在此写清要做什么）",
+  "startCmd.body":
+    "按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted（有页面时写入 preview.url，如 index.html）；不要推远程除非明确要求。",
+  "err.noRepo": "先点选仓库，或浏览 / 扫描",
+  "err.noJob": "没有可改进的工单",
+  "err.reviseFields": "先在下方改进卡补全「要改什么」和「怎么算改好」",
+  "err.chat": "对话失败",
+  "err.streamIncomplete": "流式响应不完整",
+  "err.pick": "选择失败",
+  "err.pickFromList": "请从下方列表点选具体仓库",
+  "err.dispatch": "派工失败",
+  "err.dispatchTimeout":
+    "派工超时（60s）。请刷新重试；若 worktree 已存在需换分支名或删掉旧 worktree。",
+  "err.revise": "继续改进失败",
+  "err.reviseKickoff": "改进对话启动失败",
+  "err.confirm": "确认失败",
+  "err.timeout": "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。",
+  "err.installAgent": "请先安装：{cmd}",
+  "err.needAgent": "请先安装所选 CLI",
+  "err.needAgentAlt": "请先安装对应 CLI",
+  "err.agentsDetect": "无法检测本机 CLI",
+  "err.copy": "复制失败",
+  "err.autoFix": "自动修正失败",
+};
+
+const en = {
+  "doc.title": "Live desk",
+  "header.mark": "Live desk · isolated",
+  "header.brand": "Live desk",
+  "header.tag": "Clarify → confirm → dispatch → preview → revise",
+  "lang.label": "Language",
+  "setup.mark": "Model · OpenAI-compatible",
+  "setup.title": "Configure model",
+  "setup.hint": "Saved to ~/.duaer/live/config.json",
+  "setup.provider": "Provider",
+  "setup.providerAria": "Provider presets",
+  "setup.save": "Save and start",
+  "setup.saveFail": "Save failed",
+  "setup.keySaved": "Saved (leave blank to keep)",
+  "provider.custom": "Custom",
+  "chat.aria": "Chat",
+  "chat.inputLabel": "Your message",
+  "chat.placeholder": "What do you want to build…",
+  "chat.revisePlaceholder": "What is wrong and why…",
+  "chat.send": "Send",
+  "card.mark": "Confirm card",
+  "card.title": "Confirm card",
+  "card.aria": "Confirm card",
+  "card.goal": "Goal",
+  "card.out": "Out of scope",
+  "card.accept": "Acceptance",
+  "card.assume": "Assumptions",
+  "card.placeholder": "Pending",
+  "card.lockHint": "Confirm auto-accepts; then pick a product repo to dispatch",
+  "card.lockHintLocked":
+    "Confirmed. Pick a product repo so the Brief enters that worktree.",
+  "card.lockHintReady": "Ready to confirm. Auto-accept runs next, then dispatch.",
+  "card.lockHintNeed": "Fill at least Goal and Acceptance.",
+  "card.lockHintRevise":
+    "Top confirm card stays the original brief. Edits go in the revise card below.",
+  "card.confirm": "Looks good — start work",
+  "card.confirmed": "Confirmed",
+  "card.accepting": "Auto-accepting…",
+  "card.fixing": "Auto-fixing…",
+  "dispatch.mark": "Dispatch · product repo",
+  "dispatch.title": "Dispatch to product repo",
+  "dispatch.browse": "Browse…",
+  "dispatch.browsing": "Choosing…",
+  "dispatch.scan": "Scan machine",
+  "dispatch.scanning": "Scanning…",
+  "dispatch.filter": "Filter",
+  "dispatch.filterPh": "Filter by name…",
+  "dispatch.path": "Or paste path",
+  "dispatch.pathPh": "/Users/…/your-product",
+  "dispatch.agentLabel": "Which CLI digital employee to launch",
+  "dispatch.agentHint": "Detects Cursor Agent / Claude Code on PATH",
+  "dispatch.needCli": "CLI install required",
+  "dispatch.needInstall": "Install CLI first",
+  "dispatch.copyInstall": "Copy install command",
+  "dispatch.copied": "Copied",
+  "dispatch.startCmd": "Start command (must begin with Duaer)",
+  "dispatch.startCmdPh": "Duaer\n\nDescribe what the digital employee should do…",
+  "dispatch.do": "Write Brief and launch",
+  "dispatch.doWithAgent": "Dispatch and launch with {label}",
+  "dispatch.done": "Dispatched",
+  "dispatch.working": "Dispatching…",
+  "preview.title": "Product",
+  "preview.view": "View product",
+  "preview.auto": "auto-detected",
+  "preview.link": "\nProduct: {url}",
+  "preview.missing":
+    "\n(No preview / index.html; ask the employee to set preview.url in delivery.json)",
+  "revise.mark": "Revise card",
+  "revise.title": "Revise card",
+  "revise.hint":
+    "Clarify in left chat; fill this card below; confirm to enqueue the same Terminal.",
+  "revise.goal": "What to change",
+  "revise.out": "What not to touch",
+  "revise.accept": "Done when",
+  "revise.assume": "Why it is wrong",
+  "revise.goalPh": "e.g. lighter primary color, larger title",
+  "revise.outPh": "e.g. keep copy structure",
+  "revise.acceptPh": "e.g. mobile buttons not cramped",
+  "revise.assumePh": "e.g. primary too dark, hard to read",
+  "revise.again": "Revise again",
+  "revise.dispatch": "Confirm revise and dispatch",
+  "revise.dispatching": "Dispatching revise…",
+  "revise.hintIdle":
+    "After the product is ready, tap Revise again; chat left, revise card below.",
+  "revise.hintBusy": "Filling the revise card from left chat…",
+  "revise.hintReady":
+    "Revise card ready: tap dispatch to enqueue the same Terminal.",
+  "revise.hintNeed": "Say what is wrong on the left; the revise card fills below.",
+  "revise.hintEnqueue": "Enqueueing into the same Terminal…",
+  "revise.hintLocked":
+    "This revise card is locked. After accept, tap Revise again if needed.",
+  "revise.hintRevising":
+    "Employee is revising. You can View product; Revise again after accept.",
+  "bot.ready":
+    "Model ready. Tell me what you want; I will clarify in chat. The confirm card is on the right. Nothing touches your product repo until you confirm.",
+  "bot.cardReady":
+    "You can edit the confirm card. When ready, tap Looks good — start work.",
+  "bot.reviseCardReady":
+    "Revise card updated below. Check What to change / Done when, then confirm dispatch.",
+  "bot.enterRevise":
+    "Revise mode. Top card stays the original brief; fill the revise card below after left chat.",
+  "bot.continueRevise":
+    "Keep clarifying on the left; edits go in the revise card below.",
+  "bot.accepted":
+    "Delivery accepted. View product; or tap Revise again beside it.",
+  "bot.acceptFailed": "Auto-accept failed: {summary}{detail}",
+  "bot.acceptFailedDefault": "Edit the confirm card",
+  "bot.autoFix": "Auto-fix",
+  "bot.fixing": "Fixing…",
+  "bot.fixStillFailed":
+    "Still failed after auto-fix{note}. Try again or edit the card.",
+  "bot.confirmFixed":
+    "Auto-fixed and accepted. Live Brief ready; pick a product repo to dispatch.",
+  "bot.confirmOk":
+    "Accepted. Live Brief ready; pick a product repo (worktree + Brief).",
+  "bot.confirmFail": "Confirm failed: {msg}",
+  "bot.autoFixFail": "Auto-fix failed: {msg}",
+  "bot.repoPrepared": "Prepared repo {name} ({prep}) and remembered",
+  "bot.repoSelected": "Selected and remembered repo {name}",
+  "bot.dispatchDone":
+    "{duaer}{who}. Watch the checklist and log below; then View product.\n{path}",
+  "bot.reviseDispatched":
+    "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View product.",
+  "bot.reviseLaunchReuse": "enqueued in existing Terminal",
+  "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
+  "bot.reviseLaunchNew": "new session",
+  "bot.reviseRestate": "\nChange: {change}\nAccept: {acceptance}",
+  "bot.chatError": "Error: {msg}",
+  "bot.reviseKickoffFail":
+    "Revise chat failed to start: {msg}. You can type what is wrong on the left.",
+  "update.notice":
+    "Update {latest} (current {current}). Run duaer self-update; in product repos: npx duaer-spec@latest update",
+  "update.noticeHtml":
+    "Update <code>{latest}</code> (current <code>{current}</code>). Run <code>duaer self-update</code>; in product repos: <code>npx duaer-spec@latest update</code>",
+  "repo.recent": "recent",
+  "repo.discovered": "found",
+  "repo.empty": "Browse / scan, or run duaer live repo add in a product repo",
+  "repo.emptyFilter": "No matching repos",
+  "meta.model": "Model {model} · Brief → {jobs}",
+  "progress.inProgress": "in progress",
+  "status.waiting": "Waiting for employee · watching tasks.md…",
+  "status.running": "Employee started · watching tasks.md…",
+  "status.poll": "Status: {st}{pct}{rev}{wt}",
+  "status.worktreeGone": " · worktree removed",
+  "status.acceptedRevise": "delivery accepted · can revise{rev}",
+  "status.revisingLine": "Status: revising · r{revision} · continue",
+  "agent.notInstalled": "{label} · not installed",
+  "agent.clickInstall": "Select to see install command",
+  "agent.missingHint": "Not found: {list} — see install below",
+  "agent.detected": "Local launchers detected",
+  "prep.baseBranch": "Created develop branch",
+  "prep.gitInit": "Ran git init",
+  "prep.duaerInit": "Installed Duaer in this directory",
+  "launch.none": "Launch: not started",
+  "launch.line": "Launch: {label}{pid}{cli}{script}{log}",
+  "launch.pid": " (pid {pid})",
+  "launch.cli": "\nCLI: {cmd}",
+  "launch.script": "\nTerminal script: {path}",
+  "launch.log": "\nLog: {path}",
+  "launch.reused": "Enqueued in existing Terminal ({who})",
+  "launch.terminal": "Opened Terminal running CLI ({who})",
+  "launch.spawned": "Launched with {who}",
+  "launch.duaerInstalled": "Installed Duaer in the chosen directory; ",
+  "launch.duaerReady": "Duaer ready; ",
+  "result.review": "Auto-accept: {summary}\n",
+  "result.fix": "Auto-fix: {summary}\n",
+  "result.confirmOk":
+    "{review}Live Brief: {dir}\nSuggested branch: {branch}\n\nNext: pick a product repo below to dispatch.",
+  "result.dispatchOk":
+    "Dispatched\nRepo: {repo}\nWorktree: {worktree}\nBrief: {brief}\n{launch}\n\n—— Start command ——\n{cmd}",
+  "result.revision":
+    "Revision {revision} enqueued\nChange: {goal}\nDone when: {acceptance}",
+  "startCmd.goalFallback": "(describe the goal here)",
+  "startCmd.body":
+    "Follow the Duaer digital-employee flow: stay in Brief scope; check off tasks.md as you go; stamp delivery.json accepted when done (set preview.url for pages, e.g. index.html); do not push remote unless asked.",
+  "err.noRepo": "Pick a repo via browse / scan first",
+  "err.noJob": "No job to revise",
+  "err.reviseFields": "Fill What to change and Done when on the revise card below",
+  "err.chat": "Chat failed",
+  "err.streamIncomplete": "Incomplete stream response",
+  "err.pick": "Pick failed",
+  "err.pickFromList": "Pick a repo from the list below",
+  "err.dispatch": "Dispatch failed",
+  "err.dispatchTimeout":
+    "Dispatch timed out (60s). Refresh and retry; if the worktree exists, rename the branch or remove the old worktree.",
+  "err.revise": "Revise failed",
+  "err.reviseKickoff": "Could not start revise chat",
+  "err.confirm": "Confirm failed",
+  "err.timeout": "Timed out. Refresh; if the Agent is open, continue in Terminal.",
+  "err.installAgent": "Install first: {cmd}",
+  "err.needAgent": "Install the selected CLI first",
+  "err.needAgentAlt": "Install the matching CLI first",
+  "err.agentsDetect": "Could not detect local CLI",
+  "err.copy": "Copy failed",
+  "err.autoFix": "Auto-fix failed",
+};
+
+const catalogs = { "zh-CN": zhCN, en };
+
+let locale = "zh-CN";
+const listeners = new Set();
+
+export function getLocale() {
+  return locale;
+}
+
+export function detectLocale() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved && LOCALES.includes(saved)) return saved;
+  } catch {
+    // ignore
+  }
+  const nav = String(navigator.language || navigator.userLanguage || "").toLowerCase();
+  if (nav.startsWith("zh")) return "zh-CN";
+  return "en";
+}
+
+export function setLocale(next, { persist = true } = {}) {
+  const loc = LOCALES.includes(next) ? next : "zh-CN";
+  locale = loc;
+  if (persist) {
+    try {
+      localStorage.setItem(STORAGE_KEY, loc);
+    } catch {
+      // ignore
+    }
+  }
+  document.documentElement.lang = loc;
+  applyDomI18n();
+  for (const fn of listeners) {
+    try {
+      fn(loc);
+    } catch {
+      // ignore
+    }
+  }
+  return loc;
+}
+
+export function onLocaleChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}
+
+export function t(key, vars = {}) {
+  const table = catalogs[locale] || zhCN;
+  let s = table[key] ?? zhCN[key] ?? key;
+  for (const [k, v] of Object.entries(vars)) {
+    s = s.replaceAll(`{${k}}`, String(v ?? ""));
+  }
+  return s;
+}
+
+export function applyDomI18n(root = document) {
+  root.querySelectorAll("[data-i18n]").forEach((node) => {
+    const key = node.getAttribute("data-i18n");
+    if (!key) return;
+    const attr = node.getAttribute("data-i18n-attr");
+    if (attr) node.setAttribute(attr, t(key));
+    else node.textContent = t(key);
+  });
+  root.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-placeholder");
+    if (key) node.setAttribute("placeholder", t(key));
+  });
+  root.querySelectorAll("[data-i18n-aria]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-aria");
+    if (key) node.setAttribute("aria-label", t(key));
+  });
+  const title = t("doc.title");
+  if (title) document.title = title;
+}
+
+export function initI18n(preferred) {
+  const loc =
+    preferred && LOCALES.includes(preferred) ? preferred : detectLocale();
+  return setLocale(loc, { persist: Boolean(preferred) || true });
+}

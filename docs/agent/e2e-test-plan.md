@@ -50,6 +50,7 @@ the table for their app.
 | E2E-035 | After handoff removes worktree, status/preview work; revise recreates wt | manual |
 | E2E-036 | Confirm card unchanged; revise card stays in bottom panel | manual |
 | E2E-037 | Preview/revise CTAs hidden until delivery accepted | manual |
+| E2E-038 | Live desk language switch (zh-CN / en) updates copy; reload keeps locale | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |

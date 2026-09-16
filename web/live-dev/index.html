@@ -14,9 +14,18 @@
   </head>
   <body>
     <header class="top">
-      <p class="mark">Live desk · isolated</p>
-      <p class="brand">现场开发</p>
-      <p class="tag">对话弄清 → 确认验收 → 派工 → 看成品 → 可继续改进</p>
+      <div class="top-row">
+        <p class="mark" data-i18n="header.mark">Live desk · isolated</p>
+        <label class="lang-switch">
+          <span class="sr-only" data-i18n="lang.label">语言</span>
+          <select id="langSelect" aria-label="Language">
+            <option value="zh-CN">中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </div>
+      <p class="brand" data-i18n="header.brand">现场开发</p>
+      <p class="tag" data-i18n="header.tag">对话弄清 → 确认验收 → 派工 → 看成品 → 可继续改进</p>
       <div class="sight" aria-hidden="true">
         <span class="arm arm-h"></span>
         <span class="arm arm-v"></span>
@@ -27,12 +36,12 @@
     <p id="updateNotice" class="update-notice" hidden role="status"></p>
 
     <section id="setup" class="panel setup-panel" hidden>
-      <p class="mark">Model · OpenAI-compatible</p>
-      <h2 class="card-title">配置模型</h2>
-      <p class="hint">写入 <code>~/.duaer/live/config.json</code></p>
+      <p class="mark" data-i18n="setup.mark">Model · OpenAI-compatible</p>
+      <h2 class="card-title" data-i18n="setup.title">配置模型</h2>
+      <p class="hint" data-i18n="setup.hint">写入 ~/.duaer/live/config.json</p>
       <div class="field">
-        <span>服务商</span>
-        <div id="cfgProviders" class="provider-row" role="group" aria-label="服务商预设"></div>
+        <span data-i18n="setup.provider">服务商</span>
+        <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
       </div>
       <label class="field">
         <span>Base URL</span>
@@ -46,87 +55,89 @@
         <span>Model</span>
         <input id="cfgModel" type="text" placeholder="deepseek-flash" />
       </label>
-      <button type="button" class="btn confirm" id="saveCfg">保存并开始</button>
+      <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
       <p id="cfgErr" class="hint" hidden></p>
     </section>
 
     <main id="desk" class="layout" hidden>
-      <section class="panel chat-panel" aria-label="对话">
+      <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
         <div id="log" class="log"></div>
         <form id="composer" class="composer">
-          <label class="sr-only" for="input">你的话</label>
+          <label class="sr-only" for="input" data-i18n="chat.inputLabel">你的话</label>
           <textarea
             id="input"
             rows="2"
+            data-i18n-placeholder="chat.placeholder"
             placeholder="想做什么…"
             autocomplete="off"
           ></textarea>
-          <button type="submit" class="btn primary" id="send">发送</button>
+          <button type="submit" class="btn primary" id="send" data-i18n="chat.send">发送</button>
         </form>
       </section>
 
-      <section class="panel card-panel" aria-label="确认卡">
-        <p class="mark" id="cardMark">Confirm card</p>
-        <h2 class="card-title" id="cardTitle">确认卡</h2>
+      <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="确认卡">
+        <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
+        <h2 class="card-title" id="cardTitle" data-i18n="card.title">确认卡</h2>
         <p id="meta" class="meta"></p>
         <label class="field">
-          <span id="lblGoal">要做什么</span>
-          <textarea id="goal" rows="3" placeholder="待确认"></textarea>
+          <span id="lblGoal" data-i18n="card.goal">要做什么</span>
+          <textarea id="goal" rows="3" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span id="lblOut">不做什么</span>
-          <textarea id="outOfScope" rows="2" placeholder="待确认"></textarea>
+          <span id="lblOut" data-i18n="card.out">不做什么</span>
+          <textarea id="outOfScope" rows="2" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span id="lblAccept">验收标准</span>
-          <textarea id="acceptance" rows="3" placeholder="待确认"></textarea>
+          <span id="lblAccept" data-i18n="card.accept">验收标准</span>
+          <textarea id="acceptance" rows="3" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span id="lblAssume">假设</span>
-          <textarea id="assumptions" rows="2" placeholder="待确认"></textarea>
+          <span id="lblAssume" data-i18n="card.assume">假设</span>
+          <textarea id="assumptions" rows="2" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
         </label>
-        <p id="lockHint" class="hint">确认时自动验收；通过后选择产品仓派工</p>
-        <button type="button" class="btn confirm" id="confirm" disabled>
+        <p id="lockHint" class="hint" data-i18n="card.lockHint">确认时自动验收；通过后选择产品仓派工</p>
+        <button type="button" class="btn confirm" id="confirm" disabled data-i18n="card.confirm">
           需求无误，开始干活
         </button>
         <pre id="result" class="result" hidden></pre>
 
         <section id="dispatch" class="dispatch" hidden>
-          <p class="mark">Dispatch · product repo</p>
-          <h3 class="dispatch-title">派工到产品仓库</h3>
+          <p class="mark" data-i18n="dispatch.mark">Dispatch · product repo</p>
+          <h3 class="dispatch-title" data-i18n="dispatch.title">派工到产品仓库</h3>
           <div class="repo-actions">
-            <button type="button" class="btn primary" id="repoBrowse">浏览…</button>
-            <button type="button" class="btn" id="repoScan">扫描本机</button>
+            <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>
+            <button type="button" class="btn" id="repoScan" data-i18n="dispatch.scan">扫描本机</button>
           </div>
           <label class="field">
-            <span>筛选</span>
-            <input id="repoFilter" type="text" placeholder="按名称过滤…" autocomplete="off" />
+            <span data-i18n="dispatch.filter">筛选</span>
+            <input id="repoFilter" type="text" data-i18n-placeholder="dispatch.filterPh" placeholder="按名称过滤…" autocomplete="off" />
           </label>
           <div id="repoList" class="repo-list"></div>
           <label class="field">
-            <span>或粘贴路径</span>
-            <input id="repoPath" type="text" placeholder="/Users/…/your-product" />
+            <span data-i18n="dispatch.path">或粘贴路径</span>
+            <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product" />
           </label>
           <div class="agent-pick">
-            <p class="agent-pick-label">用哪个 CLI 数字员工启动</p>
+            <p class="agent-pick-label" data-i18n="dispatch.agentLabel">用哪个 CLI 数字员工启动</p>
             <div id="agentList" class="agent-list"></div>
-            <p id="agentHint" class="hint">检测本机 PATH 上的 Cursor Agent / Claude Code 等</p>
+            <p id="agentHint" class="hint" data-i18n="dispatch.agentHint">检测本机 PATH 上的 Cursor Agent / Claude Code 等</p>
             <div id="agentInstall" class="agent-install" hidden>
-              <p class="agent-install-title">需要安装 CLI</p>
+              <p class="agent-install-title" data-i18n="dispatch.needCli">需要安装 CLI</p>
               <pre id="agentInstallCmd" class="agent-install-cmd"></pre>
-              <button type="button" class="btn" id="copyInstallCmd">复制安装命令</button>
+              <button type="button" class="btn" id="copyInstallCmd" data-i18n="dispatch.copyInstall">复制安装命令</button>
             </div>
             <label class="field start-cmd-field" id="startCmdField">
-              <span>启动命令（开头须为 Duaer）</span>
+              <span data-i18n="dispatch.startCmd">启动命令（开头须为 Duaer）</span>
               <textarea
                 id="startCommand"
                 rows="6"
+                data-i18n-placeholder="dispatch.startCmdPh"
                 placeholder="Duaer&#10;&#10;在这里写要数字员工做的事…"
                 spellcheck="false"
               ></textarea>
             </label>
           </div>
-          <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并启动</button>
+          <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
           <p id="dispatchErr" class="hint" hidden></p>
           <p id="dispatchStatus" class="meta" hidden></p>
           <div id="dispatchProgress" class="progress-panel" hidden>
@@ -135,39 +146,39 @@
             <pre id="progressLog" class="progress-log" hidden></pre>
           </div>
           <div id="previewPanel" class="preview-panel" hidden>
-            <p class="preview-title">成品</p>
-            <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener">查看成品</a>
+            <p class="preview-title" data-i18n="preview.title">成品</p>
+            <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" data-i18n="preview.view">查看成品</a>
             <p id="previewMeta" class="hint"></p>
-            <button type="button" class="btn revise-cta" id="startReviseChat" hidden>
+            <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
               再改一版
             </button>
           </div>
           <div id="revisePanel" class="revise-panel" hidden>
-            <p class="mark">Revise card</p>
-            <p class="revise-title">改进卡</p>
-            <p id="reviseHint" class="hint">左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。</p>
+            <p class="mark" data-i18n="revise.mark">Revise card</p>
+            <p class="revise-title" data-i18n="revise.title">改进卡</p>
+            <p id="reviseHint" class="hint" data-i18n="revise.hint">左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。</p>
             <div id="reviseCardFields" class="revise-card-fields">
               <label class="field">
-                <span>要改什么</span>
-                <textarea id="revGoal" rows="3" placeholder="例如：主色改浅、标题加大"></textarea>
+                <span data-i18n="revise.goal">要改什么</span>
+                <textarea id="revGoal" rows="3" data-i18n-placeholder="revise.goalPh" placeholder="例如：主色改浅、标题加大"></textarea>
               </label>
               <label class="field">
-                <span>不要动什么</span>
-                <textarea id="revOut" rows="2" placeholder="例如：不动文案结构"></textarea>
+                <span data-i18n="revise.out">不要动什么</span>
+                <textarea id="revOut" rows="2" data-i18n-placeholder="revise.outPh" placeholder="例如：不动文案结构"></textarea>
               </label>
               <label class="field">
-                <span>怎么算改好</span>
-                <textarea id="revAccept" rows="3" placeholder="例如：手机端按钮不挤在一起"></textarea>
+                <span data-i18n="revise.accept">怎么算改好</span>
+                <textarea id="revAccept" rows="3" data-i18n-placeholder="revise.acceptPh" placeholder="例如：手机端按钮不挤在一起"></textarea>
               </label>
               <label class="field">
-                <span>不满意原因</span>
-                <textarea id="revAssume" rows="2" placeholder="例如：主色太沉、看不清"></textarea>
+                <span data-i18n="revise.assume">不满意原因</span>
+                <textarea id="revAssume" rows="2" data-i18n-placeholder="revise.assumePh" placeholder="例如：主色太沉、看不清"></textarea>
               </label>
             </div>
-            <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden>
+            <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden data-i18n="revise.again">
               再改一版
             </button>
-            <button type="button" class="btn confirm" id="doReviseDispatch" hidden disabled>
+            <button type="button" class="btn confirm" id="doReviseDispatch" hidden disabled data-i18n="revise.dispatch">
               改进方案确认，再派一版
             </button>
             <p id="reviseErr" class="hint" hidden></p>
