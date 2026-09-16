@@ -1,5 +1,5 @@
 {
-  "specDir": ".duaer/specs/037-live-i18n",
-  "branch": "feat/live-i18n",
-  "startedAt": "2026-09-16T04:50:00.000Z"
+  "specDir": ".duaer/specs/038-revise-enqueue-style",
+  "branch": "fix/revise-enqueue-style",
+  "startedAt": "2026-09-16T05:19:38.000Z"
 }

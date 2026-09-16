@@ -702,45 +702,54 @@ input:focus {
 }
 
 .revise-panel {
-  margin-top: 0.85rem;
-  padding: 0.85rem 0.9rem;
+  margin-top: 1rem;
+  padding: 1.15rem 1.2rem 1.25rem;
+  background: var(--plate);
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.35);
+  box-shadow: var(--shadow);
 }
 
 .revise-panel > .mark {
-  margin: 0 0 0.25rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--mute);
+  margin: 0 0 0.55rem;
 }
 
 .revise-card-fields {
-  margin-top: 0.55rem;
+  margin-top: 0.35rem;
 }
 
 .revise-title {
   margin: 0 0 0.35rem;
-  font-size: 1.05rem;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  color: var(--ink);
+  font-size: 1.55rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+
+.revise-panel .hint {
+  margin: 0 0 0.85rem;
+  color: var(--mute);
+  font-size: 0.85rem;
 }
 
 .revise-panel .field {
-  margin-top: 0.65rem;
+  margin-top: 0.75rem;
 }
 
-.revise-panel .btn {
-  margin-top: 0.65rem;
-  display: inline-flex;
-  margin-right: 0.5rem;
+.revise-panel .field > span {
+  color: var(--mute);
 }
 
 .revise-panel .btn.confirm {
-  min-width: auto;
+  width: 100%;
+  margin-top: 0.85rem;
+  display: block;
+}
+
+.revise-panel .btn.revise-cta {
+  display: inline-flex;
+  width: auto;
+  margin-top: 0.65rem;
+  margin-right: 0;
 }
 
 .chat-panel.revise-active {

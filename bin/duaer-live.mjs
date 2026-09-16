@@ -1437,6 +1437,41 @@ function isPidAlive(pid) {
   }
 }
 
+/** Runner is healthy only with a live PID and a fresh heartbeat (or busy running.cmd). */
+const RUNNER_HEARTBEAT_MAX_MS = 5000;
+
+function readRunnerPid(queueDir) {
+  const pidPath = path.join(queueDir, "runner.pid");
+  if (!fs.existsSync(pidPath)) return null;
+  const pid = Number(String(fs.readFileSync(pidPath, "utf8")).trim());
+  if (!Number.isFinite(pid) || pid <= 0) return null;
+  return pid;
+}
+
+function isTerminalRunnerHealthy(queueDir) {
+  const pid = readRunnerPid(queueDir);
+  if (pid == null || !isPidAlive(pid)) return false;
+  const runningPath = path.join(queueDir, "running.cmd");
+  if (fs.existsSync(runningPath)) return true;
+  const hbPath = path.join(queueDir, "runner.heartbeat");
+  if (!fs.existsSync(hbPath)) return false;
+  try {
+    const age = Date.now() - fs.statSync(hbPath).mtimeMs;
+    return age >= 0 && age <= RUNNER_HEARTBEAT_MAX_MS;
+  } catch {
+    return false;
+  }
+}
+
+function clearStaleRunnerPid(queueDir) {
+  const pidPath = path.join(queueDir, "runner.pid");
+  try {
+    if (fs.existsSync(pidPath)) fs.unlinkSync(pidPath);
+  } catch {
+    // ignore
+  }
+}
+
 function writePendingCmd(queueDir, commandLine) {
   const pending = path.join(queueDir, "pending.cmd");
   fs.writeFileSync(
@@ -1463,21 +1498,29 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
     const qdir = terminalQueueDir(key);
     fs.mkdirSync(qdir, { recursive: true });
     writePendingCmd(qdir, commandLine);
-    const pidPath = path.join(qdir, "runner.pid");
-    if (fs.existsSync(pidPath)) {
-      const pid = Number(String(fs.readFileSync(pidPath, "utf8")).trim());
-      if (isPidAlive(pid)) {
-        appendLaunchLog(
-          logPath,
-          `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid}`,
-        );
-        return {
-          pid,
-          mode: "terminal-reuse",
-          reused: true,
-          queueDir: qdir,
-        };
-      }
+
+    if (isTerminalRunnerHealthy(qdir)) {
+      const pid = readRunnerPid(qdir);
+      appendLaunchLog(
+        logPath,
+        `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid}`,
+      );
+      return {
+        pid,
+        mode: "terminal-reuse",
+        reused: true,
+        queueDir: qdir,
+      };
+    }
+
+    // Stale/dead PID or pre-heartbeat runner: do not claim reuse
+    const stalePid = readRunnerPid(qdir);
+    if (stalePid != null) {
+      appendLaunchLog(
+        logPath,
+        `[${new Date().toISOString()}] runner unhealthy pid=${stalePid} — open fresh Terminal`,
+      );
+      clearStaleRunnerPid(qdir);
     }
 
     // Start a long-lived runner window for this worktree
@@ -1486,17 +1529,29 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
       const body = `#!/bin/bash
 QDIR=${shellSingleQuote(qdir)}
 cd ${shellSingleQuote(cwd)} || exit 1
+touch_hb() { date +%s > "$QDIR/runner.heartbeat" 2>/dev/null || true; }
 echo $$ > "$QDIR/runner.pid"
-trap 'rm -f "$QDIR/runner.pid" "$QDIR/running.cmd"' EXIT
+touch_hb
+trap 'rm -f "$QDIR/runner.pid" "$QDIR/running.cmd" "$QDIR/runner.heartbeat"' EXIT
 run_pending() {
   if [ ! -f "$QDIR/pending.cmd" ]; then
     return 0
   fi
   mv "$QDIR/pending.cmd" "$QDIR/running.cmd"
   chmod +x "$QDIR/running.cmd" 2>/dev/null
+  (
+    while [ -f "$QDIR/running.cmd" ]; do
+      touch_hb
+      sleep 1
+    done
+  ) &
+  local hbp=$!
   bash "$QDIR/running.cmd"
   local status=$?
+  kill "$hbp" 2>/dev/null
+  wait "$hbp" 2>/dev/null
   rm -f "$QDIR/running.cmd"
+  touch_hb
   return $status
 }
 clear
@@ -1508,6 +1563,7 @@ while true; do
   echo
   echo "[duaer] 等待下一轮任务（现场点「再派一版」会送到这里）。Ctrl+C 结束。"
   while [ ! -f "$QDIR/pending.cmd" ]; do
+    touch_hb
     sleep 1
   done
   echo "[duaer] 收到新任务…"
@@ -2424,10 +2480,35 @@ ${reasonLine || text}
     "utf8",
   );
 
+  const detected = detectAgents();
+  let chosen = String(agentId || "").trim() || detected.preferredAgentId || "";
+  if (!chosen || !detected.agents.some((a) => a.id === chosen)) {
+    chosen = detected.agents[0]?.id || "";
+  }
+  if (!chosen) {
+    throw new Error("未检测到可用 CLI（Cursor Agent / Claude Code）");
+  }
+  const ok = detected.agents.some((a) => a.id === chosen && a.available);
+  if (!ok) {
+    throw new Error(`未安装启动器：${chosen}`);
+  }
+
+  // After accepted delivery (or recreated worktree), do not use --continue:
+  // ended sessions make continue look "enqueued" while the agent never works.
+  // Same Terminal queue still applies via launchInTerminal reuse/heartbeat.
+  const priorAccepted = prevDelivery?.status === "accepted";
+  const continueSession = !recreated && !priorAccepted;
+
   const defaultPrompt = `Duaer
 
 用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
-${recreated ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。" : "请续上一次会话上下文（CLI 已带 --continue）。"}
+${
+  recreated
+    ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。"
+    : continueSession
+      ? "请续上一次会话上下文（CLI 已带 --continue）。"
+      : "请开新一轮会话执行本轮 Revision（不要依赖已结束的 --continue）。"
+}
 
 工作目录: ${dispatch.worktreePath}
 Brief: ${dispatch.featureDir}
@@ -2459,23 +2540,10 @@ ${restated.keep}
     agentPrompt = `Duaer\n\n${agentPrompt}`;
   }
 
-  const detected = detectAgents();
-  let chosen = String(agentId || "").trim() || detected.preferredAgentId || "";
-  if (!chosen || !detected.agents.some((a) => a.id === chosen)) {
-    chosen = detected.agents[0]?.id || "";
-  }
-  if (!chosen) {
-    throw new Error("未检测到可用 CLI（Cursor Agent / Claude Code）");
-  }
-  const ok = detected.agents.some((a) => a.id === chosen && a.available);
-  if (!ok) {
-    throw new Error(`未安装启动器：${chosen}`);
-  }
-
   const logPath = path.join(dispatch.featureDir, "agent-launch.log");
   appendLaunchLog(
     logPath,
-    `\n—— revise r${revN} ${now} (continue=${!recreated} recreated=${recreated}) ——\n${restated.summary}\n`,
+    `\n—— revise r${revN} ${now} (continue=${continueSession} recreated=${recreated} priorAccepted=${priorAccepted}) ——\n${restated.summary}\n`,
   );
   const launch = launchAgent({
     agentId: chosen,
@@ -2483,7 +2551,7 @@ ${restated.keep}
     agentPrompt,
     logPath,
     featureDir: dispatch.featureDir,
-    continueSession: !recreated,
+    continueSession,
   });
   rememberPreferredAgent(chosen);
 
@@ -2516,8 +2584,9 @@ ${restated.keep}
     revision: revN,
     restated,
     summary: restated.summary,
-    continueSession: !recreated,
+    continueSession,
     recreated,
+    priorAccepted,
     dispatch: nextDispatch,
     launch,
     agentPrompt,

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "038-revise-enqueue-style",
+  "acceptedAt": "2026-09-16T05:22:00.000Z",
+  "summary": "Honest revise Terminal enqueue after accepted delivery (fresh session, no false PID reuse) and dark revise card matching panel plate/shadow.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check bin/duaer-live.mjs",
+        "result": "pass — exit 0 (SYNTAX_OK) 2026-09-16"
+      }
+    ],
+    "e2e": ["E2E-039"],
+    "notes": "T004: syntax check on duaer-live.mjs; runner heartbeat + isTerminalRunnerHealthy reviewed; revise after accepted uses continueSession=false with Terminal queue; revise-panel CSS uses var(--plate)/var(--shadow) like .panel. Post-merge handoff: launchctl kickstart com.duaer.live8787."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004"]
+}
