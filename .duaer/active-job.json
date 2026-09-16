@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/050-validate-before-confirm",
-  "branch": "feat/validate-before-confirm",
-  "worktree": ".worktree/feat-validate-before-confirm",
+  "featureDir": ".duaer/specs/051-confirm-wide-structured",
+  "branch": "feat/confirm-wide",
+  "worktree": ".worktree/feat-confirm-wide",
   "status": "active"
 }

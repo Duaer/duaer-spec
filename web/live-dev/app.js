@@ -85,6 +85,10 @@ const el = {
   outOfScope: document.getElementById("outOfScope"),
   acceptance: document.getElementById("acceptance"),
   assumptions: document.getElementById("assumptions"),
+  goalView: document.getElementById("goalView"),
+  outOfScopeView: document.getElementById("outOfScopeView"),
+  acceptanceView: document.getElementById("acceptanceView"),
+  assumptionsView: document.getElementById("assumptionsView"),
   confirm: document.getElementById("confirm"),
   result: document.getElementById("result"),
   lockHint: document.getElementById("lockHint"),
@@ -131,6 +135,10 @@ const el = {
   revOut: document.getElementById("revOut"),
   revAccept: document.getElementById("revAccept"),
   revAssume: document.getElementById("revAssume"),
+  revGoalView: document.getElementById("revGoalView"),
+  revOutView: document.getElementById("revOutView"),
+  revAcceptView: document.getElementById("revAcceptView"),
+  revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
   lblGoal: document.getElementById("lblGoal"),
@@ -260,6 +268,7 @@ function syncDynamicI18n() {
   }
   showUpdateNotice(state.lastUpdate);
   syncChatPlaceholder();
+  syncReqSections();
   syncConfirmEnabled();
   if (el.agentList && !el.dispatch?.hidden) renderAgentList();
   if (el.repoList && !el.dispatch?.hidden) renderRepoList();
@@ -307,12 +316,14 @@ function setConfirmFieldsReadonly(ro) {
   for (const id of ["goal", "outOfScope", "acceptance", "assumptions"]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
+  syncReqSections();
 }
 
 function setReviseFieldsReadonly(ro) {
   for (const id of ["revGoal", "revOut", "revAccept", "revAssume"]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
+  syncReqSections();
 }
 
 function restoreConfirmCardFromOriginal() {
@@ -322,6 +333,7 @@ function restoreConfirmCardFromOriginal() {
   el.outOfScope.value = c.outOfScope || "";
   el.acceptance.value = c.acceptance || "";
   el.assumptions.value = c.assumptions || "";
+  syncReqSections();
 }
 
 /** Top confirm card chrome never becomes 改进卡. */
@@ -485,6 +497,7 @@ async function runValidate(kind, expectedFp) {
         if (el.revOut) el.revOut.value = data.card.outOfScope || "";
         if (el.revAccept) el.revAccept.value = data.card.acceptance || "";
         if (el.revAssume) el.revAssume.value = data.card.assumptions || "";
+        syncReqSections();
       } else {
         applyCard(data.card, { skipValidate: true });
       }
@@ -642,6 +655,7 @@ function applyCardChrome() {
 
 ["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
   el[id].addEventListener("input", () => {
+    autoGrowTextarea(el[id]);
     if (state.locked) return;
     scheduleValidate("confirm");
   });
@@ -649,6 +663,7 @@ function applyCardChrome() {
 ["revGoal", "revOut", "revAccept", "revAssume"].forEach((id) => {
   if (el[id]) {
     el[id].addEventListener("input", () => {
+      autoGrowTextarea(el[id]);
       if (state.reviseLocked) return;
       scheduleValidate("revise");
     });
@@ -860,6 +875,7 @@ function applyCard(data, { skipValidate = false } = {}) {
     if (data.acceptance) el.acceptance.value = data.acceptance;
     if (data.assumptions) el.assumptions.value = data.assumptions;
   }
+  syncReqSections();
   syncConfirmEnabled();
   if (!skipValidate) scheduleValidate(currentValidateKind());
 }
@@ -1431,6 +1447,146 @@ function escapeHtml(s) {
     .replaceAll('"', "&quot;");
 }
 
+const REQ_FIELD_PAIRS = [
+  { ta: "goal", view: "goalView", emptyKey: "card.placeholder" },
+  { ta: "outOfScope", view: "outOfScopeView", emptyKey: "card.placeholder" },
+  { ta: "acceptance", view: "acceptanceView", emptyKey: "card.placeholder" },
+  { ta: "assumptions", view: "assumptionsView", emptyKey: "card.placeholder" },
+  { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
+  { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
+  { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
+  { ta: "revAssume", view: "revAssumeView", emptyKey: "revise.assumePh" },
+];
+
+function structuredHtml(text, emptyLabel) {
+  const raw = String(text || "").replace(/\r\n/g, "\n");
+  if (!raw.trim()) {
+    return `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
+  }
+  const lines = raw.split("\n");
+  let html = "";
+  let i = 0;
+  while (i < lines.length) {
+    const bullet = lines[i].match(/^\s*[-*•]\s+(.*)$/);
+    const numbered = lines[i].match(/^\s*\d+[.)]\s+(.*)$/);
+    if (bullet) {
+      html += "<ul>";
+      while (i < lines.length) {
+        const m = lines[i].match(/^\s*[-*•]\s+(.*)$/);
+        if (!m) break;
+        html += `<li>${escapeHtml(m[1])}</li>`;
+        i += 1;
+      }
+      html += "</ul>";
+      continue;
+    }
+    if (numbered) {
+      html += "<ol>";
+      while (i < lines.length) {
+        const m = lines[i].match(/^\s*\d+[.)]\s+(.*)$/);
+        if (!m) break;
+        html += `<li>${escapeHtml(m[1])}</li>`;
+        i += 1;
+      }
+      html += "</ol>";
+      continue;
+    }
+    if (!lines[i].trim()) {
+      i += 1;
+      continue;
+    }
+    const parts = [];
+    while (i < lines.length) {
+      const line = lines[i];
+      if (!line.trim()) break;
+      if (/^\s*[-*•]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) break;
+      parts.push(escapeHtml(line.trim()));
+      i += 1;
+    }
+    html += `<p>${parts.join("<br>")}</p>`;
+  }
+  return html || `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
+}
+
+function autoGrowTextarea(ta) {
+  if (!ta) return;
+  ta.style.height = "auto";
+  ta.style.height = `${Math.max(ta.scrollHeight, 42)}px`;
+}
+
+function reqSectionFor(ta) {
+  return ta?.closest?.(".req-section") || null;
+}
+
+function isReqReadonly(taId) {
+  if (["goal", "outOfScope", "acceptance", "assumptions"].includes(taId)) {
+    return Boolean(state.locked || el[taId]?.readOnly);
+  }
+  if (["revGoal", "revOut", "revAccept", "revAssume"].includes(taId)) {
+    return Boolean(state.reviseLocked || el[taId]?.readOnly);
+  }
+  return Boolean(el[taId]?.readOnly);
+}
+
+function syncReqSection(pair) {
+  const ta = el[pair.ta];
+  const view = el[pair.view];
+  if (!ta || !view) return;
+  const section = reqSectionFor(ta);
+  const empty = t(pair.emptyKey) || ta.placeholder || "…";
+  view.innerHTML = structuredHtml(ta.value, empty);
+  if (section) {
+    section.classList.toggle("is-readonly", isReqReadonly(pair.ta));
+    if (!section.classList.contains("is-editing")) {
+      autoGrowTextarea(ta);
+    }
+  }
+}
+
+function syncReqSections() {
+  for (const pair of REQ_FIELD_PAIRS) syncReqSection(pair);
+}
+
+function enterReqEdit(pair) {
+  const ta = el[pair.ta];
+  const section = reqSectionFor(ta);
+  if (!ta || !section || isReqReadonly(pair.ta)) return;
+  section.classList.add("is-editing");
+  autoGrowTextarea(ta);
+  ta.focus();
+  const len = ta.value.length;
+  try {
+    ta.setSelectionRange(len, len);
+  } catch {
+    /* ignore */
+  }
+}
+
+function exitReqEdit(pair) {
+  const ta = el[pair.ta];
+  const section = reqSectionFor(ta);
+  if (!section) return;
+  section.classList.remove("is-editing");
+  syncReqSection(pair);
+}
+
+function wireReqSections() {
+  for (const pair of REQ_FIELD_PAIRS) {
+    const ta = el[pair.ta];
+    const view = el[pair.view];
+    if (!ta || !view) continue;
+    view.addEventListener("click", () => enterReqEdit(pair));
+    view.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" || ev.key === " ") {
+        ev.preventDefault();
+        enterReqEdit(pair);
+      }
+    });
+    ta.addEventListener("blur", () => exitReqEdit(pair));
+  }
+  syncReqSections();
+}
+
 function selectRepo(repo) {
   if (!repo?.path) return;
   el.repoPath.value = repo.path;
@@ -1895,6 +2051,7 @@ function enterReviseMode() {
   if (el.revAccept) el.revAccept.value = "";
   if (el.revAssume) el.revAssume.value = "";
   setReviseFieldsReadonly(false);
+  syncReqSections();
   applyCardChrome();
   syncChatPlaceholder();
   syncConfirmEnabled();
@@ -1991,6 +2148,7 @@ function lockReviseCard(data, card) {
   if (el.revAccept) el.revAccept.value = card.acceptance;
   if (el.revAssume) el.revAssume.value = card.assumptions;
   restoreConfirmCardFromOriginal();
+  syncReqSections();
   syncChatPlaceholder();
   if (el.result) {
     el.result.hidden = false;
@@ -2346,6 +2504,7 @@ async function restoreHistoryJob() {
   state.originalCard = { ...cardValues() };
   const st = data.jobStatus || data.status?.status || "";
   state.locked = Boolean(st && st !== "unknown");
+  syncReqSections();
   syncConfirmEnabled();
   if (data.dispatch?.repoPath || data.dispatch?.worktreePath) {
     el.dispatch.hidden = false;
@@ -2407,5 +2566,6 @@ if (el.langSelect) {
 }
 applyDomI18n();
 syncChatPlaceholder();
+wireReqSections();
 
 void loadConfig();

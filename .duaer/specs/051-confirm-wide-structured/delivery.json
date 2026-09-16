@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Chat narrower, confirm column wider; requirements fully expanded with structured list/paragraph display and click-to-edit.",
+  "verification": {
+    "levels": ["L0"],
+    "notes": "Grid 0.85fr / 2.35fr / 0.8fr; card-panel overflow visible; structuredHtml lists/paragraphs; E2E-052. node --check web/live-dev/app.js + bin/duaer-live.mjs OK; structuredHtml smoke OK."
+  }
+}
