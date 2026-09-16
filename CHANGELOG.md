@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live delivery preview link
+
+- On delivery accepted, show a clickable 成品 link (`delivery.preview` or auto-detect index.html)
+- Serve worktree files at `/api/artifact/<jobId>/…`
+
 ### Live CLI-only launchers
 
 - Dispatch picker keeps only Cursor Agent + Claude Code (Terminal CLI); removed IDE-open-only / none

@@ -1551,9 +1551,15 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
 
 - [ ] T001 Implement against this Brief
 - [ ] T002 Risk-based verification per testing.md
-- [ ] T003 Stamp delivery.json accepted
+- [ ] T003 Stamp delivery.json accepted（若有可打开的成品，写入 preview.url）
 
 做完一步就立刻把对应项改成 \`- [x]\`，方便现场开发显示进度。
+
+若交付物是页面/静态文件，在 delivery.json 增加：
+\`\`\`json
+"preview": { "url": "index.html", "label": "查看成品" }
+\`\`\`
+（也可用 http(s) 地址；相对路径相对 worktree 根目录）
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -1587,8 +1593,9 @@ Brief: ${featureDir}
 2. 按 .duaer/memory/testing.md（若有）做风险验证
 3. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
 4. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-5. 不要推远程除非用户明确要求
-6. 合入 develop 并 handoff 清理 worktree
+5. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）
+6. 不要推远程除非用户明确要求
+7. 合入 develop 并 handoff 清理 worktree
 `;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
@@ -1759,6 +1766,122 @@ function readLogTail(logPath, maxLines = 12) {
   }
 }
 
+const PREVIEW_CANDIDATES = [
+  "index.html",
+  "public/index.html",
+  "dist/index.html",
+  "build/index.html",
+  "docs/index.html",
+  "preview.html",
+  "demo.html",
+];
+
+function resolvePreview({ delivery, worktreePath, jobId }) {
+  const d = delivery && typeof delivery === "object" ? delivery : {};
+  const raw =
+    d.preview?.url ||
+    d.previewUrl ||
+    d.demoUrl ||
+    d.artifact?.url ||
+    null;
+  const label =
+    d.preview?.label ||
+    d.previewLabel ||
+    d.artifact?.label ||
+    "查看成品";
+
+  if (raw && /^https?:\/\//i.test(String(raw).trim())) {
+    return {
+      url: String(raw).trim(),
+      label,
+      source: "delivery",
+      kind: "external",
+    };
+  }
+
+  let rel = null;
+  if (raw) {
+    const s = String(raw).trim().replace(/^\.\//, "");
+    if (path.isAbsolute(s) && worktreePath) {
+      const abs = path.resolve(s);
+      const root = path.resolve(worktreePath);
+      if (abs.startsWith(root + path.sep) || abs === root) {
+        rel = path.relative(root, abs).split(path.sep).join("/");
+      }
+    } else if (!s.includes("..")) {
+      rel = s.replace(/^\/+/, "");
+    }
+  }
+
+  if (!rel && worktreePath && fs.existsSync(worktreePath)) {
+    for (const cand of PREVIEW_CANDIDATES) {
+      const full = path.join(worktreePath, cand);
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+        rel = cand;
+        break;
+      }
+    }
+  }
+
+  if (rel && jobId) {
+    const safeJob = encodeURIComponent(jobId);
+    const safeRel = rel
+      .split("/")
+      .map((p) => encodeURIComponent(p))
+      .join("/");
+    return {
+      url: `/api/artifact/${safeJob}/${safeRel}`,
+      label,
+      source: raw ? "delivery" : "auto",
+      kind: "artifact",
+      path: rel,
+    };
+  }
+  return null;
+}
+
+function resolveArtifactFile(jobId, relPath) {
+  const live = readLiveJob(jobId);
+  const dispatch = live.job.dispatch;
+  if (!dispatch?.worktreePath) throw new Error("尚未派工");
+  const root = path.resolve(dispatch.worktreePath);
+  if (!fs.existsSync(root)) throw new Error("worktree 不存在");
+  const rel = String(relPath || "")
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/\\/g, "/");
+  if (!rel || rel.includes("..")) throw new Error("非法路径");
+  const full = path.resolve(root, rel);
+  if (!full.startsWith(root + path.sep) && full !== root) {
+    throw new Error("路径越界");
+  }
+  if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
+    throw new Error("文件不存在");
+  }
+  return full;
+}
+
+function contentTypeFor(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  const map = {
+    ".html": "text/html; charset=utf-8",
+    ".htm": "text/html; charset=utf-8",
+    ".css": "text/css; charset=utf-8",
+    ".js": "text/javascript; charset=utf-8",
+    ".mjs": "text/javascript; charset=utf-8",
+    ".json": "application/json; charset=utf-8",
+    ".svg": "image/svg+xml",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/markdown; charset=utf-8",
+  };
+  return map[ext] || "application/octet-stream";
+}
+
 function dispatchStatus(jobId) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch || null;
@@ -1770,6 +1893,7 @@ function dispatchStatus(jobId) {
       delivery: null,
       progress: null,
       logTail: [],
+      preview: null,
     };
   }
   const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
@@ -1802,6 +1926,13 @@ function dispatchStatus(jobId) {
       current: "delivery accepted · 工单完成",
     };
   }
+  const preview = accepted
+    ? resolvePreview({
+        delivery,
+        worktreePath: dispatch.worktreePath,
+        jobId: live.id,
+      })
+    : null;
   return {
     jobId: live.id,
     status: accepted ? "accepted" : live.job.status,
@@ -1809,6 +1940,7 @@ function dispatchStatus(jobId) {
     delivery,
     progress,
     logTail,
+    preview,
   };
 }
 
@@ -2074,6 +2206,27 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "status failed",
+      });
+    }
+    return;
+  }
+
+  // /api/artifact/<jobId>/relative/path — keeps relative CSS/JS working in HTML
+  if (req.method === "GET" && url.pathname.startsWith("/api/artifact/")) {
+    try {
+      const parts = url.pathname.slice("/api/artifact/".length).split("/");
+      const jobId = decodeURIComponent(parts.shift() || "");
+      const rel = parts.map((p) => decodeURIComponent(p)).join("/");
+      const filePath = resolveArtifactFile(jobId, rel || "index.html");
+      const body = fs.readFileSync(filePath);
+      res.writeHead(200, {
+        "content-type": contentTypeFor(filePath),
+        "cache-control": "no-store",
+      });
+      res.end(body);
+    } catch (err) {
+      send(res, 404, {
+        error: err instanceof Error ? err.message : "artifact not found",
       });
     }
     return;

@@ -75,6 +75,9 @@ const el = {
   progressSummary: document.getElementById("progressSummary"),
   progressTasks: document.getElementById("progressTasks"),
   progressLog: document.getElementById("progressLog"),
+  previewPanel: document.getElementById("previewPanel"),
+  previewLink: document.getElementById("previewLink"),
+  previewMeta: document.getElementById("previewMeta"),
 };
 
 function cardValues() {
@@ -469,7 +472,7 @@ function defaultStartCommand() {
 
 ${goal}
 
-按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted；不要推远程除非明确要求。
+按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted（有页面时写入 preview.url，如 index.html）；不要推远程除非明确要求。
 `;
 }
 
@@ -886,6 +889,24 @@ function renderProgress(data) {
   }
 }
 
+function renderPreview(data) {
+  if (!el.previewPanel || !el.previewLink) return;
+  const preview = data?.preview;
+  if (!preview?.url) {
+    el.previewPanel.hidden = true;
+    return;
+  }
+  el.previewPanel.hidden = false;
+  el.previewLink.href = preview.url;
+  el.previewLink.textContent = preview.label || "查看成品";
+  if (el.previewMeta) {
+    const bits = [];
+    if (preview.path) bits.push(preview.path);
+    if (preview.source) bits.push(preview.source === "auto" ? "自动发现" : "delivery.preview");
+    el.previewMeta.textContent = bits.join(" · ");
+  }
+}
+
 function startStatusPoll() {
   if (state.statusTimer) clearInterval(state.statusTimer);
   let acceptedNotified = false;
@@ -896,6 +917,7 @@ function startStatusPoll() {
       const data = await res.json();
       if (!res.ok) return;
       renderProgress(data);
+      renderPreview(data.status === "accepted" ? data : { preview: null });
       const st = data.delivery?.status || data.status || "pending";
       const pct =
         data.progress && data.progress.total
@@ -908,7 +930,13 @@ function startStatusPoll() {
         el.dispatchStatus.textContent = "delivery accepted · 工单完成";
         if (!acceptedNotified) {
           acceptedNotified = true;
-          addBubble("bot", "数字员工已验收通过（delivery.json accepted）。");
+          const link = data.preview?.url
+            ? `\n成品：${data.preview.url}`
+            : "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）";
+          addBubble(
+            "bot",
+            `数字员工已验收通过（delivery.json accepted）。${link}`,
+          );
         }
         clearInterval(state.statusTimer);
         state.statusTimer = null;

@@ -616,6 +616,27 @@ input:focus {
   word-break: break-word;
 }
 
+.preview-panel {
+  margin-top: 0.85rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--lock);
+  background: rgba(47, 158, 143, 0.1);
+}
+
+.preview-title {
+  margin: 0 0 0.55rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.preview-link {
+  display: inline-flex;
+  text-decoration: none;
+  min-width: auto;
+}
+
 .setup-panel {
   position: relative;
   z-index: 1;
