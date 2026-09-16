@@ -49,6 +49,7 @@ the table for their app.
 | E2E-034 | Live detects agent/claude under ~/.local/bin even with launchd PATH | manual |
 | E2E-035 | After handoff removes worktree, status/preview work; revise recreates wt | manual |
 | E2E-036 | Confirm card unchanged; revise card stays in bottom panel | manual |
+| E2E-037 | Preview/revise CTAs hidden until delivery accepted | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -104,3 +105,4 @@ the table for their app.
 | E2E-034 | `033-agent-detect` | CLI detect under launchd PATH |
 | E2E-035 | `034-stale-worktree` | handoff-cleaned worktree recover |
 | E2E-036 | `035-revise-card-below` | revise card below confirm card |
+| E2E-037 | `036-progress-cta` | hide preview/revise until accepted |

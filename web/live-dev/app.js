@@ -1212,7 +1212,13 @@ function renderPreview(data) {
   state.lastDeliveryAccepted =
     data?.delivery?.status === "accepted" || data?.status === "accepted";
   const preview = data?.preview;
-  if (!preview?.url) {
+  const productReady =
+    state.lastDeliveryAccepted ||
+    data?.status === "revising" ||
+    Number(data?.revision || 0) > 0 ||
+    state.mode === "revise" ||
+    state.reviseLocked;
+  if (!preview?.url || !productReady) {
     el.previewPanel.hidden = true;
   } else {
     el.previewPanel.hidden = false;
@@ -1238,15 +1244,15 @@ function renderRevisePanel(data) {
   } else if (data?.status === "revising") {
     state.lastDeliveryAccepted = false;
   }
+  const accepted =
+    data?.delivery?.status === "accepted" || data?.status === "accepted";
   const show =
-    Boolean(data?.canRevise) &&
-    (data?.status === "accepted" ||
-      data?.status === "revising" ||
-      Number(data?.revision || 0) > 0 ||
-      data?.delivery?.status === "accepted" ||
-      state.mode === "revise" ||
-      state.reviseLocked ||
-      Boolean(data?.preview?.url));
+    state.mode === "revise" ||
+    state.reviseLocked ||
+    (Boolean(data?.canRevise) &&
+      (accepted ||
+        data?.status === "revising" ||
+        Number(data?.revision || 0) > 0));
   el.revisePanel.hidden = !show;
   const v = reviseCardValues();
   const ready =

@@ -2760,12 +2760,11 @@ function dispatchStatus(jobId) {
     worktreePath: roots.root,
     jobId: live.id,
   });
+  // Only after accept (or during a revise round). Not while first dispatch is still in progress.
   const showPreview =
     accepted ||
-    Number(live.job.revisionCount || 0) > 0 ||
     live.job.status === "revising" ||
-    live.job.status === "dispatched" ||
-    Boolean(preview?.url);
+    Number(live.job.revisionCount || 0) > 0;
 
   // Persist accepted status when handoff moved Brief to primary
   if (accepted && live.job.status !== "accepted" && roots.source === "primary") {
@@ -2783,7 +2782,9 @@ function dispatchStatus(jobId) {
 
   const canRevise =
     Boolean(dispatch.repoPath && fs.existsSync(dispatch.repoPath)) &&
-    (worktreeExists || roots.source === "primary");
+    (accepted ||
+      live.job.status === "revising" ||
+      Number(live.job.revisionCount || 0) > 0);
 
   return {
     jobId: live.id,

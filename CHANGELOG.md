@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Hide preview/revise until delivery accepted
+
+- While tasks are still in progress (`0/N · 进行中`), do not show 查看成品 or 再改一版
+- Preview and revise CTAs appear only after accept (or during an active revise round)
+
 ### Revise card stays below confirm card
 
 - Top **确认卡** keeps original labels/fields/styles; never morphs into 改进卡
