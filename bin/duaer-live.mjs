@@ -1119,7 +1119,7 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "cursor -n 打开 worktree + agent -p 后台开工",
+    hint: "打开 Terminal，执行 cursor/agent CLI",
     installCommand: CURSOR_INSTALL_CMD,
   },
   {
