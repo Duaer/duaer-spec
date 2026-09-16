@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/051-confirm-wide-structured",
-  "branch": "feat/confirm-wide",
-  "worktree": ".worktree/feat-confirm-wide",
+  "featureDir": ".duaer/specs/052-desk-fullscreen",
+  "branch": "feat/desk-fullscreen",
+  "worktree": ".worktree/feat-desk-fullscreen",
   "status": "active"
 }
