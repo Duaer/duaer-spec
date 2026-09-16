@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Three-column live desk: widest chat, middle requirements, far-right task progress.",
+  "verification": {
+    "levels": ["L0"],
+    "notes": "Structure: .layout grid 2.1fr / 1fr / 0.85fr; #runTimeline inside .progress-col not .card-panel. E2E-050."
+  }
+}

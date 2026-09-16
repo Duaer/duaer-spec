@@ -338,7 +338,7 @@ body.history-open {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: 1.2fr 0.9fr;
+  grid-template-columns: minmax(0, 2.1fr) minmax(17rem, 1fr) minmax(14rem, 0.85fr);
   gap: 1rem;
   width: 100%;
   max-width: none;
@@ -576,6 +576,39 @@ input:focus {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
+}
+
+.progress-col {
+  padding: 1.15rem 1.05rem 1.25rem;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-col .card-title {
+  font-size: 1.25rem;
+}
+
+.progress-status {
+  margin-bottom: 0.65rem;
+}
+
+.progress-col .run-timeline {
+  margin-top: 0.35rem;
+  flex: 1;
+}
+
+.progress-col .run-block:first-child {
+  border-top: none;
+  padding-top: 0.25rem;
 }
 
 .card-title {
@@ -1116,6 +1149,11 @@ code {
   .card-panel {
     height: auto;
     max-height: min(70vh, 36rem);
+  }
+
+  .progress-col {
+    height: auto;
+    max-height: min(55vh, 28rem);
   }
 
   .history-drawer {

@@ -99,6 +99,8 @@ const el = {
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
+  progressCol: document.querySelector(".progress-col"),
+  progressEmpty: document.getElementById("progressEmpty"),
   runTimeline: document.getElementById("runTimeline"),
   previewPanel: document.getElementById("previewPanel"),
   previewLink: document.getElementById("previewLink"),
@@ -141,7 +143,7 @@ function providerLabel(p) {
   return p?.id === "custom" ? t("provider.custom") : p?.label || "";
 }
 
-/** Pick the right-column section the user should see for the current stage. */
+/** Pick the column section the user should see for the current stage. */
 function activeRightFocusEl() {
   if (
     el.revisePanel &&
@@ -159,50 +161,52 @@ function activeRightFocusEl() {
     }
     return el.previewPanel;
   }
-  if (state.activeRun?.root?.isConnected) {
-    return state.activeRun.root;
-  }
-  if (el.runTimeline && !el.runTimeline.hidden) {
-    return el.runTimeline;
-  }
   if (el.dispatch && !el.dispatch.hidden) {
     return el.dispatch;
   }
   return el.confirm || el.cardPanel;
 }
 
+function activeProgressFocusEl() {
+  if (state.activeRun?.root?.isConnected) return state.activeRun.root;
+  if (el.runTimeline && !el.runTimeline.hidden) return el.runTimeline;
+  return el.progressCol;
+}
+
 let rightFocusTimer = 0;
 
-/** Scroll the right panel so the active stage stays in view with left chat. */
-function focusRightPanel({ smooth = true, force = false } = {}) {
-  const panel = el.cardPanel;
-  const target = activeRightFocusEl();
-  if (!panel || !target || panel.hidden) return;
+function scrollPanelToTarget(panel, target, { smooth = true, force = false } = {}) {
+  if (!panel || !target || panel.hidden || !target.isConnected) return;
+  try {
+    const panelRect = panel.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const pad = 16;
+    const above = targetRect.top < panelRect.top + pad;
+    const below = targetRect.bottom > panelRect.bottom - pad;
+    if (!force && !above && !below) return;
+    const nextTop = panel.scrollTop + (targetRect.top - panelRect.top) - pad;
+    panel.scrollTo({
+      top: Math.max(0, nextTop),
+      behavior: smooth ? "smooth" : "auto",
+    });
+  } catch {
+    target.scrollIntoView({
+      block: "nearest",
+      behavior: smooth ? "smooth" : "auto",
+    });
+  }
+}
 
+/** Scroll requirements and/or progress columns to the active stage. */
+function focusRightPanel({ smooth = true, force = false } = {}) {
+  const cardTarget = activeRightFocusEl();
+  const progressTarget = activeProgressFocusEl();
   const run = () => {
-    if (!el.cardPanel || !target.isConnected) return;
-    // Prefer scrolling inside the right panel; fall back to nearest for mobile.
-    try {
-      const panelRect = panel.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      const pad = 16;
-      const above = targetRect.top < panelRect.top + pad;
-      const below = targetRect.bottom > panelRect.bottom - pad;
-      if (!force && !above && !below) return;
-      const nextTop =
-        panel.scrollTop + (targetRect.top - panelRect.top) - pad;
-      panel.scrollTo({
-        top: Math.max(0, nextTop),
-        behavior: smooth ? "smooth" : "auto",
-      });
-    } catch {
-      target.scrollIntoView({
-        block: "nearest",
-        behavior: smooth ? "smooth" : "auto",
-      });
+    scrollPanelToTarget(el.cardPanel, cardTarget, { smooth, force });
+    if (state.activeRun || (el.runTimeline && !el.runTimeline.hidden)) {
+      scrollPanelToTarget(el.progressCol, progressTarget, { smooth, force });
     }
   };
-
   clearTimeout(rightFocusTimer);
   rightFocusTimer = window.setTimeout(run, force ? 0 : 40);
 }
@@ -1367,6 +1371,7 @@ function clearRunTimeline() {
   if (!el.runTimeline) return;
   el.runTimeline.replaceChildren();
   el.runTimeline.hidden = true;
+  if (el.progressEmpty) el.progressEmpty.hidden = false;
 }
 
 function freezeActiveRun() {
@@ -1389,6 +1394,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
       state.activeRun.noteEl.textContent = note;
     }
     el.runTimeline.hidden = false;
+    if (el.progressEmpty) el.progressEmpty.hidden = true;
     return state.activeRun;
   }
   freezeActiveRun();
@@ -1433,6 +1439,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   root.appendChild(panel);
   el.runTimeline.appendChild(root);
   el.runTimeline.hidden = false;
+  if (el.progressEmpty) el.progressEmpty.hidden = true;
 
   state.activeRun = {
     revision: rev,

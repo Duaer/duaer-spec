@@ -81,9 +81,9 @@
           </form>
         </section>
 
-        <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="确认卡">
+        <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="需求">
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
-          <h2 class="card-title" id="cardTitle" data-i18n="card.title">确认卡</h2>
+          <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
           <p id="meta" class="meta"></p>
           <label class="field">
             <span id="lblGoal" data-i18n="card.goal">要做什么</span>
@@ -145,7 +145,6 @@
             </div>
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
-            <p id="dispatchStatus" class="meta" hidden></p>
             <div id="previewPanel" class="preview-panel" hidden>
               <p class="preview-title" data-i18n="preview.title">成品</p>
               <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" data-i18n="preview.view">查看成品</a>
@@ -184,9 +183,16 @@
               </button>
               <p id="reviseErr" class="hint" hidden></p>
             </div>
-            <div id="runTimeline" class="run-timeline" hidden></div>
           </section>
         </section>
+
+        <aside class="panel progress-col" data-i18n-aria="progress.aria" aria-label="任务进度">
+          <p class="mark" data-i18n="progress.mark">Progress</p>
+          <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
+          <p id="dispatchStatus" class="meta progress-status" hidden></p>
+          <p id="progressEmpty" class="hint" data-i18n="progress.empty">派工后在此显示各轮进度</p>
+          <div id="runTimeline" class="run-timeline" hidden></div>
+        </aside>
       </main>
     </div>
 
