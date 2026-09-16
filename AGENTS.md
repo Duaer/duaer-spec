@@ -17,6 +17,9 @@ See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/ch
 Use English for code, identifiers, comments, commits, specifications, and
 documentation unless the adopting project explicitly overrides.
 
+**Documentation language purity:** English doc files must not contain Chinese
+(CJK) characters. Chinese docs may include English terms and tool names.
+
 Follow the project's [baseline](docs/baseline.md) (or its local equivalent).
 
 ## Autonomous job loop (all hosts)
@@ -252,7 +255,16 @@ them; record results in the pull request comment. Completeness gaps on the
 contributor's branch may still be follow-up *after* a principle-sound merge,
 except when a failing required suite would break `main`.
 
-### 4. Merge Back into Local `develop` (or hotfix `main`)
+### 4. Deploy via GitHub CLI when hosting is required
+
+If the product job needs a public URL or hosting, default to **GitHub Actions
+automated deploy driven by `gh`** (see
+[deploy-github.md](docs/agent/deploy-github.md)). Do not default to third-party
+host CLIs unless the adopting project already standardizes on them. A deploy
+ask authorizes the push / `gh` steps required for that publish (still no
+force-push or unrelated branches).
+
+### 5. Merge Back into Local `develop` (or hotfix `main`)
 
 After normal development:
 
@@ -286,7 +298,7 @@ Remote publishing is opt-in. Never infer a push from ordinary development,
 commit, merge, or completion requests. Never force-push unless the user
 explicitly requests that exact operation.
 
-### 5. Clean Up the Request Worktree
+### 6. Clean Up the Request Worktree
 
 Once the request branch is merged into local **`develop`** (or **`main`** for a
 hotfix), remove its worktree and delete the merged branch. Never leave a merged

@@ -45,8 +45,10 @@ cd .worktree/feat-login
 - Merge into **`develop`** when done (hotfix: **`main`**, then back-merge **`develop`**)
 - **Handoff (mandatory):** stop worktree-bound processes → remove `.worktree/<id>` →
   restart from primary checkout on `develop` (`duaer handoff [--run]`, `.duaer/handoff.json`)
-- Push only when the user explicitly asks
+- Push only when the user explicitly asks (a deploy/hosting ask authorizes
+  the `gh` + push needed for that publish — see `docs/agent/deploy-github.md`)
 - Promote **`develop` → `main`** only when the user asks to go online
+- English docs: no Chinese (CJK); Chinese docs may include English terms
 
 ## GitHub issue / PR intake
 

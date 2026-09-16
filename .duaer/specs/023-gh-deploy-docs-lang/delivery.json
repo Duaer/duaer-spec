@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T02:20:00.000Z",
+  "verification": {
+    "levels": ["docs", "L0"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "rg -n '[\\p{Han}]' README.md CHANGELOG.md AGENTS.md docs/agent docs/npm-trusted-publishing.md docs/adr (expect empty)"
+    ],
+    "result": "pass"
+  }
+}

@@ -132,7 +132,9 @@ develop is green / accepted for release
   → merge develop → main (or open/merge release PR main ← develop)
   → tag / release notes if the project uses them
   → push main (and tags) only if the user asked to publish
-  → deploy per project runbook (out of scope for duaer-spec itself)
+  → if the product needs hosting, deploy with GitHub CLI + Actions
+    (see [deploy-github.md](deploy-github.md)); do not default to third-party
+    host CLIs unless the project already uses them
 ```
 
 Never merge a random `feat/*` straight into `main` for a normal feature.
@@ -223,6 +225,7 @@ Details: [`ADOPT.md`](../../ADOPT.md). Chinese summary: [`README.zh-CN.md`](../.
 ## Related
 
 - [workflow.md](workflow.md) — R4 and development loop  
+- [deploy-github.md](deploy-github.md) — product hosting via `gh` + Actions  
 - [change-checklist.md](change-checklist.md) — finish checklist  
 - [baseline.md](../baseline.md) — frozen: `develop` + `main`  
 - [ADOPT.md](../../ADOPT.md) — install / update into another repo  

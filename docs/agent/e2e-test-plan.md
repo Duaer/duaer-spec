@@ -37,6 +37,8 @@ the table for their app.
 | E2E-022 | Live desk detects agents and launches selected digital employee | manual / curl |
 | E2E-023 | Live desk shows task progress from dispatched Brief tasks.md | manual / curl |
 | E2E-024 | Live desk shows preview link when delivery accepted | manual / curl |
+| E2E-025 | Deploy-needed jobs use `gh` + Actions (not third-party host CLIs by default) | manual |
+| E2E-026 | English docs contain no CJK; Chinese docs may include English | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -66,8 +68,8 @@ the table for their app.
 | E2E-008 | `branching-and-release.md` | Branch + release matrix |
 | E2E-009 | `.duaer/handoff.json` / `duaer handoff` | Service handoff |
 | E2E-010 | `duaer update` | One-line refresh |
-| E2E-011 | DUADER + agent docs | Update path in installed 说明 |
-| E2E-012 | `README.zh-CN.md` | Chinese 说明文档 |
+| E2E-011 | DUADER + agent docs | Update path in installed guides |
+| E2E-012 | `README.zh-CN.md` | Chinese guide |
 | E2E-013 | AGENTS / branching naming | Avoid double `<nnn-slug>` |
 | E2E-014 | Claude + Cursor install | Dual host |
 | E2E-015 | Codex `.agents/skills` | Triple host |
@@ -80,3 +82,5 @@ the table for their app.
 | E2E-022 | `011-live-agent-launch` | Detect + launch |
 | E2E-023 | `012-live-dispatch-progress` | tasks.md progress |
 | E2E-024 | `022-live-preview-link` | delivery preview |
+| E2E-025 | `023-gh-deploy-docs-lang` | `gh` + Actions deploy |
+| E2E-026 | `023-gh-deploy-docs-lang` | EN docs language purity |

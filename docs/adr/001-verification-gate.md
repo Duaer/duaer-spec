@@ -9,7 +9,7 @@
 duaer-spec required E2E *scenario documentation* (R3) and told agents not to run
 local/remote E2E unless the human asked. Specs were “testable,” but Accept /
 converge could stamp `delivery.json` without executing checks. Adopters (e.g.
-点物 Flow) already kept thicker `testing.md` contracts; the default install did
+Dianwu Flow) already kept thicker `testing.md` contracts; the default install did
 not enforce them.
 
 ## Decision

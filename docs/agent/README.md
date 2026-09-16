@@ -7,6 +7,7 @@ Wins over Duaer and `examples/` when they conflict.
 |---|---|
 | [workflow.md](workflow.md) | Rules R1–R6, development loop, spec guidance |
 | [branching-and-release.md](branching-and-release.md) | **Required** `main`/`develop`/`feat`/`fix` + go-live by issue type |
+| [deploy-github.md](deploy-github.md) | Default product hosting via `gh` + GitHub Actions |
 | [change-checklist.md](change-checklist.md) | Finish checklist |
 | [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |
 | [../adr/001-verification-gate.md](../adr/001-verification-gate.md) | Risk-based verification gate (ADR) |
