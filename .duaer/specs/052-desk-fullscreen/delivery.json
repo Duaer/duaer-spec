@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Full-screen desk shell; chat column min width +50px; confirm remains wider.",
+  "verification": {
+    "levels": ["L0"],
+    "notes": "shell 100% width; grid minmax(calc(12rem + 50px), 1fr) …; E2E-053."
+  }
+}

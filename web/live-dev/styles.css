@@ -45,8 +45,8 @@ body {
 .update-notice {
   position: relative;
   z-index: 1;
-  max-width: 1440px;
-  margin: 0 auto 0.85rem;
+  max-width: none;
+  margin: 0 0 0.85rem;
   padding: 0.55rem 0.85rem;
   border: 1px solid var(--line);
   background: rgba(222, 90, 44, 0.12);
@@ -62,13 +62,16 @@ body {
 .shell {
   position: relative;
   z-index: 1;
-  width: min(1440px, calc(100% - 2rem));
-  margin: 0 auto;
-  padding: 1.35rem 0 1.5rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0.65rem 0.75rem 0.75rem;
+  min-height: 100dvh;
+  box-sizing: border-box;
 }
 
 .top {
-  margin: 0 0 1rem;
+  margin: 0 0 0.65rem;
   padding: 0;
 }
 
@@ -338,8 +341,11 @@ body.history-open {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(12rem, 0.85fr) minmax(22rem, 2.35fr) minmax(12rem, 0.8fr);
-  gap: 1rem;
+  grid-template-columns:
+    minmax(calc(12rem + 50px), 1fr)
+    minmax(22rem, 2.2fr)
+    minmax(12rem, 0.75fr);
+  gap: 0.75rem;
   width: 100%;
   max-width: none;
   margin: 0;
@@ -347,7 +353,7 @@ body.history-open {
   align-items: start;
   height: auto;
   max-height: none;
-  min-height: 26rem;
+  min-height: calc(100dvh - 5.5rem);
 }
 
 .panel {
@@ -360,10 +366,10 @@ body.history-open {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: calc(100dvh - 7.5rem);
-  max-height: calc(100dvh - 7.5rem);
+  height: calc(100dvh - 5.5rem);
+  max-height: calc(100dvh - 5.5rem);
   position: sticky;
-  top: 0.75rem;
+  top: 0.5rem;
   overflow: hidden;
 }
 
@@ -580,10 +586,10 @@ input:focus {
   padding: 1.15rem 1.05rem 1.25rem;
   align-self: start;
   min-height: 0;
-  height: calc(100dvh - 7.5rem);
-  max-height: calc(100dvh - 7.5rem);
+  height: calc(100dvh - 5.5rem);
+  max-height: calc(100dvh - 5.5rem);
   position: sticky;
-  top: 0.75rem;
+  top: 0.5rem;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1210,8 +1216,8 @@ code {
 
 @media (max-width: 860px) {
   .shell {
-    width: calc(100% - 1.25rem);
-    padding-top: 1rem;
+    width: 100%;
+    padding: 0.55rem 0.65rem 0.75rem;
   }
 
   .top-row {
