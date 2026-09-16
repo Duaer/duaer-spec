@@ -90,12 +90,15 @@ const el = {
   previewMeta: document.getElementById("previewMeta"),
   revisePanel: document.getElementById("revisePanel"),
   reviseHint: document.getElementById("reviseHint"),
+  reviseCardFields: document.getElementById("reviseCardFields"),
   startReviseChat: document.getElementById("startReviseChat"),
   startReviseChatAlt: document.getElementById("startReviseChatAlt"),
   doReviseDispatch: document.getElementById("doReviseDispatch"),
   reviseErr: document.getElementById("reviseErr"),
-  originalBrief: document.getElementById("originalBrief"),
-  originalBriefBody: document.getElementById("originalBriefBody"),
+  revGoal: document.getElementById("revGoal"),
+  revOut: document.getElementById("revOut"),
+  revAccept: document.getElementById("revAccept"),
+  revAssume: document.getElementById("revAssume"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
   lblGoal: document.getElementById("lblGoal"),
@@ -127,63 +130,67 @@ function cardValues() {
   };
 }
 
-function isReviseChrome() {
-  return state.mode === "revise" || state.reviseLocked;
+function reviseCardValues() {
+  return {
+    goal: (el.revGoal?.value || "").trim(),
+    outOfScope: (el.revOut?.value || "").trim(),
+    acceptance: (el.revAccept?.value || "").trim(),
+    assumptions: (el.revAssume?.value || "").trim(),
+  };
 }
 
-function setCardFieldsReadonly(ro) {
+function setConfirmFieldsReadonly(ro) {
   for (const id of ["goal", "outOfScope", "acceptance", "assumptions"]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
 }
 
-function syncOriginalBrief() {
-  if (!el.originalBrief || !el.originalBriefBody) return;
-  const show = isReviseChrome() && state.originalCard;
-  el.originalBrief.hidden = !show;
-  if (!show) return;
+function setReviseFieldsReadonly(ro) {
+  for (const id of ["revGoal", "revOut", "revAccept", "revAssume"]) {
+    if (el[id]) el[id].readOnly = Boolean(ro);
+  }
+}
+
+function restoreConfirmCardFromOriginal() {
+  if (!state.originalCard) return;
   const c = state.originalCard;
-  el.originalBriefBody.textContent = [
-    `要做什么：${c.goal || "—"}`,
-    `不做什么：${c.outOfScope || "—"}`,
-    `验收：${c.acceptance || "—"}`,
-    c.assumptions ? `假设：${c.assumptions}` : null,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  el.goal.value = c.goal || "";
+  el.outOfScope.value = c.outOfScope || "";
+  el.acceptance.value = c.acceptance || "";
+  el.assumptions.value = c.assumptions || "";
+}
+
+/** Top confirm card chrome never becomes 改进卡. */
+function applyConfirmCardChrome() {
+  if (el.cardMark) el.cardMark.textContent = "Confirm card";
+  if (el.cardTitle) el.cardTitle.textContent = "确认卡";
+  if (el.lblGoal) el.lblGoal.textContent = "要做什么";
+  if (el.lblOut) el.lblOut.textContent = "不做什么";
+  if (el.lblAccept) el.lblAccept.textContent = "验收标准";
+  if (el.lblAssume) el.lblAssume.textContent = "假设";
 }
 
 function syncConfirmEnabled() {
-  const v = cardValues();
-  if (state.reviseLocked && state.mode !== "revise") {
-    const n = state.lastRevision?.revision;
+  applyConfirmCardChrome();
+  // Top confirm card: only for initial specify flow
+  if (state.mode === "revise" || state.reviseLocked) {
+    restoreConfirmCardFromOriginal();
+    setConfirmFieldsReadonly(true);
     el.confirm.disabled = true;
-    el.confirm.textContent = n ? `已续派 · Revision ${n}` : "已续派";
+    el.confirm.textContent = "已确认";
     el.lockHint.textContent =
-      "本轮改进已确认并派工。上方可展开「原始需求」；右侧为本轮改进卡。";
-    setCardFieldsReadonly(true);
-    syncReviseDispatchButton(false);
-    syncOriginalBrief();
-    return;
-  }
-  if (state.mode === "revise") {
+      "上方确认卡保持原需求。改进内容请看下方改进卡。";
+    const v = reviseCardValues();
     const ok =
+      state.mode === "revise" &&
       Boolean(v.goal && v.acceptance) &&
       state.ready &&
       !state.busy &&
       !state.reviseDispatching;
-    el.confirm.disabled = !ok;
-    el.lockHint.textContent = state.reviseDispatching
-      ? "正在续派到同一 worktree / Terminal…"
-      : "左侧对话弄清改动；确认后送入同一 Terminal。上方可展开原始需求。";
-    el.confirm.textContent = state.reviseDispatching
-      ? "续派中…"
-      : "改进方案确认，再派一版";
-    setCardFieldsReadonly(false);
     syncReviseDispatchButton(ok);
-    syncOriginalBrief();
     return;
   }
+  const v = cardValues();
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
   el.confirm.disabled = !ok;
   el.lockHint.textContent = state.locked
@@ -192,14 +199,22 @@ function syncConfirmEnabled() {
       ? "可以确认了。确认后自动验收，再派工。"
       : "至少填好「要做什么」和「验收标准」。";
   if (!state.locked) el.confirm.textContent = "需求无误，开始干活";
-  setCardFieldsReadonly(state.locked);
+  else {
+    el.confirm.textContent = "已确认";
+    el.confirm.disabled = true;
+  }
+  setConfirmFieldsReadonly(state.locked);
   syncReviseDispatchButton(false);
-  syncOriginalBrief();
 }
 
 function syncReviseDispatchButton(ready) {
   if (!el.doReviseDispatch) return;
   const dialoguing = state.mode === "revise";
+  const showCard =
+    dialoguing || state.reviseLocked || Boolean(state.lastRevision);
+  if (el.reviseCardFields) {
+    el.reviseCardFields.hidden = !showCard && !dialoguing;
+  }
   const showDispatch = dialoguing && !state.reviseLocked;
   el.doReviseDispatch.hidden = !showDispatch;
   el.doReviseDispatch.disabled =
@@ -208,6 +223,11 @@ function syncReviseDispatchButton(ready) {
     el.doReviseDispatch.textContent = state.reviseDispatching
       ? "续派中…"
       : "改进方案确认，再派一版";
+  }
+  if (state.reviseLocked && !dialoguing) {
+    setReviseFieldsReadonly(true);
+  } else if (dialoguing) {
+    setReviseFieldsReadonly(false);
   }
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
@@ -218,25 +238,24 @@ function syncReviseDispatchButton(ready) {
         "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。";
     } else if (state.reviseLocked && !dialoguing) {
       el.reviseHint.textContent =
-        "本轮改进卡见右侧。改完验收后若仍不满意，再点成品旁「再改一版」。";
+        "本轮改进卡（下方）已确认。改完验收后若仍不满意，再点「再改一版」。";
     } else if (!dialoguing) {
       el.reviseHint.textContent =
-        "成品可用后，点成品旁「再改一版」；左侧对话，右侧改进卡。";
+        "成品可用后点「再改一版」；左侧对话，下方填写改进卡。";
     } else if (state.reviseDispatching) {
       el.reviseHint.textContent =
         "正在送入同一 Terminal（不新开窗口）…";
     } else if (state.busy) {
-      el.reviseHint.textContent = "正在左侧对话完善改进卡…";
+      el.reviseHint.textContent = "正在左侧对话完善下方改进卡…";
     } else if (ready) {
       el.reviseHint.textContent =
-        "改进卡已就绪：点「再派一版」，任务送入原 Terminal。";
+        "下方改进卡已就绪：点「再派一版」，任务送入原 Terminal。";
     } else {
       el.reviseHint.textContent =
-        "请在左侧说明哪里不满意；我会填右侧改进卡。卡齐后可点再派。";
+        "请在左侧说明哪里不满意；我会填下方改进卡。卡齐后可点再派。";
     }
   }
   if (el.startReviseChat || el.startReviseChatAlt) {
-    // Beside preview when accepted; alt CTA if no preview panel
     const showCta = !dialoguing && accepted && !revising;
     const previewVisible = el.previewPanel && !el.previewPanel.hidden;
     if (el.startReviseChat) {
@@ -256,28 +275,16 @@ function syncReviseDispatchButton(ready) {
 }
 
 function applyCardChrome() {
-  const revise = isReviseChrome();
-  if (el.cardMark) el.cardMark.textContent = revise ? "Revise card" : "Confirm card";
-  if (el.cardTitle) {
-    el.cardTitle.textContent = revise
-      ? state.reviseLocked && state.mode !== "revise"
-        ? "改进卡（本轮已确认）"
-        : "改进卡"
-      : "确认卡";
-  }
-  if (el.lblGoal) el.lblGoal.textContent = revise ? "要改什么" : "要做什么";
-  if (el.lblOut) el.lblOut.textContent = revise ? "不要动什么" : "不做什么";
-  if (el.lblAccept) el.lblAccept.textContent = revise ? "怎么算改好" : "验收标准";
-  if (el.lblAssume) el.lblAssume.textContent = revise ? "不满意原因" : "假设";
-  el.goal.placeholder = revise ? "例如：主色改浅、标题加大" : "待确认";
-  el.outOfScope.placeholder = revise ? "例如：不动文案结构" : "待确认";
-  el.acceptance.placeholder = revise ? "例如：手机端按钮不挤在一起" : "待确认";
-  el.assumptions.placeholder = revise ? "例如：主色太沉、看不清" : "待确认";
+  // Confirm card styling/labels stay fixed; revise uses the bottom card only.
+  applyConfirmCardChrome();
   syncConfirmEnabled();
 }
 
 ["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
   el[id].addEventListener("input", syncConfirmEnabled);
+});
+["revGoal", "revOut", "revAccept", "revAssume"].forEach((id) => {
+  if (el[id]) el[id].addEventListener("input", syncConfirmEnabled);
 });
 
 function addBubble(role, text, { options, actions } = {}) {
@@ -398,7 +405,7 @@ async function sendChat(userText) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         messages: history,
-        card: cardValues(),
+        card: state.mode === "revise" ? reviseCardValues() : cardValues(),
         mode: state.mode === "revise" ? "revise" : "specify",
         stream: true,
       }),
@@ -429,7 +436,7 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "改进卡已更新。看右侧「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
+            ? "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
             : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
         );
         if (state.mode === "revise") {
@@ -447,7 +454,7 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "改进卡已更新。看右侧「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
+            ? "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
             : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
         );
         if (state.mode === "revise") {
@@ -467,10 +474,17 @@ async function sendChat(userText) {
 }
 
 function applyCard(data) {
-  if (data.goal) el.goal.value = data.goal;
-  if (data.outOfScope) el.outOfScope.value = data.outOfScope;
-  if (data.acceptance) el.acceptance.value = data.acceptance;
-  if (data.assumptions) el.assumptions.value = data.assumptions;
+  if (state.mode === "revise") {
+    if (data.goal && el.revGoal) el.revGoal.value = data.goal;
+    if (data.outOfScope && el.revOut) el.revOut.value = data.outOfScope;
+    if (data.acceptance && el.revAccept) el.revAccept.value = data.acceptance;
+    if (data.assumptions && el.revAssume) el.revAssume.value = data.assumptions;
+  } else {
+    if (data.goal) el.goal.value = data.goal;
+    if (data.outOfScope) el.outOfScope.value = data.outOfScope;
+    if (data.acceptance) el.acceptance.value = data.acceptance;
+    if (data.assumptions) el.assumptions.value = data.assumptions;
+  }
   syncConfirmEnabled();
 }
 
@@ -1234,7 +1248,7 @@ function renderRevisePanel(data) {
       state.reviseLocked ||
       Boolean(data?.preview?.url));
   el.revisePanel.hidden = !show;
-  const v = cardValues();
+  const v = reviseCardValues();
   const ready =
     state.mode === "revise" &&
     Boolean(v.goal && v.acceptance) &&
@@ -1242,7 +1256,6 @@ function renderRevisePanel(data) {
     !state.busy &&
     !state.reviseDispatching;
   syncReviseDispatchButton(ready);
-  syncOriginalBrief();
 }
 
 function enterReviseMode() {
@@ -1258,13 +1271,12 @@ function enterReviseMode() {
   // Already revising: just focus chat, do not wipe progress
   if (state.mode === "revise") {
     el.input.focus();
-    el.chatPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-    addBubble("bot", "继续在左侧说哪里不满意；改完看右侧改进卡，再点「再派一版」。");
+    el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    addBubble("bot", "继续在左侧说哪里不满意；改动写在下方改进卡，再点「再派一版」。");
     return;
   }
 
   if (!state.originalCard) {
-    // Best-effort: if we still have confirm fields before wipe, keep them
     const cur = cardValues();
     if (cur.goal || cur.acceptance) state.originalCard = { ...cur };
   }
@@ -1273,19 +1285,20 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseMessages = [];
-  el.goal.value = "";
-  el.outOfScope.value = "";
-  el.acceptance.value = "";
-  el.assumptions.value = "";
-  setCardFieldsReadonly(false);
+  // Keep top confirm card as original requirements — do not clear it
+  restoreConfirmCardFromOriginal();
+  if (el.revGoal) el.revGoal.value = "";
+  if (el.revOut) el.revOut.value = "";
+  if (el.revAccept) el.revAccept.value = "";
+  if (el.revAssume) el.revAssume.value = "";
+  setReviseFieldsReadonly(false);
   applyCardChrome();
-  syncOriginalBrief();
   el.input.placeholder = "说说哪里不满意、为什么…";
   el.input.focus();
-  el.chatPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   addBubble(
     "bot",
-    "已进入改进。左侧对话；右侧是本轮改进卡。上方可展开「原始需求」。填齐后点「再派一版」（同一 Terminal）。",
+    "已进入改进。上方确认卡仍是原需求；请在左侧对话，在下方改进卡填写改动。填齐后点「再派一版」。",
   );
   renderRevisePanel({
     canRevise: true,
@@ -1310,7 +1323,7 @@ async function kickoffReviseDialogue() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         messages: state.reviseMessages.slice(-16),
-        card: cardValues(),
+        card: reviseCardValues(),
         mode: "revise",
         stream: true,
       }),
@@ -1358,7 +1371,7 @@ async function kickoffReviseDialogue() {
   }
 }
 
-/** After revise dispatch: keep 改进卡 visible with confirmed values (locked). */
+/** After revise dispatch: keep bottom 改进卡 visible with confirmed values (locked). */
 function lockReviseCard(data, card) {
   state.mode = "specify"; // leave dialogue; chrome via reviseLocked
   state.reviseLocked = true;
@@ -1370,10 +1383,11 @@ function lockReviseCard(data, card) {
     acceptance: card.acceptance,
     reason: card.assumptions,
   };
-  el.goal.value = card.goal;
-  el.outOfScope.value = card.outOfScope;
-  el.acceptance.value = card.acceptance;
-  el.assumptions.value = card.assumptions;
+  if (el.revGoal) el.revGoal.value = card.goal;
+  if (el.revOut) el.revOut.value = card.outOfScope;
+  if (el.revAccept) el.revAccept.value = card.acceptance;
+  if (el.revAssume) el.revAssume.value = card.assumptions;
+  restoreConfirmCardFromOriginal();
   el.input.placeholder = "想做什么…";
   if (el.result) {
     el.result.hidden = false;
@@ -1390,18 +1404,16 @@ function lockReviseCard(data, card) {
 
 async function confirmReviseAndDispatch() {
   if (!state.jobId || state.busy || state.reviseDispatching) return;
-  const v = cardValues();
+  const v = reviseCardValues();
   if (!v.goal || !v.acceptance) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
-      el.reviseErr.textContent = "先在对话里补全「要改什么」和「怎么算改好」";
+      el.reviseErr.textContent = "先在下方改进卡补全「要改什么」和「怎么算改好」";
     }
     return;
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
   state.reviseDispatching = true;
-  el.confirm.disabled = true;
-  el.confirm.textContent = "续派中…";
   syncReviseDispatchButton(false);
   try {
     const body = {
@@ -1435,7 +1447,7 @@ async function confirmReviseAndDispatch() {
           : data.continueSession
             ? "Terminal agent/claude --continue"
             : "新会话"
-      }）。${restated}\n右侧保留本轮改进卡；上方可展开原始需求；可继续查看成品。`,
+      }）。${restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看成品。`,
     );
     lockReviseCard(data, v);
     if (el.dispatchStatus) {

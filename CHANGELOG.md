@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Revise card stays below confirm card
+
+- Top **确认卡** keeps original labels/fields/styles; never morphs into 改进卡
+- **改进卡** lives in the bottom revise panel (under preview) for easy viewing after dialogue
+
 ### Survive worktree handoff cleanup
 
 - Status/preview read Brief from product `develop` when the request worktree was removed

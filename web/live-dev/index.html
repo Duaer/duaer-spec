@@ -89,10 +89,6 @@
         <button type="button" class="btn confirm" id="confirm" disabled>
           需求无误，开始干活
         </button>
-        <details id="originalBrief" class="original-brief" hidden>
-          <summary>原始需求</summary>
-          <pre id="originalBriefBody" class="original-brief-body"></pre>
-        </details>
         <pre id="result" class="result" hidden></pre>
 
         <section id="dispatch" class="dispatch" hidden>
@@ -147,8 +143,27 @@
             </button>
           </div>
           <div id="revisePanel" class="revise-panel" hidden>
-            <p class="revise-title">继续改进</p>
-            <p id="reviseHint" class="hint">成品可用后可再改；对话在左侧，改进卡在右侧。</p>
+            <p class="mark">Revise card</p>
+            <p class="revise-title">改进卡</p>
+            <p id="reviseHint" class="hint">左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。</p>
+            <div id="reviseCardFields" class="revise-card-fields">
+              <label class="field">
+                <span>要改什么</span>
+                <textarea id="revGoal" rows="3" placeholder="例如：主色改浅、标题加大"></textarea>
+              </label>
+              <label class="field">
+                <span>不要动什么</span>
+                <textarea id="revOut" rows="2" placeholder="例如：不动文案结构"></textarea>
+              </label>
+              <label class="field">
+                <span>怎么算改好</span>
+                <textarea id="revAccept" rows="3" placeholder="例如：手机端按钮不挤在一起"></textarea>
+              </label>
+              <label class="field">
+                <span>不满意原因</span>
+                <textarea id="revAssume" rows="2" placeholder="例如：主色太沉、看不清"></textarea>
+              </label>
+            </div>
             <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden>
               再改一版
             </button>

@@ -683,31 +683,6 @@ input:focus {
   color: var(--register);
 }
 
-.original-brief {
-  margin-top: 0.85rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px dashed var(--line);
-  background: rgba(0, 0, 0, 0.12);
-  color: var(--mute);
-  font-size: 0.85rem;
-}
-
-.original-brief summary {
-  cursor: pointer;
-  color: var(--ink);
-  font-weight: 600;
-}
-
-.original-brief-body {
-  margin: 0.5rem 0 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.45;
-  color: var(--mute);
-}
-
 .revise-panel {
   margin-top: 0.85rem;
   padding: 0.85rem 0.9rem;
@@ -715,12 +690,25 @@ input:focus {
   background: rgba(255, 255, 255, 0.35);
 }
 
-.revise-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
+.revise-panel > .mark {
+  margin: 0 0 0.25rem;
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--mute);
+}
+
+.revise-card-fields {
+  margin-top: 0.55rem;
+}
+
+.revise-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--ink);
+  font-weight: 700;
 }
 
 .revise-panel .field {
