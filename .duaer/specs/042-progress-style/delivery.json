@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "042-progress-style",
+  "acceptedAt": "2026-09-16T06:20:00.000Z",
+  "summary": "Progress panel: remove translucent white/gray slab; transparent divider style matching desk plate.",
+  "verification": {
+    "commands": [
+      {
+        "command": "grep progress-panel background in styles.css",
+        "result": "pass — background transparent; no rgba(255,255,255,0.35) / rgba(0,0,0,0.04) on progress"
+      }
+    ],
+    "e2e": ["E2E-043"]
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004"]
+}

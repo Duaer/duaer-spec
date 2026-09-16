@@ -618,15 +618,19 @@ input:focus {
 
 .progress-panel {
   margin-top: 0.85rem;
-  padding: 0.75rem 0.8rem;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.35);
+  padding: 0.85rem 0 0.15rem;
+  border: none;
+  border-top: 1px solid var(--line);
+  background: transparent;
 }
 
 .progress-summary {
-  margin: 0 0 0.55rem;
-  font-size: 0.85rem;
-  font-weight: 600;
+  margin: 0 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  font-weight: 500;
+  color: var(--ink);
 }
 
 .progress-tasks {
@@ -635,15 +639,17 @@ input:focus {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .progress-tasks li {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   display: flex;
-  gap: 0.45rem;
+  gap: 0.5rem;
   align-items: flex-start;
   color: var(--mute);
+  padding: 0.15rem 0;
+  background: transparent;
 }
 
 .progress-tasks li[data-done="true"] {
@@ -654,11 +660,20 @@ input:focus {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   min-width: 1.1rem;
+  color: var(--mute);
+}
+
+.progress-tasks li[data-done="true"] .mark {
+  color: var(--lock);
 }
 
 .progress-tasks li[data-current="true"] {
   color: var(--lock);
   font-weight: 600;
+}
+
+.progress-tasks li[data-current="true"] .mark {
+  color: var(--register);
 }
 
 .progress-log {
@@ -670,7 +685,8 @@ input:focus {
   font-size: 0.65rem;
   line-height: 1.35;
   color: var(--mute);
-  background: rgba(0, 0, 0, 0.04);
+  background: transparent;
+  border: 1px solid var(--line);
   white-space: pre-wrap;
   word-break: break-word;
 }
