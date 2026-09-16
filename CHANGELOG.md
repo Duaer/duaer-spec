@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Revise card stays visible after dispatch
+
+- After「再派一版」, right panel keeps locked **改进卡** with this round's confirmed fields (not back to confirm/collect chrome)
+- Chat busy hint is「正在左侧对话…」; only revise POST shows「续派中…」
+-「再改一版」starts a new dialogue round
+
 ### CLI update check + self-update
 
 - Shared npm latest check (24h cache under `~/.duaer/`; `DUAER_NO_UPDATE_CHECK=1` skips)
