@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Auto-fix on accept failure
+
+- When confirm auto-accept fails, the bot message offers an **Auto-fix** action
+- `POST /api/confirm/fix` revises the card from issues and re-runs accept
+
 ### Live revise via dialogue + session continue
 
 - After preview: **Continue improving (left chat)** — multi-turn clarify why / what to change; revise card confirm, then dispatch

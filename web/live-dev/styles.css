@@ -234,6 +234,18 @@ body {
   outline: none;
 }
 
+.action-chip {
+  border-color: var(--lock);
+  color: var(--lock);
+}
+
+.action-chip:hover,
+.action-chip:focus-visible {
+  border-color: var(--lock);
+  color: var(--ink);
+  background: rgba(47, 158, 143, 0.15);
+}
+
 .chip:focus-visible {
   box-shadow: 0 0 0 2px var(--steel), 0 0 0 4px var(--register);
 }
