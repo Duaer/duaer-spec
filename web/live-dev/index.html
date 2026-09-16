@@ -16,7 +16,7 @@
     <header class="top">
       <p class="mark">Live desk · isolated</p>
       <p class="brand">现场开发</p>
-      <p class="tag">对话弄清 → 确认验收 → 派工产品仓</p>
+      <p class="tag">对话弄清 → 确认验收 → 派工 → 看成品 → 可继续改进</p>
       <div class="sight" aria-hidden="true">
         <span class="arm arm-h"></span>
         <span class="arm arm-v"></span>
@@ -136,6 +136,21 @@
             <p class="preview-title">成品</p>
             <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener">查看成品</a>
             <p id="previewMeta" class="hint"></p>
+          </div>
+          <div id="revisePanel" class="revise-panel" hidden>
+            <p class="revise-title">继续改进</p>
+            <p class="hint">看完成品后说出哪里不满意；确认后会在同一 worktree 再派数字员工改一版。</p>
+            <label class="field">
+              <span>反馈</span>
+              <textarea
+                id="reviseFeedback"
+                rows="4"
+                placeholder="例如：主色太深、标题再大一点、手机端按钮挤在一起…"
+                spellcheck="true"
+              ></textarea>
+            </label>
+            <button type="button" class="btn primary" id="doRevise">理解反馈并再改一版</button>
+            <p id="reviseErr" class="hint" hidden></p>
           </div>
         </section>
       </section>

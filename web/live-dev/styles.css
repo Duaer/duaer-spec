@@ -637,6 +637,29 @@ input:focus {
   min-width: auto;
 }
 
+.revise-panel {
+  margin-top: 0.85rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.revise-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.revise-panel .field {
+  margin-top: 0.65rem;
+}
+
+.revise-panel .btn {
+  margin-top: 0.65rem;
+}
+
 .setup-panel {
   position: relative;
   z-index: 1;
