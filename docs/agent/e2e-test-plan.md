@@ -40,6 +40,7 @@ the table for their app.
 | E2E-025 | Deploy-needed jobs use `gh` + Actions (not third-party host CLIs by default) | manual |
 | E2E-026 | English docs contain no CJK; Chinese docs may include English | manual |
 | E2E-027 | After preview, feedback revise relaunches agent on same worktree | manual / curl |
+| E2E-028 | Revise uses left-chat dialogue then confirm; Terminal uses --continue | manual / curl |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -86,3 +87,4 @@ the table for their app.
 | E2E-025 | `023-gh-deploy-docs-lang` | `gh` + Actions deploy |
 | E2E-026 | `023-gh-deploy-docs-lang` | EN docs language purity |
 | E2E-027 | `024-live-revise-feedback` | revise after preview |
+| E2E-028 | `025-revise-dialogue-continue` | dialogue + `--continue` |

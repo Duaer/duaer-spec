@@ -273,6 +273,23 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
+const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。
+
+规则：
+1. 每次只问 1 个最关键问题（可给 2～4 个选项）。先问原因/痛点，再问期望改动。
+2. 维护四块（仍用确认卡字段名，便于前端复用）：
+   - goal = 本轮要改什么（具体可执行）
+   - outOfScope = 本轮不要动什么
+   - acceptance = 怎么算改好了（可检查）
+   - assumptions = 用户不满意的原因 / 背景摘要
+3. 四块够清楚且可执行时 ready=true。
+4. 不要写代码。不要立刻派工。不要假设仓库路径。
+5. 输出格式（严格）：
+   - 先写对用户说的纯文本
+   - 然后单独一行：<<<JSON>>>
+   - 再输出 JSON（不要 markdown 围栏）：
+{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+
 const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。请自动验收这份需求。
 
 检查：
@@ -418,7 +435,7 @@ function writeSse(res, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
-async function streamChatResponse(cfg, messages, res) {
+async function streamChatResponse(cfg, messages, res, systemPrompt = SYSTEM_PROMPT) {
   res.writeHead(200, {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-cache, no-transform",
@@ -428,7 +445,7 @@ async function streamChatResponse(cfg, messages, res) {
   let emitted = 0;
   let inJson = false;
   try {
-    for await (const chunk of streamChatModel(cfg, messages)) {
+    for await (const chunk of streamChatModel(cfg, messages, systemPrompt)) {
       full += chunk;
       if (inJson) continue;
       const markerIdx = full.indexOf(CHAT_JSON_MARKER);
@@ -1350,14 +1367,15 @@ function resolveCursorAgentCommand() {
 }
 
 /** Shell one-liner for Terminal: Cursor CLI with prompt from file. */
-function cursorAgentTerminalCommand(worktreePath, promptFile) {
+function cursorAgentTerminalCommand(worktreePath, promptFile, { continueSession = false } = {}) {
   const resolved = resolveCursorAgentCommand();
   if (!resolved) return null;
   const bin = shellSingleQuote(resolved.cmd);
   const ws = shellSingleQuote(worktreePath);
   const pf = shellSingleQuote(promptFile);
   const sub = resolved.prefix.length ? `${resolved.prefix.join(" ")} ` : "";
-  return `${bin} ${sub}--workspace ${ws} --trust --sandbox disabled --force "$(cat ${pf})"`;
+  const cont = continueSession ? "--continue " : "";
+  return `${bin} ${sub}${cont}--workspace ${ws} --trust --sandbox disabled --force "$(cat ${pf})"`;
 }
 
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
@@ -1399,7 +1417,14 @@ function rememberPreferredAgent(agentId) {
   }
 }
 
-function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }) {
+function launchAgent({
+  agentId,
+  worktreePath,
+  agentPrompt,
+  logPath,
+  featureDir,
+  continueSession = false,
+}) {
   const id = String(agentId || "none").trim() || "none";
   const detected = detectAgents();
   const meta = detected.agents.find((a) => a.id === id);
@@ -1417,6 +1442,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
     command: meta.command,
     mode: null,
     openedWorktree: false,
+    continueSession: Boolean(continueSession),
     cli: detected.cli || null,
   };
 
@@ -1438,17 +1464,19 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
 
   appendLaunchLog(
     outLog,
-    `[${launch.launchedAt}] start ${id} cwd=${worktreePath}`,
+    `[${launch.launchedAt}] start ${id} continue=${launch.continueSession} cwd=${worktreePath}`,
   );
 
   const promptFile = path.join(
     path.dirname(outLog),
-    "agent-launch-prompt.txt",
+    continueSession ? "agent-revise-prompt.txt" : "agent-launch-prompt.txt",
   );
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    const line = cursorAgentTerminalCommand(worktreePath, promptFile);
+    const line = cursorAgentTerminalCommand(worktreePath, promptFile, {
+      continueSession,
+    });
     if (!line) throw new Error("未找到 agent / cursor CLI");
     const term = launchInTerminal({
       cwd: worktreePath,
@@ -1460,10 +1488,11 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
     const resolved = resolveCursorAgentCommand();
-    launch.command = `${resolved?.display || "agent"} --workspace --trust --force (Terminal)`;
+    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (Terminal)`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
-    const line = `claude "$(cat ${shellSingleQuote(promptFile)})"`;
+    const cont = continueSession ? "--continue " : "";
+    const line = `claude ${cont}"$(cat ${shellSingleQuote(promptFile)})"`;
     const term = launchInTerminal({
       cwd: worktreePath,
       commandLine: line,
@@ -1473,14 +1502,14 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
     launch.mode = "terminal";
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
-    launch.command = "claude (Terminal)";
+    launch.command = `claude${continueSession ? " --continue" : ""} (Terminal)`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
 
   appendLaunchLog(
     outLog,
-    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid}`,
+    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid} continue=${launch.continueSession}`,
   );
   return launch;
 }
@@ -1783,9 +1812,27 @@ async function restateRevisionFeedback(cfg, feedback, goalHint) {
   }
 }
 
-async function reviseDispatchedJob({ jobId, feedback, agentId, startCommand }) {
-  const text = String(feedback || "").trim();
-  if (!text) throw new Error("请先写清哪里不满意、要改成什么样");
+async function reviseDispatchedJob({
+  jobId,
+  feedback,
+  change,
+  acceptance,
+  keep,
+  reason,
+  agentId,
+  startCommand,
+}) {
+  const changeLine = String(change || "").trim();
+  const acceptLine = String(acceptance || "").trim();
+  const keepLine = String(keep || "").trim() || "未点名的能力保持不变";
+  const reasonLine = String(reason || "").trim();
+  const text = String(feedback || "").trim() || changeLine || reasonLine;
+  if (!changeLine && !text) {
+    throw new Error("请先在对话里弄清要改什么");
+  }
+  if (!acceptLine && !text) {
+    throw new Error("请先写清怎么算改好了");
+  }
 
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch;
@@ -1803,25 +1850,36 @@ async function reviseDispatchedJob({ jobId, feedback, agentId, startCommand }) {
   const now = new Date().toISOString();
   const today = now.slice(0, 10);
 
-  let restated = null;
-  try {
-    const cfg = readConfig();
-    if (cfg?.apiKey) {
-      const goalHint = extractSection(
-        fs.readFileSync(path.join(dispatch.featureDir, "spec.md"), "utf8"),
-        "Goal",
-      );
-      restated = await restateRevisionFeedback(cfg, text, goalHint);
-    }
-  } catch {
-    restated = null;
-  }
+  let restated = {
+    change: changeLine || text,
+    acceptance: acceptLine || "按用户反馈改完后，成品符合反馈描述",
+    keep: keepLine,
+    summary: reasonLine || text.slice(0, 120),
+  };
 
-  const changeLine = restated?.change || text;
-  const acceptLine =
-    restated?.acceptance || "按用户反馈改完后，成品符合反馈描述";
-  const keepLine = restated?.keep || "未点名的能力保持不变";
-  const summaryLine = restated?.summary || text.slice(0, 120);
+  // If card incomplete, optional model fill from free text
+  if ((!changeLine || !acceptLine) && text) {
+    try {
+      const cfg = readConfig();
+      if (cfg?.apiKey) {
+        const goalHint = extractSection(
+          fs.readFileSync(path.join(dispatch.featureDir, "spec.md"), "utf8"),
+          "Goal",
+        );
+        const filled = await restateRevisionFeedback(cfg, text, goalHint);
+        if (filled) {
+          restated = {
+            change: changeLine || filled.change || text,
+            acceptance: acceptLine || filled.acceptance,
+            keep: keepLine || filled.keep || keepLine,
+            summary: reasonLine || filled.summary || text.slice(0, 120),
+          };
+        }
+      }
+    } catch {
+      // keep restated defaults
+    }
+  }
 
   const specPath = path.join(dispatch.featureDir, "spec.md");
   const tasksPath = path.join(dispatch.featureDir, "tasks.md");
@@ -1840,14 +1898,14 @@ async function reviseDispatchedJob({ jobId, feedback, agentId, startCommand }) {
 
 **Date**: ${today}
 
-**User feedback**:
-${text}
+**User feedback / reason**:
+${reasonLine || text}
 
-**Restated change**: ${changeLine}
+**Restated change**: ${restated.change}
 
-**Revision acceptance**: ${acceptLine}
+**Revision acceptance**: ${restated.acceptance}
 
-**Keep**: ${keepLine}
+**Keep**: ${restated.keep}
 `;
   fs.writeFileSync(specPath, `${specMd.trim()}\n${revisionBlock}\n`, "utf8");
 
@@ -1855,7 +1913,7 @@ ${text}
     ? fs.readFileSync(tasksPath, "utf8")
     : "# Tasks\n\n";
   const taskBlock = `
-- [ ] R${revN}-1 Apply revision: ${changeLine.replace(/\n/g, " ").slice(0, 160)}
+- [ ] R${revN}-1 Apply revision: ${restated.change.replace(/\n/g, " ").slice(0, 160)}
 - [ ] R${revN}-2 Verify against revision acceptance
 - [ ] R${revN}-3 Stamp delivery.json accepted（更新 preview.url）
 `;
@@ -1883,7 +1941,7 @@ ${text}
         previousStatus: prevDelivery?.status || null,
         previousAcceptedAt: prevDelivery?.acceptedAt || null,
         feedback: text,
-        restated: restated || undefined,
+        restated,
       },
       null,
       2,
@@ -1894,17 +1952,23 @@ ${text}
   const defaultPrompt = `Agent
 
 用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
+请续上一次会话上下文（CLI 已带 --continue）。
 
 工作目录: ${dispatch.worktreePath}
 Brief: ${dispatch.featureDir}
 分支: ${dispatch.branch || live.job.branch || ""}
 
-用户反馈：
-${text}
+不满意原因：
+${restated.summary}
 
-整理后的改进点：${changeLine}
-验收：${acceptLine}
-保持不动：${keepLine}
+要改什么：
+${restated.change}
+
+验收：
+${restated.acceptance}
+
+不要动：
+${restated.keep}
 
 要求：
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
@@ -1935,7 +1999,7 @@ ${text}
   const logPath = path.join(dispatch.featureDir, "agent-launch.log");
   appendLaunchLog(
     logPath,
-    `\n—— revise r${revN} ${now} ——\n${summaryLine}\n`,
+    `\n—— revise r${revN} ${now} (continue session) ——\n${restated.summary}\n`,
   );
   const launch = launchAgent({
     agentId: chosen,
@@ -1943,6 +2007,7 @@ ${text}
     agentPrompt,
     logPath,
     featureDir: dispatch.featureDir,
+    continueSession: true,
   });
   rememberPreferredAgent(chosen);
 
@@ -1957,7 +2022,7 @@ ${text}
     n: revN,
     at: now,
     feedback: text,
-    restated: restated || null,
+    restated,
   });
   const nextJob = {
     ...live.job,
@@ -1974,7 +2039,8 @@ ${text}
     jobId: live.id,
     revision: revN,
     restated,
-    summary: summaryLine,
+    summary: restated.summary,
+    continueSession: true,
     dispatch: nextDispatch,
     launch,
     agentPrompt,
@@ -2284,16 +2350,21 @@ async function handleApi(req, res) {
         return;
       }
       const card = body.card && typeof body.card === "object" ? body.card : {};
+      const mode = String(body.mode || "specify").trim();
+      const reviseMode = mode === "revise";
+      const systemPrompt = reviseMode ? REVISE_CHAT_PROMPT : SYSTEM_PROMPT;
       messages.push({
         role: "user",
-        content: `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`,
+        content: reviseMode
+          ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
+          : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`,
       });
       const wantStream = body.stream !== false;
       if (wantStream) {
-        await streamChatResponse(cfg, messages, res);
+        await streamChatResponse(cfg, messages, res, systemPrompt);
         return;
       }
-      const result = await callChatModel(cfg, messages);
+      const result = await callChatModel(cfg, messages, systemPrompt);
       send(res, 200, parseChatResult(result));
     } catch (err) {
       send(res, 500, {
@@ -2478,6 +2549,10 @@ async function handleApi(req, res) {
       const result = await reviseDispatchedJob({
         jobId: body.jobId,
         feedback: body.feedback,
+        change: body.change || body.goal,
+        acceptance: body.acceptance,
+        keep: body.keep || body.outOfScope,
+        reason: body.reason || body.assumptions,
         agentId: body.agentId,
         startCommand: body.startCommand,
       });

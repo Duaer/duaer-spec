@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live revise via dialogue + session continue
+
+- After preview: **Continue improving (left chat)** — multi-turn clarify why / what to change; revise card confirm, then dispatch
+- Revise Terminal launch uses `agent --continue` / `claude --continue` so the prior CLI session keeps going
+- One-shot freeform revise textarea removed
+
 ### Live revise after preview
 
 - After delivery accepted, **Continue improving** captures user feedback

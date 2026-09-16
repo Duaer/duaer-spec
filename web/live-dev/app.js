@@ -22,8 +22,10 @@ const state = {
   ready: false,
   locked: false,
   busy: false,
+  mode: "specify", // specify | revise
   rawAsk: "",
   messages: [],
+  reviseMessages: [],
   providers: FALLBACK_PROVIDERS,
   providerId: "deepseek",
   jobId: null,
@@ -79,9 +81,14 @@ const el = {
   previewLink: document.getElementById("previewLink"),
   previewMeta: document.getElementById("previewMeta"),
   revisePanel: document.getElementById("revisePanel"),
-  reviseFeedback: document.getElementById("reviseFeedback"),
-  doRevise: document.getElementById("doRevise"),
+  startReviseChat: document.getElementById("startReviseChat"),
   reviseErr: document.getElementById("reviseErr"),
+  cardMark: document.getElementById("cardMark"),
+  cardTitle: document.getElementById("cardTitle"),
+  lblGoal: document.getElementById("lblGoal"),
+  lblOut: document.getElementById("lblOut"),
+  lblAccept: document.getElementById("lblAccept"),
+  lblAssume: document.getElementById("lblAssume"),
 };
 
 function cardValues() {
@@ -95,6 +102,14 @@ function cardValues() {
 
 function syncConfirmEnabled() {
   const v = cardValues();
+  if (state.mode === "revise") {
+    const ok = Boolean(v.goal && v.acceptance) && state.ready && !state.busy;
+    el.confirm.disabled = !ok;
+    el.lockHint.textContent =
+      "左侧对话弄清原因与改动；确认后才会 --continue 续派 Terminal 任务。";
+    el.confirm.textContent = "改进方案确认，再派一版";
+    return;
+  }
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
   el.confirm.disabled = !ok;
   el.lockHint.textContent = state.locked
@@ -102,6 +117,22 @@ function syncConfirmEnabled() {
     : ok
       ? "可以确认了。确认后自动验收，再派工。"
       : "至少填好「要做什么」和「验收标准」。";
+  if (!state.locked) el.confirm.textContent = "需求无误，开始干活";
+}
+
+function applyCardChrome() {
+  const revise = state.mode === "revise";
+  if (el.cardMark) el.cardMark.textContent = revise ? "Revise card" : "Confirm card";
+  if (el.cardTitle) el.cardTitle.textContent = revise ? "改进卡" : "确认卡";
+  if (el.lblGoal) el.lblGoal.textContent = revise ? "要改什么" : "要做什么";
+  if (el.lblOut) el.lblOut.textContent = revise ? "不要动什么" : "不做什么";
+  if (el.lblAccept) el.lblAccept.textContent = revise ? "怎么算改好" : "验收标准";
+  if (el.lblAssume) el.lblAssume.textContent = revise ? "不满意原因" : "假设";
+  el.goal.placeholder = revise ? "例如：主色改浅、标题加大" : "待确认";
+  el.outOfScope.placeholder = revise ? "例如：不动文案结构" : "待确认";
+  el.acceptance.placeholder = revise ? "例如：手机端按钮不挤在一起" : "待确认";
+  el.assumptions.placeholder = revise ? "例如：主色太沉、看不清" : "待确认";
+  syncConfirmEnabled();
 }
 
 ["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
@@ -196,21 +227,23 @@ async function readChatStream(res, onEvent) {
 }
 
 async function sendChat(userText) {
-  state.messages.push({ role: "user", content: userText });
+  const bag = state.mode === "revise" ? state.reviseMessages : state.messages;
+  bag.push({ role: "user", content: userText });
   addBubble("user", userText);
-  if (!state.rawAsk) state.rawAsk = userText;
+  if (state.mode !== "revise" && !state.rawAsk) state.rawAsk = userText;
 
   state.busy = true;
   el.send.disabled = true;
   const streamBubble = startStreamingBubble();
   try {
-    const history = state.messages.slice(-16);
+    const history = bag.slice(-16);
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         messages: history,
         card: cardValues(),
+        mode: state.mode === "revise" ? "revise" : "specify",
         stream: true,
       }),
     });
@@ -235,9 +268,14 @@ async function sendChat(userText) {
       applyCard(final);
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
-      state.messages.push({ role: "assistant", content: final.reply });
+      bag.push({ role: "assistant", content: final.reply });
       if (final.ready) {
-        addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
+        addBubble(
+          "bot",
+          state.mode === "revise"
+            ? "右侧改进卡可再改。满意后点「改进方案确认，再派一版」。"
+            : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
+        );
       }
     } else {
       const data = await res.json();
@@ -245,13 +283,18 @@ async function sendChat(userText) {
       applyCard(data);
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
-      state.messages.push({ role: "assistant", content: data.reply });
+      bag.push({ role: "assistant", content: data.reply });
       if (data.ready) {
-        addBubble("bot", "右侧确认卡可再改。满意后点「需求无误，开始干活」。");
+        addBubble(
+          "bot",
+          state.mode === "revise"
+            ? "右侧改进卡可再改。满意后点「改进方案确认，再派一版」。"
+            : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
+        );
       }
     }
   } catch (err) {
-    state.messages.pop();
+    bag.pop();
     streamBubble.set(`出错：${err instanceof Error ? err.message : err}`);
     streamBubble.finish();
   } finally {
@@ -364,7 +407,11 @@ el.saveCfg.addEventListener("click", async () => {
 
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
-  if (!state.ready || state.locked || state.busy) return;
+  const chatAllowed =
+    state.ready &&
+    !state.busy &&
+    (state.mode === "revise" || !state.locked);
+  if (!chatAllowed) return;
   const text = el.input.value.trim();
   if (!text) return;
   el.input.value = "";
@@ -372,6 +419,10 @@ el.form.addEventListener("submit", (e) => {
 });
 
 el.confirm.addEventListener("click", async () => {
+  if (state.mode === "revise") {
+    void confirmReviseAndDispatch();
+    return;
+  }
   const v = cardValues();
   if (!v.goal || !v.acceptance || state.locked || state.busy) return;
   el.confirm.disabled = true;
@@ -920,8 +971,114 @@ function renderRevisePanel(data) {
     (data?.status === "accepted" ||
       data?.status === "revising" ||
       Number(data?.revision || 0) > 0 ||
-      data?.delivery?.status === "accepted");
+      data?.delivery?.status === "accepted" ||
+      state.mode === "revise");
   el.revisePanel.hidden = !show;
+  if (el.startReviseChat) {
+    el.startReviseChat.disabled = state.mode === "revise" && state.busy;
+    el.startReviseChat.textContent =
+      state.mode === "revise" ? "正在左侧对话改进…" : "继续改进（左侧对话）";
+  }
+}
+
+function enterReviseMode() {
+  if (!state.jobId) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = "没有可改进的工单";
+    }
+    return;
+  }
+  if (el.reviseErr) el.reviseErr.hidden = true;
+  state.mode = "revise";
+  state.reviseMessages = [];
+  el.goal.value = "";
+  el.outOfScope.value = "";
+  el.acceptance.value = "";
+  el.assumptions.value = "";
+  applyCardChrome();
+  el.input.placeholder = "说说哪里不满意、为什么…";
+  el.input.focus();
+  addBubble(
+    "bot",
+    "进入改进对话。先说成品哪里不满意、为什么；我会问清要改什么、不要动什么。右侧是改进卡——确认后才会用 Terminal --continue 续派任务。",
+  );
+  renderRevisePanel({ canRevise: true, status: "accepted" });
+}
+
+function exitReviseMode() {
+  state.mode = "specify";
+  applyCardChrome();
+  el.input.placeholder = "想做什么…";
+  el.confirm.textContent = "已确认";
+  el.confirm.disabled = true;
+  el.lockHint.textContent = "已派工。可继续改进或查看成品。";
+}
+
+async function confirmReviseAndDispatch() {
+  if (!state.jobId || state.busy) return;
+  const v = cardValues();
+  if (!v.goal || !v.acceptance) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = "先在对话里补全「要改什么」和「怎么算改好」";
+    }
+    return;
+  }
+  if (el.reviseErr) el.reviseErr.hidden = true;
+  el.confirm.disabled = true;
+  el.confirm.textContent = "续派中…";
+  state.busy = true;
+  try {
+    const body = {
+      jobId: state.jobId,
+      change: v.goal,
+      keep: v.outOfScope,
+      acceptance: v.acceptance,
+      reason: v.assumptions,
+      feedback: v.assumptions || v.goal,
+      agentId: state.agentId,
+    };
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 90000);
+    const res = await fetch("/api/revise", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "继续改进失败");
+    const restated = data.restated
+      ? `\n改：${data.restated.change || ""}\n验：${data.restated.acceptance || ""}`
+      : "";
+    addBubble(
+      "bot",
+      `已确认改进方案并启动 Revision ${data.revision}（Terminal ${data.continueSession ? "agent/claude --continue" : "新会话"}）。${restated}\n同一 worktree；改完会再出现成品链接。`,
+    );
+    exitReviseMode();
+    if (el.dispatchStatus) {
+      el.dispatchStatus.hidden = false;
+      el.dispatchStatus.textContent = `状态：revising · r${data.revision} · continue`;
+    }
+    startStatusPoll();
+  } catch (err) {
+    const msg =
+      err?.name === "AbortError"
+        ? "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。"
+        : err instanceof Error
+          ? err.message
+          : "继续改进失败";
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = msg;
+    }
+    addBubble("bot", msg);
+    syncConfirmEnabled();
+  } finally {
+    state.busy = false;
+  }
 }
 
 function startStatusPoll() {
@@ -941,8 +1098,7 @@ function startStatusPoll() {
         data.progress && data.progress.total
           ? `${data.progress.done}/${data.progress.total}`
           : "";
-      const rev =
-        data.revision > 0 ? ` · r${data.revision}` : "";
+      const rev = data.revision > 0 ? ` · r${data.revision}` : "";
       el.dispatchStatus.textContent = `状态：${st}${pct ? ` · ${pct}` : ""}${rev}${
         data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""
       }`;
@@ -956,10 +1112,9 @@ function startStatusPoll() {
             : "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）";
           addBubble(
             "bot",
-            `数字员工已验收通过（delivery.json accepted）。不满意可在下方写反馈继续改进。${link}`,
+            `数字员工已验收通过。不满意请点「继续改进（左侧对话）」说清原因后再派。${link}`,
           );
         }
-        // Keep polling stopped while waiting for human feedback; revise restarts it.
         clearInterval(state.statusTimer);
         state.statusTimer = null;
       }
@@ -971,76 +1126,9 @@ function startStatusPoll() {
   state.statusTimer = setInterval(tick, 3000);
 }
 
-async function onRevise() {
-  if (!state.jobId) return;
-  const feedback = (el.reviseFeedback?.value || "").trim();
-  if (!feedback) {
-    if (el.reviseErr) {
-      el.reviseErr.hidden = false;
-      el.reviseErr.textContent = "先写清哪里不满意、要改成什么样";
-    }
-    return;
-  }
-  if (el.reviseErr) el.reviseErr.hidden = true;
-  if (el.doRevise) {
-    el.doRevise.disabled = true;
-    el.doRevise.textContent = "理解并派工中…";
-  }
-  try {
-    const body = {
-      jobId: state.jobId,
-      feedback,
-      agentId: state.agentId,
-    };
-    const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 90000);
-    const res = await fetch("/api/revise", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: ac.signal,
-    });
-    clearTimeout(timer);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "继续改进失败");
-    const restated = data.restated
-      ? `\n整理：${data.restated.change || data.summary || ""}`
-      : data.summary
-        ? `\n整理：${data.summary}`
-        : "";
-    addBubble(
-      "bot",
-      `已记录反馈并启动 Revision ${data.revision}。${restated}\n同一 worktree 继续改；改完后会再出现成品链接。`,
-    );
-    if (el.reviseFeedback) el.reviseFeedback.value = "";
-    if (el.dispatchStatus) {
-      el.dispatchStatus.hidden = false;
-      el.dispatchStatus.textContent = `状态：revising · r${data.revision}`;
-    }
-    startStatusPoll();
-  } catch (err) {
-    const msg =
-      err?.name === "AbortError"
-        ? "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。"
-        : err instanceof Error
-          ? err.message
-          : "继续改进失败";
-    if (el.reviseErr) {
-      el.reviseErr.hidden = false;
-      el.reviseErr.textContent = msg;
-    }
-    addBubble("bot", msg);
-  } finally {
-    if (el.doRevise) {
-      el.doRevise.disabled = false;
-      el.doRevise.textContent = "理解反馈并再改一版";
-    }
-  }
-}
-
-if (el.doRevise) {
-  el.doRevise.addEventListener("click", () => {
-    void onRevise();
+if (el.startReviseChat) {
+  el.startReviseChat.addEventListener("click", () => {
+    enterReviseMode();
   });
 }
 
