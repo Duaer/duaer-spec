@@ -1340,7 +1340,7 @@ function openCursorWorktree({ worktreePath, featureDir, logPath }) {
   return { opened: true, pid };
 }
 
-/** Build argv for Cursor Agent CLI. Never pass `-w` (avoids extra job worktree / origin fetch). */
+/** Build argv for Cursor Agent CLI in Terminal. Never pass `-w`. No `-p` (interactive TTY). */
 function cursorAgentArgv(worktreePath, prompt) {
   return [
     "--workspace",
@@ -1348,10 +1348,7 @@ function cursorAgentArgv(worktreePath, prompt) {
     "--trust",
     "--sandbox",
     "disabled",
-    "-p",
     "--force",
-    "--output-format",
-    "text",
     prompt,
   ];
 }
@@ -1359,13 +1356,24 @@ function cursorAgentArgv(worktreePath, prompt) {
 function resolveCursorAgentCommand() {
   const agentBin = whichCmd("agent");
   if (agentBin) {
-    return { cmd: agentBin, prefix: [] };
+    return { cmd: agentBin, prefix: [], display: "agent" };
   }
   const cursorBin = whichCmd("cursor");
   if (cursorBin) {
-    return { cmd: cursorBin, prefix: ["agent"] };
+    return { cmd: cursorBin, prefix: ["agent"], display: "cursor agent" };
   }
   return null;
+}
+
+/** Shell one-liner for Terminal: Cursor CLI with prompt from file. */
+function cursorAgentTerminalCommand(worktreePath, promptFile) {
+  const resolved = resolveCursorAgentCommand();
+  if (!resolved) return null;
+  const bin = shellSingleQuote(resolved.cmd);
+  const ws = shellSingleQuote(worktreePath);
+  const pf = shellSingleQuote(promptFile);
+  const sub = resolved.prefix.length ? `${resolved.prefix.join(" ")} ` : "";
+  return `${bin} ${sub}--workspace ${ws} --trust --sandbox disabled --force "$(cat ${pf})"`;
 }
 
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
@@ -1466,7 +1474,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
 
   appendLaunchLog(
     outLog,
-    `[${launch.launchedAt}] start ${id} cwd=${worktreePath} (cursor-cli / non-interactive)`,
+    `[${launch.launchedAt}] start ${id} cwd=${worktreePath}`,
   );
 
   const promptFile = path.join(
@@ -1476,19 +1484,19 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
-    launch.openedWorktree = opened.opened;
-    const resolved = resolveCursorAgentCommand();
-    if (!resolved) throw new Error("未找到 agent / cursor CLI");
-    const args = [...resolved.prefix, ...cursorAgentArgv(worktreePath, prompt)];
-    launch.pid = spawnBackgroundWorker({
-      cmd: resolved.cmd,
-      args,
+    // Open Terminal and run Cursor CLI there — not cursor -n IDE, not silent -p.
+    const line = cursorAgentTerminalCommand(worktreePath, promptFile);
+    if (!line) throw new Error("未找到 agent / cursor CLI");
+    const term = launchInTerminal({
       cwd: worktreePath,
+      commandLine: line,
       logPath: outLog,
     });
-    launch.mode = "background";
-    launch.command = `${resolved.prefix.length ? "cursor agent" : "agent"} -p --force --trust --sandbox disabled`;
+    launch.pid = term.pid;
+    launch.mode = "terminal";
+    launch.openedWorktree = false;
+    const resolved = resolveCursorAgentCommand();
+    launch.command = `${resolved?.display || "agent"} --workspace --trust --force (Terminal)`;
   } else if (id === "claude") {
     const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
     if (opened.opened) {

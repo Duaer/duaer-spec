@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live Cursor Agent via Terminal
+
+- Cursor Agent opens macOS Terminal (or Linux terminal) and runs `agent` / `cursor agent` CLI there — not `cursor -n` IDE and not silent `-p` background
+
 ### Live CLI install + Agent start command
 
 - Missing Cursor CLI shows install command `curl https://cursor.com/install -fsS | bash` (copyable)

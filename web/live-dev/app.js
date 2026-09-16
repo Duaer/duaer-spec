@@ -809,19 +809,17 @@ el.doDispatch.addEventListener("click", async () => {
     el.result.hidden = false;
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
     const who =
-      launch.mode === "background"
-        ? `已用 Cursor CLI 后台开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}${
-            launch.command ? ` · ${launch.command}` : ""
-          }）${
-            launch.openedWorktree
-              ? "，并用 cursor -n 打开了该 worktree"
-              : ""
-          }`
-        : launch.agentId === "cursor"
-          ? `已用 cursor -n 打开 worktree`
-          : launch.agentId && launch.agentId !== "none"
-            ? `已用 ${launch.label || launch.agentId} 处理`
-            : "已派工；选 Cursor Agent 才会自动开工";
+      launch.mode === "terminal"
+        ? `已打开 Terminal，正在执行 Cursor CLI（${launch.command || "agent"}）`
+        : launch.mode === "background"
+          ? `已后台开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}${
+              launch.command ? ` · ${launch.command}` : ""
+            }）`
+          : launch.agentId === "cursor"
+            ? `已用 cursor -n 打开 worktree`
+            : launch.agentId && launch.agentId !== "none"
+              ? `已用 ${launch.label || launch.agentId} 处理`
+              : "已派工；选 Cursor Agent 会在 Terminal 跑 CLI";
     addBubble(
       "bot",
       `${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,
