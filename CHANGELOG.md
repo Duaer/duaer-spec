@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live CLI-only launchers
+
+- Dispatch picker keeps only Cursor Agent + Claude Code (Terminal CLI); removed IDE-open-only / none
+- Claude also launches via Terminal `claude` CLI
+
 ### Live dispatch hang fix
 
 - Terminal launch is async (no spawnSync/osascript wait); UI aborts dispatch after 60s instead of sticking on 派工中

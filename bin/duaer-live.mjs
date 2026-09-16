@@ -1111,7 +1111,7 @@ function whichCmd(cmd) {
   return p || null;
 }
 
-/** Digital-employee / editor launchers detectable on PATH. */
+/** CLI-only digital-employee launchers (Terminal). */
 const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
 
 const AGENT_CATALOG = [
@@ -1119,37 +1119,16 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "打开 Terminal，执行 cursor/agent CLI",
+    hint: "Terminal 执行 agent / cursor agent",
     installCommand: CURSOR_INSTALL_CMD,
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
-    hint: "打开 worktree + claude --bg",
+    hint: "Terminal 执行 claude CLI",
     installCommand:
       "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI",
-  },
-  {
-    id: "cursor",
-    label: "Cursor（仅打开）",
-    kind: "open",
-    hint: "cursor -n 打开命名 worktree",
-    installCommand: CURSOR_INSTALL_CMD,
-  },
-  {
-    id: "code",
-    label: "VS Code（仅打开）",
-    kind: "open",
-    hint: "code 打开 worktree",
-    installCommand: null,
-  },
-  {
-    id: "none",
-    label: "仅派工不启动",
-    kind: "none",
-    hint: "只建 worktree / Brief",
-    installCommand: null,
   },
 ];
 
@@ -1170,13 +1149,10 @@ function cursorCliVersion() {
 function detectAgents() {
   const preferredRaw = readConfig().preferredAgentId || "";
   const preferredMeta = AGENT_CATALOG.find((a) => a.id === preferredRaw);
-  // Ignore remembered open-only prefs (they only open IDE, no task)
-  const preferred =
-    preferredMeta?.kind === "worker" ? preferredRaw : "";
+  const preferred = preferredMeta ? preferredRaw : "";
   const agentBin = whichCmd("agent");
   const cursorBin = whichCmd("cursor");
   const claudeBin = whichCmd("claude");
-  const codeBin = whichCmd("code");
   const version = cursorCliVersion();
 
   const installed = [];
@@ -1197,34 +1173,9 @@ function detectAgents() {
       path: claudeBin,
     });
   }
-  if (cursorBin) {
-    installed.push({
-      ...AGENT_CATALOG.find((a) => a.id === "cursor"),
-      available: true,
-      command: "cursor -n",
-      path: cursorBin,
-      version,
-    });
-  }
-  if (codeBin) {
-    installed.push({
-      ...AGENT_CATALOG.find((a) => a.id === "code"),
-      available: true,
-      command: "code",
-      path: codeBin,
-    });
-  }
-  installed.push({
-    ...AGENT_CATALOG.find((a) => a.id === "none"),
-    available: true,
-    command: null,
-    path: null,
-  });
 
   const ids = new Set(installed.map((a) => a.id));
-  const missing = AGENT_CATALOG.filter(
-    (a) => a.id !== "none" && !ids.has(a.id),
-  ).map((a) => ({
+  const missing = AGENT_CATALOG.filter((a) => !ids.has(a.id)).map((a) => ({
     ...a,
     available: false,
     command: null,
@@ -1239,6 +1190,7 @@ function detectAgents() {
     cli: {
       cursor: cursorBin,
       agent: agentBin,
+      claude: claudeBin,
       version,
     },
   };
@@ -1469,7 +1421,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
   };
 
   if (id === "none") {
-    return launch;
+    throw new Error("只支持 CLI 启动：请选择 Cursor Agent 或 Claude Code");
   }
 
   if (!worktreePath || !fs.existsSync(worktreePath)) {
@@ -1481,26 +1433,6 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
     logPath ||
     path.join(worktreePath, ".duaer", "live-agent-launch.log");
   launch.logPath = outLog;
-
-  if (id === "cursor") {
-    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
-    if (!opened.opened) {
-      launch.pid = openEditor("cursor", worktreePath, outLog);
-    } else {
-      launch.pid = opened.pid;
-      launch.openedWorktree = true;
-    }
-    launch.mode = "open";
-    launch.command = "cursor -n";
-    return launch;
-  }
-
-  if (id === "code") {
-    launch.pid = openEditor("code", worktreePath, outLog, ["-n"]);
-    launch.mode = "open";
-    launch.openedWorktree = true;
-    return launch;
-  }
 
   if (!prompt) throw new Error("缺少开工 prompt");
 
@@ -1516,7 +1448,6 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    // Open Terminal and run Cursor CLI there — not cursor -n IDE, not silent -p.
     const line = cursorAgentTerminalCommand(worktreePath, promptFile);
     if (!line) throw new Error("未找到 agent / cursor CLI");
     const term = launchInTerminal({
@@ -1527,26 +1458,24 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
     launch.pid = term.pid;
     launch.mode = "terminal";
     launch.openedWorktree = false;
+    launch.commandFile = term.commandFile || null;
     const resolved = resolveCursorAgentCommand();
     launch.command = `${resolved?.display || "agent"} --workspace --trust --force (Terminal)`;
   } else if (id === "claude") {
-    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
-    if (opened.opened) {
-      launch.openedWorktree = true;
-    } else if (whichCmd("code")) {
-      openEditor("code", worktreePath, outLog, ["-n"]);
-      launch.openedWorktree = true;
-    }
-    launch.pid = spawnBackgroundWorker({
-      cmd: "claude",
-      args: ["--bg", prompt],
+    if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
+    const line = `claude "$(cat ${shellSingleQuote(promptFile)})"`;
+    const term = launchInTerminal({
       cwd: worktreePath,
+      commandLine: line,
       logPath: outLog,
     });
-    launch.mode = "background";
-    launch.command = "claude --bg";
+    launch.pid = term.pid;
+    launch.mode = "terminal";
+    launch.openedWorktree = false;
+    launch.commandFile = term.commandFile || null;
+    launch.command = "claude (Terminal)";
   } else {
-    throw new Error(`未知启动器：${id}`);
+    throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
 
   appendLaunchLog(
@@ -1676,20 +1605,29 @@ Brief: ${featureDir}
 `;
   }
 
-  const chosen =
-    String(agentId || "").trim() ||
-    readConfig().preferredAgentId ||
-    "none";
+  const detected = detectAgents();
+  let chosen = String(agentId || "").trim() || detected.preferredAgentId || "";
+  if (!chosen || !detected.agents.some((a) => a.id === chosen)) {
+    chosen = detected.agents[0]?.id || "";
+  }
+  if (!chosen) {
+    const hint = (detected.missing || [])
+      .map((m) => m.installCommand)
+      .filter(Boolean)
+      .join("\n");
+    throw new Error(
+      `未检测到可用 CLI（Cursor Agent / Claude Code）。请先安装：\n${hint || CURSOR_INSTALL_CMD}`,
+    );
+  }
 
-  // Block Cursor workers/openers when CLI missing
-  if (chosen === "cursor-agent" || chosen === "cursor") {
-    const detected = detectAgents();
-    const ok = detected.agents.some((a) => a.id === chosen && a.available);
-    if (!ok) {
-      throw new Error(
-        `未安装 Cursor CLI。请先执行：\n${CURSOR_INSTALL_CMD}\n安装后重新打开终端 / 刷新本页。`,
-      );
-    }
+  const ok = detected.agents.some((a) => a.id === chosen && a.available);
+  if (!ok) {
+    const miss = detected.missing.find((m) => m.id === chosen);
+    throw new Error(
+      miss?.installCommand
+        ? `未安装 ${miss.label}。请先执行：\n${miss.installCommand}`
+        : `未安装启动器：${chosen}`,
+    );
   }
 
   const logPath = path.join(featureDir, "agent-launch.log");
@@ -1700,9 +1638,7 @@ Brief: ${featureDir}
     logPath,
     featureDir,
   });
-  if (chosen && chosen !== "none") {
-    rememberPreferredAgent(chosen);
-  }
+  rememberPreferredAgent(chosen);
 
   const dispatch = {
     repoPath: probe.path,

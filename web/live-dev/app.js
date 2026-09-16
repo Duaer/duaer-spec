@@ -31,7 +31,7 @@ const state = {
   repoCatalog: { recent: [], discovered: [] },
   agents: [],
   missingAgents: [],
-  agentId: "none",
+  agentId: "cursor-agent",
 };
 
 const el = {
@@ -440,23 +440,25 @@ async function loadAgents() {
     state.agents = data.agents || [];
     state.missingAgents = data.missing || [];
     const preferred = data.preferredAgentId;
-    const workers = state.agents.filter((a) => a.kind === "worker");
     if (preferred && state.agents.some((a) => a.id === preferred)) {
       state.agentId = preferred;
-    } else if (workers.length) {
-      state.agentId = workers[0].id;
+    } else if (state.agents.length) {
+      state.agentId = state.agents[0].id;
+    } else if (state.missingAgents.length) {
+      state.agentId = state.missingAgents[0].id;
     } else {
-      state.agentId = "none";
+      state.agentId = "cursor-agent";
     }
     renderAgentList();
     syncDispatchButton();
   } catch (err) {
-    state.agents = [{ id: "none", label: "仅派工不启动", kind: "none", hint: "" }];
-    state.agentId = "none";
+    state.agents = [];
+    state.missingAgents = [];
+    state.agentId = "cursor-agent";
     renderAgentList();
     if (el.agentHint) {
       el.agentHint.textContent =
-        err instanceof Error ? err.message : "无法检测本机启动器";
+        err instanceof Error ? err.message : "无法检测本机 CLI";
     }
   }
 }
@@ -485,35 +487,14 @@ function ensureStartCommandPrefix() {
 
 function syncInstallHint() {
   if (!el.agentInstall) return;
-  const miss = (state.missingAgents || []).find(
-    (m) =>
-      m.installCommand &&
-      (m.id === state.agentId ||
-        (state.agentId === "cursor-agent" && m.id === "cursor") ||
-        (state.agentId === "cursor" && m.id === "cursor-agent")),
-  );
-  const selectedMissing =
-    miss ||
-    (state.missingAgents || []).find((m) => m.id === state.agentId && m.installCommand);
-  // Also: selected agent needs install if not in available list as worker/open that requires cli
-  const available = state.agents.some((a) => a.id === state.agentId);
-  const needsCursor =
-    (state.agentId === "cursor-agent" || state.agentId === "cursor") &&
-    !(state.agents || []).some((a) => a.id === state.agentId);
-
   const installFromMissing = (state.missingAgents || []).find(
     (m) => m.id === state.agentId && m.installCommand,
   );
-
-  if (installFromMissing || needsCursor) {
-    const cmd =
-      installFromMissing?.installCommand ||
-      "curl https://cursor.com/install -fsS | bash";
+  if (installFromMissing) {
     el.agentInstall.hidden = false;
-    if (el.agentInstallCmd) el.agentInstallCmd.textContent = cmd;
-  } else if (selectedMissing) {
-    el.agentInstall.hidden = false;
-    if (el.agentInstallCmd) el.agentInstallCmd.textContent = selectedMissing.installCommand;
+    if (el.agentInstallCmd) {
+      el.agentInstallCmd.textContent = installFromMissing.installCommand;
+    }
   } else {
     el.agentInstall.hidden = true;
   }
@@ -521,10 +502,8 @@ function syncInstallHint() {
 
 function syncStartCommandField() {
   if (!el.startCmdField || !el.startCommand) return;
-  const a = state.agents.find((x) => x.id === state.agentId);
-  const show = a?.kind === "worker" || state.agentId === "cursor-agent";
-  el.startCmdField.hidden = !show;
-  if (show) ensureStartCommandPrefix();
+  el.startCmdField.hidden = false;
+  ensureStartCommandPrefix();
 }
 
 function renderAgentList() {
@@ -594,18 +573,14 @@ function syncDispatchButton() {
   const missingSelected = (state.missingAgents || []).some(
     (m) => m.id === state.agentId,
   );
-  if (missingSelected) {
+  if (missingSelected || !state.agents.length) {
     el.doDispatch.textContent = "请先安装 CLI";
     return;
   }
   const a = state.agents.find((x) => x.id === state.agentId);
-  if (!a || a.id === "none") {
-    el.doDispatch.textContent = "写入 Brief 并建 worktree";
-  } else if (a.kind === "open") {
-    el.doDispatch.textContent = `派工并用 ${a.label.replace(/（.*）/, "")} 打开`;
-  } else {
-    el.doDispatch.textContent = `派工并用 ${a.label} 启动`;
-  }
+  el.doDispatch.textContent = a
+    ? `派工并用 ${a.label} 启动`
+    : "写入 Brief 并启动";
 }
 
 async function loadRepoCatalog(discover) {
@@ -793,38 +768,27 @@ el.doDispatch.addEventListener("click", async () => {
       body: JSON.stringify({
         jobId: state.jobId,
         repoPath,
-        agentId: state.agentId || "none",
-        startCommand:
-          state.agentId === "none" || state.agentId === "cursor" || state.agentId === "code"
-            ? undefined
-            : startCommand,
+        agentId: state.agentId || "cursor-agent",
+        startCommand,
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "派工失败");
     const launch = data.launch || {};
     const launchLine =
-      launch.agentId && launch.agentId !== "none"
+      launch.agentId
         ? `启动: ${launch.label || launch.agentId}${launch.pid ? ` (pid ${launch.pid})` : ""}${
             launch.command ? `\nCLI: ${launch.command}` : ""
           }${launch.commandFile ? `\nTerminal脚本: ${launch.commandFile}` : ""}${
             launch.logPath ? `\n日志: ${launch.logPath}` : ""
           }`
-        : "启动: 未启动（仅派工）";
+        : "启动: 未启动";
     el.result.hidden = false;
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
     const who =
       launch.mode === "terminal"
-        ? `已打开 Terminal，正在执行 Cursor CLI（${launch.command || "agent"}）`
-        : launch.mode === "background"
-          ? `已后台开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}${
-              launch.command ? ` · ${launch.command}` : ""
-            }）`
-          : launch.agentId === "cursor"
-            ? `已用 cursor -n 打开 worktree`
-            : launch.agentId && launch.agentId !== "none"
-              ? `已用 ${launch.label || launch.agentId} 处理`
-              : "已派工；选 Cursor Agent 会在 Terminal 跑 CLI";
+        ? `已打开 Terminal，正在执行 CLI（${launch.command || launch.label || "agent"}）`
+        : `已用 ${launch.label || launch.agentId || "CLI"} 启动`;
     addBubble(
       "bot",
       `${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,
