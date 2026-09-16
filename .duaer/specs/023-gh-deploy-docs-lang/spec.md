@@ -4,7 +4,7 @@
 
 **Created**: 2026-09-16
 
-**Status**: Active
+**Status**: Accepted
 
 ## Goal
 
