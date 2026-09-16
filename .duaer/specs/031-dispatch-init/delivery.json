@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T03:35:00.000Z",
+  "verification": {
+    "levels": ["docs", "L0", "L1-smoke", "L3-catalog"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "duaer-live.mjs repo add <empty-dir> → git init + AGENTS.md/.duaer (SMOKE_OK)"
+    ],
+    "result": "pass",
+    "e2e": ["E2E-032"]
+  }
+}

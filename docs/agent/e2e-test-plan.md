@@ -44,6 +44,7 @@ the table for their app.
 | E2E-029 | Accept failure shows Auto-fix; fix then re-accept | manual / curl |
 | E2E-030 | CLI/live notify when npm has newer `duaer-spec`; `duaer self-update` upgrades global CLI | manual / curl |
 | E2E-031 | After revise confirm, right card stays locked 改进卡; chat busy ≠「续派中」 | manual |
+| E2E-032 | Dispatch/browse installs Duaer in the chosen directory (no silent redirect) | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -94,3 +95,4 @@ the table for their app.
 | E2E-029 | `026-auto-fix-accept` | accept fail → auto-fix |
 | E2E-030 | `029-self-update` | CLI/live update check + `self-update` |
 | E2E-031 | `030-revise-card-ui` | revise card locked after dispatch |
+| E2E-032 | `031-dispatch-init` | init Duaer in chosen product dir |

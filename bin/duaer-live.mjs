@@ -926,9 +926,19 @@ function listReposForUi() {
 
 function cmdRepoAdd(opts) {
   const target = path.resolve(opts.repoPath || process.cwd());
-  const probe = probeRepo(target, { bootstrap: true });
+  const probe = probeRepo(target, {
+    bootstrap: true,
+    exact: true,
+    ensureDuaer: true,
+  });
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
-  console.log(probe.bootstrapped ? "已自动 git init 并登记" : "已登记产品仓库", probe.path);
+  const bits = [];
+  if (probe.bootstrapped) bits.push("已 git init");
+  if (probe.duaer?.action === "init") bits.push("已安装 Duaer");
+  console.log(
+    bits.length ? `${bits.join(" · ")} 并登记` : "已登记产品仓库",
+    probe.path,
+  );
   console.log(JSON.stringify(probe, null, 2));
   console.log("现场开发派工时可直接点选。");
 }
@@ -997,7 +1007,7 @@ function listChildGitRepos(dir, { max = 12 } = {}) {
   return out;
 }
 
-function resolveGitTop(repoPath) {
+function resolveGitTop(repoPath, { exact = false } = {}) {
   const abs = normalizeRepoPath(repoPath);
   if (!abs || abs === path.sep) throw new Error("请填写仓库绝对路径");
   if (!fs.existsSync(abs)) throw new Error(`路径不存在：${abs}`);
@@ -1007,36 +1017,41 @@ function resolveGitTop(repoPath) {
   if (top) return top;
 
   // 2) Walk up — user may have picked src/ or packages/foo
-  let cur = abs;
-  for (let i = 0; i < 8; i += 1) {
-    const parent = path.dirname(cur);
-    if (parent === cur) break;
-    cur = parent;
-    if (!hasGitDir(cur)) continue;
-    top = tryGitTop(cur);
-    if (top) return top;
-  }
+  //    Skip when exact: stay on the chosen folder (bootstrap there instead).
+  if (!exact) {
+    let cur = abs;
+    for (let i = 0; i < 8; i += 1) {
+      const parent = path.dirname(cur);
+      if (parent === cur) break;
+      cur = parent;
+      if (!hasGitDir(cur)) continue;
+      top = tryGitTop(cur);
+      if (top) return top;
+    }
 
-  // 3) Immediate children — user picked parent of the real repo
-  const kids = listChildGitRepos(abs);
-  if (kids.length === 1) return kids[0];
-  if (kids.length > 1) {
-    const e = new Error(
-      `你选的是父目录，下面有多个 git 仓库。请再选其中一个项目文件夹：${kids
-        .map((k) => path.basename(k))
-        .join("、")}`,
-    );
-    e.code = "AMBIGUOUS_PARENT";
-    e.candidates = kids.map((p) => ({
-      path: p,
-      name: path.basename(p),
-    }));
-    e.path = abs;
-    throw e;
+    // 3) Immediate children — user picked parent of the real repo
+    const kids = listChildGitRepos(abs);
+    if (kids.length === 1) return kids[0];
+    if (kids.length > 1) {
+      const e = new Error(
+        `你选的是父目录，下面有多个 git 仓库。请再选其中一个项目文件夹：${kids
+          .map((k) => path.basename(k))
+          .join("、")}`,
+      );
+      e.code = "AMBIGUOUS_PARENT";
+      e.candidates = kids.map((p) => ({
+        path: p,
+        name: path.basename(p),
+      }));
+      e.path = abs;
+      throw e;
+    }
   }
 
   const e = new Error(
-    `「${abs}」不是 git 仓库（没有 .git）。有文件不等于已 git init——请选带 .git 的项目根目录，或在该目录执行：git init -b develop && git add -A && git commit -m init`,
+    exact
+      ? `「${abs}」不是 git 仓库。将在该目录执行 git init（不会改用其它子目录里的仓库）。`
+      : `「${abs}」不是 git 仓库（没有 .git）。有文件不等于已 git init——请选带 .git 的项目根目录，或在该目录执行：git init -b develop && git add -A && git commit -m init`,
   );
   e.code = "NOT_GIT";
   e.path = abs;
@@ -1139,30 +1154,87 @@ function ensureBaseBranch(top, { bootstrap = false } = {}) {
   return { baseBranch: "develop", created: true };
 }
 
-function probeRepo(repoPath, { bootstrap = false } = {}) {
+function probeRepo(
+  repoPath,
+  { bootstrap = false, exact = false, ensureDuaer = false } = {},
+) {
   let bootstrapped = false;
   let top;
   try {
-    top = resolveGitTop(repoPath);
+    top = resolveGitTop(repoPath, { exact });
   } catch (err) {
     if (!bootstrap || err?.code !== "NOT_GIT" || !err.path) throw err;
     // Do not bootstrap home / obvious parent folders with many children.
-    const kids = listChildGitRepos(err.path, { max: 3 });
-    if (kids.length > 0) throw err;
+    // When exact, still allow empty chosen folders (no silent child redirect).
+    if (!exact) {
+      const kids = listChildGitRepos(err.path, { max: 3 });
+      if (kids.length > 0) throw err;
+    }
     bootstrapGitRepo(err.path);
     bootstrapped = true;
-    top = resolveGitTop(err.path);
+    top = resolveGitTop(err.path, { exact: true });
   }
   const base = ensureBaseBranch(top, { bootstrap });
   if (base.created) bootstrapped = true;
+  let duaer = null;
+  if (ensureDuaer) {
+    duaer = ensureDuaerInstalled(top);
+  }
   return {
     path: top,
     name: path.basename(top) || top,
     baseBranch: base.baseBranch,
-    hasDuaer: fs.existsSync(path.join(top, ".duaer")),
+    hasDuaer: hasDuaerInstall(top),
     bootstrapped,
     baseBranchCreated: base.created,
+    duaer,
   };
+}
+
+/** True when this directory already has a Duaer product install. */
+function hasDuaerInstall(dir) {
+  const abs = path.resolve(dir);
+  return (
+    fs.existsSync(path.join(abs, ".duaer", "duaer-init.json")) ||
+    fs.existsSync(path.join(abs, "AGENTS.md")) ||
+    fs.existsSync(path.join(abs, ".duaer", "memory", "testing.md"))
+  );
+}
+
+/**
+ * Run `duaer init --here` in the given directory when Duaer is missing.
+ * Always uses this path — never another repo.
+ */
+function ensureDuaerInstalled(targetDir) {
+  const abs = path.resolve(targetDir);
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
+    throw new Error(`路径不存在或不是目录：${abs}`);
+  }
+  if (hasDuaerInstall(abs)) {
+    return { path: abs, action: "already", ok: true };
+  }
+  const script = path.join(PACKAGE_ROOT, "bin", "duaer.mjs");
+  if (!fs.existsSync(script)) {
+    throw new Error(`duaer CLI missing at ${script}`);
+  }
+  const r = spawnSync(process.execPath, [script, "init", "--here"], {
+    cwd: abs,
+    encoding: "utf8",
+    maxBuffer: 8 * 1024 * 1024,
+    env: process.env,
+  });
+  if (r.status !== 0) {
+    const detail = String(r.stderr || r.stdout || "")
+      .trim()
+      .slice(0, 800);
+    throw new Error(
+      `在指定目录安装 Duaer 失败（${abs}）：${detail || `exit ${r.status}`}`,
+    );
+  }
+  if (!hasDuaerInstall(abs)) {
+    throw new Error(`Duaer init 已运行，但指定目录仍缺少 AGENTS.md / .duaer：${abs}`);
+  }
+  return { path: abs, action: "init", ok: true };
 }
 
 function nextSpecNum(specsRoot) {
@@ -1599,7 +1671,12 @@ function needsGithubDeploy(text) {
 
 function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
   const live = readLiveJob(jobId);
-  const probe = probeRepo(repoPath, { bootstrap: true });
+  // Stay on the user's chosen folder: bootstrap git + install Duaer there.
+  const probe = probeRepo(repoPath, {
+    bootstrap: true,
+    exact: true,
+    ensureDuaer: true,
+  });
   const branch =
     String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
   const worktreeId = branch.replace(/\//g, "-");
@@ -1621,6 +1698,9 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
     worktreePath,
     probe.baseBranch,
   ]);
+
+  // Worktree is a clean checkout — install Duaer inside it (do not hunt elsewhere).
+  const worktreeDuaer = ensureDuaerInstalled(worktreePath);
 
   const specsRoot = path.join(worktreePath, ".duaer", "specs");
   const nextNum = nextSpecNum(specsRoot);
@@ -1708,14 +1788,14 @@ ${deployTasks}
 
   const deployPrompt = deployNeeded
     ? `
-8. 本需求需要部署：默认走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
-9. 静态站：复制 duaer-spec 的 .duaer/templates/deploy-github-pages.yml → 产品仓 .github/workflows/deploy.yml（按构建产物改 path）
-10. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
-11. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看成品」）
-12. 用户要部署即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）
+9. 本需求需要部署：默认走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
+10. 静态站：复制本 worktree 的 .duaer/templates/deploy-github-pages.yml → .github/workflows/deploy.yml（按构建产物改 path）；不要去其它仓找模板
+11. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
+12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看成品」）
+13. 用户要部署即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）
 `
     : `
-8. 不要推远程除非用户明确要求
+9. 不要推远程除非用户明确要求
 `;
 
   const defaultPrompt = `Duaer
@@ -1725,15 +1805,17 @@ ${deployTasks}
 工作目录: ${worktreePath}
 Brief: ${featureDir}
 分支: ${branch}
+产品仓: ${probe.path}
 
 要求：
-1. 只做 Brief 范围
-2. 按 .duaer/memory/testing.md（若有）做风险验证
-3. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
-4. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-5. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）
-6. 合入 develop 并 handoff 清理 worktree
-7. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
+1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
+2. 只做 Brief 范围
+3. 按 .duaer/memory/testing.md（若有）做风险验证
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
+5. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
+6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）
+7. 合入 develop 并 handoff 清理 worktree
+8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 ${deployPrompt}`;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
@@ -1797,6 +1879,10 @@ Brief: ${featureDir}
     openedWith: launch.kind === "open" ? launch.agentId : null,
     launch,
     startCommand: agentPrompt,
+    duaerInstall: {
+      repo: probe.duaer || { action: "already", path: probe.path },
+      worktree: worktreeDuaer,
+    },
   };
 
   const nextJob = {
@@ -2607,7 +2693,11 @@ async function handleApi(req, res) {
     let chosen = null;
     try {
       chosen = pickFolderNative();
-      const probe = probeRepo(chosen, { bootstrap: true });
+      const probe = probeRepo(chosen, {
+        bootstrap: true,
+        exact: true,
+        ensureDuaer: true,
+      });
       const recent = rememberRepo(probe.path, {
         baseBranch: probe.baseBranch,
       });
@@ -2632,7 +2722,11 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/repos/add") {
     try {
       const body = await readJson(req);
-      const probe = probeRepo(body.path, { bootstrap: true });
+      const probe = probeRepo(body.path, {
+        bootstrap: true,
+        exact: true,
+        ensureDuaer: true,
+      });
       rememberRepo(probe.path, { baseBranch: probe.baseBranch });
       send(res, 200, { ok: true, ...probe, repos: readRepos() });
     } catch (err) {
@@ -2648,6 +2742,8 @@ async function handleApi(req, res) {
       const body = await readJson(req);
       const probe = probeRepo(body.path, {
         bootstrap: body.bootstrap !== false,
+        exact: body.exact !== false,
+        ensureDuaer: body.ensureDuaer === true,
       });
       send(res, 200, { ok: true, ...probe });
     } catch (err) {

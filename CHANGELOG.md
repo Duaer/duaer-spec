@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Init Duaer in the chosen product directory
+
+- Live browse / `repo add` / dispatch use the **exact** folder the user picked (no silent switch to a single child git repo)
+- Missing Duaer → run `duaer init --here` in that folder and again inside the new worktree
+- Agent prompt: work only in the dispatched worktree; do not hunt other repos for Duaer
+
 ### Revise card stays visible after dispatch
 
 - After「再派一版」, right panel keeps locked **改进卡** with this round's confirmed fields (not back to confirm/collect chrome)

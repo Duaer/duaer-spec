@@ -966,10 +966,15 @@ el.repoBrowse?.addEventListener("click", async () => {
       state.repoCatalog.recent = data.recent;
     }
     selectRepo(data);
+    const prep = [
+      data.baseBranchCreated ? "已创建 develop 分支" : null,
+      data.bootstrapped && !data.baseBranchCreated ? "已 git init" : null,
+      data.duaer?.action === "init" ? "已在此目录安装 Duaer" : null,
+    ].filter(Boolean);
     addBubble(
       "bot",
-      data.bootstrapped || data.baseBranchCreated
-        ? `已准备仓库 ${data.name}（${data.baseBranchCreated ? "已创建 develop 分支" : "已 git init"}）并记住`
+      prep.length
+        ? `已准备仓库 ${data.name}（${prep.join(" · ")}）并记住`
         : `已选择并记住仓库 ${data.name}`,
     );
   } catch (err) {
@@ -1045,9 +1050,14 @@ el.doDispatch.addEventListener("click", async () => {
       launch.mode === "terminal"
         ? `已打开 Terminal，正在执行 CLI（${launch.command || launch.label || "agent"}）`
         : `已用 ${launch.label || launch.agentId || "CLI"} 启动`;
+    const duaerLine =
+      data.duaerInstall?.worktree?.action === "init" ||
+      data.duaerInstall?.repo?.action === "init"
+        ? "已在指定目录安装 Duaer；"
+        : "Duaer 已就绪；";
     addBubble(
       "bot",
-      `${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,
+      `${duaerLine}${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,
     );
     el.doDispatch.textContent = "已派工";
     el.dispatchStatus.hidden = false;
