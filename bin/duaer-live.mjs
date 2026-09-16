@@ -372,6 +372,16 @@ const FIX_ACCEPT_PROMPT = `你是「现场开发」需求修正助手。自动�
 4. 只输出一个 JSON，不要 markdown 围栏：
 {"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
+/** Bare fetch has no default deadline; a stalled provider would never settle. */
+const LLM_TIMEOUT_MS = 60000;
+const LLM_STREAM_TIMEOUT_MS = 180000;
+
+function llmTimeoutError(ms) {
+  return new Error(
+    `模型调用超过 ${Math.round(ms / 1000)} 秒未返回，已中止。请检查模型服务是否可用。`,
+  );
+}
+
 async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const base = cfg.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
@@ -387,14 +397,23 @@ async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   if (inferProviderId(cfg) === "deepseek") {
     body.thinking = { type: "disabled" };
   }
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${cfg.apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw llmTimeoutError(LLM_TIMEOUT_MS);
+    }
+    throw err;
+  }
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg =
@@ -418,14 +437,23 @@ async function* streamChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   if (inferProviderId(cfg) === "deepseek") {
     body.thinking = { type: "disabled" };
   }
-  const res = await fetch(url, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${cfg.apiKey}`,
-    },
-    body: JSON.stringify(body),
-  });
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${cfg.apiKey}`,
+      },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(LLM_STREAM_TIMEOUT_MS),
+    });
+  } catch (err) {
+    if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+      throw llmTimeoutError(LLM_STREAM_TIMEOUT_MS);
+    }
+    throw err;
+  }
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
     const msg =
@@ -437,7 +465,16 @@ async function* streamChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const decoder = new TextDecoder();
   let buffer = "";
   while (true) {
-    const { done, value } = await reader.read();
+    let chunk;
+    try {
+      chunk = await reader.read();
+    } catch (err) {
+      if (err?.name === "TimeoutError" || err?.name === "AbortError") {
+        throw llmTimeoutError(LLM_STREAM_TIMEOUT_MS);
+      }
+      throw err;
+    }
+    const { done, value } = chunk;
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const parts = buffer.split("\n");
@@ -963,12 +1000,47 @@ function cmdRepoAdd(opts) {
   console.log("现场开发派工时可直接点选。");
 }
 
-function runGit(cwd, args, envExtra = null) {
-  const r = spawnSync("git", args, {
+/**
+ * Child processes below run on the single HTTP thread, so an unbounded one
+ * freezes every endpoint — not just the request that started it. Every
+ * spawnSync goes through here with a budget.
+ */
+const CHILD_BUDGET_MS = {
+  git: 20000,
+  gitCheckout: 60000,
+  duaerInit: 120000,
+  which: 5000,
+};
+
+function runChildSync(label, command, args, options = {}) {
+  const { timeout, ...rest } = options;
+  const r = spawnSync(command, args, {
+    ...rest,
+    timeout,
+    killSignal: "SIGKILL",
+  });
+  if (r.error) {
+    if (r.error.code === "ETIMEDOUT") {
+      const e = new Error(
+        `${label}超过 ${Math.round(timeout / 1000)} 秒仍未结束，已强制中止：` +
+          `${command} ${args.join(" ")}。` +
+          `常见原因：git 钩子卡住、仓库太大、磁盘或网络不可用。`,
+      );
+      e.code = "CHILD_TIMEOUT";
+      throw e;
+    }
+    throw r.error;
+  }
+  return r;
+}
+
+function runGit(cwd, args, envExtra = null, { timeout = CHILD_BUDGET_MS.git } = {}) {
+  const r = runChildSync(`git ${args[0] || ""}`.trim(), "git", args, {
     cwd,
     encoding: "utf8",
     maxBuffer: 4 * 1024 * 1024,
     env: envExtra ? { ...process.env, ...envExtra } : process.env,
+    timeout,
   });
   if (r.status !== 0) {
     throw new Error(
@@ -979,10 +1051,11 @@ function runGit(cwd, args, envExtra = null) {
 }
 
 function hasLocalBranch(cwd, name) {
-  const r = spawnSync(
+  const r = runChildSync(
+    "git show-ref",
     "git",
     ["show-ref", "--verify", "--quiet", `refs/heads/${name}`],
-    { cwd },
+    { cwd, timeout: CHILD_BUDGET_MS.git },
   );
   return r.status === 0;
 }
@@ -996,10 +1069,16 @@ function hasGitDir(dir) {
 }
 
 function tryGitTop(dir) {
-  const r = spawnSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd: dir,
-    encoding: "utf8",
-  });
+  let r;
+  try {
+    r = runChildSync("git rev-parse", "git", ["rev-parse", "--show-toplevel"], {
+      cwd: dir,
+      encoding: "utf8",
+      timeout: CHILD_BUDGET_MS.git,
+    });
+  } catch {
+    return null;
+  }
   if (r.status !== 0) return null;
   return normalizeRepoPath(String(r.stdout || "").trim());
 }
@@ -1138,8 +1217,9 @@ function ensureBaseBranch(top, { bootstrap = false } = {}) {
     GIT_COMMITTER_EMAIL: "duaer-live@localhost",
   };
   const headOk =
-    spawnSync("git", ["rev-parse", "-q", "--verify", "HEAD"], {
+    runChildSync("git rev-parse", "git", ["rev-parse", "-q", "--verify", "HEAD"], {
       cwd: top,
+      timeout: CHILD_BUDGET_MS.git,
     }).status === 0;
 
   if (headOk) {
@@ -1237,11 +1317,12 @@ function ensureDuaerInstalled(targetDir) {
   if (!fs.existsSync(script)) {
     throw new Error(`duaer CLI missing at ${script}`);
   }
-  const r = spawnSync(process.execPath, [script, "init", "--here"], {
+  const r = runChildSync("安装 Duaer", process.execPath, [script, "init", "--here"], {
     cwd: abs,
     encoding: "utf8",
     maxBuffer: 8 * 1024 * 1024,
     env: process.env,
+    timeout: CHILD_BUDGET_MS.duaerInit,
   });
   if (r.status !== 0) {
     const detail = String(r.stderr || r.stdout || "")
@@ -1404,15 +1485,20 @@ function liveJobDetail(jobId) {
 function whichCmd(cmd) {
   const name = String(cmd || "").trim();
   if (!name || name.includes("/") || name.includes("\\")) return null;
-  const r = spawnSync("which", [name], {
-    encoding: "utf8",
-    env: process.env,
-  });
-  if (r.status === 0) {
-    const p = String(r.stdout || "")
-      .trim()
-      .split("\n")[0];
-    if (p) return p;
+  try {
+    const r = runChildSync("which", "which", [name], {
+      encoding: "utf8",
+      env: process.env,
+      timeout: CHILD_BUDGET_MS.which,
+    });
+    if (r.status === 0) {
+      const p = String(r.stdout || "")
+        .trim()
+        .split("\n")[0];
+      if (p) return p;
+    }
+  } catch {
+    // fall through to the PATH scan below
   }
   // Fallback when `which` is missing or PATH still incomplete (e.g. launchd)
   for (const dir of CLI_PATH_DIRS) {
@@ -1454,10 +1540,17 @@ const AGENT_CATALOG = [
 function cursorCliVersion() {
   const bin = whichCmd("agent") || whichCmd("cursor");
   if (!bin) return null;
-  const r = spawnSync(bin, whichCmd("agent") ? ["--version"] : ["agent", "--version"], {
-    encoding: "utf8",
-    timeout: 5000,
-  });
+  let r;
+  try {
+    r = runChildSync(
+      "读取 CLI 版本",
+      bin,
+      whichCmd("agent") ? ["--version"] : ["agent", "--version"],
+      { encoding: "utf8", timeout: 5000 },
+    );
+  } catch {
+    return null;
+  }
   if (r.status !== 0) return null;
   return String(r.stdout || r.stderr || "")
     .trim()
@@ -2499,7 +2592,10 @@ function recreateWorktreeForRevise(live, dispatch, revN) {
   }
 
   fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
-  runGit(probe.path, ["worktree", "add", "-b", branch, worktreePath, base]);
+  // A full checkout (plus any post-checkout hook) needs more room than plumbing.
+  runGit(probe.path, ["worktree", "add", "-b", branch, worktreePath, base], null, {
+    timeout: CHILD_BUDGET_MS.gitCheckout,
+  });
   ensureDuaerInstalled(worktreePath);
 
   const primary = primaryBriefDir(dispatch);
@@ -3420,7 +3516,7 @@ async function handleApi(req, res) {
       });
       send(res, 200, result);
     } catch (err) {
-      send(res, 400, {
+      send(res, err?.code === "CHILD_TIMEOUT" ? 504 : 400, {
         error: err instanceof Error ? err.message : "dispatch failed",
       });
     }
@@ -3458,7 +3554,7 @@ async function handleApi(req, res) {
       });
       send(res, 200, result);
     } catch (err) {
-      send(res, 400, {
+      send(res, err?.code === "CHILD_TIMEOUT" ? 504 : 400, {
         error: err instanceof Error ? err.message : "revise failed",
       });
     }
