@@ -338,15 +338,15 @@ body.history-open {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: minmax(0, 2.1fr) minmax(17rem, 1fr) minmax(14rem, 0.85fr);
+  grid-template-columns: minmax(12rem, 0.85fr) minmax(22rem, 2.35fr) minmax(12rem, 0.8fr);
   gap: 1rem;
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 0;
-  align-items: stretch;
-  height: calc(100dvh - 7.5rem);
-  max-height: calc(100dvh - 7.5rem);
+  align-items: start;
+  height: auto;
+  max-height: none;
   min-height: 26rem;
 }
 
@@ -360,8 +360,10 @@ body.history-open {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  height: 100%;
-  max-height: 100%;
+  height: calc(100dvh - 7.5rem);
+  max-height: calc(100dvh - 7.5rem);
+  position: sticky;
+  top: 0.75rem;
   overflow: hidden;
 }
 
@@ -567,23 +569,21 @@ input:focus {
 
 .card-panel {
   padding: 1.15rem 1.2rem 1.25rem;
-  align-self: stretch;
+  align-self: start;
   min-height: 0;
-  height: 100%;
-  max-height: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-  scroll-behavior: smooth;
+  height: auto;
+  max-height: none;
+  overflow: visible;
 }
 
 .progress-col {
   padding: 1.15rem 1.05rem 1.25rem;
-  align-self: stretch;
+  align-self: start;
   min-height: 0;
-  height: 100%;
-  max-height: 100%;
+  height: calc(100dvh - 7.5rem);
+  max-height: calc(100dvh - 7.5rem);
+  position: sticky;
+  top: 0.75rem;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -643,6 +643,88 @@ input:focus {
   color: var(--mute);
 }
 
+.req-section {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.85rem 0.85rem;
+  border: 1px solid var(--line);
+  background: var(--plate-2);
+}
+
+.req-section > span {
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
+.req-structured {
+  display: block;
+  min-height: 2.4rem;
+  padding: 0.15rem 0.1rem;
+  color: var(--ink);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  cursor: text;
+  overflow: visible;
+}
+
+.req-structured:focus-visible {
+  outline: 1px solid var(--register);
+  outline-offset: 2px;
+}
+
+.req-structured p {
+  margin: 0 0 0.55rem;
+}
+
+.req-structured p:last-child {
+  margin-bottom: 0;
+}
+
+.req-structured ul,
+.req-structured ol {
+  margin: 0 0 0.55rem;
+  padding-left: 1.25rem;
+}
+
+.req-structured ul:last-child,
+.req-structured ol:last-child {
+  margin-bottom: 0;
+}
+
+.req-structured li {
+  margin: 0.2rem 0;
+}
+
+.req-structured .req-empty {
+  margin: 0;
+  color: #5f7386;
+}
+
+.req-edit {
+  display: none;
+  width: 100%;
+  min-height: 2.6rem;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  line-height: 1.55;
+}
+
+.req-section.is-editing .req-structured {
+  display: none;
+}
+
+.req-section.is-editing .req-edit {
+  display: block;
+}
+
+.req-section.is-readonly {
+  opacity: 0.92;
+}
+
+.req-section.is-readonly .req-structured {
+  cursor: default;
+}
+
 .hint {
   margin: 0.2rem 0 0;
   color: var(--mute);
@@ -675,8 +757,8 @@ input:focus {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   line-height: 1.45;
-  overflow: auto;
-  max-height: 240px;
+  overflow: visible;
+  max-height: none;
 }
 
 .dispatch {
@@ -1152,16 +1234,19 @@ code {
   }
 
   .chat-panel {
+    position: static;
     height: min(48vh, 26rem);
     max-height: min(48vh, 26rem);
   }
 
   .card-panel {
     height: auto;
-    max-height: min(70vh, 36rem);
+    max-height: none;
+    overflow: visible;
   }
 
   .progress-col {
+    position: static;
     height: auto;
     max-height: min(55vh, 28rem);
   }

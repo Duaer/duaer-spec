@@ -85,22 +85,26 @@
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
           <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
           <p id="meta" class="meta"></p>
-          <label class="field">
+          <div class="req-section field" data-req="goal">
             <span id="lblGoal" data-i18n="card.goal">要做什么</span>
-            <textarea id="goal" rows="3" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
-          </label>
-          <label class="field">
+            <div class="req-structured" id="goalView" tabindex="0"></div>
+            <textarea id="goal" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
+          <div class="req-section field" data-req="outOfScope">
             <span id="lblOut" data-i18n="card.out">不做什么</span>
-            <textarea id="outOfScope" rows="2" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
-          </label>
-          <label class="field">
+            <div class="req-structured" id="outOfScopeView" tabindex="0"></div>
+            <textarea id="outOfScope" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
+          <div class="req-section field" data-req="acceptance">
             <span id="lblAccept" data-i18n="card.accept">验收标准</span>
-            <textarea id="acceptance" rows="3" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
-          </label>
-          <label class="field">
+            <div class="req-structured" id="acceptanceView" tabindex="0"></div>
+            <textarea id="acceptance" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
+          <div class="req-section field" data-req="assumptions">
             <span id="lblAssume" data-i18n="card.assume">假设</span>
-            <textarea id="assumptions" rows="2" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
-          </label>
+            <div class="req-structured" id="assumptionsView" tabindex="0"></div>
+            <textarea id="assumptions" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>
           <button type="button" class="btn confirm" id="confirm" disabled data-i18n="card.confirm">
@@ -159,22 +163,26 @@
               <p class="revise-title" data-i18n="revise.title">改进卡</p>
               <p id="reviseHint" class="hint" data-i18n="revise.hint">左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。</p>
               <div id="reviseCardFields" class="revise-card-fields">
-                <label class="field">
+                <div class="req-section field" data-req="revGoal">
                   <span data-i18n="revise.goal">要改什么</span>
-                  <textarea id="revGoal" rows="3" data-i18n-placeholder="revise.goalPh" placeholder="例如：主色改浅、标题加大"></textarea>
-                </label>
-                <label class="field">
+                  <div class="req-structured" id="revGoalView" tabindex="0"></div>
+                  <textarea id="revGoal" class="req-edit" rows="1" data-i18n-placeholder="revise.goalPh" placeholder="例如：主色改浅、标题加大"></textarea>
+                </div>
+                <div class="req-section field" data-req="revOut">
                   <span data-i18n="revise.out">不要动什么</span>
-                  <textarea id="revOut" rows="2" data-i18n-placeholder="revise.outPh" placeholder="例如：不动文案结构"></textarea>
-                </label>
-                <label class="field">
+                  <div class="req-structured" id="revOutView" tabindex="0"></div>
+                  <textarea id="revOut" class="req-edit" rows="1" data-i18n-placeholder="revise.outPh" placeholder="例如：不动文案结构"></textarea>
+                </div>
+                <div class="req-section field" data-req="revAccept">
                   <span data-i18n="revise.accept">怎么算改好</span>
-                  <textarea id="revAccept" rows="3" data-i18n-placeholder="revise.acceptPh" placeholder="例如：手机端按钮不挤在一起"></textarea>
-                </label>
-                <label class="field">
+                  <div class="req-structured" id="revAcceptView" tabindex="0"></div>
+                  <textarea id="revAccept" class="req-edit" rows="1" data-i18n-placeholder="revise.acceptPh" placeholder="例如：手机端按钮不挤在一起"></textarea>
+                </div>
+                <div class="req-section field" data-req="revAssume">
                   <span data-i18n="revise.assume">不满意原因</span>
-                  <textarea id="revAssume" rows="2" data-i18n-placeholder="revise.assumePh" placeholder="例如：主色太沉、看不清"></textarea>
-                </label>
+                  <div class="req-structured" id="revAssumeView" tabindex="0"></div>
+                  <textarea id="revAssume" class="req-edit" rows="1" data-i18n-placeholder="revise.assumePh" placeholder="例如：主色太沉、看不清"></textarea>
+                </div>
               </div>
               <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden data-i18n="revise.again">
                 再改一版
