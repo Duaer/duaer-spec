@@ -682,12 +682,18 @@ el.doDispatch.addEventListener("click", async () => {
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 开工说明（备用） ——\n${data.agentPrompt}`;
     const who =
       launch.mode === "background"
-        ? `已后台自动开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}）${
-            launch.openedWorktree ? "，并已用 Cursor 打开该 worktree" : ""
-          }——无需再在输入框里敲任务`
-        : launch.agentId && launch.agentId !== "none"
-          ? `已用 ${launch.label || launch.agentId} 处理`
-          : "已派工；选 Cursor Agent / Claude 才会自动开工";
+        ? `已用 Cursor CLI 后台开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}${
+            launch.command ? ` · ${launch.command}` : ""
+          }）${
+            launch.openedWorktree
+              ? "，并用 cursor -n 打开了该 worktree"
+              : ""
+          }`
+        : launch.agentId === "cursor"
+          ? `已用 cursor -n 打开 worktree`
+          : launch.agentId && launch.agentId !== "none"
+            ? `已用 ${launch.label || launch.agentId} 处理`
+            : "已派工；选 Cursor Agent 才会自动开工";
     addBubble(
       "bot",
       `${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,

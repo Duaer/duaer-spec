@@ -1117,25 +1117,25 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "后台自动开工 + 打开该 worktree",
+    hint: "cursor -n 打开 worktree + agent -p 后台开工",
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
-    hint: "后台自动开工 + 尽量打开 worktree",
+    hint: "打开 worktree + claude --bg",
   },
   {
     id: "cursor",
     label: "Cursor（仅打开）",
     kind: "open",
-    hint: "只打开仓库，不发任务",
+    hint: "cursor -n 打开命名 worktree",
   },
   {
     id: "code",
     label: "VS Code（仅打开）",
     kind: "open",
-    hint: "只打开仓库，不发任务",
+    hint: "code 打开 worktree",
   },
   {
     id: "none",
@@ -1144,6 +1144,20 @@ const AGENT_CATALOG = [
     hint: "只建 worktree / Brief",
   },
 ];
+
+function cursorCliVersion() {
+  const bin = whichCmd("agent") || whichCmd("cursor");
+  if (!bin) return null;
+  const r = spawnSync(bin, whichCmd("agent") ? ["--version"] : ["agent", "--version"], {
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  if (r.status !== 0) return null;
+  return String(r.stdout || r.stderr || "")
+    .trim()
+    .split("\n")[0]
+    .slice(0, 120);
+}
 
 function detectAgents() {
   const preferredRaw = readConfig().preferredAgentId || "";
@@ -1155,6 +1169,7 @@ function detectAgents() {
   const cursorBin = whichCmd("cursor");
   const claudeBin = whichCmd("claude");
   const codeBin = whichCmd("code");
+  const version = cursorCliVersion();
 
   const installed = [];
   if (agentBin || cursorBin) {
@@ -1163,6 +1178,7 @@ function detectAgents() {
       available: true,
       command: agentBin ? "agent" : "cursor agent",
       path: agentBin || cursorBin,
+      version,
     });
   }
   if (claudeBin) {
@@ -1177,8 +1193,9 @@ function detectAgents() {
     installed.push({
       ...AGENT_CATALOG.find((a) => a.id === "cursor"),
       available: true,
-      command: "cursor",
+      command: "cursor -n",
       path: cursorBin,
+      version,
     });
   }
   if (codeBin) {
@@ -1205,6 +1222,11 @@ function detectAgents() {
     preferredAgentId: preferred && ids.has(preferred) ? preferred : "",
     agents: installed,
     missing,
+    cli: {
+      cursor: cursorBin,
+      agent: agentBin,
+      version,
+    },
   };
 }
 
@@ -1264,17 +1286,72 @@ function launchInTerminal({ cwd, commandLine, logPath }) {
   return { pid: child.pid ?? null, mode: "detached" };
 }
 
-function openEditor(cmd, worktreePath, logPath) {
-  const child = spawn(cmd, [worktreePath], {
+function openEditor(cmd, worktreePath, logPath, extraArgs = []) {
+  const args = [...extraArgs, worktreePath];
+  const child = spawn(cmd, args, {
     detached: true,
     stdio: "ignore",
   });
   child.unref();
   appendLaunchLog(
     logPath,
-    `[${new Date().toISOString()}] open ${cmd} ${worktreePath} pid=${child.pid}`,
+    `[${new Date().toISOString()}] open ${cmd} ${args.join(" ")} pid=${child.pid}`,
   );
   return child.pid ?? null;
+}
+
+/**
+ * Open the named Duaer worktree with Cursor CLI for watch/operate.
+ * Uses `cursor -n` (new window). Optionally focuses Brief tasks.md via -g.
+ */
+function openCursorWorktree({ worktreePath, featureDir, logPath }) {
+  const cursorBin = whichCmd("cursor");
+  if (!cursorBin) return { opened: false, pid: null };
+
+  const pid = openEditor("cursor", worktreePath, logPath, ["-n"]);
+  const tasksMd = featureDir ? path.join(featureDir, "tasks.md") : null;
+  if (tasksMd && fs.existsSync(tasksMd)) {
+    // Focus Brief checklist in the window we just opened
+    const child = spawn(
+      "cursor",
+      ["-r", "-g", `${tasksMd}:1`],
+      { detached: true, stdio: "ignore" },
+    );
+    child.unref();
+    appendLaunchLog(
+      logPath,
+      `[${new Date().toISOString()}] cursor -r -g ${tasksMd}:1 pid=${child.pid}`,
+    );
+  }
+  return { opened: true, pid };
+}
+
+/** Build argv for Cursor Agent CLI. Never pass `-w` (avoids extra job worktree / origin fetch). */
+function cursorAgentArgv(worktreePath, prompt) {
+  return [
+    "--workspace",
+    worktreePath,
+    "--trust",
+    "--sandbox",
+    "disabled",
+    "-p",
+    "--force",
+    "--output-format",
+    "text",
+    prompt,
+  ];
+}
+
+function resolveCursorAgentCommand() {
+  const agentBin = whichCmd("agent");
+  if (agentBin) {
+    return { cmd: agentBin, prefix: [] };
+  }
+  const cursorBin = whichCmd("cursor");
+  if (cursorBin) {
+    return { cmd: cursorBin, prefix: ["agent"] };
+  }
+  return null;
 }
 
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
@@ -1316,7 +1393,7 @@ function rememberPreferredAgent(agentId) {
   }
 }
 
-function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
+function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }) {
   const id = String(agentId || "none").trim() || "none";
   const detected = detectAgents();
   const meta = detected.agents.find((a) => a.id === id);
@@ -1333,6 +1410,8 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
     pid: null,
     command: meta.command,
     mode: null,
+    openedWorktree: false,
+    cli: detected.cli || null,
   };
 
   if (id === "none") {
@@ -1349,9 +1428,23 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
     path.join(worktreePath, ".duaer", "live-agent-launch.log");
   launch.logPath = outLog;
 
-  if (id === "cursor" || id === "code") {
-    launch.pid = openEditor(id, worktreePath, outLog);
+  if (id === "cursor") {
+    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
+    if (!opened.opened) {
+      launch.pid = openEditor("cursor", worktreePath, outLog);
+    } else {
+      launch.pid = opened.pid;
+      launch.openedWorktree = true;
+    }
     launch.mode = "open";
+    launch.command = "cursor -n";
+    return launch;
+  }
+
+  if (id === "code") {
+    launch.pid = openEditor("code", worktreePath, outLog, ["-n"]);
+    launch.mode = "open";
+    launch.openedWorktree = true;
     return launch;
   }
 
@@ -1359,7 +1452,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
 
   appendLaunchLog(
     outLog,
-    `[${launch.launchedAt}] start ${id} cwd=${worktreePath} (non-interactive)`,
+    `[${launch.launchedAt}] start ${id} cwd=${worktreePath} (cursor-cli / non-interactive)`,
   );
 
   const promptFile = path.join(
@@ -1369,41 +1462,25 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    // Non-interactive background run + open the named worktree in Cursor
-    // so the user can watch/operate the same folder the agent is editing.
-    if (whichCmd("cursor")) {
-      openEditor("cursor", worktreePath, outLog);
-    }
-    const agentBin = whichCmd("agent");
-    const cmd = agentBin ? agentBin : "cursor";
-    const args = agentBin
-      ? ["--workspace", worktreePath, "--trust", "-p", "--force", prompt]
-      : [
-          "agent",
-          "--workspace",
-          worktreePath,
-          "--trust",
-          "-p",
-          "--force",
-          prompt,
-        ];
+    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
+    launch.openedWorktree = opened.opened;
+    const resolved = resolveCursorAgentCommand();
+    if (!resolved) throw new Error("未找到 agent / cursor CLI");
+    const args = [...resolved.prefix, ...cursorAgentArgv(worktreePath, prompt)];
     launch.pid = spawnBackgroundWorker({
-      cmd,
+      cmd: resolved.cmd,
       args,
       cwd: worktreePath,
       logPath: outLog,
     });
     launch.mode = "background";
-    launch.openedWorktree = true;
-    launch.command = agentBin
-      ? "agent -p --force --trust"
-      : "cursor agent -p --force --trust";
+    launch.command = `${resolved.prefix.length ? "cursor agent" : "agent"} -p --force --trust --sandbox disabled`;
   } else if (id === "claude") {
-    if (whichCmd("cursor")) {
-      openEditor("cursor", worktreePath, outLog);
+    const opened = openCursorWorktree({ worktreePath, featureDir, logPath: outLog });
+    if (opened.opened) {
       launch.openedWorktree = true;
     } else if (whichCmd("code")) {
-      openEditor("code", worktreePath, outLog);
+      openEditor("code", worktreePath, outLog, ["-n"]);
       launch.openedWorktree = true;
     }
     launch.pid = spawnBackgroundWorker({
@@ -1539,6 +1616,7 @@ Brief: ${featureDir}
     worktreePath,
     agentPrompt,
     logPath,
+    featureDir,
   });
   if (chosen && chosen !== "none") {
     rememberPreferredAgent(chosen);
@@ -1589,6 +1667,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
     worktreePath: dispatch.worktreePath,
     agentPrompt,
     logPath,
+    featureDir: dispatch.featureDir,
   });
   if (agentId && agentId !== "none") {
     rememberPreferredAgent(agentId);

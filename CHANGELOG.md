@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live Cursor CLI support
+
+- Open named worktree with `cursor -n` (+ focus Brief `tasks.md` via `-g`)
+- Run jobs with `agent` / `cursor agent --workspace --trust -p --force --sandbox disabled` (never `-w`)
+- `/api/agents` exposes `cli.cursor` / `cli.agent` / version
+
 ### Live open worktree on auto-start
 
 - Cursor Agent / Claude dispatch also opens the named product worktree in Cursor (or VS Code) for watch/operate, while the agent still runs non-interactively in the background
