@@ -1,0 +1,40 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T08:32:00.000Z",
+  "spec": ".duaer/specs/045-revise-hang/spec.md",
+  "branch": "fix/revise-hang",
+  "rootCause": "Every spawnSync on the /api/revise path ran without a timeout, and callChatModel used a bare fetch with no abort signal. Node's HTTP server is single-threaded, so one stuck child (proved with a blocking git post-checkout hook during `git worktree add`) froze the whole server and the POST never settled.",
+  "verification": [
+    {
+      "level": "L0",
+      "command": "node --check bin/duaer-live.mjs",
+      "result": "syntax OK"
+    },
+    {
+      "level": "L2",
+      "name": "before — blocked git worktree add (unfixed server :8787)",
+      "command": "curl -sS -m 60 -X POST /api/revise (jobId 024-job-3l9xtu) with blocking post-checkout hook",
+      "result": "no response until the blocked child was killed externally; GET /api/health timed out with 0 bytes 3x in a row; request finally ended HTTP 400 at 32.7s only because of outside intervention"
+    },
+    {
+      "level": "L2",
+      "name": "after — blocked git worktree add (fixed server :8799)",
+      "command": "same curl, same hook",
+      "result": "HTTP 504 at 60.06s, error names the command and the 60s budget; no outside intervention needed"
+    },
+    {
+      "level": "L2",
+      "name": "after — normal revise, worktree present",
+      "command": "curl -sS -X POST /api/revise (jobId 031-job-3tgna4)",
+      "result": "HTTP 200 in 1.18s; job enqueued into .duaer/live-terminal/jobs/ (1789547303272-n77xnh.cmd)"
+    },
+    {
+      "level": "L2",
+      "name": "after — revise that recreates a removed worktree",
+      "command": "curl -sS -X POST /api/revise (jobId 024-job-3l9xtu, hook removed)",
+      "result": "HTTP 200 in 2.18s; recreated=true; job enqueued into the new worktree's jobs/ dir"
+    }
+  ],
+  "e2e": "E2E-046",
+  "notes": "spawnSync still blocks the event loop while it runs; the fix bounds that window and guarantees the endpoint answers. Moving the pipeline off the HTTP thread is out of scope."
+}
