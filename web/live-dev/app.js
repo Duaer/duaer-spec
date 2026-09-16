@@ -139,7 +139,7 @@ function applyCardChrome() {
   el[id].addEventListener("input", syncConfirmEnabled);
 });
 
-function addBubble(role, text, { options } = {}) {
+function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
   const textNode = document.createTextNode(text);
@@ -155,6 +155,21 @@ function addBubble(role, text, { options } = {}) {
       b.addEventListener("click", () => {
         el.input.value = opt;
         el.form.requestSubmit();
+      });
+      row.appendChild(b);
+    }
+    div.appendChild(row);
+  }
+  if (actions?.length) {
+    const row = document.createElement("div");
+    row.className = "options";
+    for (const act of actions) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "chip action-chip";
+      b.textContent = act.label;
+      b.addEventListener("click", () => {
+        if (typeof act.onClick === "function") void act.onClick(b);
       });
       row.appendChild(b);
     }
@@ -440,32 +455,14 @@ el.confirm.addEventListener("click", async () => {
     const data = await res.json();
     if (data.card) applyCard(data.card);
     if (res.status === 422 || data.passed === false) {
-      const issues = Array.isArray(data.issues) ? data.issues : [];
-      const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
-      addBubble(
-        "bot",
-        `自动验收未通过：${data.summary || data.error || "请修改确认卡"}${detail}`,
-      );
+      showAcceptFailed(data);
       el.confirm.disabled = false;
       el.confirm.textContent = "需求无误，开始干活";
       syncConfirmEnabled();
       return;
     }
     if (!res.ok) throw new Error(data.error || "confirm failed");
-    state.locked = true;
-    state.jobId = data.jobId || null;
-    el.confirm.textContent = "已确认";
-    el.result.hidden = false;
-    const reviewLine = data.review?.summary
-      ? `自动验收：${data.review.summary}\n`
-      : "";
-    el.result.textContent = `${reviewLine}Live Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n下一步：下方选择产品仓库派工。`;
-    addBubble(
-      "bot",
-      `自动验收通过。隔离区 Brief 已就绪；请选择产品仓库派工（建 worktree + 写入 Brief）。`,
-    );
-    syncConfirmEnabled();
-    await showDispatchPanel();
+    await applyConfirmSuccess(data);
   } catch (err) {
     el.confirm.disabled = false;
     el.confirm.textContent = "需求无误，开始干活";
@@ -474,6 +471,91 @@ el.confirm.addEventListener("click", async () => {
     state.busy = false;
   }
 });
+
+function showAcceptFailed(data) {
+  const issues = Array.isArray(data.issues) ? data.issues : [];
+  const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
+  addBubble(
+    "bot",
+    `自动验收未通过：${data.summary || data.error || "请修改确认卡"}${detail}`,
+    {
+      actions: [
+        {
+          label: "自动修正",
+          onClick: (btn) => autoFixAccept(btn, issues),
+        },
+      ],
+    },
+  );
+}
+
+async function applyConfirmSuccess(data) {
+  state.locked = true;
+  state.jobId = data.jobId || null;
+  el.confirm.textContent = "已确认";
+  el.result.hidden = false;
+  const reviewLine = data.review?.summary
+    ? `自动验收：${data.review.summary}\n`
+    : data.fixSummary
+      ? `自动修正：${data.fixSummary}\n`
+      : "";
+  el.result.textContent = `${reviewLine}Live Brief: ${data.relativeDir || data.featureDir}\n分支建议: ${data.branch}\n\n下一步：下方选择产品仓库派工。`;
+  addBubble(
+    "bot",
+    data.fixed
+      ? `已自动修正并验收通过。隔离区 Brief 已就绪；请选择产品仓库派工。`
+      : `自动验收通过。隔离区 Brief 已就绪；请选择产品仓库派工（建 worktree + 写入 Brief）。`,
+  );
+  syncConfirmEnabled();
+  await showDispatchPanel();
+}
+
+async function autoFixAccept(btn, issues) {
+  if (state.busy || state.locked) return;
+  const v = cardValues();
+  state.busy = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "修正中…";
+  }
+  el.confirm.disabled = true;
+  el.confirm.textContent = "自动修正中…";
+  try {
+    const res = await fetch("/api/confirm/fix", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        ...v,
+        issues,
+        rawAsk: state.rawAsk || v.goal,
+      }),
+    });
+    const data = await res.json();
+    if (data.card) applyCard(data.card);
+    if (res.status === 422 || data.passed === false) {
+      const note = data.fixSummary ? `（${data.fixSummary}）` : "";
+      addBubble("bot", `自动修正后仍未通过${note}，可再点自动修正或手改确认卡。`);
+      showAcceptFailed(data);
+      el.confirm.disabled = false;
+      el.confirm.textContent = "需求无误，开始干活";
+      syncConfirmEnabled();
+      return;
+    }
+    if (!res.ok) throw new Error(data.error || "自动修正失败");
+    await applyConfirmSuccess(data);
+  } catch (err) {
+    addBubble("bot", `自动修正失败：${err instanceof Error ? err.message : err}`);
+    el.confirm.disabled = false;
+    el.confirm.textContent = "需求无误，开始干活";
+    syncConfirmEnabled();
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "自动修正";
+    }
+  } finally {
+    state.busy = false;
+  }
+}
 
 async function showDispatchPanel() {
   el.dispatch.hidden = false;

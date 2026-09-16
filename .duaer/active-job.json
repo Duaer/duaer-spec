@@ -1,5 +1,5 @@
 {
-  "specDir": ".duaer/specs/025-revise-dialogue-continue",
-  "branch": "feat/revise-dialogue",
-  "startedAt": "2026-09-16T02:40:00.000Z"
+  "specDir": ".duaer/specs/026-auto-fix-accept",
+  "branch": "feat/auto-fix-accept",
+  "startedAt": "2026-09-16T02:55:00.000Z"
 }

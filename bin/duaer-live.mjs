@@ -305,12 +305,24 @@ const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
+const FIX_ACCEPT_PROMPT = `你是「现场开发」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块，尽量补全可检查的验收标准，不要编造用户没提过的大功能。
+
+规则：
+1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
+2. 保持用户原意；缺信息时写合理、可检查的默认假设，并写进 assumptions
+3. 不要写代码。不要假设仓库路径。
+4. 只输出一个 JSON，不要 markdown 围栏：
+{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
 async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const base = cfg.baseUrl.replace(/\/$/, "");
   const url = `${base}/chat/completions`;
   const body = {
     model: cfg.model,
-    temperature: systemPrompt === ACCEPT_PROMPT ? 0.15 : 0.3,
+    temperature:
+      systemPrompt === ACCEPT_PROMPT || systemPrompt === FIX_ACCEPT_PROMPT
+        ? 0.15
+        : 0.3,
     messages: [{ role: "system", content: systemPrompt }, ...messages],
   };
   // DeepSeek Flash defaults to thinking; disable for reliable JSON replies.
@@ -536,6 +548,32 @@ async function autoAcceptCard(cfg, card) {
     ACCEPT_PROMPT,
   );
   return parseAcceptResult(content, card);
+}
+
+async function autoFixConfirmCard(cfg, card, issues) {
+  const content = await callChatModel(
+    cfg,
+    [
+      {
+        role: "user",
+        content: `确认卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。`,
+      },
+    ],
+    FIX_ACCEPT_PROMPT,
+  );
+  let obj = {};
+  try {
+    obj = parseModelJson(content);
+  } catch {
+    obj = {};
+  }
+  return {
+    summary: String(obj.summary || "已按 issues 修订确认卡").trim(),
+    goal: String(obj.goal || card.goal || "").trim(),
+    outOfScope: String(obj.outOfScope || card.outOfScope || "").trim(),
+    acceptance: String(obj.acceptance || card.acceptance || "").trim(),
+    assumptions: String(obj.assumptions || card.assumptions || "").trim(),
+  };
 }
 
 function writeBrief(payload) {
@@ -2434,6 +2472,79 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "confirm failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/confirm/fix") {
+    const cfg = readConfig();
+    if (!configReady(cfg)) {
+      send(res, 400, {
+        error: "请先配置模型后再自动修正",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
+    try {
+      const body = await readJson(req);
+      const card = {
+        goal: String(body.goal || "").trim(),
+        outOfScope: String(body.outOfScope || "").trim(),
+        acceptance: String(body.acceptance || "").trim(),
+        assumptions: String(body.assumptions || "").trim(),
+      };
+      const issues = Array.isArray(body.issues) ? body.issues : [];
+      if (!card.goal && !card.acceptance) {
+        send(res, 400, { error: "确认卡为空，无法修正" });
+        return;
+      }
+      const fixed = await autoFixConfirmCard(cfg, card, issues);
+      const review = await autoAcceptCard(cfg, fixed);
+      if (!review.passed) {
+        send(res, 422, {
+          ok: false,
+          passed: false,
+          fixed: true,
+          error: review.summary || "自动修正后仍未通过验收",
+          summary: review.summary,
+          fixSummary: fixed.summary,
+          issues: review.issues,
+          card: {
+            goal: review.goal,
+            outOfScope: review.outOfScope,
+            acceptance: review.acceptance,
+            assumptions: review.assumptions,
+          },
+        });
+        return;
+      }
+      const result = writeBrief({
+        goal: review.goal,
+        outOfScope: review.outOfScope,
+        acceptance: review.acceptance,
+        assumptions: review.assumptions,
+        rawAsk: body.rawAsk,
+        review: {
+          summary: `${fixed.summary || "已自动修正"}；${review.summary || "验收通过"}`,
+        },
+      });
+      send(res, 200, {
+        ...result,
+        passed: true,
+        fixed: true,
+        needDispatch: true,
+        fixSummary: fixed.summary,
+        card: {
+          goal: review.goal,
+          outOfScope: review.outOfScope,
+          acceptance: review.acceptance,
+          assumptions: review.assumptions,
+        },
+      });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "fix failed",
       });
     }
     return;
