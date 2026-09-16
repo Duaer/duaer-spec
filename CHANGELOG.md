@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live agent run (fix)
+
+- Cursor Agent / Claude now start a visible Terminal session with the job prompt (not silent `-p` / not IDE-open-only)
+- Preferred launcher only remembers workers; 「仅打开」不再变成默认
+
 ### Live dispatch progress
 
 - Status poll reads product Brief `tasks.md` checkboxes (`progress.done/total/current`)

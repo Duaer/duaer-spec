@@ -1117,36 +1117,40 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "在 worktree 用 CLI Agent 开工（-p --force）",
+    hint: "打开仓库 + 终端跑 agent 开工",
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
-    hint: "后台会话（claude --bg）",
+    hint: "终端跑 claude 开工",
   },
   {
     id: "cursor",
-    label: "Cursor（打开仓库）",
+    label: "Cursor（仅打开）",
     kind: "open",
-    hint: "只打开 worktree，不自动跑 Agent",
+    hint: "只打开仓库，不发任务",
   },
   {
     id: "code",
-    label: "VS Code（打开仓库）",
+    label: "VS Code（仅打开）",
     kind: "open",
-    hint: "只打开 worktree",
+    hint: "只打开仓库，不发任务",
   },
   {
     id: "none",
     label: "仅派工不启动",
     kind: "none",
-    hint: "只建 worktree / Brief，稍后再启动",
+    hint: "只建 worktree / Brief",
   },
 ];
 
 function detectAgents() {
-  const preferred = readConfig().preferredAgentId || "";
+  const preferredRaw = readConfig().preferredAgentId || "";
+  const preferredMeta = AGENT_CATALOG.find((a) => a.id === preferredRaw);
+  // Ignore remembered open-only prefs (they only open IDE, no task)
+  const preferred =
+    preferredMeta?.kind === "worker" ? preferredRaw : "";
   const agentBin = whichCmd("agent");
   const cursorBin = whichCmd("cursor");
   const claudeBin = whichCmd("claude");
@@ -1209,6 +1213,79 @@ function appendLaunchLog(logPath, line) {
   fs.appendFileSync(logPath, `${line}\n`, "utf8");
 }
 
+function shellSingleQuote(s) {
+  return `'${String(s).replace(/'/g, `'\\''`)}'`;
+}
+
+/** Open a visible terminal session that runs the agent command. */
+function launchInTerminal({ cwd, commandLine, logPath }) {
+  const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
+  appendLaunchLog(logPath, stamped);
+
+  if (process.platform === "darwin") {
+    const script = `cd ${shellSingleQuote(cwd)} && ${commandLine}; echo; echo '[duaer] agent session ended — press Enter to close'; read _`;
+    const child = spawn(
+      "osascript",
+      [
+        "-e",
+        'tell application "Terminal" to activate',
+        "-e",
+        `tell application "Terminal" to do script ${shellSingleQuote(script)}`,
+      ],
+      { detached: true, stdio: "ignore" },
+    );
+    child.unref();
+    return { pid: child.pid ?? null, mode: "terminal" };
+  }
+
+  // Linux / other: try gnome-terminal / x-terminal-emulator / fall back to detached shell
+  for (const [cmd, args] of [
+    ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
+    ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
+    ["konsole", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
+  ]) {
+    if (!whichCmd(cmd)) continue;
+    const child = spawn(cmd, args, {
+      detached: true,
+      stdio: "ignore",
+      cwd,
+    });
+    child.unref();
+    return { pid: child.pid ?? null, mode: "terminal" };
+  }
+
+  const child = spawn("bash", ["-lc", commandLine], {
+    detached: true,
+    cwd,
+    stdio: "ignore",
+    env: process.env,
+  });
+  child.unref();
+  return { pid: child.pid ?? null, mode: "detached" };
+}
+
+function openEditor(cmd, worktreePath, logPath) {
+  const child = spawn(cmd, [worktreePath], {
+    detached: true,
+    stdio: "ignore",
+  });
+  child.unref();
+  appendLaunchLog(
+    logPath,
+    `[${new Date().toISOString()}] open ${cmd} ${worktreePath} pid=${child.pid}`,
+  );
+  return child.pid ?? null;
+}
+
+function rememberPreferredAgent(agentId) {
+  const id = String(agentId || "").trim();
+  const meta = AGENT_CATALOG.find((a) => a.id === id);
+  // Only persist workers — never remember "just open IDE"
+  if (meta?.kind === "worker") {
+    writeConfig({ preferredAgentId: id });
+  }
+}
+
 function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
   const id = String(agentId || "none").trim() || "none";
   const detected = detectAgents();
@@ -1225,6 +1302,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
     logPath: logPath || null,
     pid: null,
     command: meta.command,
+    mode: null,
   };
 
   if (id === "none") {
@@ -1239,19 +1317,11 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
   const outLog =
     logPath ||
     path.join(worktreePath, ".duaer", "live-agent-launch.log");
+  launch.logPath = outLog;
 
   if (id === "cursor" || id === "code") {
-    const child = spawn(id, [worktreePath], {
-      detached: true,
-      stdio: "ignore",
-    });
-    child.unref();
-    launch.pid = child.pid ?? null;
-    appendLaunchLog(
-      outLog,
-      `[${launch.launchedAt}] open ${id} ${worktreePath} pid=${launch.pid}`,
-    );
-    launch.logPath = outLog;
+    launch.pid = openEditor(id, worktreePath, outLog);
+    launch.mode = "open";
     return launch;
   }
 
@@ -1261,54 +1331,48 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
     outLog,
     `[${launch.launchedAt}] start ${id} cwd=${worktreePath}`,
   );
-  const logFd = fs.openSync(outLog, "a");
+
+  // Write prompt file so Terminal command stays short / shell-safe
+  const promptFile = path.join(
+    path.dirname(outLog),
+    "agent-launch-prompt.txt",
+  );
+  fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
+    if (whichCmd("cursor")) {
+      openEditor("cursor", worktreePath, outLog);
+    }
     const agentBin = whichCmd("agent");
-    const cmd = agentBin ? "agent" : "cursor";
-    const args = agentBin
-      ? ["--workspace", worktreePath, "--trust", "-p", "--force", prompt]
-      : [
-          "agent",
-          "--workspace",
-          worktreePath,
-          "--trust",
-          "-p",
-          "--force",
-          prompt,
-        ];
-    const child = spawn(cmd, args, {
-      detached: true,
+    const runner = agentBin
+      ? `${shellSingleQuote(agentBin)} --workspace ${shellSingleQuote(worktreePath)} --trust --force "$(cat ${shellSingleQuote(promptFile)})"`
+      : `cursor agent --workspace ${shellSingleQuote(worktreePath)} --trust --force "$(cat ${shellSingleQuote(promptFile)})"`;
+    const term = launchInTerminal({
       cwd: worktreePath,
-      stdio: ["ignore", logFd, logFd],
-      env: process.env,
+      commandLine: runner,
+      logPath: outLog,
     });
-    child.unref();
-    launch.pid = child.pid ?? null;
-    launch.command = agentBin ? "agent" : "cursor agent";
+    launch.pid = term.pid;
+    launch.mode = term.mode;
+    launch.command = agentBin ? "agent --trust --force" : "cursor agent --trust --force";
   } else if (id === "claude") {
-    const child = spawn("claude", ["--bg", prompt], {
-      detached: true,
+    const runner = `claude "$(cat ${shellSingleQuote(promptFile)})"`;
+    const term = launchInTerminal({
       cwd: worktreePath,
-      stdio: ["ignore", logFd, logFd],
-      env: process.env,
+      commandLine: runner,
+      logPath: outLog,
     });
-    child.unref();
-    launch.pid = child.pid ?? null;
-    launch.command = "claude --bg";
+    launch.pid = term.pid;
+    launch.mode = term.mode;
+    launch.command = "claude";
   } else {
-    fs.closeSync(logFd);
     throw new Error(`未知启动器：${id}`);
   }
 
-  try {
-    fs.closeSync(logFd);
-  } catch {
-    // already closed by child inheritance on some platforms
-  }
-
-  launch.logPath = outLog;
-  appendLaunchLog(outLog, `[${new Date().toISOString()}] spawned pid=${launch.pid}`);
+  appendLaunchLog(
+    outLog,
+    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid}`,
+  );
   return launch;
 }
 
@@ -1428,7 +1492,7 @@ Brief: ${featureDir}
     logPath,
   });
   if (chosen && chosen !== "none") {
-    writeConfig({ preferredAgentId: chosen });
+    rememberPreferredAgent(chosen);
   }
 
   const dispatch = {
@@ -1478,7 +1542,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
     logPath,
   });
   if (agentId && agentId !== "none") {
-    writeConfig({ preferredAgentId: String(agentId).trim() });
+    rememberPreferredAgent(agentId);
   }
   const nextDispatch = { ...dispatch, launch, openedWith: launch.kind === "open" ? launch.agentId : dispatch.openedWith };
   const nextJob = {

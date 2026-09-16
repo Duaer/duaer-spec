@@ -681,12 +681,14 @@ el.doDispatch.addEventListener("click", async () => {
     el.result.hidden = false;
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 开工说明（备用） ——\n${data.agentPrompt}`;
     const who =
-      launch.agentId && launch.agentId !== "none"
-        ? `已用 ${launch.label || launch.agentId} 启动数字员工`
-        : "已派工；可再选启动器后刷新页面重新派工，或把右侧说明交给数字员工";
+      launch.agentId === "cursor-agent" || launch.agentId === "claude"
+        ? `已启动 ${launch.label || launch.agentId}：请看弹出的终端窗口（任务命令在跑）`
+        : launch.agentId && launch.agentId !== "none"
+          ? `已用 ${launch.label || launch.agentId} 处理`
+          : "已派工；可再选 Cursor Agent / Claude 启动，或把右侧说明交给数字员工";
     addBubble(
       "bot",
-      `${who}。完成后 delivery 会显示在此。\n${data.worktreePath}`,
+      `${who}。进度看下方清单；完成后 delivery 会显示在此。\n${data.worktreePath}`,
     );
     el.doDispatch.textContent = "已派工";
     el.dispatchStatus.hidden = false;
