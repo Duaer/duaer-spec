@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/049-progress-column",
-  "branch": "feat/progress-column",
-  "worktree": ".worktree/feat-progress-column",
+  "featureDir": ".duaer/specs/050-validate-before-confirm",
+  "branch": "feat/validate-before-confirm",
+  "worktree": ".worktree/feat-validate-before-confirm",
   "status": "active"
 }

@@ -319,9 +319,9 @@ function nextJobDir() {
 const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话把用户随口说的话整理成精确需求。
 
 规则：
-1. 每次只问 1 个最关键的卡点问题（可给 2～4 个选项建议）。
+1. 缺关键可执行信息时，每次只问 1 个卡点问题（可给简短选项）；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
 2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
-3. 四块够清楚、验收可检查时，ready=true。
+3. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
 4. 不要写代码。不要假设用户仓库路径。
 5. 输出格式（严格）：
    - 先写对用户说的纯文本（可多行，不要 JSON）
@@ -334,13 +334,13 @@ const CHAT_JSON_MARKER = "<<<JSON>>>";
 const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。
 
 规则：
-1. 每次只问 1 个最关键问题（可给 2～4 个选项）。先问原因/痛点，再问期望改动。
+1. 缺关键信息时每次只问 1 个问题；信息够时直接填可执行的四块并 ready=true，不要用「请从 A/B/C/D 风格里选」代替验收标准。
 2. 维护四块（仍用确认卡字段名，便于前端复用）：
    - goal = 本轮要改什么（具体可执行）
    - outOfScope = 本轮不要动什么
    - acceptance = 怎么算改好了（可检查）
    - assumptions = 用户不满意的原因 / 背景摘要
-3. 四块够清楚且可执行时 ready=true。
+3. 四块够清楚且可执行时 ready=true（确认前系统会自动校验）。
 4. 不要写代码。不要立刻派工。不要假设仓库路径。
 5. 输出格式（严格）：
    - 先写对用户说的纯文本
@@ -643,6 +643,46 @@ async function autoAcceptCard(cfg, card) {
     ACCEPT_PROMPT,
   );
   return parseAcceptResult(content, card);
+}
+
+/** Validate card without writing Brief — used to gate human confirm/revise send. */
+async function validateCardOnly(cfg, card) {
+  const normalized = {
+    goal: String(card.goal || "").trim(),
+    outOfScope: String(card.outOfScope || "").trim(),
+    acceptance: String(card.acceptance || "").trim(),
+    assumptions: String(card.assumptions || "").trim(),
+  };
+  if (!normalized.goal || !normalized.acceptance) {
+    return {
+      passed: false,
+      summary: "goal and acceptance are required",
+      issues: [
+        !normalized.goal ? "「要做什么」不能为空" : null,
+        !normalized.acceptance ? "「验收标准」不能为空" : null,
+      ].filter(Boolean),
+      ...normalized,
+    };
+  }
+  const review = await autoAcceptCard(cfg, normalized);
+  return {
+    passed: Boolean(review.passed),
+    summary: review.summary || (review.passed ? "自动验收通过" : "自动验收未通过"),
+    issues: review.issues || [],
+    goal: review.goal,
+    outOfScope: review.outOfScope,
+    acceptance: review.acceptance,
+    assumptions: review.assumptions,
+  };
+}
+
+class ValidateGateError extends Error {
+  constructor(review) {
+    super(review?.summary || "自动验收未通过");
+    this.name = "ValidateGateError";
+    this.code = "VALIDATE_GATE";
+    this.review = review || null;
+  }
 }
 
 async function autoFixConfirmCard(cfg, card, issues) {
@@ -2570,6 +2610,7 @@ Brief: ${featureDir}
 产品仓: ${probe.path}
 
 要求：
+0. 本 Brief 已在现场开发自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围
 3. 按 .duaer/memory/testing.md（若有）做风险验证
@@ -2958,6 +2999,26 @@ async function reviseDispatchedJob({
     }
   }
 
+  const cfgForGate = readConfig();
+  if (!configReady(cfgForGate)) {
+    throw new Error("请先配置模型后再续派（续派前会自动验收改进卡）");
+  }
+  const reviseReview = await validateCardOnly(cfgForGate, {
+    goal: restated.change,
+    outOfScope: restated.keep,
+    acceptance: restated.acceptance,
+    assumptions: restated.summary,
+  });
+  if (!reviseReview.passed) {
+    throw new ValidateGateError(reviseReview);
+  }
+  restated = {
+    change: reviseReview.goal || restated.change,
+    acceptance: reviseReview.acceptance || restated.acceptance,
+    keep: reviseReview.outOfScope || restated.keep,
+    summary: reviseReview.assumptions || restated.summary,
+  };
+
   const specPath = path.join(dispatch.featureDir, "spec.md");
   const tasksPath = path.join(dispatch.featureDir, "tasks.md");
   const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
@@ -3073,6 +3134,7 @@ ${restated.acceptance}
 ${restated.keep}
 
 要求：
+0. 本轮 Revision 已在现场开发自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]
 3. 改完后 stamp delivery.json 为 accepted，并更新 preview.url
@@ -3517,6 +3579,87 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/validate") {
+    const cfg = readConfig();
+    if (!configReady(cfg)) {
+      send(res, 400, {
+        error: "请先配置模型后再校验",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
+    try {
+      const body = await readJson(req);
+      const card = {
+        goal: String(body.goal || body.change || "").trim(),
+        outOfScope: String(body.outOfScope || body.keep || "").trim(),
+        acceptance: String(body.acceptance || "").trim(),
+        assumptions: String(body.assumptions || body.reason || "").trim(),
+      };
+      const review = await validateCardOnly(cfg, card);
+      send(res, review.passed ? 200 : 422, {
+        ok: review.passed,
+        passed: review.passed,
+        summary: review.summary,
+        issues: review.issues,
+        card: {
+          goal: review.goal,
+          outOfScope: review.outOfScope,
+          acceptance: review.acceptance,
+          assumptions: review.assumptions,
+        },
+        error: review.passed ? undefined : review.summary || "自动验收未通过",
+      });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "validate failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/validate/fix") {
+    const cfg = readConfig();
+    if (!configReady(cfg)) {
+      send(res, 400, {
+        error: "请先配置模型后再自动修正",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
+    try {
+      const body = await readJson(req);
+      const card = {
+        goal: String(body.goal || body.change || "").trim(),
+        outOfScope: String(body.outOfScope || body.keep || "").trim(),
+        acceptance: String(body.acceptance || "").trim(),
+        assumptions: String(body.assumptions || body.reason || "").trim(),
+      };
+      const issues = Array.isArray(body.issues) ? body.issues : [];
+      const fixed = await autoFixConfirmCard(cfg, card, issues);
+      const review = await validateCardOnly(cfg, fixed);
+      send(res, review.passed ? 200 : 422, {
+        ok: review.passed,
+        passed: review.passed,
+        fixSummary: fixed.summary,
+        summary: review.summary,
+        issues: review.issues,
+        card: {
+          goal: review.goal,
+          outOfScope: review.outOfScope,
+          acceptance: review.acceptance,
+          assumptions: review.assumptions,
+        },
+        error: review.passed ? undefined : review.summary || "自动验收未通过",
+      });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "validate fix failed",
+      });
+    }
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/confirm") {
     const cfg = readConfig();
     if (!configReady(cfg)) {
@@ -3784,6 +3927,23 @@ async function handleApi(req, res) {
       });
       send(res, 200, result);
     } catch (err) {
+      if (err?.code === "VALIDATE_GATE") {
+        const review = err.review || {};
+        send(res, 422, {
+          ok: false,
+          passed: false,
+          error: err.message,
+          summary: review.summary || err.message,
+          issues: review.issues || [],
+          card: {
+            goal: review.goal,
+            outOfScope: review.outOfScope,
+            acceptance: review.acceptance,
+            assumptions: review.assumptions,
+          },
+        });
+        return;
+      }
       send(res, err?.code === "CHILD_TIMEOUT" ? 504 : 400, {
         error: err instanceof Error ? err.message : "revise failed",
       });
