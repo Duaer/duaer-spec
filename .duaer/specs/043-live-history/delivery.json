@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "043-live-history",
+  "acceptedAt": "2026-09-16T07:47:00.000Z",
+  "summary": "Job history API and History panel; flow tagline on the Live desk header row with History and language controls.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check bin/duaer-live.mjs",
+        "result": "pass — exit 0"
+      },
+      {
+        "command": "node --check web/live-dev/app.js",
+        "result": "pass — exit 0"
+      }
+    ],
+    "e2e": ["E2E-044"]
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004", "T005"]
+}

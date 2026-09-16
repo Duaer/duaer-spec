@@ -1287,6 +1287,120 @@ function readLiveJob(jobId) {
   };
 }
 
+function jobTitleFromSpec(specMd) {
+  const m = String(specMd || "").match(/^#\s+Feature Specification:\s*(.+)$/m);
+  return m ? m[1].trim() : "";
+}
+
+/** Newest-first list of live jobs for history UI. */
+function listLiveJobs({ limit = 40 } = {}) {
+  ensureLiveDirs();
+  const root = jobsRoot();
+  const max = Math.min(Math.max(Number(limit) || 40, 1), 100);
+  let names = [];
+  try {
+    names = fs.readdirSync(root).filter((n) => {
+      try {
+        return fs.statSync(path.join(root, n)).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return [];
+  }
+
+  const rows = [];
+  for (const id of names) {
+    const jobPath = path.join(root, id, "job.json");
+    const specPath = path.join(root, id, "spec.md");
+    if (!fs.existsSync(jobPath)) continue;
+    let job = {};
+    let spec = "";
+    try {
+      job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
+    } catch {
+      continue;
+    }
+    try {
+      if (fs.existsSync(specPath)) spec = fs.readFileSync(specPath, "utf8");
+    } catch {
+      spec = "";
+    }
+    const goal =
+      extractSection(spec, "Goal").split(/\n/)[0]?.trim() ||
+      jobTitleFromSpec(spec) ||
+      id;
+    const at =
+      job.dispatch?.revisedAt ||
+      job.revisedAt ||
+      job.dispatch?.dispatchedAt ||
+      job.confirmedAt ||
+      null;
+    rows.push({
+      id,
+      goal: goal.slice(0, 200),
+      status: job.status || "unknown",
+      confirmedAt: job.confirmedAt || null,
+      dispatchedAt: job.dispatch?.dispatchedAt || null,
+      revisedAt: job.dispatch?.revisedAt || job.revisedAt || null,
+      at,
+      revisionCount: Number(job.revisionCount || 0),
+      repoPath: job.dispatch?.repoPath || null,
+      worktreePath: job.dispatch?.worktreePath || null,
+      branch: job.dispatch?.branch || job.branch || null,
+    });
+  }
+
+  rows.sort((a, b) => {
+    const ta = Date.parse(a.at || a.confirmedAt || "") || 0;
+    const tb = Date.parse(b.at || b.confirmedAt || "") || 0;
+    if (tb !== ta) return tb - ta;
+    return String(b.id).localeCompare(String(a.id));
+  });
+  return rows.slice(0, max);
+}
+
+function liveJobDetail(jobId) {
+  const live = readLiveJob(jobId);
+  const goal = extractSection(live.spec, "Goal");
+  const outOfScope = extractSection(live.spec, "Out of Scope");
+  const acceptance = extractSection(live.spec, "Acceptance");
+  const assumptions = extractSection(live.spec, "Assumptions");
+  let statusPayload = null;
+  try {
+    statusPayload = dispatchStatus(live.id);
+  } catch {
+    statusPayload = null;
+  }
+  return {
+    id: live.id,
+    jobStatus: live.job.status || "unknown",
+    confirmedAt: live.job.confirmedAt || null,
+    branch: live.job.branch || null,
+    goal: goal || jobTitleFromSpec(live.spec) || live.id,
+    outOfScope,
+    acceptance,
+    assumptions,
+    revisionCount: Number(live.job.revisionCount || 0),
+    revisions: Array.isArray(live.job.revisions) ? live.job.revisions : [],
+    dispatch: live.job.dispatch || null,
+    card: {
+      goal: goal.split(/\n\n/)[0]?.trim() || goal || live.id,
+      outOfScope: outOfScope || "",
+      acceptance: acceptance || "",
+      assumptions: assumptions || "",
+    },
+    status: statusPayload || {
+      jobId: live.id,
+      status: live.job.status || "unknown",
+      delivery: null,
+      progress: null,
+      preview: null,
+    },
+  };
+}
+
 function whichCmd(cmd) {
   const name = String(cmd || "").trim();
   if (!name || name.includes("/") || name.includes("\\")) return null;
@@ -3346,6 +3460,32 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "revise failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/jobs") {
+    try {
+      const limit = Number(url.searchParams.get("limit") || 40);
+      send(res, 200, { jobs: listLiveJobs({ limit }) });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "jobs list failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/jobs/")) {
+    try {
+      const jobId = decodeURIComponent(
+        url.pathname.slice("/api/jobs/".length).split("/")[0] || "",
+      );
+      send(res, 200, liveJobDetail(jobId));
+    } catch (err) {
+      send(res, 404, {
+        error: err instanceof Error ? err.message : "job not found",
       });
     }
     return;

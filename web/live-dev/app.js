@@ -55,6 +55,9 @@ const state = {
   dispatchPhase: null,
   lastCfg: null,
   lastUpdate: null,
+  historyJobs: [],
+  selectedHistoryId: null,
+  selectedHistoryDetail: null,
 };
 
 const el = {
@@ -122,6 +125,16 @@ const el = {
   cardPanel: document.querySelector(".card-panel"),
   updateNotice: document.getElementById("updateNotice"),
   langSelect: document.getElementById("langSelect"),
+  historyToggle: document.getElementById("historyToggle"),
+  historyPanel: document.getElementById("historyPanel"),
+  historyClose: document.getElementById("historyClose"),
+  historyList: document.getElementById("historyList"),
+  historyErr: document.getElementById("historyErr"),
+  historyDetail: document.getElementById("historyDetail"),
+  historyDetailGoal: document.getElementById("historyDetailGoal"),
+  historyDetailMeta: document.getElementById("historyDetailMeta"),
+  historyDetailBody: document.getElementById("historyDetailBody"),
+  historyRestore: document.getElementById("historyRestore"),
 };
 
 function providerLabel(p) {
@@ -1745,8 +1758,198 @@ if (el.doReviseDispatch) {
   });
 }
 
+function formatHistoryTime(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  try {
+    return d.toLocaleString(getLocale() === "en" ? "en-US" : "zh-CN", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return d.toISOString().slice(0, 16).replace("T", " ");
+  }
+}
+
+function setHistoryOpen(open) {
+  if (!el.historyPanel) return;
+  el.historyPanel.hidden = !open;
+  if (el.historyToggle) {
+    el.historyToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  if (open) void loadHistoryList();
+}
+
+async function loadHistoryList() {
+  if (!el.historyList) return;
+  if (el.historyErr) el.historyErr.hidden = true;
+  el.historyList.replaceChildren();
+  if (el.historyDetail) el.historyDetail.hidden = true;
+  state.selectedHistoryId = null;
+  try {
+    const res = await fetch("/api/jobs?limit=40");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("history.loadFail"));
+    state.historyJobs = data.jobs || [];
+    if (!state.historyJobs.length) {
+      const p = document.createElement("p");
+      p.className = "hint";
+      p.textContent = t("history.empty");
+      el.historyList.appendChild(p);
+      return;
+    }
+    for (const job of state.historyJobs) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "history-item";
+      btn.dataset.id = job.id;
+      btn.setAttribute("aria-pressed", "false");
+      const goal = document.createElement("span");
+      goal.className = "history-item-goal";
+      goal.textContent = job.goal || job.id;
+      const st = document.createElement("span");
+      st.className = "history-item-status";
+      st.textContent = job.status || "—";
+      const meta = document.createElement("span");
+      meta.className = "history-item-meta";
+      meta.textContent = t("history.meta", {
+        status: job.status || "—",
+        time: formatHistoryTime(job.at || job.confirmedAt),
+      });
+      btn.appendChild(goal);
+      btn.appendChild(st);
+      btn.appendChild(meta);
+      btn.addEventListener("click", () => {
+        void selectHistoryJob(job.id);
+      });
+      el.historyList.appendChild(btn);
+    }
+  } catch (err) {
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent =
+        err instanceof Error ? err.message : t("history.loadFail");
+    }
+  }
+}
+
+async function selectHistoryJob(jobId) {
+  state.selectedHistoryId = jobId;
+  for (const btn of el.historyList?.querySelectorAll(".history-item") || []) {
+    btn.setAttribute(
+      "aria-pressed",
+      btn.dataset.id === jobId ? "true" : "false",
+    );
+  }
+  if (el.historyDetail) el.historyDetail.hidden = false;
+  try {
+    const res = await fetch(`/api/jobs/${encodeURIComponent(jobId)}`);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("history.loadFail"));
+    state.selectedHistoryDetail = data;
+    if (el.historyDetailGoal) {
+      el.historyDetailGoal.textContent = data.card?.goal || data.goal || jobId;
+    }
+    if (el.historyDetailMeta) {
+      el.historyDetailMeta.textContent = t("history.detailMeta", {
+        id: data.id,
+        status: data.jobStatus || data.status?.status || "—",
+        time: formatHistoryTime(
+          data.confirmedAt || data.status?.dispatch?.dispatchedAt,
+        ),
+      });
+    }
+    if (el.historyDetailBody) {
+      const bits = [
+        data.acceptance ? `Acceptance:\n${data.acceptance}` : "",
+        data.outOfScope ? `Out of scope:\n${data.outOfScope}` : "",
+        data.dispatch?.repoPath ? `Repo: ${data.dispatch.repoPath}` : "",
+        data.dispatch?.worktreePath
+          ? `Worktree: ${data.dispatch.worktreePath}`
+          : "",
+        data.revisionCount ? `Revisions: ${data.revisionCount}` : "",
+      ].filter(Boolean);
+      el.historyDetailBody.textContent = bits.join("\n\n") || data.id;
+    }
+  } catch (err) {
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent =
+        err instanceof Error ? err.message : t("history.loadFail");
+    }
+  }
+}
+
+async function restoreHistoryJob() {
+  const data = state.selectedHistoryDetail;
+  if (!data?.id) return;
+  if (!state.ready) {
+    addBubble("bot", t("history.loadFail"));
+    return;
+  }
+  state.jobId = data.id;
+  state.mode = "specify";
+  state.reviseLocked = false;
+  state.reviseDispatching = false;
+  state.lastRevision = null;
+  const card = data.card || {};
+  el.goal.value = card.goal || "";
+  el.outOfScope.value = card.outOfScope || "";
+  el.acceptance.value = card.acceptance || "";
+  el.assumptions.value = card.assumptions || "";
+  state.originalCard = { ...cardValues() };
+  const st = data.jobStatus || data.status?.status || "";
+  state.locked = Boolean(st && st !== "unknown");
+  syncConfirmEnabled();
+  if (data.dispatch?.repoPath || data.dispatch?.worktreePath) {
+    el.dispatch.hidden = false;
+    if (el.repoPath) el.repoPath.value = data.dispatch.repoPath || "";
+    el.dispatchStatus.hidden = false;
+    el.dispatchStatus.textContent = t("status.poll", {
+      st: st || "dispatched",
+      pct: "",
+      rev: data.revisionCount ? ` · r${data.revisionCount}` : "",
+      wt: "",
+    });
+    state.dispatchPhase = "done";
+    if (el.doDispatch) {
+      el.doDispatch.disabled = true;
+      el.doDispatch.textContent = t("dispatch.done");
+    }
+    await loadAgents();
+    startStatusPoll();
+    const statusData = data.status;
+    if (statusData) {
+      renderProgress(statusData);
+      renderPreview(statusData);
+    }
+  }
+  setHistoryOpen(false);
+  addBubble("bot", t("history.restored", { id: data.id }));
+  focusRightPanel({ force: true });
+}
+
+if (el.historyToggle) {
+  el.historyToggle.addEventListener("click", () => {
+    const open = el.historyPanel?.hidden !== false;
+    setHistoryOpen(open);
+  });
+}
+if (el.historyClose) {
+  el.historyClose.addEventListener("click", () => setHistoryOpen(false));
+}
+if (el.historyRestore) {
+  el.historyRestore.addEventListener("click", () => {
+    void restoreHistoryJob();
+  });
+}
+
 onLocaleChange(() => {
   syncDynamicI18n();
+  if (el.historyPanel && !el.historyPanel.hidden) void loadHistoryList();
 });
 
 const initialLocale = initI18n();

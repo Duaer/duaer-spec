@@ -56,6 +56,7 @@ the table for their app.
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt); UI says queued until current task finishes | manual |
 | E2E-042 | Wide desk layout; FIFO jobs/ queue auto-runs next task after running.cmd finishes | manual |
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
+| E2E-044 | Live desk history: header row has Live desk + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
