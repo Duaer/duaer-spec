@@ -40,16 +40,26 @@ everyday human UI.
 Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 
 ```bash
-# DeepSeek（推荐）
+# DeepSeek (recommended)
 duaer live config --provider deepseek --api-key sk-...
 
-# 在产品仓登记，派工时点选（可选）
+# Remember a product repo for dispatch (optional; run inside that repo)
 duaer live repo add
 
 duaer live
 ```
 
-Dialogue → confirm + auto-accept → **dispatch** (browse / scan / remembered repos) into a product worktree → hand the prompt to the digital employee.
+Open the printed URL (default `http://127.0.0.1:8787`).
+
+**Flow**
+
+1. Dialogue → fill confirm card → auto-accept  
+2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
+3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
+4. Edit the start command (must begin with `Agent`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
+5. Watch `tasks.md` progress on the desk; when `delivery.json` is `accepted`, open **查看成品** (`preview.url` or auto-detected `index.html`)
+
+Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
 
 ## Branches (mandatory)
 

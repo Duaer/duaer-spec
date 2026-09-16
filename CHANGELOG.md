@@ -1,73 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.12.0 — 2026-09-16
 
-### Live delivery preview link
+### Live desk → product dispatch (closed loop)
 
-- On delivery accepted, show a clickable 成品 link (`delivery.preview` or auto-detect index.html)
-- Serve worktree files at `/api/artifact/<jobId>/…`
+- Confirm + auto-accept, then pick a product repo (browse / scan / recent) and create `.worktree/feat-*` with Brief under that worktree’s `.duaer/specs/`
+- Non-git folders: auto `git init -b develop`; repos without develop/main/master: auto-create local `develop`
+- Launchers are **CLI only**: Cursor Agent and Claude Code — open Terminal and run `agent` / `cursor agent` or `claude` with the start command (prefix `Agent`)
+- Missing Cursor CLI shows install: `curl https://cursor.com/install -fsS | bash`
+- Progress: poll product Brief `tasks.md` checkboxes; optional agent-launch.log tail
+- On `delivery.json` accepted: show **查看成品** from `preview.url` (or auto-detect `index.html`); serve worktree files at `/api/artifact/<jobId>/…`
+- Dispatch does not block the UI on Terminal open (async); 60s client timeout
 
-### Live CLI-only launchers
+### Docs
 
-- Dispatch picker keeps only Cursor Agent + Claude Code (Terminal CLI); removed IDE-open-only / none
-- Claude also launches via Terminal `claude` CLI
-
-### Live dispatch hang fix
-
-- Terminal launch is async (no spawnSync/osascript wait); UI aborts dispatch after 60s instead of sticking on 派工中
-
-### Live Terminal open fix
-
-- Cursor Agent uses `open *.command` to pop Terminal (fixed broken osascript quoting)
-
-### Live Cursor Agent via Terminal
-
-- Cursor Agent opens macOS Terminal (or Linux terminal) and runs `agent` / `cursor agent` CLI there — not `cursor -n` IDE and not silent `-p` background
-
-### Live CLI install + Agent start command
-
-- Missing Cursor CLI shows install command `curl https://cursor.com/install -fsS | bash` (copyable)
-- Dispatch panel: editable 启动命令 box; defaults / enforced prefix `Agent`
-- `POST /api/dispatch` accepts `startCommand` as the agent prompt
-
-### Live Cursor CLI support
-
-- Open named worktree with `cursor -n` (+ focus Brief `tasks.md` via `-g`)
-- Run jobs with `agent` / `cursor agent --workspace --trust -p --force --sandbox disabled` (never `-w`)
-- `/api/agents` exposes `cli.cursor` / `cli.agent` / version
-
-### Live open worktree on auto-start
-
-- Cursor Agent / Claude dispatch also opens the named product worktree in Cursor (or VS Code) for watch/operate, while the agent still runs non-interactively in the background
-
-### Live agent auto-run (fix)
-
-- Cursor Agent / Claude launch non-interactively (`agent -p --force`, `claude --bg`) so dispatch does not wait for user input in Terminal/IDE
-- Stop opening an empty Cursor window on worker launch (that looked like “waiting for you”)
-
-### Live agent run (fix)
-
-- Cursor Agent / Claude now start a visible Terminal session with the job prompt (not silent `-p` / not IDE-open-only)
-- Preferred launcher only remembers workers; 「仅打开」不再变成默认
-
-### Live dispatch progress
-
-- Status poll reads product Brief `tasks.md` checkboxes (`progress.done/total/current`)
-- Dispatch panel shows step list + optional agent-launch.log tail; prompt asks agents to check off as they go
-
-### Live agent detect + launch
-
-- Detect Cursor Agent / Claude Code / Cursor / VS Code on PATH (`GET /api/agents`)
-- Dispatch panel: pick launcher; start worker (`agent -p --force`, `claude --bg`) or open IDE
-- `POST /api/dispatch/launch` to re-launch; remember preferred agent in live config
-
-### Live base branch bootstrap
-
-- If a git repo has no develop/main/master, auto-create local `develop` from HEAD (or empty commit)
-
-### Live git bootstrap
-
-- Browsing / adding a non-git folder auto-runs `git init -b develop` + initial commit (skips home/root; skips parent-of-many-repos)
+- README / README.zh-CN: live desk flow updated for CLI launch, progress, and preview link
 
 ## 0.11.0 — 2026-09-16
 
