@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live dispatch hang fix
+
+- Terminal launch is async (no spawnSync/osascript wait); UI aborts dispatch after 60s instead of sticking on 派工中
+
 ### Live Terminal open fix
 
 - Cursor Agent uses `open *.command` to pop Terminal (fixed broken osascript quoting)

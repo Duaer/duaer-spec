@@ -1259,8 +1259,8 @@ function appleScriptString(s) {
 
 /**
  * Open a visible Terminal and run the Cursor CLI command.
- * macOS: write a .command file and `open` it (does not need Automation permission).
- * Fallback: osascript with correct AppleScript string quoting.
+ * Never block the HTTP thread (no spawnSync / no waiting on osascript).
+ * macOS: write `.command` and `open` it asynchronously.
  */
 function launchInTerminal({ cwd, commandLine, logPath }) {
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
@@ -1287,49 +1287,26 @@ read _
     fs.writeFileSync(cmdPath, body, { mode: 0o755 });
     appendLaunchLog(logPath, `[${new Date().toISOString()}] open ${cmdPath}`);
 
-    const openChild = spawnSync("open", [cmdPath], { encoding: "utf8" });
-    if (openChild.status === 0) {
-      appendLaunchLog(logPath, `[${new Date().toISOString()}] open .command ok`);
-      return {
-        pid: null,
-        mode: "terminal",
-        commandFile: cmdPath,
-      };
-    }
-
-    appendLaunchLog(
-      logPath,
-      `[${new Date().toISOString()}] open .command failed: ${(openChild.stderr || openChild.stdout || "").trim()} — trying osascript`,
-    );
-
-    const script = `cd ${shellSingleQuote(cwd)} && ${commandLine}`;
-    const osa = spawnSync(
-      "osascript",
-      [
-        "-e",
-        "tell application \"Terminal\" to activate",
-        "-e",
-        `tell application "Terminal" to do script ${appleScriptString(script)}`,
-      ],
-      { encoding: "utf8" },
-    );
-    appendLaunchLog(
-      logPath,
-      `[${new Date().toISOString()}] osascript exit=${osa.status}${(osa.stderr || "").trim() ? ` ${String(osa.stderr).trim()}` : ""}`,
-    );
-    if (osa.status !== 0) {
-      throw new Error(
-        `无法打开 Terminal（open 与 osascript 均失败）。请在「系统设置 → 隐私与安全性 → 自动化」允许终端控制，或手动运行：\n${commandLine}`,
+    const child = spawn("open", [cmdPath], {
+      detached: true,
+      stdio: "ignore",
+    });
+    child.on("error", (err) => {
+      appendLaunchLog(
+        logPath,
+        `[${new Date().toISOString()}] open error: ${err.message}`,
       );
-    }
+    });
+    child.unref();
+
     return {
-      pid: null,
+      pid: child.pid ?? null,
       mode: "terminal",
       commandFile: cmdPath,
     };
   }
 
-  // Linux / other
+  // Linux / other — also non-blocking
   for (const [cmd, args] of [
     ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
     ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],

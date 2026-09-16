@@ -783,10 +783,13 @@ el.doDispatch.addEventListener("click", async () => {
   el.doDispatch.disabled = true;
   el.doDispatch.textContent = "派工中…";
   state.busy = true;
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), 60000);
   try {
     const res = await fetch("/api/dispatch", {
       method: "POST",
       headers: { "content-type": "application/json" },
+      signal: ac.signal,
       body: JSON.stringify({
         jobId: state.jobId,
         repoPath,
@@ -804,7 +807,9 @@ el.doDispatch.addEventListener("click", async () => {
       launch.agentId && launch.agentId !== "none"
         ? `启动: ${launch.label || launch.agentId}${launch.pid ? ` (pid ${launch.pid})` : ""}${
             launch.command ? `\nCLI: ${launch.command}` : ""
-          }${launch.logPath ? `\n日志: ${launch.logPath}` : ""}`
+          }${launch.commandFile ? `\nTerminal脚本: ${launch.commandFile}` : ""}${
+            launch.logPath ? `\n日志: ${launch.logPath}` : ""
+          }`
         : "启动: 未启动（仅派工）";
     el.result.hidden = false;
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
@@ -836,9 +841,14 @@ el.doDispatch.addEventListener("click", async () => {
     el.doDispatch.disabled = false;
     syncDispatchButton();
     el.dispatchErr.hidden = false;
-    el.dispatchErr.textContent =
-      err instanceof Error ? err.message : String(err);
-    if (String(err?.message || err).includes("curl https://cursor.com/install")) {
+    const msg =
+      err?.name === "AbortError"
+        ? "派工超时（60s）。请刷新重试；若 worktree 已存在需换分支名或删掉旧 worktree。"
+        : err instanceof Error
+          ? err.message
+          : String(err);
+    el.dispatchErr.textContent = msg;
+    if (String(msg).includes("curl https://cursor.com/install")) {
       syncInstallHint();
       if (el.agentInstall) el.agentInstall.hidden = false;
       if (el.agentInstallCmd) {
@@ -847,7 +857,12 @@ el.doDispatch.addEventListener("click", async () => {
       }
     }
   } finally {
+    clearTimeout(timer);
     state.busy = false;
+    if (el.doDispatch.textContent === "派工中…") {
+      el.doDispatch.disabled = false;
+      syncDispatchButton();
+    }
   }
 });
 
