@@ -2,11 +2,13 @@
 
 ## Unreleased
 
+## 0.13.0 — 2026-09-16
+
 ### Revise UX: brief visible, preview, Terminal reuse
 
--「原始需求」expandable while revising so confirm card is not buried
--「再改一版」is a compact CTA beside preview (only when accepted), not a permanent primary button
-- Preview stays available during revise (keeps delivery.preview / artifact)
+- Expandable **Original brief** while revising so the confirm card is not buried
+- **Revise again** is a compact CTA beside preview (only when accepted), not a permanent primary button
+- Preview stays available during revise (keeps `delivery.preview` / artifact)
 - Same worktree reuses one Terminal runner; follow-up tasks enqueue instead of opening new windows
 
 ### Init Duaer in the chosen product directory
@@ -17,9 +19,9 @@
 
 ### Revise card stays visible after dispatch
 
-- After「再派一版」, right panel keeps locked **改进卡** with this round's confirmed fields (not back to confirm/collect chrome)
-- Chat busy hint is「正在左侧对话…」; only revise POST shows「续派中…」
--「再改一版」starts a new dialogue round
+- After revise confirm, right panel keeps a locked **revise card** with this round's confirmed fields
+- Chat busy hint is dialogue-in-progress; only revise POST shows dispatching
+- **Revise again** starts a new dialogue round
 
 ### CLI update check + self-update
 
@@ -45,13 +47,13 @@
 
 ### Live revise via dialogue + session continue
 
-- After preview: **Continue improving (left chat)** — multi-turn clarify why / what to change; revise card confirm, then dispatch
+- After preview: continue improving via left chat — multi-turn clarify why / what to change; revise card confirm, then dispatch
 - Revise Terminal launch uses `agent --continue` / `claude --continue` so the prior CLI session keeps going
 - One-shot freeform revise textarea removed
 
 ### Live revise after preview
 
-- After delivery accepted, **Continue improving** captures user feedback
+- After delivery accepted, continue improving captures user feedback
 - `POST /api/revise` restates feedback, appends Revision to the product Brief/tasks, reopens `delivery.json`, relaunches the CLI agent on the same worktree
 - Status poll resumes until the next accept
 
