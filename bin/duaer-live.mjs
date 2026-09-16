@@ -1680,7 +1680,7 @@ ${deployTasks}
 8. 不要推远程除非用户明确要求
 `;
 
-  const defaultPrompt = `Agent
+  const defaultPrompt = `Duaer
 
 按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
 
@@ -1699,8 +1699,9 @@ Brief: ${featureDir}
 ${deployPrompt}`;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
-  if (!/^Agent\b/m.test(agentPrompt)) {
-    agentPrompt = `Agent\n\n${agentPrompt}`;
+  agentPrompt = agentPrompt.replace(/^Agent\b/m, "Duaer");
+  if (!/^Duaer\b/m.test(agentPrompt)) {
+    agentPrompt = `Duaer\n\n${agentPrompt}`;
   }
   if (!agentPrompt.includes(worktreePath)) {
     agentPrompt = `${agentPrompt}
@@ -1987,7 +1988,7 @@ ${reasonLine || text}
     "utf8",
   );
 
-  const defaultPrompt = `Agent
+  const defaultPrompt = `Duaer
 
 用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
 请续上一次会话上下文（CLI 已带 --continue）。
@@ -2017,8 +2018,9 @@ ${restated.keep}
 `;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
-  if (!/^Agent\b/m.test(agentPrompt)) {
-    agentPrompt = `Agent\n\n${agentPrompt}`;
+  agentPrompt = agentPrompt.replace(/^Agent\b/m, "Duaer");
+  if (!/^Duaer\b/m.test(agentPrompt)) {
+    agentPrompt = `Duaer\n\n${agentPrompt}`;
   }
 
   const detected = detectAgents();

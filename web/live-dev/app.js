@@ -605,7 +605,7 @@ async function loadAgents() {
 
 function defaultStartCommand() {
   const goal = el.goal?.value?.trim() || "（在此写清要做什么）";
-  return `Agent
+  return `Duaer
 
 ${goal}
 
@@ -620,8 +620,11 @@ function ensureStartCommandPrefix() {
     el.startCommand.value = defaultStartCommand();
     return;
   }
-  if (!/^Agent\b/m.test(raw.trim())) {
-    el.startCommand.value = `Agent\n\n${raw.trim()}\n`;
+  let body = raw.trim().replace(/^Agent\b/m, "Duaer");
+  if (!/^Duaer\b/m.test(body)) {
+    el.startCommand.value = `Duaer\n\n${body}\n`;
+  } else if (body !== raw.trim()) {
+    el.startCommand.value = `${body}\n`;
   }
 }
 
