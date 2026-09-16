@@ -26,6 +26,26 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const WEB_ROOT = path.join(PACKAGE_ROOT, "web", "live-dev");
 
+/** Extra dirs for CLI discovery (launchd PATH is often /usr/bin:/bin only). */
+const CLI_PATH_DIRS = [
+  path.join(os.homedir(), ".local", "bin"),
+  "/usr/local/bin",
+  "/opt/homebrew/bin",
+];
+
+function ensureCliSearchPath() {
+  const cur = String(process.env.PATH || "");
+  const parts = cur.split(path.delimiter).filter(Boolean);
+  const prepend = CLI_PATH_DIRS.filter(
+    (d) => fs.existsSync(d) && !parts.includes(d),
+  );
+  if (prepend.length) {
+    process.env.PATH = [...prepend, ...parts].join(path.delimiter);
+  }
+}
+
+ensureCliSearchPath();
+
 /** Last npm update check result for /api/health (refreshed in background). */
 let updateInfoCache = null;
 
@@ -1268,12 +1288,32 @@ function readLiveJob(jobId) {
 }
 
 function whichCmd(cmd) {
-  const r = spawnSync("which", [cmd], { encoding: "utf8" });
-  if (r.status !== 0) return null;
-  const p = String(r.stdout || "")
-    .trim()
-    .split("\n")[0];
-  return p || null;
+  const name = String(cmd || "").trim();
+  if (!name || name.includes("/") || name.includes("\\")) return null;
+  const r = spawnSync("which", [name], {
+    encoding: "utf8",
+    env: process.env,
+  });
+  if (r.status === 0) {
+    const p = String(r.stdout || "")
+      .trim()
+      .split("\n")[0];
+    if (p) return p;
+  }
+  // Fallback when `which` is missing or PATH still incomplete (e.g. launchd)
+  for (const dir of CLI_PATH_DIRS) {
+    const full = path.join(dir, name);
+    try {
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+        // Follow symlink targets that are executable files
+        fs.accessSync(full, fs.constants.X_OK);
+        return full;
+      }
+    } catch {
+      // not executable / not readable
+    }
+  }
+  return null;
 }
 
 /** CLI-only digital-employee launchers (Terminal). */

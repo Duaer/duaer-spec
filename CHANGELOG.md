@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Detect CLI agents under LaunchAgent PATH
+
+- Prepend `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin` to PATH when live starts
+- `whichCmd` falls back to those directories so Cursor Agent / Claude Code are found under launchd
+
 ## 0.13.0 — 2026-09-16
 
 ### Revise UX: brief visible, preview, Terminal reuse

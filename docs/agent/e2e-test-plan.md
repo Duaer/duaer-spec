@@ -46,6 +46,7 @@ the table for their app.
 | E2E-031 | After revise confirm, right card stays locked 改进卡; chat busy ≠「续派中」 | manual |
 | E2E-032 | Dispatch/browse installs Duaer in the chosen directory (no silent redirect) | manual |
 | E2E-033 | Revise: original brief visible; preview kept; Terminal queue reuse | manual |
+| E2E-034 | Live detects agent/claude under ~/.local/bin even with launchd PATH | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -98,3 +99,4 @@ the table for their app.
 | E2E-031 | `030-revise-card-ui` | revise card locked after dispatch |
 | E2E-032 | `031-dispatch-init` | init Duaer in chosen product dir |
 | E2E-033 | `032-revise-ux` | original brief + preview + Terminal reuse |
+| E2E-034 | `033-agent-detect` | CLI detect under launchd PATH |
