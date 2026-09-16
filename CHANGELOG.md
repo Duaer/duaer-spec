@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Start command prefix `Duaer`
+
+- Live desk start command / agent prompt prefix is `Duaer` (legacy `Agent` rewritten)
+
 ### Auto-fix on accept failure
 
 - When confirm auto-accept fails, the bot message offers an **Auto-fix** action
@@ -36,7 +40,7 @@
 
 - Confirm + auto-accept, then pick a product repo (browse / scan / recent) and create `.worktree/feat-*` with Brief under that worktree’s `.duaer/specs/`
 - Non-git folders: auto `git init -b develop`; repos without develop/main/master: auto-create local `develop`
-- Launchers are **CLI only**: Cursor Agent and Claude Code — open Terminal and run `agent` / `cursor agent` or `claude` with the start command (prefix `Agent`)
+- Launchers are **CLI only**: Cursor Agent and Claude Code — open Terminal and run `agent` / `cursor agent` or `claude` with the start command (prefix `Duaer`)
 - Missing Cursor CLI shows install: `curl https://cursor.com/install -fsS | bash`
 - Progress: poll product Brief `tasks.md` checkboxes; optional agent-launch.log tail
 - On `delivery.json` accepted: show **View product** from `preview.url` (or auto-detect `index.html`); serve worktree files at `/api/artifact/<jobId>/…`
