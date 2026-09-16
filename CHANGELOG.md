@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live agent auto-run (fix)
+
+- Cursor Agent / Claude launch non-interactively (`agent -p --force`, `claude --bg`) so dispatch does not wait for user input in Terminal/IDE
+- Stop opening an empty Cursor window on worker launch (that looked like “waiting for you”)
+
 ### Live agent run (fix)
 
 - Cursor Agent / Claude now start a visible Terminal session with the job prompt (not silent `-p` / not IDE-open-only)

@@ -1117,13 +1117,13 @@ const AGENT_CATALOG = [
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
-    hint: "打开仓库 + 终端跑 agent 开工",
+    hint: "后台自动开工（agent -p --force）",
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
-    hint: "终端跑 claude 开工",
+    hint: "后台自动开工（claude --bg）",
   },
   {
     id: "cursor",
@@ -1277,6 +1277,36 @@ function openEditor(cmd, worktreePath, logPath) {
   return child.pid ?? null;
 }
 
+function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const logFd = fs.openSync(logPath, "a");
+  appendLaunchLog(
+    logPath,
+    `[${new Date().toISOString()}] exec ${cmd} ${args
+      .map((a) => (String(a).length > 80 ? `${String(a).slice(0, 80)}…` : a))
+      .join(" ")}`,
+  );
+  const child = spawn(cmd, args, {
+    detached: true,
+    cwd,
+    stdio: ["ignore", logFd, logFd],
+    env: process.env,
+  });
+  child.on("error", (err) => {
+    appendLaunchLog(
+      logPath,
+      `[${new Date().toISOString()}] spawn error: ${err.message}`,
+    );
+  });
+  child.unref();
+  try {
+    fs.closeSync(logFd);
+  } catch {
+    // child holds a dup
+  }
+  return child.pid ?? null;
+}
+
 function rememberPreferredAgent(agentId) {
   const id = String(agentId || "").trim();
   const meta = AGENT_CATALOG.find((a) => a.id === id);
@@ -1329,10 +1359,9 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
 
   appendLaunchLog(
     outLog,
-    `[${launch.launchedAt}] start ${id} cwd=${worktreePath}`,
+    `[${launch.launchedAt}] start ${id} cwd=${worktreePath} (non-interactive)`,
   );
 
-  // Write prompt file so Terminal command stays short / shell-safe
   const promptFile = path.join(
     path.dirname(outLog),
     "agent-launch-prompt.txt",
@@ -1340,31 +1369,40 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
   if (id === "cursor-agent") {
-    if (whichCmd("cursor")) {
-      openEditor("cursor", worktreePath, outLog);
-    }
+    // Non-interactive: -p prints/runs without waiting for terminal input.
+    // Do NOT open Cursor IDE here — empty IDE looks like "waiting for user".
     const agentBin = whichCmd("agent");
-    const runner = agentBin
-      ? `${shellSingleQuote(agentBin)} --workspace ${shellSingleQuote(worktreePath)} --trust --force "$(cat ${shellSingleQuote(promptFile)})"`
-      : `cursor agent --workspace ${shellSingleQuote(worktreePath)} --trust --force "$(cat ${shellSingleQuote(promptFile)})"`;
-    const term = launchInTerminal({
+    const cmd = agentBin ? agentBin : "cursor";
+    const args = agentBin
+      ? ["--workspace", worktreePath, "--trust", "-p", "--force", prompt]
+      : [
+          "agent",
+          "--workspace",
+          worktreePath,
+          "--trust",
+          "-p",
+          "--force",
+          prompt,
+        ];
+    launch.pid = spawnBackgroundWorker({
+      cmd,
+      args,
       cwd: worktreePath,
-      commandLine: runner,
       logPath: outLog,
     });
-    launch.pid = term.pid;
-    launch.mode = term.mode;
-    launch.command = agentBin ? "agent --trust --force" : "cursor agent --trust --force";
+    launch.mode = "background";
+    launch.command = agentBin
+      ? "agent -p --force --trust"
+      : "cursor agent -p --force --trust";
   } else if (id === "claude") {
-    const runner = `claude "$(cat ${shellSingleQuote(promptFile)})"`;
-    const term = launchInTerminal({
+    launch.pid = spawnBackgroundWorker({
+      cmd: "claude",
+      args: ["--bg", prompt],
       cwd: worktreePath,
-      commandLine: runner,
       logPath: outLog,
     });
-    launch.pid = term.pid;
-    launch.mode = term.mode;
-    launch.command = "claude";
+    launch.mode = "background";
+    launch.command = "claude --bg";
   } else {
     throw new Error(`未知启动器：${id}`);
   }
