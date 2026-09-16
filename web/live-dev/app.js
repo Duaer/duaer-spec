@@ -29,6 +29,9 @@ const state = {
   jobId: null,
   statusTimer: null,
   repoCatalog: { recent: [], discovered: [] },
+  agents: [],
+  missingAgents: [],
+  agentId: "none",
 };
 
 const el = {
@@ -58,6 +61,8 @@ const el = {
   repoFilter: document.getElementById("repoFilter"),
   repoBrowse: document.getElementById("repoBrowse"),
   repoScan: document.getElementById("repoScan"),
+  agentList: document.getElementById("agentList"),
+  agentHint: document.getElementById("agentHint"),
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
@@ -408,9 +413,85 @@ async function showDispatchPanel() {
   el.dispatchErr.hidden = true;
   el.dispatchStatus.hidden = true;
   el.doDispatch.disabled = false;
-  el.doDispatch.textContent = "写入 Brief 并建 worktree";
+  syncDispatchButton();
   state.repoCatalog = { recent: [], discovered: [] };
-  await loadRepoCatalog(false);
+  await Promise.all([loadRepoCatalog(false), loadAgents()]);
+}
+
+async function loadAgents() {
+  try {
+    const res = await fetch("/api/agents");
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "agents failed");
+    state.agents = data.agents || [];
+    state.missingAgents = data.missing || [];
+    const preferred = data.preferredAgentId;
+    const workers = state.agents.filter((a) => a.kind === "worker");
+    if (preferred && state.agents.some((a) => a.id === preferred)) {
+      state.agentId = preferred;
+    } else if (workers.length) {
+      state.agentId = workers[0].id;
+    } else {
+      state.agentId = "none";
+    }
+    renderAgentList();
+    syncDispatchButton();
+  } catch (err) {
+    state.agents = [{ id: "none", label: "仅派工不启动", kind: "none", hint: "" }];
+    state.agentId = "none";
+    renderAgentList();
+    if (el.agentHint) {
+      el.agentHint.textContent =
+        err instanceof Error ? err.message : "无法检测本机启动器";
+    }
+  }
+}
+
+function renderAgentList() {
+  if (!el.agentList) return;
+  el.agentList.replaceChildren();
+  for (const a of state.agents) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "agent-chip";
+    b.setAttribute("aria-pressed", a.id === state.agentId ? "true" : "false");
+    const strong = document.createElement("strong");
+    strong.textContent = a.label;
+    b.appendChild(strong);
+    if (a.hint) {
+      const span = document.createElement("span");
+      span.textContent = a.hint;
+      b.appendChild(span);
+    }
+    b.addEventListener("click", () => {
+      state.agentId = a.id;
+      renderAgentList();
+      syncDispatchButton();
+    });
+    el.agentList.appendChild(b);
+  }
+  if (el.agentHint) {
+    const miss = (state.missingAgents || [])
+      .map((m) => m.label)
+      .filter(Boolean);
+    el.agentHint.textContent = miss.length
+      ? `未检测到：${miss.join("、")}（安装 CLI 并加入 PATH 后刷新）`
+      : "已检测本机可用启动器";
+  }
+}
+
+function syncDispatchButton() {
+  if (!el.doDispatch) return;
+  const label = el.doDispatch.textContent;
+  if (label === "已派工" || label === "派工中…") return;
+  const a = state.agents.find((x) => x.id === state.agentId);
+  if (!a || a.id === "none") {
+    el.doDispatch.textContent = "写入 Brief 并建 worktree";
+  } else if (a.kind === "open") {
+    el.doDispatch.textContent = `派工并用 ${a.label.replace(/（.*）/, "")} 打开`;
+  } else {
+    el.doDispatch.textContent = `派工并用 ${a.label} 启动`;
+  }
 }
 
 async function loadRepoCatalog(discover) {
@@ -578,23 +659,41 @@ el.doDispatch.addEventListener("click", async () => {
     const res = await fetch("/api/dispatch", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jobId: state.jobId, repoPath }),
+      body: JSON.stringify({
+        jobId: state.jobId,
+        repoPath,
+        agentId: state.agentId || "none",
+      }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "派工失败");
+    const launch = data.launch || {};
+    const launchLine =
+      launch.agentId && launch.agentId !== "none"
+        ? `启动: ${launch.label || launch.agentId}${launch.pid ? ` (pid ${launch.pid})` : ""}${
+            launch.logPath ? `\n日志: ${launch.logPath}` : ""
+          }`
+        : "启动: 未启动（仅派工）";
     el.result.hidden = false;
-    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n打开编辑器: ${data.openedWith || "无（请手动打开）"}\n\n—— 复制给数字员工 ——\n${data.agentPrompt}`;
+    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 开工说明（备用） ——\n${data.agentPrompt}`;
+    const who =
+      launch.agentId && launch.agentId !== "none"
+        ? `已用 ${launch.label || launch.agentId} 启动数字员工`
+        : "已派工；可再选启动器后刷新页面重新派工，或把右侧说明交给数字员工";
     addBubble(
       "bot",
-      `已派工到 ${data.worktreePath}。把右侧开工说明交给数字员工；完成后 delivery 会显示在此。`,
+      `${who}。完成后 delivery 会显示在此。\n${data.worktreePath}`,
     );
     el.doDispatch.textContent = "已派工";
     el.dispatchStatus.hidden = false;
-    el.dispatchStatus.textContent = "等待数字员工 stamp delivery.json…";
+    el.dispatchStatus.textContent =
+      launch.kind === "worker"
+        ? "数字员工已启动 · 等待 stamp delivery.json…"
+        : "等待数字员工 stamp delivery.json…";
     startStatusPoll();
   } catch (err) {
     el.doDispatch.disabled = false;
-    el.doDispatch.textContent = "写入 Brief 并建 worktree";
+    syncDispatchButton();
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent =
       err instanceof Error ? err.message : String(err);

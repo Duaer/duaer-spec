@@ -34,6 +34,7 @@ the table for their app.
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
 | E2E-021 | `duaer live` stream + auto-accept + dispatch to product worktree | manual / curl |
+| E2E-022 | Live desk detects agents and launches selected digital employee | manual / curl |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -73,3 +74,5 @@ the table for their app.
 | E2E-018 | AGENTS §3 / workflow R3 | Risk-based run |
 | E2E-019 | `duaer-tasks` / `duaer-converge` | Default verify |
 | E2E-020 | `delivery.json` | Verification evidence |
+| E2E-021 | live 008–010 | Desk → product |
+| E2E-022 | `011-live-agent-launch` | Detect + launch |

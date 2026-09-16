@@ -105,7 +105,12 @@
             <span>或粘贴路径</span>
             <input id="repoPath" type="text" placeholder="/Users/…/your-product" />
           </label>
-          <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并建 worktree</button>
+          <div class="agent-pick">
+            <p class="agent-pick-label">用哪个数字员工启动</p>
+            <div id="agentList" class="agent-list"></div>
+            <p id="agentHint" class="hint">检测本机 PATH 上的 Cursor Agent / Claude Code 等</p>
+          </div>
+          <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并启动</button>
           <p id="dispatchErr" class="hint" hidden></p>
           <p id="dispatchStatus" class="meta" hidden></p>
         </section>

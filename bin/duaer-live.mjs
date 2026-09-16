@@ -102,6 +102,7 @@ function readConfig() {
       baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
+      preferredAgentId: "",
     };
   }
   try {
@@ -110,9 +111,10 @@ function readConfig() {
       baseUrl: String(raw.baseUrl || process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(raw.apiKey || process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(raw.model || process.env.DUAER_LIVE_MODEL || "").trim(),
+      preferredAgentId: String(raw.preferredAgentId || "").trim(),
     };
   } catch {
-    return { baseUrl: "", apiKey: "", model: "" };
+    return { baseUrl: "", apiKey: "", model: "", preferredAgentId: "" };
   }
 }
 
@@ -123,6 +125,10 @@ function writeConfig(partial) {
     baseUrl: partial.baseUrl !== undefined ? String(partial.baseUrl).trim() : cur.baseUrl,
     apiKey: partial.apiKey !== undefined ? String(partial.apiKey).trim() : cur.apiKey,
     model: partial.model !== undefined ? String(partial.model).trim() : cur.model,
+    preferredAgentId:
+      partial.preferredAgentId !== undefined
+        ? String(partial.preferredAgentId).trim()
+        : cur.preferredAgentId,
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return next;
@@ -139,6 +145,7 @@ function publicConfig(cfg = readConfig()) {
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
     provider: inferProviderId(cfg),
+    preferredAgentId: cfg.preferredAgentId || "",
     liveRoot: liveRoot(),
     jobsRoot: jobsRoot(),
     providers: listProviders(),
@@ -1095,21 +1102,217 @@ function readLiveJob(jobId) {
   };
 }
 
-function tryOpenEditor(targetPath) {
-  for (const cmd of ["cursor", "code"]) {
-    const which = spawnSync("which", [cmd], { encoding: "utf8" });
-    if (which.status !== 0) continue;
-    const child = spawn(cmd, [targetPath], {
+function whichCmd(cmd) {
+  const r = spawnSync("which", [cmd], { encoding: "utf8" });
+  if (r.status !== 0) return null;
+  const p = String(r.stdout || "")
+    .trim()
+    .split("\n")[0];
+  return p || null;
+}
+
+/** Digital-employee / editor launchers detectable on PATH. */
+const AGENT_CATALOG = [
+  {
+    id: "cursor-agent",
+    label: "Cursor Agent",
+    kind: "worker",
+    hint: "在 worktree 用 CLI Agent 开工（-p --force）",
+  },
+  {
+    id: "claude",
+    label: "Claude Code",
+    kind: "worker",
+    hint: "后台会话（claude --bg）",
+  },
+  {
+    id: "cursor",
+    label: "Cursor（打开仓库）",
+    kind: "open",
+    hint: "只打开 worktree，不自动跑 Agent",
+  },
+  {
+    id: "code",
+    label: "VS Code（打开仓库）",
+    kind: "open",
+    hint: "只打开 worktree",
+  },
+  {
+    id: "none",
+    label: "仅派工不启动",
+    kind: "none",
+    hint: "只建 worktree / Brief，稍后再启动",
+  },
+];
+
+function detectAgents() {
+  const preferred = readConfig().preferredAgentId || "";
+  const agentBin = whichCmd("agent");
+  const cursorBin = whichCmd("cursor");
+  const claudeBin = whichCmd("claude");
+  const codeBin = whichCmd("code");
+
+  const installed = [];
+  if (agentBin || cursorBin) {
+    installed.push({
+      ...AGENT_CATALOG.find((a) => a.id === "cursor-agent"),
+      available: true,
+      command: agentBin ? "agent" : "cursor agent",
+      path: agentBin || cursorBin,
+    });
+  }
+  if (claudeBin) {
+    installed.push({
+      ...AGENT_CATALOG.find((a) => a.id === "claude"),
+      available: true,
+      command: "claude",
+      path: claudeBin,
+    });
+  }
+  if (cursorBin) {
+    installed.push({
+      ...AGENT_CATALOG.find((a) => a.id === "cursor"),
+      available: true,
+      command: "cursor",
+      path: cursorBin,
+    });
+  }
+  if (codeBin) {
+    installed.push({
+      ...AGENT_CATALOG.find((a) => a.id === "code"),
+      available: true,
+      command: "code",
+      path: codeBin,
+    });
+  }
+  installed.push({
+    ...AGENT_CATALOG.find((a) => a.id === "none"),
+    available: true,
+    command: null,
+    path: null,
+  });
+
+  const ids = new Set(installed.map((a) => a.id));
+  const missing = AGENT_CATALOG.filter(
+    (a) => a.id !== "none" && !ids.has(a.id),
+  ).map((a) => ({ ...a, available: false, command: null, path: null }));
+
+  return {
+    preferredAgentId: preferred && ids.has(preferred) ? preferred : "",
+    agents: installed,
+    missing,
+  };
+}
+
+function appendLaunchLog(logPath, line) {
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  fs.appendFileSync(logPath, `${line}\n`, "utf8");
+}
+
+function launchAgent({ agentId, worktreePath, agentPrompt, logPath }) {
+  const id = String(agentId || "none").trim() || "none";
+  const detected = detectAgents();
+  const meta = detected.agents.find((a) => a.id === id);
+  if (!meta?.available) {
+    throw new Error(`本机未检测到启动器：${id}`);
+  }
+
+  const launch = {
+    agentId: id,
+    label: meta.label,
+    kind: meta.kind,
+    launchedAt: new Date().toISOString(),
+    logPath: logPath || null,
+    pid: null,
+    command: meta.command,
+  };
+
+  if (id === "none") {
+    return launch;
+  }
+
+  if (!worktreePath || !fs.existsSync(worktreePath)) {
+    throw new Error("worktree 不存在，无法启动");
+  }
+
+  const prompt = String(agentPrompt || "").trim();
+  const outLog =
+    logPath ||
+    path.join(worktreePath, ".duaer", "live-agent-launch.log");
+
+  if (id === "cursor" || id === "code") {
+    const child = spawn(id, [worktreePath], {
       detached: true,
       stdio: "ignore",
     });
     child.unref();
-    return cmd;
+    launch.pid = child.pid ?? null;
+    appendLaunchLog(
+      outLog,
+      `[${launch.launchedAt}] open ${id} ${worktreePath} pid=${launch.pid}`,
+    );
+    launch.logPath = outLog;
+    return launch;
   }
-  return null;
+
+  if (!prompt) throw new Error("缺少开工 prompt");
+
+  appendLaunchLog(
+    outLog,
+    `[${launch.launchedAt}] start ${id} cwd=${worktreePath}`,
+  );
+  const logFd = fs.openSync(outLog, "a");
+
+  if (id === "cursor-agent") {
+    const agentBin = whichCmd("agent");
+    const cmd = agentBin ? "agent" : "cursor";
+    const args = agentBin
+      ? ["--workspace", worktreePath, "--trust", "-p", "--force", prompt]
+      : [
+          "agent",
+          "--workspace",
+          worktreePath,
+          "--trust",
+          "-p",
+          "--force",
+          prompt,
+        ];
+    const child = spawn(cmd, args, {
+      detached: true,
+      cwd: worktreePath,
+      stdio: ["ignore", logFd, logFd],
+      env: process.env,
+    });
+    child.unref();
+    launch.pid = child.pid ?? null;
+    launch.command = agentBin ? "agent" : "cursor agent";
+  } else if (id === "claude") {
+    const child = spawn("claude", ["--bg", prompt], {
+      detached: true,
+      cwd: worktreePath,
+      stdio: ["ignore", logFd, logFd],
+      env: process.env,
+    });
+    child.unref();
+    launch.pid = child.pid ?? null;
+    launch.command = "claude --bg";
+  } else {
+    fs.closeSync(logFd);
+    throw new Error(`未知启动器：${id}`);
+  }
+
+  try {
+    fs.closeSync(logFd);
+  } catch {
+    // already closed by child inheritance on some platforms
+  }
+
+  launch.logPath = outLog;
+  appendLaunchLog(outLog, `[${new Date().toISOString()}] spawned pid=${launch.pid}`);
+  return launch;
 }
 
-function dispatchToRepo({ jobId, repoPath }) {
+function dispatchToRepo({ jobId, repoPath, agentId }) {
   const live = readLiveJob(jobId);
   const probe = probeRepo(repoPath, { bootstrap: true });
   const branch =
@@ -1196,7 +1399,6 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
     "utf8",
   );
 
-  const openedWith = tryOpenEditor(worktreePath);
   const agentPrompt = `按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
 
 工作目录: ${worktreePath}
@@ -1211,6 +1413,21 @@ Brief: ${featureDir}
 5. 合入 develop 并 handoff 清理 worktree
 `;
 
+  const chosen =
+    String(agentId || "").trim() ||
+    readConfig().preferredAgentId ||
+    "none";
+  const logPath = path.join(featureDir, "agent-launch.log");
+  const launch = launchAgent({
+    agentId: chosen,
+    worktreePath,
+    agentPrompt,
+    logPath,
+  });
+  if (chosen && chosen !== "none") {
+    writeConfig({ preferredAgentId: chosen });
+  }
+
   const dispatch = {
     repoPath: probe.path,
     baseBranch: probe.baseBranch,
@@ -1219,13 +1436,15 @@ Brief: ${featureDir}
     specDir: `.duaer/specs/${specDirName}`,
     featureDir,
     dispatchedAt: new Date().toISOString(),
-    openedWith,
+    openedWith: launch.kind === "open" ? launch.agentId : null,
+    launch,
   };
 
   const nextJob = {
     ...live.job,
     status: "dispatched",
     dispatch,
+    agentPrompt,
   };
   fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
@@ -1234,6 +1453,42 @@ Brief: ${featureDir}
     ok: true,
     jobId: live.id,
     ...dispatch,
+    agentPrompt,
+    agents: detectAgents(),
+  };
+}
+
+function launchDispatchedAgent({ jobId, agentId }) {
+  const live = readLiveJob(jobId);
+  const dispatch = live.job.dispatch;
+  if (!dispatch?.worktreePath) {
+    throw new Error("尚未派工，无法启动");
+  }
+  const agentPrompt =
+    live.job.agentPrompt ||
+    `按 Duaer 数字员工流程在本 worktree 开工。\n工作目录: ${dispatch.worktreePath}\nBrief: ${dispatch.featureDir}`;
+  const logPath = path.join(dispatch.featureDir, "agent-launch.log");
+  const launch = launchAgent({
+    agentId,
+    worktreePath: dispatch.worktreePath,
+    agentPrompt,
+    logPath,
+  });
+  if (agentId && agentId !== "none") {
+    writeConfig({ preferredAgentId: String(agentId).trim() });
+  }
+  const nextDispatch = { ...dispatch, launch, openedWith: launch.kind === "open" ? launch.agentId : dispatch.openedWith };
+  const nextJob = {
+    ...live.job,
+    agentPrompt,
+    dispatch: nextDispatch,
+  };
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  return {
+    ok: true,
+    jobId: live.id,
+    dispatch: nextDispatch,
+    launch,
     agentPrompt,
   };
 }
@@ -1301,6 +1556,7 @@ async function handleApi(req, res) {
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
         model: body.model,
+        preferredAgentId: body.preferredAgentId,
       });
       if (!configReady(next)) {
         send(res, 400, {
@@ -1491,17 +1747,39 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/agents") {
+    send(res, 200, detectAgents());
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/dispatch") {
     try {
       const body = await readJson(req);
       const result = dispatchToRepo({
         jobId: body.jobId,
         repoPath: body.repoPath,
+        agentId: body.agentId,
       });
       send(res, 200, result);
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "dispatch failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/dispatch/launch") {
+    try {
+      const body = await readJson(req);
+      const result = launchDispatchedAgent({
+        jobId: body.jobId,
+        agentId: body.agentId,
+      });
+      send(res, 200, result);
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "launch failed",
       });
     }
     return;

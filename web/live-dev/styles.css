@@ -465,6 +465,61 @@ input:focus {
   font-size: 0.82rem;
 }
 
+.agent-pick {
+  margin: 0.85rem 0 1rem;
+}
+
+.agent-pick-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+
+.agent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.agent-chip {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 0.45rem 0.65rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  min-width: 7.5rem;
+}
+
+.agent-chip:hover,
+.agent-chip:focus-visible {
+  border-color: var(--register);
+  outline: none;
+}
+
+.agent-chip[aria-pressed="true"] {
+  border-color: var(--lock);
+  background: rgba(47, 158, 143, 0.12);
+}
+
+.agent-chip strong {
+  display: block;
+  font-weight: 700;
+}
+
+.agent-chip span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  color: var(--mute);
+  max-width: 14rem;
+}
+
 .setup-panel {
   position: relative;
   z-index: 1;

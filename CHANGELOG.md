@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live agent detect + launch
+
+- Detect Cursor Agent / Claude Code / Cursor / VS Code on PATH (`GET /api/agents`)
+- Dispatch panel: pick launcher; start worker (`agent -p --force`, `claude --bg`) or open IDE
+- `POST /api/dispatch/launch` to re-launch; remember preferred agent in live config
+
 ### Live base branch bootstrap
 
 - If a git repo has no develop/main/master, auto-create local `develop` from HEAD (or empty commit)
