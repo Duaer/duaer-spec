@@ -2138,6 +2138,144 @@ async function restateRevisionFeedback(cfg, feedback, goalHint) {
   }
 }
 
+function primaryBriefDir(dispatch) {
+  if (!dispatch?.repoPath || !dispatch?.specDir) return null;
+  return path.join(dispatch.repoPath, dispatch.specDir);
+}
+
+/**
+ * After agent handoff the request worktree is removed; Brief + delivery live on
+ * the product repo's develop checkout. Prefer worktree when present.
+ */
+function resolveDispatchRoots(dispatch) {
+  const wt = dispatch?.worktreePath ? path.resolve(dispatch.worktreePath) : null;
+  const wtOk = Boolean(wt && fs.existsSync(wt));
+  const featureOnWt =
+    dispatch?.featureDir && fs.existsSync(dispatch.featureDir)
+      ? dispatch.featureDir
+      : null;
+  if (wtOk && featureOnWt) {
+    return {
+      root: wt,
+      featureDir: featureOnWt,
+      worktreeExists: true,
+      source: "worktree",
+    };
+  }
+  const primary = primaryBriefDir(dispatch);
+  if (primary && fs.existsSync(primary)) {
+    return {
+      root: path.resolve(dispatch.repoPath),
+      featureDir: primary,
+      worktreeExists: false,
+      source: "primary",
+    };
+  }
+  if (wtOk) {
+    return {
+      root: wt,
+      featureDir: dispatch.featureDir,
+      worktreeExists: true,
+      source: "worktree",
+    };
+  }
+  return {
+    root: dispatch?.repoPath ? path.resolve(dispatch.repoPath) : null,
+    featureDir: dispatch?.featureDir || null,
+    worktreeExists: false,
+    source: "missing",
+  };
+}
+
+/**
+ * Recreate a request worktree after handoff so revise can continue.
+ * Copies Brief from the product primary checkout when needed.
+ */
+function recreateWorktreeForRevise(live, dispatch, revN) {
+  if (!dispatch?.repoPath) {
+    throw new Error("缺少产品仓路径，无法重建 worktree");
+  }
+  const probe = probeRepo(dispatch.repoPath, {
+    bootstrap: false,
+    exact: true,
+    ensureDuaer: true,
+  });
+  const base = probe.baseBranch || "develop";
+  const rawSlug = String(dispatch.branch || live.id || "revise")
+    .replace(/^feat\//, "")
+    .replace(/^fix\//, "");
+  const slug = slugify(rawSlug).slice(0, 40) || "revise";
+  let branch = `feat/${slug}-r${revN}`;
+  let worktreeId = branch.replace(/\//g, "-");
+  let worktreePath = path.join(probe.path, ".worktree", worktreeId);
+  let n = revN;
+  while (fs.existsSync(worktreePath) || hasLocalBranch(probe.path, branch)) {
+    n += 1;
+    branch = `feat/${slug}-r${n}`;
+    worktreeId = branch.replace(/\//g, "-");
+    worktreePath = path.join(probe.path, ".worktree", worktreeId);
+    if (n > revN + 20) {
+      throw new Error("无法分配新的续改分支名");
+    }
+  }
+
+  fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
+  runGit(probe.path, ["worktree", "add", "-b", branch, worktreePath, base]);
+  ensureDuaerInstalled(worktreePath);
+
+  const primary = primaryBriefDir(dispatch);
+  const specDirRel =
+    dispatch.specDir ||
+    (primary ? path.relative(probe.path, primary) : null);
+  if (!specDirRel) {
+    throw new Error("缺少 Brief 相对路径（specDir），无法续改");
+  }
+  const specDirName = path.basename(specDirRel);
+  const featureDir = path.join(worktreePath, ".duaer", "specs", specDirName);
+  fs.mkdirSync(path.dirname(featureDir), { recursive: true });
+
+  const sourceBrief =
+    primary && fs.existsSync(primary)
+      ? primary
+      : dispatch.featureDir && fs.existsSync(dispatch.featureDir)
+        ? dispatch.featureDir
+        : null;
+  if (!sourceBrief) {
+    throw new Error(
+      `数字员工已合入 develop 并清理了 worktree；产品仓也找不到 Brief（期望 ${primary || dispatch.featureDir}）。无法续改。`,
+    );
+  }
+  fs.cpSync(sourceBrief, featureDir, { recursive: true });
+
+  fs.writeFileSync(
+    path.join(worktreePath, ".duaer", "active-job.json"),
+    `${JSON.stringify(
+      {
+        specDir: `.duaer/specs/${specDirName}`,
+        branch,
+        startedAt: new Date().toISOString(),
+        source: "live-revise-recreate",
+        liveJobId: live.id,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  return {
+    ...dispatch,
+    repoPath: probe.path,
+    baseBranch: base,
+    branch,
+    worktreePath,
+    featureDir,
+    specDir: `.duaer/specs/${specDirName}`,
+    recreatedAt: new Date().toISOString(),
+    recreatedFrom: sourceBrief,
+  };
+}
+
 async function reviseDispatchedJob({
   jobId,
   feedback,
@@ -2161,20 +2299,31 @@ async function reviseDispatchedJob({
   }
 
   const live = readLiveJob(jobId);
-  const dispatch = live.job.dispatch;
-  if (!dispatch?.worktreePath || !dispatch?.featureDir) {
+  let dispatch = live.job.dispatch;
+  if (!dispatch?.repoPath && !dispatch?.worktreePath) {
     throw new Error("尚未派工，无法继续改进");
-  }
-  if (!fs.existsSync(dispatch.worktreePath)) {
-    throw new Error(`worktree 已不存在：${dispatch.worktreePath}`);
-  }
-  if (!fs.existsSync(dispatch.featureDir)) {
-    throw new Error(`Brief 目录不存在：${dispatch.featureDir}`);
   }
 
   const revN = Number(live.job.revisionCount || 0) + 1;
   const now = new Date().toISOString();
   const today = now.slice(0, 10);
+  let recreated = false;
+
+  // Handoff may have removed the worktree; recreate from develop + primary Brief
+  if (!dispatch.worktreePath || !fs.existsSync(dispatch.worktreePath)) {
+    dispatch = recreateWorktreeForRevise(live, dispatch, revN);
+    recreated = true;
+  } else if (!dispatch.featureDir || !fs.existsSync(dispatch.featureDir)) {
+    const primary = primaryBriefDir(dispatch);
+    if (primary && fs.existsSync(primary)) {
+      dispatch = {
+        ...dispatch,
+        featureDir: primary,
+      };
+    } else {
+      throw new Error(`Brief 目录不存在：${dispatch.featureDir}`);
+    }
+  }
 
   let restated = {
     change: changeLine || text,
@@ -2278,7 +2427,7 @@ ${reasonLine || text}
   const defaultPrompt = `Duaer
 
 用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
-请续上一次会话上下文（CLI 已带 --continue）。
+${recreated ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。" : "请续上一次会话上下文（CLI 已带 --continue）。"}
 
 工作目录: ${dispatch.worktreePath}
 Brief: ${dispatch.featureDir}
@@ -2326,7 +2475,7 @@ ${restated.keep}
   const logPath = path.join(dispatch.featureDir, "agent-launch.log");
   appendLaunchLog(
     logPath,
-    `\n—— revise r${revN} ${now} (continue session) ——\n${restated.summary}\n`,
+    `\n—— revise r${revN} ${now} (continue=${!recreated} recreated=${recreated}) ——\n${restated.summary}\n`,
   );
   const launch = launchAgent({
     agentId: chosen,
@@ -2334,7 +2483,7 @@ ${restated.keep}
     agentPrompt,
     logPath,
     featureDir: dispatch.featureDir,
-    continueSession: true,
+    continueSession: !recreated,
   });
   rememberPreferredAgent(chosen);
 
@@ -2367,7 +2516,8 @@ ${restated.keep}
     revision: revN,
     restated,
     summary: restated.summary,
-    continueSession: true,
+    continueSession: !recreated,
+    recreated,
     dispatch: nextDispatch,
     launch,
     agentPrompt,
@@ -2504,9 +2654,14 @@ function resolvePreview({ delivery, worktreePath, jobId }) {
 function resolveArtifactFile(jobId, relPath) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch;
-  if (!dispatch?.worktreePath) throw new Error("尚未派工");
-  const root = path.resolve(dispatch.worktreePath);
-  if (!fs.existsSync(root)) throw new Error("worktree 不存在");
+  if (!dispatch?.worktreePath && !dispatch?.repoPath) {
+    throw new Error("尚未派工");
+  }
+  const roots = resolveDispatchRoots(dispatch);
+  const root = roots.root ? path.resolve(roots.root) : null;
+  if (!root || !fs.existsSync(root)) {
+    throw new Error("产品目录 / worktree 不存在");
+  }
   const rel = String(relPath || "")
     .trim()
     .replace(/^\/+/, "")
@@ -2546,7 +2701,7 @@ function contentTypeFor(filePath) {
 function dispatchStatus(jobId) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch || null;
-  if (!dispatch?.worktreePath) {
+  if (!dispatch?.worktreePath && !dispatch?.repoPath) {
     return {
       jobId: live.id,
       status: live.job.status || "confirmed",
@@ -2557,18 +2712,22 @@ function dispatchStatus(jobId) {
       preview: null,
     };
   }
-  const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
+  const roots = resolveDispatchRoots(dispatch);
+  const featureDir = roots.featureDir;
+  const deliveryPath = featureDir
+    ? path.join(featureDir, "delivery.json")
+    : null;
   let delivery = null;
-  if (fs.existsSync(deliveryPath)) {
+  if (deliveryPath && fs.existsSync(deliveryPath)) {
     try {
       delivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
     } catch {
       delivery = { status: "invalid" };
     }
   }
-  const tasksPath = path.join(dispatch.featureDir, "tasks.md");
+  const tasksPath = featureDir ? path.join(featureDir, "tasks.md") : null;
   let progress = parseTasksProgress("");
-  if (fs.existsSync(tasksPath)) {
+  if (tasksPath && fs.existsSync(tasksPath)) {
     try {
       progress = parseTasksProgress(fs.readFileSync(tasksPath, "utf8"));
     } catch {
@@ -2577,39 +2736,71 @@ function dispatchStatus(jobId) {
   }
   const logPath =
     dispatch.launch?.logPath ||
-    path.join(dispatch.featureDir, "agent-launch.log");
-  const logTail = readLogTail(logPath);
-  const worktreeExists = fs.existsSync(dispatch.worktreePath);
+    (featureDir ? path.join(featureDir, "agent-launch.log") : null);
+  const logTail = logPath ? readLogTail(logPath) : [];
+  const worktreeExists = roots.worktreeExists;
   const accepted = delivery?.status === "accepted";
   if (accepted && progress.total > 0) {
     progress = {
       ...progress,
-      current: "delivery accepted · 工单完成",
+      current: worktreeExists
+        ? "delivery accepted · 工单完成"
+        : "delivery accepted · 已合入 develop（worktree 已清理）",
+    };
+  } else if (!worktreeExists && roots.source === "primary") {
+    progress = {
+      ...progress,
+      current:
+        progress.current ||
+        "worktree 已清理；成品与 Brief 在产品仓 develop",
     };
   }
   const preview = resolvePreview({
-    // Keep preview.url even when delivery is reopened during revise
     delivery: delivery || { status: "open" },
-    worktreePath: dispatch.worktreePath,
+    worktreePath: roots.root,
     jobId: live.id,
   });
-  // Expose preview after first accept, during revise, or whenever an artifact exists
   const showPreview =
     accepted ||
     Number(live.job.revisionCount || 0) > 0 ||
     live.job.status === "revising" ||
     live.job.status === "dispatched" ||
     Boolean(preview?.url);
+
+  // Persist accepted status when handoff moved Brief to primary
+  if (accepted && live.job.status !== "accepted" && roots.source === "primary") {
+    try {
+      const nextJob = { ...live.job, status: "accepted" };
+      fs.writeFileSync(
+        live.jobPath,
+        `${JSON.stringify(nextJob, null, 2)}\n`,
+        "utf8",
+      );
+    } catch {
+      // ignore
+    }
+  }
+
+  const canRevise =
+    Boolean(dispatch.repoPath && fs.existsSync(dispatch.repoPath)) &&
+    (worktreeExists || roots.source === "primary");
+
   return {
     jobId: live.id,
     status: accepted ? "accepted" : live.job.status,
-    dispatch: { ...dispatch, worktreeExists },
+    dispatch: {
+      ...dispatch,
+      worktreeExists,
+      featureDir: featureDir || dispatch.featureDir,
+      resolvedFrom: roots.source,
+    },
     delivery,
     progress,
     logTail,
     preview: showPreview ? preview : null,
-    canRevise: worktreeExists,
+    canRevise,
     revision: live.job.revisionCount || 0,
+    handoffCleaned: !worktreeExists && roots.source === "primary",
   };
 }
 

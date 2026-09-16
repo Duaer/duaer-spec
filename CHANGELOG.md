@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Survive worktree handoff cleanup
+
+- Status/preview read Brief from product `develop` when the request worktree was removed
+- Revise recreates a new worktree from develop (copies Brief) instead of failing「worktree 已不存在」
+
 ### Detect CLI agents under LaunchAgent PATH
 
 - Prepend `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin` to PATH when live starts

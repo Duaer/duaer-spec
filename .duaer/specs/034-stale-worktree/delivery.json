@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T04:28:30.000Z",
+  "summary": "Live desk recovers Brief/status from product primary after worktree handoff cleanup; revise recreates worktree instead of failing.",
+  "verification": {
+    "levels": ["docs", "L0", "L1-smoke", "L3-catalog"],
+    "commands": [
+      "/usr/local/bin/node --check bin/duaer-live.mjs",
+      "curl -s 'http://127.0.0.1:8792/api/status?jobId=024-job-3l9xtu'"
+    ],
+    "result": "pass",
+    "e2e": ["E2E-035"],
+    "notes": "Smoke: status=accepted, delivery.status=accepted, canRevise=true, handoffCleaned=true, worktreeExists=false, featureDir=/Users/morgan/autotest/.duaer/specs/034-job-3l9xtu, resolvedFrom=primary. LaunchAgent 8787 reloaded after merge."
+  }
+}

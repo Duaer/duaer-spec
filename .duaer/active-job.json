@@ -1,5 +1,5 @@
 {
-  "specDir": ".duaer/specs/033-agent-detect",
-  "branch": "fix/agent-detect",
-  "startedAt": "2026-09-16T04:10:00.000Z"
+  "specDir": ".duaer/specs/034-stale-worktree",
+  "branch": "fix/stale-worktree",
+  "startedAt": "2026-09-16T04:25:00.000Z"
 }
