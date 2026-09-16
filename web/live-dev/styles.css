@@ -670,6 +670,17 @@ input:focus {
 
 .revise-panel .btn {
   margin-top: 0.65rem;
+  display: inline-flex;
+  margin-right: 0.5rem;
+}
+
+.revise-panel .btn.confirm {
+  min-width: auto;
+}
+
+.chat-panel.revise-active {
+  outline: 2px solid var(--lock);
+  outline-offset: 2px;
 }
 
 .setup-panel {

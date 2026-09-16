@@ -81,7 +81,9 @@ const el = {
   previewLink: document.getElementById("previewLink"),
   previewMeta: document.getElementById("previewMeta"),
   revisePanel: document.getElementById("revisePanel"),
+  reviseHint: document.getElementById("reviseHint"),
   startReviseChat: document.getElementById("startReviseChat"),
+  doReviseDispatch: document.getElementById("doReviseDispatch"),
   reviseErr: document.getElementById("reviseErr"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
@@ -89,6 +91,7 @@ const el = {
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
   lblAssume: document.getElementById("lblAssume"),
+  chatPanel: document.querySelector(".chat-panel"),
 };
 
 function cardValues() {
@@ -106,8 +109,9 @@ function syncConfirmEnabled() {
     const ok = Boolean(v.goal && v.acceptance) && state.ready && !state.busy;
     el.confirm.disabled = !ok;
     el.lockHint.textContent =
-      "左侧对话弄清原因与改动；确认后才会 --continue 续派 Terminal 任务。";
+      "左侧对话弄清原因与改动；下方或此处确认后才会 --continue 续派。";
     el.confirm.textContent = "改进方案确认，再派一版";
+    syncReviseDispatchButton(ok);
     return;
   }
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
@@ -118,6 +122,39 @@ function syncConfirmEnabled() {
       ? "可以确认了。确认后自动验收，再派工。"
       : "至少填好「要做什么」和「验收标准」。";
   if (!state.locked) el.confirm.textContent = "需求无误，开始干活";
+  syncReviseDispatchButton(false);
+}
+
+function syncReviseDispatchButton(ready) {
+  if (!el.doReviseDispatch) return;
+  const show = state.mode === "revise";
+  el.doReviseDispatch.hidden = !show;
+  el.doReviseDispatch.disabled = !ready || state.busy;
+  if (show) {
+    el.doReviseDispatch.textContent = state.busy
+      ? "续派中…"
+      : "改进方案确认，再派一版";
+  }
+  if (el.reviseHint) {
+    if (!show) {
+      el.reviseHint.textContent =
+        "不满意时点下方按钮，在左侧对话说清原因；改进卡就绪后再派。";
+    } else if (state.busy) {
+      el.reviseHint.textContent = "正在对话或续派，请稍候…";
+    } else if (ready) {
+      el.reviseHint.textContent =
+        "改进卡已就绪：点「再派一版」，Terminal 会用 --continue 继续改。";
+    } else {
+      el.reviseHint.textContent =
+        "请在左侧对话框说明哪里不满意；我会填右侧改进卡。卡齐后此处可点再派。";
+    }
+  }
+  if (el.startReviseChat) {
+    el.startReviseChat.hidden = show;
+  }
+  if (el.chatPanel) {
+    el.chatPanel.classList.toggle("revise-active", show);
+  }
 }
 
 function applyCardChrome() {
@@ -288,9 +325,12 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "右侧改进卡可再改。满意后点「改进方案确认，再派一版」。"
+            ? "改进卡已更新。看右侧「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
             : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
         );
+        if (state.mode === "revise") {
+          el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
       }
     } else {
       const data = await res.json();
@@ -303,9 +343,12 @@ async function sendChat(userText) {
         addBubble(
           "bot",
           state.mode === "revise"
-            ? "右侧改进卡可再改。满意后点「改进方案确认，再派一版」。"
+            ? "改进卡已更新。看右侧「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。"
             : "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
         );
+        if (state.mode === "revise") {
+          el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        }
       }
     }
   } catch (err) {
@@ -1059,11 +1102,18 @@ function renderRevisePanel(data) {
       data?.delivery?.status === "accepted" ||
       state.mode === "revise");
   el.revisePanel.hidden = !show;
-  if (el.startReviseChat) {
-    el.startReviseChat.disabled = state.mode === "revise" && state.busy;
-    el.startReviseChat.textContent =
-      state.mode === "revise" ? "正在左侧对话改进…" : "继续改进（左侧对话）";
+  if (el.startReviseChat && state.mode !== "revise") {
+    el.startReviseChat.hidden = false;
+    el.startReviseChat.disabled = false;
+    el.startReviseChat.textContent = "继续改进（左侧对话）";
   }
+  const v = cardValues();
+  const ready =
+    state.mode === "revise" &&
+    Boolean(v.goal && v.acceptance) &&
+    state.ready &&
+    !state.busy;
+  syncReviseDispatchButton(ready);
 }
 
 function enterReviseMode() {
@@ -1075,6 +1125,15 @@ function enterReviseMode() {
     return;
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
+
+  // Already revising: just focus chat, do not wipe progress
+  if (state.mode === "revise") {
+    el.input.focus();
+    el.chatPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    addBubble("bot", "继续在左侧说哪里不满意；改完点下方「再派一版」。");
+    return;
+  }
+
   state.mode = "revise";
   state.reviseMessages = [];
   el.goal.value = "";
@@ -1084,11 +1143,76 @@ function enterReviseMode() {
   applyCardChrome();
   el.input.placeholder = "说说哪里不满意、为什么…";
   el.input.focus();
+  el.chatPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   addBubble(
     "bot",
-    "进入改进对话。先说成品哪里不满意、为什么；我会问清要改什么、不要动什么。右侧是改进卡——确认后才会用 Terminal --continue 续派任务。",
+    "已进入改进。我先问你关键点；请在左侧回答。右侧改进卡填齐后，点下方「再派一版」。",
   );
   renderRevisePanel({ canRevise: true, status: "accepted" });
+  void kickoffReviseDialogue();
+}
+
+async function kickoffReviseDialogue() {
+  if (state.busy || state.mode !== "revise") return;
+  state.busy = true;
+  el.send.disabled = true;
+  syncReviseDispatchButton(false);
+  const streamBubble = startStreamingBubble();
+  const kick =
+    "（系统）用户已点继续改进并看过成品。请只问一个最关键问题：哪里不满意、为什么。先说话，再 <<<JSON>>> 更新改进卡（可先空着）。不要派工。";
+  try {
+    state.reviseMessages.push({ role: "user", content: kick });
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: state.reviseMessages.slice(-16),
+        card: cardValues(),
+        mode: "revise",
+        stream: true,
+      }),
+    });
+    const ctype = res.headers.get("content-type") || "";
+    if (!res.ok && !ctype.includes("text/event-stream")) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || "改进对话启动失败");
+    }
+    if (ctype.includes("text/event-stream") && res.body) {
+      let final = null;
+      let streamError = null;
+      await readChatStream(res, (evt) => {
+        if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
+        else if (evt.type === "done") final = evt;
+        else if (evt.type === "error") {
+          streamError = new Error(evt.error || "对话失败");
+        }
+      });
+      if (streamError) throw streamError;
+      if (!final) throw new Error("流式响应不完整");
+      applyCard(final);
+      if (final.reply) streamBubble.set(final.reply);
+      streamBubble.finish(final.options);
+      state.reviseMessages.push({ role: "assistant", content: final.reply });
+    } else {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "对话失败");
+      applyCard(data);
+      streamBubble.set(data.reply || "");
+      streamBubble.finish(data.options);
+      state.reviseMessages.push({ role: "assistant", content: data.reply });
+    }
+  } catch (err) {
+    state.reviseMessages.pop();
+    streamBubble.set(
+      `改进对话没启动起来：${err instanceof Error ? err.message : err}。你也可以直接在左侧输入哪里不满意。`,
+    );
+    streamBubble.finish();
+  } finally {
+    state.busy = false;
+    el.send.disabled = false;
+    syncConfirmEnabled();
+    el.input.focus();
+  }
 }
 
 function exitReviseMode() {
@@ -1098,6 +1222,12 @@ function exitReviseMode() {
   el.confirm.textContent = "已确认";
   el.confirm.disabled = true;
   el.lockHint.textContent = "已派工。可继续改进或查看成品。";
+  if (el.startReviseChat) {
+    el.startReviseChat.hidden = false;
+    el.startReviseChat.textContent = "继续改进（左侧对话）";
+  }
+  if (el.doReviseDispatch) el.doReviseDispatch.hidden = true;
+  if (el.chatPanel) el.chatPanel.classList.remove("revise-active");
 }
 
 async function confirmReviseAndDispatch() {
@@ -1163,6 +1293,7 @@ async function confirmReviseAndDispatch() {
     syncConfirmEnabled();
   } finally {
     state.busy = false;
+    syncConfirmEnabled();
   }
 }
 
@@ -1214,6 +1345,12 @@ function startStatusPoll() {
 if (el.startReviseChat) {
   el.startReviseChat.addEventListener("click", () => {
     enterReviseMode();
+  });
+}
+
+if (el.doReviseDispatch) {
+  el.doReviseDispatch.addEventListener("click", () => {
+    void confirmReviseAndDispatch();
   });
 }
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix stuck revise UI
+
+- Entering revise auto-starts left-chat questions; remove fake「正在左侧对话改进…」loading label
+- Revise panel shows **再派一版** when the revise card is ready
+
 ### Start command prefix `Duaer`
 
 - Live desk start command / agent prompt prefix is `Duaer` (legacy `Agent` rewritten)
