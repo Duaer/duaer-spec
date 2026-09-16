@@ -1470,27 +1470,66 @@ function clearStaleRunnerPid(queueDir) {
   } catch {
     // ignore
   }
+  const lockDir = path.join(queueDir, "runner.lock.d");
+  try {
+    if (fs.existsSync(lockDir)) fs.rmdirSync(lockDir);
+  } catch {
+    // ignore — live runner still holds it
+  }
 }
 
 function isTerminalRunnerBusy(queueDir) {
   return fs.existsSync(path.join(queueDir, "running.cmd"));
 }
 
-function writePendingCmd(queueDir, commandLine) {
-  const pending = path.join(queueDir, "pending.cmd");
-  fs.writeFileSync(
-    pending,
-    `#!/bin/bash
+function terminalJobsDir(queueDir) {
+  return path.join(queueDir, "jobs");
+}
+
+/** Atomically enqueue a Terminal job (FIFO). Also wakes legacy pending watchers. */
+function enqueueTerminalJob(queueDir, commandLine) {
+  const jobsDir = terminalJobsDir(queueDir);
+  fs.mkdirSync(jobsDir, { recursive: true });
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const tmp = path.join(jobsDir, `.${id}.tmp`);
+  const dest = path.join(jobsDir, `${id}.cmd`);
+  const body = `#!/bin/bash
 set +e
+echo "[duaer] job ${id} start"
 ${commandLine}
 status=$?
 echo
-echo "[duaer] task exit=$status"
+echo "[duaer] job ${id} exit=$status"
 exit $status
-`,
-    { mode: 0o755 },
-  );
-  return pending;
+`;
+  fs.writeFileSync(tmp, body, { mode: 0o755 });
+  fs.renameSync(tmp, dest);
+  // Wake + legacy single-slot pending (last wins for old runners)
+  try {
+    fs.writeFileSync(path.join(queueDir, "wake"), `${id}\n`);
+  } catch {
+    // ignore
+  }
+  const pending = path.join(queueDir, "pending.cmd");
+  try {
+    fs.copyFileSync(dest, pending);
+    fs.chmodSync(pending, 0o755);
+  } catch {
+    // ignore
+  }
+  return dest;
+}
+
+function countQueuedJobs(queueDir) {
+  const jobsDir = terminalJobsDir(queueDir);
+  if (!fs.existsSync(jobsDir)) return 0;
+  try {
+    return fs
+      .readdirSync(jobsDir)
+      .filter((n) => n.endsWith(".cmd") && !n.startsWith(".")).length;
+  } catch {
+    return 0;
+  }
 }
 
 function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
@@ -1501,14 +1540,15 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
   if (key && fs.existsSync(key)) {
     const qdir = terminalQueueDir(key);
     fs.mkdirSync(qdir, { recursive: true });
-    writePendingCmd(qdir, commandLine);
+    const jobPath = enqueueTerminalJob(qdir, commandLine);
+    const queuedCount = countQueuedJobs(qdir);
 
     if (isTerminalRunnerHealthy(qdir)) {
       const pid = readRunnerPid(qdir);
       const busy = isTerminalRunnerBusy(qdir);
       appendLaunchLog(
         logPath,
-        `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid} busy=${busy} (wait-for-finish)`,
+        `[${new Date().toISOString()}] enqueue FIFO job=${path.basename(jobPath)} → runner pid=${pid} busy=${busy} queued=${queuedCount} (wait-for-finish)`,
       );
       return {
         pid,
@@ -1516,7 +1556,9 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
         reused: true,
         queued: true,
         busy,
+        queueDepth: queuedCount,
         queueDir: qdir,
+        jobPath,
       };
     }
 
@@ -1525,26 +1567,55 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
     if (stalePid != null) {
       appendLaunchLog(
         logPath,
-        `[${new Date().toISOString()}] runner unhealthy pid=${stalePid} — open fresh Terminal`,
+        `[${new Date().toISOString()}] runner unhealthy pid=${stalePid} — open fresh Terminal (flock)`,
       );
       clearStaleRunnerPid(qdir);
     }
 
-    // Start a long-lived runner window for this worktree
+    // Start a long-lived runner window for this worktree (single-flight via flock)
     if (process.platform === "darwin") {
       const runnerPath = path.join(qdir, "runner.command");
       const body = `#!/bin/bash
 QDIR=${shellSingleQuote(qdir)}
 cd ${shellSingleQuote(cwd)} || exit 1
+mkdir -p "$QDIR/jobs"
 touch_hb() { date +%s > "$QDIR/runner.heartbeat" 2>/dev/null || true; }
+
+# Only one runner per worktree (mkdir lock — portable on macOS, no flock)
+if ! mkdir "$QDIR/runner.lock.d" 2>/dev/null; then
+  echo "[duaer] another Terminal runner already holds the lock — this window exits"
+  echo "[duaer] job stays in queue; the existing window will drain it"
+  exit 0
+fi
+
 echo $$ > "$QDIR/runner.pid"
 touch_hb
-trap 'rm -f "$QDIR/runner.pid" "$QDIR/running.cmd" "$QDIR/runner.heartbeat"' EXIT
-run_pending() {
-  if [ ! -f "$QDIR/pending.cmd" ]; then
+trap 'rm -f "$QDIR/runner.pid" "$QDIR/running.cmd" "$QDIR/runner.heartbeat" "$QDIR/wake"; rmdir "$QDIR/runner.lock.d" 2>/dev/null' EXIT
+
+next_job() {
+  local j
+  j=$(ls "$QDIR/jobs"/*.cmd 2>/dev/null | sort | head -1)
+  if [ -n "$j" ]; then
+    echo "$j"
     return 0
   fi
-  mv "$QDIR/pending.cmd" "$QDIR/running.cmd"
+  if [ -f "$QDIR/pending.cmd" ]; then
+    echo "$QDIR/pending.cmd"
+    return 0
+  fi
+  return 1
+}
+
+run_one() {
+  local job
+  job=$(next_job) || return 1
+  echo "[duaer] dequeue → $(basename "$job")"
+  if ! mv "$job" "$QDIR/running.cmd" 2>/dev/null; then
+    echo "[duaer] dequeue race — retry"
+    return 0
+  fi
+  # Drop legacy pending twin if it mirrored this job
+  rm -f "$QDIR/pending.cmd" "$QDIR/wake"
   chmod +x "$QDIR/running.cmd" 2>/dev/null
   (
     while [ -f "$QDIR/running.cmd" ]; do
@@ -1559,29 +1630,42 @@ run_pending() {
   wait "$hbp" 2>/dev/null
   rm -f "$QDIR/running.cmd"
   touch_hb
-  return $status
+  echo "[duaer] task finished exit=$status — draining queue…"
+  return 0
 }
+
 clear
-echo "[duaer] live Terminal — 同一窗口承接派工与续派（队列：等当前任务跑完再取下一份）"
+echo "[duaer] live Terminal — FIFO 队列（等当前任务跑完自动取下一份）"
 echo "[duaer] cwd: $(pwd)"
+echo "[duaer] queue: $QDIR/jobs"
 echo
-run_pending
+
+# Drain everything already queued, then wait for wake/new jobs
 while true; do
+  while run_one; do
+    :
+  done
   echo
-  echo "[duaer] 等待下一轮任务（现场点「再派一版」会送到这里）。Ctrl+C 结束。"
-  while [ ! -f "$QDIR/pending.cmd" ]; do
+  echo "[duaer] 队列空，等待下一轮（现场续派会自动进来）。Ctrl+C 结束。"
+  while ! next_job >/dev/null; do
     touch_hb
+    # wake file is optional nudge
+    if [ -f "$QDIR/wake" ]; then
+      rm -f "$QDIR/wake"
+      if next_job >/dev/null; then
+        break
+      fi
+    fi
     sleep 1
   done
   echo "[duaer] 收到新任务…"
   echo
-  run_pending
 done
 `;
       fs.writeFileSync(runnerPath, body, { mode: 0o755 });
       appendLaunchLog(
         logPath,
-        `[${new Date().toISOString()}] open runner ${runnerPath}`,
+        `[${new Date().toISOString()}] open runner ${runnerPath} job=${path.basename(jobPath)}`,
       );
       const child = spawn("open", [runnerPath], {
         detached: true,
@@ -1601,7 +1685,9 @@ done
         reused: false,
         queued: true,
         busy: false,
+        queueDepth: queuedCount,
         queueDir: qdir,
+        jobPath,
       };
     }
   }

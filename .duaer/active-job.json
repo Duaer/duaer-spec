@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "feature": "040-terminal-queue-wait",
-  "featureDirectory": ".duaer/specs/040-terminal-queue-wait",
-  "specDir": ".duaer/specs/040-terminal-queue-wait",
-  "branch": "feat/terminal-queue-wait",
-  "worktree": ".worktree/feat-terminal-queue-wait",
-  "startedAt": "2026-09-16T05:40:00.000Z",
-  "updatedAt": "2026-09-16T05:46:00.000Z",
+  "feature": "041-desk-wide-queue",
+  "featureDirectory": ".duaer/specs/041-desk-wide-queue",
+  "specDir": ".duaer/specs/041-desk-wide-queue",
+  "branch": "fix/desk-wide-queue",
+  "worktree": ".worktree/fix-desk-wide-queue",
+  "startedAt": "2026-09-16T05:59:55.000Z",
+  "updatedAt": "2026-09-16T06:03:00.000Z",
   "source": "duaer-do",
   "status": "accepted"
 }

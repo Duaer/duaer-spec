@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "041-desk-wide-queue",
+  "acceptedAt": "2026-09-16T06:03:00.000Z",
+  "summary": "Wide desk (1600px); FIFO jobs/ queue with mkdir lock and drain-after-finish; E2E-042.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check bin/duaer-live.mjs",
+        "result": "ok (exit 0)"
+      }
+    ],
+    "e2e": ["E2E-042"],
+    "notes": "T004: ESM syntax check pass. Post-merge handoff: launchctl kickstart com.duaer.live8787."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004"]
+}
