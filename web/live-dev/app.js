@@ -1268,13 +1268,15 @@ el.doDispatch.addEventListener("click", async () => {
     });
     const whoLabel = launch.command || launch.label || "agent";
     const who =
-      launch.mode === "terminal-reuse" || launch.reused
-        ? t("launch.reused", { who: whoLabel })
-        : launch.mode === "terminal"
-          ? t("launch.terminal", { who: whoLabel })
-          : t("launch.spawned", {
-              who: launch.label || launch.agentId || "CLI",
-            });
+      launch.busy && (launch.mode === "terminal-reuse" || launch.reused)
+        ? t("launch.queuedWait", { who: whoLabel })
+        : launch.mode === "terminal-reuse" || launch.reused
+          ? t("launch.reused", { who: whoLabel })
+          : launch.mode === "terminal"
+            ? t("launch.terminal", { who: whoLabel })
+            : t("launch.spawned", {
+                who: launch.label || launch.agentId || "CLI",
+              });
     const duaerLine =
       data.duaerInstall?.worktree?.action === "init" ||
       data.duaerInstall?.repo?.action === "init"
@@ -1635,11 +1637,14 @@ async function confirmReviseAndDispatch() {
         })
       : "";
     const launchLabel =
-      data.launch?.reused || data.launch?.mode === "terminal-reuse"
-        ? t("bot.reviseLaunchReuse")
-        : data.continueSession
-          ? t("bot.reviseLaunchContinue")
-          : t("bot.reviseLaunchNew");
+      data.launch?.busy &&
+      (data.launch?.reused || data.launch?.mode === "terminal-reuse")
+        ? t("bot.reviseLaunchQueued")
+        : data.launch?.reused || data.launch?.mode === "terminal-reuse"
+          ? t("bot.reviseLaunchReuse")
+          : data.continueSession
+            ? t("bot.reviseLaunchContinue")
+            : t("bot.reviseLaunchNew");
     addBubble(
       "bot",
       t("bot.reviseDispatched", {

@@ -122,6 +122,8 @@ const zhCN = {
   "bot.reviseDispatched":
     "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看成品。",
   "bot.reviseLaunchReuse": "已送入原 Terminal",
+  "bot.reviseLaunchQueued":
+    "已排入原 Terminal，当前任务结束后自动跑",
   "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
   "bot.reviseLaunchNew": "新会话",
   "bot.reviseRestate": "\n改：{change}\n验：{acceptance}",
@@ -159,6 +161,7 @@ const zhCN = {
   "launch.script": "\nTerminal脚本: {path}",
   "launch.log": "\n日志: {path}",
   "launch.reused": "已送入原 Terminal（{who}）",
+  "launch.queuedWait": "已排入原 Terminal，当前任务结束后自动跑（{who}）",
   "launch.terminal": "已打开 Terminal，正在执行 CLI（{who}）",
   "launch.spawned": "已用 {who} 启动",
   "launch.duaerInstalled": "已在指定目录安装 Duaer；",
@@ -320,6 +323,8 @@ const en = {
   "bot.reviseDispatched":
     "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View product.",
   "bot.reviseLaunchReuse": "enqueued in existing Terminal",
+  "bot.reviseLaunchQueued":
+    "Queued in the same Terminal; runs after the current task finishes",
   "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
   "bot.reviseLaunchNew": "new session",
   "bot.reviseRestate": "\nChange: {change}\nAccept: {acceptance}",
@@ -356,6 +361,8 @@ const en = {
   "launch.script": "\nTerminal script: {path}",
   "launch.log": "\nLog: {path}",
   "launch.reused": "Enqueued in existing Terminal ({who})",
+  "launch.queuedWait":
+    "Queued in the same Terminal; runs after the current task finishes ({who})",
   "launch.terminal": "Opened Terminal running CLI ({who})",
   "launch.spawned": "Launched with {who}",
   "launch.duaerInstalled": "Installed Duaer in the chosen directory; ",

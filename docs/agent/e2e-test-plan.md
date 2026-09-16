@@ -53,6 +53,8 @@ the table for their app.
 | E2E-038 | Live desk language switch (zh-CN / en) updates copy; reload keeps locale | manual |
 | E2E-039 | After accept, revise confirm starts agent (fresh session if needed); stale runner opens new Terminal; revise card uses dark plate style | manual |
 | E2E-040 | Live desk: left chat + right card stay viewport-aligned; right auto-scrolls to active stage (dispatch/progress/preview/revise) | manual |
+| E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt); UI says queued until current task finishes | manual |
+| E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
 | E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
@@ -109,3 +111,7 @@ the table for their app.
 | E2E-035 | `034-stale-worktree` | handoff-cleaned worktree recover |
 | E2E-036 | `035-revise-card-below` | revise card below confirm card |
 | E2E-037 | `036-progress-cta` | hide preview/revise until accepted |
+| E2E-038 | `037-live-i18n` | locale switch + persist |
+| E2E-039 | `038-revise-enqueue-style` | honest enqueue + dark revise card |
+| E2E-040 | `039-desk-scroll-sync` | left/right viewport sync |
+| E2E-041 | `040-terminal-queue-wait` | busy queue wait + honest API/UI |

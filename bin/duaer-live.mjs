@@ -1472,6 +1472,10 @@ function clearStaleRunnerPid(queueDir) {
   }
 }
 
+function isTerminalRunnerBusy(queueDir) {
+  return fs.existsSync(path.join(queueDir, "running.cmd"));
+}
+
 function writePendingCmd(queueDir, commandLine) {
   const pending = path.join(queueDir, "pending.cmd");
   fs.writeFileSync(
@@ -1501,14 +1505,17 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
 
     if (isTerminalRunnerHealthy(qdir)) {
       const pid = readRunnerPid(qdir);
+      const busy = isTerminalRunnerBusy(qdir);
       appendLaunchLog(
         logPath,
-        `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid}`,
+        `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid} busy=${busy} (wait-for-finish)`,
       );
       return {
         pid,
         mode: "terminal-reuse",
         reused: true,
+        queued: true,
+        busy,
         queueDir: qdir,
       };
     }
@@ -1555,7 +1562,7 @@ run_pending() {
   return $status
 }
 clear
-echo "[duaer] live Terminal — 同一窗口承接派工与续派"
+echo "[duaer] live Terminal — 同一窗口承接派工与续派（队列：等当前任务跑完再取下一份）"
 echo "[duaer] cwd: $(pwd)"
 echo
 run_pending
@@ -1592,6 +1599,8 @@ done
         mode: "terminal",
         commandFile: runnerPath,
         reused: false,
+        queued: true,
+        busy: false,
         queueDir: qdir,
       };
     }
@@ -1850,10 +1859,17 @@ function launchAgent({
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
     launch.reused = Boolean(term.reused);
+    launch.queued = Boolean(term.queued);
+    launch.busy = Boolean(term.busy);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
     const resolved = resolveCursorAgentCommand();
-    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${launch.reused ? "Terminal reuse" : "Terminal"})`;
+    const queueNote = term.busy
+      ? "queued wait"
+      : term.reused
+        ? "Terminal reuse"
+        : "Terminal";
+    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
     const cont = continueSession ? "--continue " : "";
@@ -1867,9 +1883,16 @@ function launchAgent({
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
     launch.reused = Boolean(term.reused);
+    launch.queued = Boolean(term.queued);
+    launch.busy = Boolean(term.busy);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
-    launch.command = `claude${continueSession ? " --continue" : ""} (${launch.reused ? "Terminal reuse" : "Terminal"})`;
+    const queueNote = term.busy
+      ? "queued wait"
+      : term.reused
+        ? "Terminal reuse"
+        : "Terminal";
+    launch.command = `claude${continueSession ? " --continue" : ""} (${queueNote})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "040-terminal-queue-wait",
+  "acceptedAt": "2026-09-16T05:46:00.000Z",
+  "summary": "Honest Terminal queue wait while runner is busy: busy=running.cmd → queued/busy flags; UI i18n; E2E-041; never interrupt.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check bin/duaer-live.mjs",
+        "result": "ok (exit 0)"
+      },
+      {
+        "command": "node --check web/live-dev/app.js",
+        "result": "ok (exit 0)"
+      },
+      {
+        "command": "node --check web/live-dev/i18n.js",
+        "result": "ok (exit 0)"
+      }
+    ],
+    "e2e": ["E2E-041"],
+    "notes": "T004: ESM syntax checks pass. Busy runner detected via running.cmd; API returns queued/busy without interrupt. Post-merge handoff: launchctl kickstart com.duaer.live8787."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004"]
+}
