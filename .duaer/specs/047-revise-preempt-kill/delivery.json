@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T09:03:00.000Z",
+  "verification": {
+    "levels": ["L0", "L2"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "prove agent sweep TERM/KILL on feat-orders pids 200+82468; runners excluded",
+      "POST /api/revise 032-orders after kickstart (E2E-048)"
+    ],
+    "notes": "Root cause: preempt only pkill'd running.cmd bash; orphan agent (PPID 1) survived. Fix: pgrep/ps match worktree+agent|cursor-agent|claude, SIGTERM, 300ms, SIGKILL; never runner.command. Prove: 82468 needed SIGKILL then gone; runner kept; queue drained to Revision agent."
+  }
+}
