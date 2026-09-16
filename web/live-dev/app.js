@@ -119,12 +119,81 @@ const el = {
   lblAccept: document.getElementById("lblAccept"),
   lblAssume: document.getElementById("lblAssume"),
   chatPanel: document.querySelector(".chat-panel"),
+  cardPanel: document.querySelector(".card-panel"),
   updateNotice: document.getElementById("updateNotice"),
   langSelect: document.getElementById("langSelect"),
 };
 
 function providerLabel(p) {
   return p?.id === "custom" ? t("provider.custom") : p?.label || "";
+}
+
+/** Pick the right-column section the user should see for the current stage. */
+function activeRightFocusEl() {
+  if (
+    el.revisePanel &&
+    !el.revisePanel.hidden &&
+    (state.mode === "revise" || state.reviseLocked || state.reviseDispatching)
+  ) {
+    if (el.doReviseDispatch && !el.doReviseDispatch.hidden) {
+      return el.doReviseDispatch;
+    }
+    return el.revisePanel;
+  }
+  if (el.previewPanel && !el.previewPanel.hidden) {
+    if (el.startReviseChat && !el.startReviseChat.hidden) {
+      return el.startReviseChat;
+    }
+    return el.previewPanel;
+  }
+  if (el.dispatchProgress && !el.dispatchProgress.hidden) {
+    return el.dispatchProgress;
+  }
+  if (el.dispatch && !el.dispatch.hidden) {
+    return el.dispatch;
+  }
+  return el.confirm || el.cardPanel;
+}
+
+let rightFocusTimer = 0;
+
+/** Scroll the right panel so the active stage stays in view with left chat. */
+function focusRightPanel({ smooth = true, force = false } = {}) {
+  const panel = el.cardPanel;
+  const target = activeRightFocusEl();
+  if (!panel || !target || panel.hidden) return;
+
+  const run = () => {
+    if (!el.cardPanel || !target.isConnected) return;
+    // Prefer scrolling inside the right panel; fall back to nearest for mobile.
+    try {
+      const panelRect = panel.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const pad = 16;
+      const above = targetRect.top < panelRect.top + pad;
+      const below = targetRect.bottom > panelRect.bottom - pad;
+      if (!force && !above && !below) return;
+      const nextTop =
+        panel.scrollTop + (targetRect.top - panelRect.top) - pad;
+      panel.scrollTo({
+        top: Math.max(0, nextTop),
+        behavior: smooth ? "smooth" : "auto",
+      });
+    } catch {
+      target.scrollIntoView({
+        block: "nearest",
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  };
+
+  clearTimeout(rightFocusTimer);
+  rightFocusTimer = window.setTimeout(run, force ? 0 : 40);
+}
+
+function scrollChatToLatest() {
+  if (!el.log) return;
+  el.log.scrollTop = el.log.scrollHeight;
 }
 
 function syncChatPlaceholder() {
@@ -377,7 +446,8 @@ function addBubble(role, text, { options, actions } = {}) {
     div.appendChild(row);
   }
   el.log.appendChild(div);
-  el.log.scrollTop = el.log.scrollHeight;
+  scrollChatToLatest();
+  focusRightPanel();
   return { div, textNode };
 }
 
@@ -387,14 +457,16 @@ function startStreamingBubble() {
   return {
     append(chunk) {
       textNode.textContent += chunk;
-      el.log.scrollTop = el.log.scrollHeight;
+      scrollChatToLatest();
     },
     set(text) {
       textNode.textContent = text;
-      el.log.scrollTop = el.log.scrollHeight;
+      scrollChatToLatest();
     },
     finish(options) {
       div.classList.remove("streaming");
+      scrollChatToLatest();
+      focusRightPanel({ force: true });
       if (!options?.length) return;
       const row = document.createElement("div");
       row.className = "options";
@@ -410,7 +482,7 @@ function startStreamingBubble() {
         row.appendChild(b);
       }
       div.appendChild(row);
-      el.log.scrollTop = el.log.scrollHeight;
+      scrollChatToLatest();
     },
   };
 }
@@ -493,7 +565,7 @@ async function sendChat(userText) {
             : t("bot.cardReady"),
         );
         if (state.mode === "revise") {
-          el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          focusRightPanel({ force: true });
         }
       }
     } else {
@@ -511,7 +583,7 @@ async function sendChat(userText) {
             : t("bot.cardReady"),
         );
         if (state.mode === "revise") {
-          el.doReviseDispatch?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+          focusRightPanel({ force: true });
         }
       }
     }
@@ -809,7 +881,9 @@ async function showDispatchPanel() {
   }
   syncDispatchButton();
   state.repoCatalog = { recent: [], discovered: [] };
+  focusRightPanel({ force: true });
   await Promise.all([loadRepoCatalog(false), loadAgents()]);
+  focusRightPanel({ force: true });
 }
 
 async function loadAgents() {
@@ -1221,6 +1295,7 @@ el.doDispatch.addEventListener("click", async () => {
       launch.kind === "worker" ? t("status.running") : t("status.waiting");
     if (el.dispatchProgress) el.dispatchProgress.hidden = false;
     startStatusPoll();
+    focusRightPanel({ force: true });
   } catch (err) {
     state.dispatchPhase = null;
     el.doDispatch.disabled = false;
@@ -1306,6 +1381,7 @@ function renderProgress(data) {
       el.progressLog.textContent = "";
     }
   }
+  focusRightPanel();
 }
 
 function renderPreview(data) {
@@ -1338,6 +1414,7 @@ function renderPreview(data) {
     }
   }
   renderRevisePanel(data);
+  if (!el.previewPanel.hidden) focusRightPanel();
 }
 
 function renderRevisePanel(data) {
@@ -1366,6 +1443,7 @@ function renderRevisePanel(data) {
     !state.busy &&
     !state.reviseDispatching;
   syncReviseDispatchButton(ready);
+  if (show) focusRightPanel();
 }
 
 function enterReviseMode() {
@@ -1381,7 +1459,7 @@ function enterReviseMode() {
   // Already revising: just focus chat, do not wipe progress
   if (state.mode === "revise") {
     el.input.focus();
-    el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    focusRightPanel({ force: true });
     addBubble("bot", t("bot.continueRevise"));
     return;
   }
@@ -1405,13 +1483,13 @@ function enterReviseMode() {
   applyCardChrome();
   syncChatPlaceholder();
   el.input.focus();
-  el.revisePanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   addBubble("bot", t("bot.enterRevise"));
   renderRevisePanel({
     canRevise: true,
     status: "accepted",
     delivery: { status: "accepted" },
   });
+  focusRightPanel({ force: true });
   void kickoffReviseDialogue();
 }
 
@@ -1513,6 +1591,7 @@ function lockReviseCard(data, card) {
     status: "revising",
     revision: data.revision,
   });
+  focusRightPanel({ force: true });
 }
 
 async function confirmReviseAndDispatch() {

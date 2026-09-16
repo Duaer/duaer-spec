@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "039-desk-scroll-sync",
+  "acceptedAt": "2026-09-16T05:30:00.000Z",
+  "summary": "Viewport-bound desk columns with independent scrolls; right panel auto-focuses active stage in sync with left chat.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check web/live-dev/app.js",
+        "result": "ok (exit 0)"
+      }
+    ],
+    "e2e": ["E2E-040"],
+    "notes": "CSS (styles.css) not node-checkable. Layout height 100dvh-minus-header; both columns overflow independently. JS: focusRightPanel on bubbles, revise, dispatch, progress, preview."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004"]
+}

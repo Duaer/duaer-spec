@@ -158,6 +158,10 @@ body {
   max-width: 1120px;
   margin: 0 auto;
   padding: 0 1.5rem 2.5rem;
+  align-items: stretch;
+  height: calc(100dvh - 11.5rem);
+  max-height: calc(100dvh - 11.5rem);
+  min-height: 28rem;
 }
 
 .panel {
@@ -169,7 +173,9 @@ body {
 .chat-panel {
   display: flex;
   flex-direction: column;
-  min-height: 70vh;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
 }
 
@@ -375,9 +381,15 @@ input:focus {
 
 .card-panel {
   padding: 1.15rem 1.2rem 1.25rem;
-  align-self: start;
-  position: sticky;
-  top: 1rem;
+  align-self: stretch;
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 .card-title {
@@ -828,13 +840,19 @@ code {
 @media (max-width: 860px) {
   .layout {
     grid-template-columns: 1fr;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
   }
 
   .chat-panel {
-    min-height: 52vh;
+    height: min(52vh, 28rem);
+    max-height: min(52vh, 28rem);
   }
 
   .card-panel {
-    position: static;
+    height: auto;
+    max-height: min(70vh, 36rem);
   }
 }
