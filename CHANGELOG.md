@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live revise after preview
+
+- After delivery accepted, **Continue improving** captures user feedback
+- `POST /api/revise` restates feedback, appends Revision to the product Brief/tasks, reopens `delivery.json`, relaunches the CLI agent on the same worktree
+- Status poll resumes until the next accept
+
 ### Deploy via GitHub CLI
 
 - When a product job needs hosting / a public URL, default to `gh` + GitHub Actions (Pages template: `.duaer/templates/deploy-github-pages.yml`)

@@ -1748,6 +1748,240 @@ function launchDispatchedAgent({ jobId, agentId }) {
   };
 }
 
+const REVISE_PROMPT = `你是「现场开发」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
+
+规则：
+1. 提炼 change（改什么）、acceptance（怎么算改好）、keep（不要动什么）
+2. 不要写代码。不要假设仓库路径。
+3. 只输出一个 JSON，不要 markdown 围栏：
+{"change":"...","acceptance":"...","keep":"...","summary":"一句话复述用户意图"}`;
+
+async function restateRevisionFeedback(cfg, feedback, goalHint) {
+  try {
+    const content = await callChatModel(
+      cfg,
+      [
+        {
+          role: "user",
+          content: `原目标摘要：${goalHint || "（无）"}\n\n用户反馈：\n${feedback}`,
+        },
+      ],
+      REVISE_PROMPT,
+    );
+    const start = content.indexOf("{");
+    const end = content.lastIndexOf("}");
+    if (start < 0 || end <= start) return null;
+    const parsed = JSON.parse(content.slice(start, end + 1));
+    return {
+      change: String(parsed.change || "").trim(),
+      acceptance: String(parsed.acceptance || "").trim(),
+      keep: String(parsed.keep || "").trim(),
+      summary: String(parsed.summary || "").trim(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+async function reviseDispatchedJob({ jobId, feedback, agentId, startCommand }) {
+  const text = String(feedback || "").trim();
+  if (!text) throw new Error("请先写清哪里不满意、要改成什么样");
+
+  const live = readLiveJob(jobId);
+  const dispatch = live.job.dispatch;
+  if (!dispatch?.worktreePath || !dispatch?.featureDir) {
+    throw new Error("尚未派工，无法继续改进");
+  }
+  if (!fs.existsSync(dispatch.worktreePath)) {
+    throw new Error(`worktree 已不存在：${dispatch.worktreePath}`);
+  }
+  if (!fs.existsSync(dispatch.featureDir)) {
+    throw new Error(`Brief 目录不存在：${dispatch.featureDir}`);
+  }
+
+  const revN = Number(live.job.revisionCount || 0) + 1;
+  const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+
+  let restated = null;
+  try {
+    const cfg = readConfig();
+    if (cfg?.apiKey) {
+      const goalHint = extractSection(
+        fs.readFileSync(path.join(dispatch.featureDir, "spec.md"), "utf8"),
+        "Goal",
+      );
+      restated = await restateRevisionFeedback(cfg, text, goalHint);
+    }
+  } catch {
+    restated = null;
+  }
+
+  const changeLine = restated?.change || text;
+  const acceptLine =
+    restated?.acceptance || "按用户反馈改完后，成品符合反馈描述";
+  const keepLine = restated?.keep || "未点名的能力保持不变";
+  const summaryLine = restated?.summary || text.slice(0, 120);
+
+  const specPath = path.join(dispatch.featureDir, "spec.md");
+  const tasksPath = path.join(dispatch.featureDir, "tasks.md");
+  const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
+
+  let specMd = fs.existsSync(specPath)
+    ? fs.readFileSync(specPath, "utf8")
+    : "";
+  specMd = specMd.replace(/\*\*Status\*\*:\s*.+$/m, `**Status**: Revising (r${revN})`);
+  if (!/\*\*Status\*\*:/.test(specMd)) {
+    specMd = `${specMd.trim()}\n\n**Status**: Revising (r${revN})\n`;
+  }
+  const revisionBlock = `
+
+## Revision ${revN}
+
+**Date**: ${today}
+
+**User feedback**:
+${text}
+
+**Restated change**: ${changeLine}
+
+**Revision acceptance**: ${acceptLine}
+
+**Keep**: ${keepLine}
+`;
+  fs.writeFileSync(specPath, `${specMd.trim()}\n${revisionBlock}\n`, "utf8");
+
+  let tasksMd = fs.existsSync(tasksPath)
+    ? fs.readFileSync(tasksPath, "utf8")
+    : "# Tasks\n\n";
+  const taskBlock = `
+- [ ] R${revN}-1 Apply revision: ${changeLine.replace(/\n/g, " ").slice(0, 160)}
+- [ ] R${revN}-2 Verify against revision acceptance
+- [ ] R${revN}-3 Stamp delivery.json accepted（更新 preview.url）
+`;
+  fs.writeFileSync(
+    tasksPath,
+    `${tasksMd.trim()}\n\n## Revision ${revN} tasks\n${taskBlock}\n`,
+    "utf8",
+  );
+
+  let prevDelivery = null;
+  if (fs.existsSync(deliveryPath)) {
+    try {
+      prevDelivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+    } catch {
+      prevDelivery = null;
+    }
+  }
+  fs.writeFileSync(
+    deliveryPath,
+    `${JSON.stringify(
+      {
+        status: "open",
+        revisedAt: now,
+        revision: revN,
+        previousStatus: prevDelivery?.status || null,
+        previousAcceptedAt: prevDelivery?.acceptedAt || null,
+        feedback: text,
+        restated: restated || undefined,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  const defaultPrompt = `Agent
+
+用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
+
+工作目录: ${dispatch.worktreePath}
+Brief: ${dispatch.featureDir}
+分支: ${dispatch.branch || live.job.branch || ""}
+
+用户反馈：
+${text}
+
+整理后的改进点：${changeLine}
+验收：${acceptLine}
+保持不动：${keepLine}
+
+要求：
+1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
+2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]
+3. 改完后 stamp delivery.json 为 accepted，并更新 preview.url
+4. 按 testing.md 做风险验证（若有）
+5. 不要推远程除非用户明确要求部署/发布
+`;
+
+  let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
+  if (!/^Agent\b/m.test(agentPrompt)) {
+    agentPrompt = `Agent\n\n${agentPrompt}`;
+  }
+
+  const detected = detectAgents();
+  let chosen = String(agentId || "").trim() || detected.preferredAgentId || "";
+  if (!chosen || !detected.agents.some((a) => a.id === chosen)) {
+    chosen = detected.agents[0]?.id || "";
+  }
+  if (!chosen) {
+    throw new Error("未检测到可用 CLI（Cursor Agent / Claude Code）");
+  }
+  const ok = detected.agents.some((a) => a.id === chosen && a.available);
+  if (!ok) {
+    throw new Error(`未安装启动器：${chosen}`);
+  }
+
+  const logPath = path.join(dispatch.featureDir, "agent-launch.log");
+  appendLaunchLog(
+    logPath,
+    `\n—— revise r${revN} ${now} ——\n${summaryLine}\n`,
+  );
+  const launch = launchAgent({
+    agentId: chosen,
+    worktreePath: dispatch.worktreePath,
+    agentPrompt,
+    logPath,
+    featureDir: dispatch.featureDir,
+  });
+  rememberPreferredAgent(chosen);
+
+  const nextDispatch = {
+    ...dispatch,
+    launch,
+    revisedAt: now,
+    revision: revN,
+  };
+  const history = Array.isArray(live.job.revisions) ? live.job.revisions : [];
+  history.push({
+    n: revN,
+    at: now,
+    feedback: text,
+    restated: restated || null,
+  });
+  const nextJob = {
+    ...live.job,
+    status: "revising",
+    revisionCount: revN,
+    revisions: history,
+    agentPrompt,
+    dispatch: nextDispatch,
+  };
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+
+  return {
+    ok: true,
+    jobId: live.id,
+    revision: revN,
+    restated,
+    summary: summaryLine,
+    dispatch: nextDispatch,
+    launch,
+    agentPrompt,
+    agents: detectAgents(),
+  };
+}
+
 function extractSection(md, title) {
   const re = new RegExp(
     `## ${title}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`,
@@ -1960,13 +2194,16 @@ function dispatchStatus(jobId) {
       current: "delivery accepted · 工单完成",
     };
   }
-  const preview = accepted
-    ? resolvePreview({
-        delivery,
-        worktreePath: dispatch.worktreePath,
-        jobId: live.id,
-      })
-    : null;
+  const preview = resolvePreview({
+    delivery: accepted ? delivery : { status: "open" },
+    worktreePath: dispatch.worktreePath,
+    jobId: live.id,
+  });
+  // Only expose preview after first accept (or during revise rounds)
+  const showPreview =
+    accepted ||
+    Number(live.job.revisionCount || 0) > 0 ||
+    live.job.status === "revising";
   return {
     jobId: live.id,
     status: accepted ? "accepted" : live.job.status,
@@ -1974,7 +2211,9 @@ function dispatchStatus(jobId) {
     delivery,
     progress,
     logTail,
-    preview,
+    preview: showPreview ? preview : null,
+    canRevise: worktreeExists,
+    revision: live.job.revisionCount || 0,
   };
 }
 
@@ -2228,6 +2467,24 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "launch failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/revise") {
+    try {
+      const body = await readJson(req);
+      const result = await reviseDispatchedJob({
+        jobId: body.jobId,
+        feedback: body.feedback,
+        agentId: body.agentId,
+        startCommand: body.startCommand,
+      });
+      send(res, 200, result);
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "revise failed",
       });
     }
     return;

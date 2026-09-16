@@ -78,6 +78,10 @@ const el = {
   previewPanel: document.getElementById("previewPanel"),
   previewLink: document.getElementById("previewLink"),
   previewMeta: document.getElementById("previewMeta"),
+  revisePanel: document.getElementById("revisePanel"),
+  reviseFeedback: document.getElementById("reviseFeedback"),
+  doRevise: document.getElementById("doRevise"),
+  reviseErr: document.getElementById("reviseErr"),
 };
 
 function cardValues() {
@@ -894,22 +898,36 @@ function renderPreview(data) {
   const preview = data?.preview;
   if (!preview?.url) {
     el.previewPanel.hidden = true;
-    return;
+  } else {
+    el.previewPanel.hidden = false;
+    el.previewLink.href = preview.url;
+    el.previewLink.textContent = preview.label || "查看成品";
+    if (el.previewMeta) {
+      const bits = [];
+      if (preview.path) bits.push(preview.path);
+      if (preview.source)
+        bits.push(preview.source === "auto" ? "自动发现" : "delivery.preview");
+      el.previewMeta.textContent = bits.join(" · ");
+    }
   }
-  el.previewPanel.hidden = false;
-  el.previewLink.href = preview.url;
-  el.previewLink.textContent = preview.label || "查看成品";
-  if (el.previewMeta) {
-    const bits = [];
-    if (preview.path) bits.push(preview.path);
-    if (preview.source) bits.push(preview.source === "auto" ? "自动发现" : "delivery.preview");
-    el.previewMeta.textContent = bits.join(" · ");
-  }
+  renderRevisePanel(data);
+}
+
+function renderRevisePanel(data) {
+  if (!el.revisePanel) return;
+  const show =
+    Boolean(data?.canRevise) &&
+    (data?.status === "accepted" ||
+      data?.status === "revising" ||
+      Number(data?.revision || 0) > 0 ||
+      data?.delivery?.status === "accepted");
+  el.revisePanel.hidden = !show;
 }
 
 function startStatusPoll() {
   if (state.statusTimer) clearInterval(state.statusTimer);
   let acceptedNotified = false;
+  let lastRevision = -1;
   const tick = async () => {
     if (!state.jobId) return;
     try {
@@ -917,27 +935,31 @@ function startStatusPoll() {
       const data = await res.json();
       if (!res.ok) return;
       renderProgress(data);
-      renderPreview(data.status === "accepted" ? data : { preview: null });
+      renderPreview(data);
       const st = data.delivery?.status || data.status || "pending";
       const pct =
         data.progress && data.progress.total
           ? `${data.progress.done}/${data.progress.total}`
           : "";
-      el.dispatchStatus.textContent = `状态：${st}${pct ? ` · ${pct}` : ""}${
+      const rev =
+        data.revision > 0 ? ` · r${data.revision}` : "";
+      el.dispatchStatus.textContent = `状态：${st}${pct ? ` · ${pct}` : ""}${rev}${
         data.dispatch?.worktreeExists === false ? " · worktree 已移除" : ""
       }`;
-      if (data.status === "accepted") {
-        el.dispatchStatus.textContent = "delivery accepted · 工单完成";
-        if (!acceptedNotified) {
+      if (data.status === "accepted" && data.delivery?.status === "accepted") {
+        el.dispatchStatus.textContent = `delivery accepted · 可继续改进${rev}`;
+        if (!acceptedNotified || data.revision !== lastRevision) {
           acceptedNotified = true;
+          lastRevision = data.revision || 0;
           const link = data.preview?.url
             ? `\n成品：${data.preview.url}`
             : "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）";
           addBubble(
             "bot",
-            `数字员工已验收通过（delivery.json accepted）。${link}`,
+            `数字员工已验收通过（delivery.json accepted）。不满意可在下方写反馈继续改进。${link}`,
           );
         }
+        // Keep polling stopped while waiting for human feedback; revise restarts it.
         clearInterval(state.statusTimer);
         state.statusTimer = null;
       }
@@ -947,6 +969,79 @@ function startStatusPoll() {
   };
   void tick();
   state.statusTimer = setInterval(tick, 3000);
+}
+
+async function onRevise() {
+  if (!state.jobId) return;
+  const feedback = (el.reviseFeedback?.value || "").trim();
+  if (!feedback) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = "先写清哪里不满意、要改成什么样";
+    }
+    return;
+  }
+  if (el.reviseErr) el.reviseErr.hidden = true;
+  if (el.doRevise) {
+    el.doRevise.disabled = true;
+    el.doRevise.textContent = "理解并派工中…";
+  }
+  try {
+    const body = {
+      jobId: state.jobId,
+      feedback,
+      agentId: state.agentId,
+    };
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 90000);
+    const res = await fetch("/api/revise", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      signal: ac.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "继续改进失败");
+    const restated = data.restated
+      ? `\n整理：${data.restated.change || data.summary || ""}`
+      : data.summary
+        ? `\n整理：${data.summary}`
+        : "";
+    addBubble(
+      "bot",
+      `已记录反馈并启动 Revision ${data.revision}。${restated}\n同一 worktree 继续改；改完后会再出现成品链接。`,
+    );
+    if (el.reviseFeedback) el.reviseFeedback.value = "";
+    if (el.dispatchStatus) {
+      el.dispatchStatus.hidden = false;
+      el.dispatchStatus.textContent = `状态：revising · r${data.revision}`;
+    }
+    startStatusPoll();
+  } catch (err) {
+    const msg =
+      err?.name === "AbortError"
+        ? "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。"
+        : err instanceof Error
+          ? err.message
+          : "继续改进失败";
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = msg;
+    }
+    addBubble("bot", msg);
+  } finally {
+    if (el.doRevise) {
+      el.doRevise.disabled = false;
+      el.doRevise.textContent = "理解反馈并再改一版";
+    }
+  }
+}
+
+if (el.doRevise) {
+  el.doRevise.addEventListener("click", () => {
+    void onRevise();
+  });
 }
 
 void loadConfig();
