@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T08:52:24.000Z",
+  "verification": {
+    "levels": ["L0", "L2"],
+    "commands": ["node --check bin/duaer-live.mjs", "curl revise after accept against 032-orders"],
+    "notes": "Root cause: priorAccepted revise enqueued behind leftover first agent. Fix: preemptBusy on !continueSession reviseLaunch."
+  }
+}

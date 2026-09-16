@@ -134,6 +134,8 @@ const zhCN = {
   "bot.reviseLaunchReuse": "已送入原 Terminal",
   "bot.reviseLaunchQueued":
     "已排入原 Terminal，当前任务结束后自动跑",
+  "bot.reviseLaunchPreempt":
+    "已中止上一轮残留会话，正在启动本轮改进",
   "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
   "bot.reviseLaunchNew": "新会话",
   "bot.reviseRestate": "\n改：{change}\n验：{acceptance}",
@@ -345,6 +347,8 @@ const en = {
   "bot.reviseLaunchReuse": "enqueued in existing Terminal",
   "bot.reviseLaunchQueued":
     "Queued in the same Terminal; runs after the current task finishes",
+  "bot.reviseLaunchPreempt":
+    "Stopped the leftover session; starting this revision now",
   "bot.reviseLaunchContinue": "Terminal agent/claude --continue",
   "bot.reviseLaunchNew": "new session",
   "bot.reviseRestate": "\nChange: {change}\nAccept: {acceptance}",

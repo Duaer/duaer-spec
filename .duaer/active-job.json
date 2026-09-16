@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "feature": "045-revise-hang",
-  "featureDirectory": ".duaer/specs/045-revise-hang",
-  "specDir": ".duaer/specs/045-revise-hang",
-  "branch": "fix/revise-hang",
-  "worktree": ".worktree/fix-revise-hang",
-  "startedAt": "2026-09-16T08:22:00.000Z",
-  "updatedAt": "2026-09-16T08:32:00.000Z",
+  "feature": "046-revise-stuck",
+  "featureDirectory": ".duaer/specs/046-revise-stuck",
+  "specDir": ".duaer/specs/046-revise-stuck",
+  "branch": "fix/revise-stuck",
+  "worktree": ".worktree/fix-revise-stuck",
+  "startedAt": "2026-09-16T08:48:46.000Z",
+  "updatedAt": "2026-09-16T08:52:24.117Z",
   "source": "duaer-do",
   "status": "accepted"
 }

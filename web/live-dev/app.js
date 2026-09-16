@@ -1642,17 +1642,29 @@ async function confirmReviseAndDispatch() {
       signal: ac.signal,
     });
     clearTimeout(timer);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || t("err.revise"));
+    const rawText = await res.text();
+    let data = {};
+    try {
+      data = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      const snippet = String(rawText || "").replace(/\s+/g, " ").slice(0, 180);
+      throw new Error(
+        snippet
+          ? `HTTP ${res.status}: ${snippet}`
+          : `HTTP ${res.status} ${t("err.revise")}`,
+      );
+    }
+    if (!res.ok) throw new Error(data.error || `HTTP ${res.status} ${t("err.revise")}`);
     const restated = data.restated
       ? t("bot.reviseRestate", {
           change: data.restated.change || "",
           acceptance: data.restated.acceptance || "",
         })
       : "";
-    const launchLabel =
-      data.launch?.busy &&
-      (data.launch?.reused || data.launch?.mode === "terminal-reuse")
+    const launchLabel = data.launch?.preempted
+      ? t("bot.reviseLaunchPreempt")
+      : data.launch?.busy &&
+          (data.launch?.reused || data.launch?.mode === "terminal-reuse")
         ? t("bot.reviseLaunchQueued")
         : data.launch?.reused || data.launch?.mode === "terminal-reuse"
           ? t("bot.reviseLaunchReuse")

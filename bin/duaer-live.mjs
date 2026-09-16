@@ -1689,6 +1689,65 @@ function isTerminalRunnerBusy(queueDir) {
   return fs.existsSync(path.join(queueDir, "running.cmd"));
 }
 
+/**
+ * After delivery is accepted, the first agent CLI often keeps running.
+ * priorAccepted revise must not sit forever behind that leftover process.
+ * SIGTERM the bash holding running.cmd (and matching agent/claude for this
+ * worktree); the long-lived runner then drains the FIFO queue.
+ */
+function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null } = {}) {
+  const runningPath = path.join(queueDir, "running.cmd");
+  if (!fs.existsSync(runningPath)) {
+    return { preempted: false, reason: "idle" };
+  }
+  const stamp = new Date().toISOString();
+  if (logPath) {
+    appendLaunchLog(
+      logPath,
+      `[${stamp}] preempt busy runner — priorAccepted revise must not wait forever behind leftover agent`,
+    );
+  }
+  const killed = [];
+  try {
+    const pkill = spawnSync(
+      "pkill",
+      ["-TERM", "-f", runningPath],
+      { encoding: "utf8", timeout: CHILD_BUDGET_MS.which },
+    );
+    if (pkill.status === 0) killed.push("running.cmd");
+  } catch {
+    // ignore
+  }
+  if (worktreePath) {
+    for (const needle of [
+      `--workspace ${worktreePath}`,
+      `--workspace '${worktreePath}'`,
+      `--workspace "${worktreePath}"`,
+    ]) {
+      try {
+        const r = spawnSync(
+          "pkill",
+          ["-TERM", "-f", needle],
+          { encoding: "utf8", timeout: CHILD_BUDGET_MS.which },
+        );
+        if (r.status === 0) {
+          killed.push("workspace-agent");
+          break;
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+  if (logPath) {
+    appendLaunchLog(
+      logPath,
+      `[${new Date().toISOString()}] preempt signal sent targets=${killed.join(",") || "none"}`,
+    );
+  }
+  return { preempted: killed.length > 0, reason: killed.join(",") || "signal-attempted", killed };
+}
+
 function terminalJobsDir(queueDir) {
   return path.join(queueDir, "jobs");
 }
@@ -1739,7 +1798,13 @@ function countQueuedJobs(queueDir) {
   }
 }
 
-function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
+function launchInTerminal({
+  cwd,
+  commandLine,
+  logPath,
+  reuseKey = null,
+  preemptBusy = false,
+}) {
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
   appendLaunchLog(logPath, stamped);
 
@@ -1748,14 +1813,33 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
     const qdir = terminalQueueDir(key);
     fs.mkdirSync(qdir, { recursive: true });
     const jobPath = enqueueTerminalJob(qdir, commandLine);
-    const queuedCount = countQueuedJobs(qdir);
+    let queuedCount = countQueuedJobs(qdir);
 
     if (isTerminalRunnerHealthy(qdir)) {
+      let busy = isTerminalRunnerBusy(qdir);
+      let preempted = false;
+      // After accept, leftover first-agent must not block revise forever.
+      if (busy && preemptBusy) {
+        const pre = preemptBusyTerminalJob(qdir, {
+          worktreePath: cwd,
+          logPath,
+        });
+        preempted = Boolean(pre.preempted || pre.reason === "signal-attempted");
+        busy = isTerminalRunnerBusy(qdir);
+        queuedCount = countQueuedJobs(qdir);
+        try {
+          fs.writeFileSync(
+            path.join(qdir, "wake"),
+            `${path.basename(jobPath)}\n`,
+          );
+        } catch {
+          // ignore
+        }
+      }
       const pid = readRunnerPid(qdir);
-      const busy = isTerminalRunnerBusy(qdir);
       appendLaunchLog(
         logPath,
-        `[${new Date().toISOString()}] enqueue FIFO job=${path.basename(jobPath)} → runner pid=${pid} busy=${busy} queued=${queuedCount} (wait-for-finish)`,
+        `[${new Date().toISOString()}] enqueue FIFO job=${path.basename(jobPath)} → runner pid=${pid} busy=${busy} queued=${queuedCount}${preempted ? " preempted=1" : " (wait-for-finish)"}`,
       );
       return {
         pid,
@@ -1763,6 +1847,7 @@ function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
         reused: true,
         queued: true,
         busy,
+        preempted,
         queueDepth: queuedCount,
         queueDir: qdir,
         jobPath,
@@ -2089,6 +2174,8 @@ function launchAgent({
   logPath,
   featureDir,
   continueSession = false,
+  /** When true (revise after accept / recreate): use revise prompt file + preempt leftover busy agent. */
+  reviseLaunch = false,
 }) {
   const id = String(agentId || "none").trim() || "none";
   const detected = detectAgents();
@@ -2129,14 +2216,20 @@ function launchAgent({
 
   appendLaunchLog(
     outLog,
-    `[${launch.launchedAt}] start ${id} continue=${launch.continueSession} cwd=${worktreePath}`,
+    `[${launch.launchedAt}] start ${id} continue=${launch.continueSession} revise=${Boolean(reviseLaunch)} cwd=${worktreePath}`,
   );
 
+  // Always write revise prompts to agent-revise-prompt.txt so we never clobber
+  // the original launch prompt while the first agent is still reading it.
   const promptFile = path.join(
     path.dirname(outLog),
-    continueSession ? "agent-revise-prompt.txt" : "agent-launch-prompt.txt",
+    reviseLaunch || continueSession
+      ? "agent-revise-prompt.txt"
+      : "agent-launch-prompt.txt",
   );
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
+
+  const preemptBusy = Boolean(reviseLaunch) && !continueSession;
 
   if (id === "cursor-agent") {
     const line = cursorAgentTerminalCommand(worktreePath, promptFile, {
@@ -2148,20 +2241,24 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      preemptBusy,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
     launch.reused = Boolean(term.reused);
     launch.queued = Boolean(term.queued);
     launch.busy = Boolean(term.busy);
+    launch.preempted = Boolean(term.preempted);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
     const resolved = resolveCursorAgentCommand();
-    const queueNote = term.busy
-      ? "queued wait"
-      : term.reused
-        ? "Terminal reuse"
-        : "Terminal";
+    const queueNote = term.preempted
+      ? "preempt+queue"
+      : term.busy
+        ? "queued wait"
+        : term.reused
+          ? "Terminal reuse"
+          : "Terminal";
     launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
@@ -2172,19 +2269,23 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      preemptBusy,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
     launch.reused = Boolean(term.reused);
     launch.queued = Boolean(term.queued);
     launch.busy = Boolean(term.busy);
+    launch.preempted = Boolean(term.preempted);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
-    const queueNote = term.busy
-      ? "queued wait"
-      : term.reused
-        ? "Terminal reuse"
-        : "Terminal";
+    const queueNote = term.preempted
+      ? "preempt+queue"
+      : term.busy
+        ? "queued wait"
+        : term.reused
+          ? "Terminal reuse"
+          : "Terminal";
     launch.command = `claude${continueSession ? " --continue" : ""} (${queueNote})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
@@ -2192,7 +2293,7 @@ function launchAgent({
 
   appendLaunchLog(
     outLog,
-    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid} continue=${launch.continueSession} reused=${Boolean(launch.reused)}`,
+    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid} continue=${launch.continueSession} reused=${Boolean(launch.reused)} preempted=${Boolean(launch.preempted)}`,
   );
   return launch;
 }
@@ -2871,6 +2972,9 @@ ${restated.keep}
     logPath,
     featureDir: dispatch.featureDir,
     continueSession,
+    // Revise after accept/recreate must not wait forever behind leftover agent.
+    reviseLaunch: true,
+    // preempt only when !continueSession (priorAccepted || recreated) — see launchAgent
   });
   rememberPreferredAgent(chosen);
 
