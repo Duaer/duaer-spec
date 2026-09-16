@@ -64,23 +64,23 @@
       </section>
 
       <section class="panel card-panel" aria-label="确认卡">
-        <p class="mark">Confirm card</p>
-        <h2 class="card-title">确认卡</h2>
+        <p class="mark" id="cardMark">Confirm card</p>
+        <h2 class="card-title" id="cardTitle">确认卡</h2>
         <p id="meta" class="meta"></p>
         <label class="field">
-          <span>要做什么</span>
+          <span id="lblGoal">要做什么</span>
           <textarea id="goal" rows="3" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span>不做什么</span>
+          <span id="lblOut">不做什么</span>
           <textarea id="outOfScope" rows="2" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span>验收标准</span>
+          <span id="lblAccept">验收标准</span>
           <textarea id="acceptance" rows="3" placeholder="待确认"></textarea>
         </label>
         <label class="field">
-          <span>假设</span>
+          <span id="lblAssume">假设</span>
           <textarea id="assumptions" rows="2" placeholder="待确认"></textarea>
         </label>
         <p id="lockHint" class="hint">确认时自动验收；通过后选择产品仓派工</p>
@@ -139,17 +139,8 @@
           </div>
           <div id="revisePanel" class="revise-panel" hidden>
             <p class="revise-title">继续改进</p>
-            <p class="hint">看完成品后说出哪里不满意；确认后会在同一 worktree 再派数字员工改一版。</p>
-            <label class="field">
-              <span>反馈</span>
-              <textarea
-                id="reviseFeedback"
-                rows="4"
-                placeholder="例如：主色太深、标题再大一点、手机端按钮挤在一起…"
-                spellcheck="true"
-              ></textarea>
-            </label>
-            <button type="button" class="btn primary" id="doRevise">理解反馈并再改一版</button>
+            <p class="hint">不满意时先点下方按钮，在<strong>左侧对话</strong>说清原因与期望；右侧改进卡确认后，才会用 Terminal <code>--continue</code> 续派数字员工。</p>
+            <button type="button" class="btn primary" id="startReviseChat">继续改进（左侧对话）</button>
             <p id="reviseErr" class="hint" hidden></p>
           </div>
         </section>

@@ -58,7 +58,7 @@ Open the printed URL (default `http://127.0.0.1:8787`).
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
 4. Edit the start command (must begin with `Agent`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch `tasks.md` progress on the desk; when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)
-6. If the result is not right: write feedback under **Continue improving**, then the desk restates the ask and relaunches the CLI agent on the **same** worktree (`POST /api/revise`)
+6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change in dialogue, confirm the revise card, then the desk relaunches with `agent --continue` / `claude --continue` on the same worktree
 7. If the job needs hosting / a public URL, deploy with **GitHub CLI (`gh`) + Actions** (Pages template under `.duaer/templates/deploy-github-pages.yml`; see [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
 Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
