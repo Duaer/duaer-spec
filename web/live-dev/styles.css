@@ -649,6 +649,16 @@ input:focus {
   font-size: 0.85rem;
 }
 
+.validate-hint {
+  white-space: pre-wrap;
+  margin: 0.55rem 0 0.35rem;
+  padding-left: 0.55rem;
+  border-left: 2px solid var(--line);
+  color: var(--ink);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
 .hint.warn,
 #cfgErr:not([hidden]),
 #lockHint {

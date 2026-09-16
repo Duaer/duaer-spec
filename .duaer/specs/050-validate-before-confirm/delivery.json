@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Confirm and revise gated on pre-send validation; agent prompts forbid Confirming-intent loops.",
+  "verification": {
+    "levels": ["L0"],
+    "notes": "Endpoints /api/validate and /api/validate/fix; UI gate via validationAllowsSend; reviseDispatchedJob ValidateGateError; launch prompts rule 0. E2E-051. node --check bin/duaer-live.mjs OK."
+  }
+}

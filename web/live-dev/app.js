@@ -60,6 +60,19 @@ const state = {
   selectedHistoryDetail: null,
   /** Active run-block for progress polling ({ revision, root, summary, tasks, log }). */
   activeRun: null,
+  /**
+   * Pre-send validation gate.
+   * status: idle | checking | passed | failed
+   */
+  validate: {
+    kind: "confirm",
+    fingerprint: "",
+    status: "idle",
+    summary: "",
+    issues: [],
+  },
+  validateTimer: 0,
+  validateSeq: 0,
 };
 
 const el = {
@@ -75,6 +88,8 @@ const el = {
   confirm: document.getElementById("confirm"),
   result: document.getElementById("result"),
   lockHint: document.getElementById("lockHint"),
+  validateHint: document.getElementById("validateHint"),
+  reviseValidateHint: document.getElementById("reviseValidateHint"),
   meta: document.getElementById("meta"),
   send: document.getElementById("send"),
   cfgProviders: document.getElementById("cfgProviders"),
@@ -319,6 +334,187 @@ function applyConfirmCardChrome() {
   if (el.lblAssume) el.lblAssume.textContent = t("card.assume");
 }
 
+function cardFingerprint(v) {
+  return JSON.stringify({
+    goal: String(v.goal || "").trim(),
+    outOfScope: String(v.outOfScope || "").trim(),
+    acceptance: String(v.acceptance || "").trim(),
+    assumptions: String(v.assumptions || "").trim(),
+  });
+}
+
+function currentValidateKind() {
+  return state.mode === "revise" && !state.reviseLocked ? "revise" : "confirm";
+}
+
+function currentValidateValues() {
+  return currentValidateKind() === "revise" ? reviseCardValues() : cardValues();
+}
+
+function resetValidateGate({ keepHint = false } = {}) {
+  state.validate = {
+    kind: currentValidateKind(),
+    fingerprint: "",
+    status: "idle",
+    summary: "",
+    issues: [],
+  };
+  if (!keepHint) {
+    if (el.validateHint) {
+      el.validateHint.hidden = true;
+      el.validateHint.textContent = "";
+    }
+    if (el.reviseValidateHint) {
+      el.reviseValidateHint.hidden = true;
+      el.reviseValidateHint.textContent = "";
+    }
+  }
+}
+
+function renderValidateHint() {
+  const kind = state.validate.kind || "confirm";
+  const target =
+    kind === "revise" ? el.reviseValidateHint : el.validateHint;
+  const other =
+    kind === "revise" ? el.validateHint : el.reviseValidateHint;
+  if (other) {
+    other.hidden = true;
+    other.textContent = "";
+  }
+  if (!target) return;
+  const st = state.validate.status;
+  if (st === "idle") {
+    target.hidden = true;
+    target.textContent = "";
+    return;
+  }
+  target.hidden = false;
+  if (st === "checking") {
+    target.textContent = t("validate.checking");
+    return;
+  }
+  if (st === "passed") {
+    target.textContent = t("validate.passed", {
+      summary: state.validate.summary || "",
+    });
+    return;
+  }
+  const issues = state.validate.issues || [];
+  const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
+  target.textContent = t("validate.failed", {
+    summary: state.validate.summary || t("bot.acceptFailedDefault"),
+    detail,
+  });
+}
+
+function validationAllowsSend(kind) {
+  const v = kind === "revise" ? reviseCardValues() : cardValues();
+  if (!v.goal || !v.acceptance) return false;
+  return (
+    state.validate.kind === kind &&
+    state.validate.status === "passed" &&
+    state.validate.fingerprint === cardFingerprint(v)
+  );
+}
+
+function scheduleValidate(kind = currentValidateKind()) {
+  if (state.locked && kind === "confirm") return;
+  if (state.reviseLocked && kind === "revise") return;
+  const v = kind === "revise" ? reviseCardValues() : cardValues();
+  if (!v.goal || !v.acceptance || !state.ready) {
+    resetValidateGate();
+    syncConfirmEnabled();
+    return;
+  }
+  const fp = cardFingerprint(v);
+  if (
+    state.validate.kind === kind &&
+    state.validate.fingerprint === fp &&
+    (state.validate.status === "passed" || state.validate.status === "checking")
+  ) {
+    syncConfirmEnabled();
+    return;
+  }
+  state.validate = {
+    kind,
+    fingerprint: fp,
+    status: "checking",
+    summary: "",
+    issues: [],
+  };
+  renderValidateHint();
+  syncConfirmEnabled();
+  clearTimeout(state.validateTimer);
+  state.validateTimer = window.setTimeout(() => {
+    void runValidate(kind, fp);
+  }, 550);
+}
+
+async function runValidate(kind, expectedFp) {
+  const seq = ++state.validateSeq;
+  const v = kind === "revise" ? reviseCardValues() : cardValues();
+  const fp = cardFingerprint(v);
+  if (expectedFp && fp !== expectedFp) return;
+  if (!v.goal || !v.acceptance || !state.ready) {
+    if (seq === state.validateSeq) resetValidateGate();
+    syncConfirmEnabled();
+    return;
+  }
+  state.validate = {
+    kind,
+    fingerprint: fp,
+    status: "checking",
+    summary: "",
+    issues: [],
+  };
+  renderValidateHint();
+  syncConfirmEnabled();
+  try {
+    const res = await fetch("/api/validate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(v),
+    });
+    const data = await res.json();
+    if (seq !== state.validateSeq) return;
+    const live = kind === "revise" ? reviseCardValues() : cardValues();
+    if (cardFingerprint(live) !== fp) return;
+    if (data.card) {
+      if (kind === "revise") {
+        if (el.revGoal) el.revGoal.value = data.card.goal || "";
+        if (el.revOut) el.revOut.value = data.card.outOfScope || "";
+        if (el.revAccept) el.revAccept.value = data.card.acceptance || "";
+        if (el.revAssume) el.revAssume.value = data.card.assumptions || "";
+      } else {
+        applyCard(data.card, { skipValidate: true });
+      }
+    }
+    const next = kind === "revise" ? reviseCardValues() : cardValues();
+    const nextFp = cardFingerprint(next);
+    const passed = Boolean(data.passed) && res.ok;
+    state.validate = {
+      kind,
+      fingerprint: nextFp,
+      status: passed ? "passed" : "failed",
+      summary: data.summary || data.error || "",
+      issues: Array.isArray(data.issues) ? data.issues : [],
+    };
+    renderValidateHint();
+    syncConfirmEnabled();
+  } catch (err) {
+    if (seq !== state.validateSeq) return;
+    state.validate = {
+      kind,
+      fingerprint: fp,
+      status: "failed",
+      summary: err instanceof Error ? err.message : t("err.validate"),
+      issues: [],
+    };
+    renderValidateHint();
+    syncConfirmEnabled();
+  }
+}
+
 function syncConfirmEnabled() {
   applyConfirmCardChrome();
   // Top confirm card: only for initial specify flow
@@ -329,25 +525,47 @@ function syncConfirmEnabled() {
     el.confirm.textContent = t("card.confirmed");
     el.lockHint.textContent = t("card.lockHintRevise");
     const v = reviseCardValues();
+    const fieldsOk = Boolean(v.goal && v.acceptance);
     const ok =
       state.mode === "revise" &&
-      Boolean(v.goal && v.acceptance) &&
+      fieldsOk &&
       state.ready &&
       !state.busy &&
-      !state.reviseDispatching;
+      !state.reviseDispatching &&
+      validationAllowsSend("revise");
+    if (el.reviseHint && state.mode === "revise" && !state.reviseLocked) {
+      if (state.validate.status === "checking") {
+        el.lockHint.textContent = t("card.lockHintRevise");
+      }
+    }
     syncReviseDispatchButton(ok);
     return;
   }
   const v = cardValues();
-  const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
+  const fieldsOk = Boolean(v.goal && v.acceptance);
+  const validated = validationAllowsSend("confirm");
+  const ok =
+    fieldsOk && !state.locked && state.ready && validated && !state.busy;
   el.confirm.disabled = !ok;
-  el.lockHint.textContent = state.locked
-    ? t("card.lockHintLocked")
-    : ok
-      ? t("card.lockHintReady")
-      : t("card.lockHintNeed");
-  if (!state.locked) el.confirm.textContent = t("card.confirm");
-  else {
+  if (state.locked) {
+    el.lockHint.textContent = t("card.lockHintLocked");
+  } else if (!fieldsOk) {
+    el.lockHint.textContent = t("card.lockHintNeed");
+  } else if (state.validate.status === "checking") {
+    el.lockHint.textContent = t("card.lockHintChecking");
+  } else if (state.validate.status === "failed") {
+    el.lockHint.textContent = t("card.lockHintFailed");
+  } else if (validated) {
+    el.lockHint.textContent = t("card.lockHintReady");
+  } else {
+    el.lockHint.textContent = t("card.lockHintNeedValidate");
+  }
+  if (!state.locked) {
+    el.confirm.textContent =
+      state.validate.status === "checking"
+        ? t("card.validating")
+        : t("card.confirm");
+  } else {
     el.confirm.textContent = t("card.confirmed");
     el.confirm.disabled = true;
   }
@@ -423,10 +641,18 @@ function applyCardChrome() {
 }
 
 ["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
-  el[id].addEventListener("input", syncConfirmEnabled);
+  el[id].addEventListener("input", () => {
+    if (state.locked) return;
+    scheduleValidate("confirm");
+  });
 });
 ["revGoal", "revOut", "revAccept", "revAssume"].forEach((id) => {
-  if (el[id]) el[id].addEventListener("input", syncConfirmEnabled);
+  if (el[id]) {
+    el[id].addEventListener("input", () => {
+      if (state.reviseLocked) return;
+      scheduleValidate("revise");
+    });
+  }
 });
 
 function addBubble(role, text, { options, actions } = {}) {
@@ -622,7 +848,7 @@ async function sendChat(userText) {
   }
 }
 
-function applyCard(data) {
+function applyCard(data, { skipValidate = false } = {}) {
   if (state.mode === "revise") {
     if (data.goal && el.revGoal) el.revGoal.value = data.goal;
     if (data.outOfScope && el.revOut) el.revOut.value = data.outOfScope;
@@ -635,6 +861,7 @@ function applyCard(data) {
     if (data.assumptions) el.assumptions.value = data.assumptions;
   }
   syncConfirmEnabled();
+  if (!skipValidate) scheduleValidate(currentValidateKind());
 }
 
 function applyProvider(id, { fillEmptyOnly = false } = {}) {
@@ -755,6 +982,11 @@ el.confirm.addEventListener("click", async () => {
   }
   const v = cardValues();
   if (!v.goal || !v.acceptance || state.locked || state.busy) return;
+  if (!validationAllowsSend("confirm")) {
+    scheduleValidate("confirm");
+    addBubble("bot", t("bot.needValidate"));
+    return;
+  }
   el.confirm.disabled = true;
   el.confirm.textContent = t("card.accepting");
   state.busy = true;
@@ -768,15 +1000,24 @@ el.confirm.addEventListener("click", async () => {
       }),
     });
     const data = await res.json();
-    if (data.card) applyCard(data.card);
+    if (data.card) applyCard(data.card, { skipValidate: true });
     if (res.status === 422 || data.passed === false) {
-      showAcceptFailed(data);
+      state.validate = {
+        kind: "confirm",
+        fingerprint: cardFingerprint(cardValues()),
+        status: "failed",
+        summary: data.summary || data.error || "",
+        issues: Array.isArray(data.issues) ? data.issues : [],
+      };
+      renderValidateHint();
+      showAcceptFailed(data, { kind: "confirm" });
       el.confirm.disabled = false;
       el.confirm.textContent = t("card.confirm");
       syncConfirmEnabled();
       return;
     }
     if (!res.ok) throw new Error(data.error || t("err.confirm"));
+    resetValidateGate();
     await applyConfirmSuccess(data);
   } catch (err) {
     el.confirm.disabled = false;
@@ -789,10 +1030,11 @@ el.confirm.addEventListener("click", async () => {
     );
   } finally {
     state.busy = false;
+    syncConfirmEnabled();
   }
 });
 
-function showAcceptFailed(data) {
+function showAcceptFailed(data, { kind = "confirm" } = {}) {
   const issues = Array.isArray(data.issues) ? data.issues : [];
   const detail = issues.length ? `\n- ${issues.join("\n- ")}` : "";
   addBubble(
@@ -805,7 +1047,7 @@ function showAcceptFailed(data) {
       actions: [
         {
           label: t("bot.autoFix"),
-          onClick: (btn) => autoFixAccept(btn, issues),
+          onClick: (btn) => autoFixAccept(btn, issues, kind),
         },
       ],
     },
@@ -837,17 +1079,52 @@ async function applyConfirmSuccess(data) {
   await showDispatchPanel();
 }
 
-async function autoFixAccept(btn, issues) {
-  if (state.busy || state.locked) return;
-  const v = cardValues();
+async function autoFixAccept(btn, issues, kind = "confirm") {
+  if (state.busy) return;
+  if (kind === "confirm" && state.locked) return;
+  if (kind === "revise" && state.reviseLocked) return;
+  const v = kind === "revise" ? reviseCardValues() : cardValues();
   state.busy = true;
   if (btn) {
     btn.disabled = true;
     btn.textContent = t("bot.fixing");
   }
-  el.confirm.disabled = true;
-  el.confirm.textContent = t("card.fixing");
+  if (kind === "confirm") {
+    el.confirm.disabled = true;
+    el.confirm.textContent = t("card.fixing");
+  }
   try {
+    if (kind === "revise") {
+      const res = await fetch("/api/validate/fix", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...v, issues }),
+      });
+      const data = await res.json();
+      if (data.card) applyCard(data.card, { skipValidate: true });
+      const next = reviseCardValues();
+      const passed = Boolean(data.passed) && res.ok;
+      state.validate = {
+        kind: "revise",
+        fingerprint: cardFingerprint(next),
+        status: passed ? "passed" : "failed",
+        summary: data.summary || data.error || "",
+        issues: Array.isArray(data.issues) ? data.issues : [],
+      };
+      renderValidateHint();
+      if (!passed) {
+        const note = data.fixSummary ? `（${data.fixSummary}）` : "";
+        addBubble("bot", t("bot.fixStillFailed", { note }));
+        showAcceptFailed(data, { kind: "revise" });
+      } else {
+        addBubble(
+          "bot",
+          t("bot.validateFixed", { summary: data.fixSummary || data.summary || "" }),
+        );
+      }
+      syncConfirmEnabled();
+      return;
+    }
     const res = await fetch("/api/confirm/fix", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -858,17 +1135,26 @@ async function autoFixAccept(btn, issues) {
       }),
     });
     const data = await res.json();
-    if (data.card) applyCard(data.card);
+    if (data.card) applyCard(data.card, { skipValidate: true });
     if (res.status === 422 || data.passed === false) {
       const note = data.fixSummary ? `（${data.fixSummary}）` : "";
       addBubble("bot", t("bot.fixStillFailed", { note }));
-      showAcceptFailed(data);
+      state.validate = {
+        kind: "confirm",
+        fingerprint: cardFingerprint(cardValues()),
+        status: "failed",
+        summary: data.summary || data.error || "",
+        issues: Array.isArray(data.issues) ? data.issues : [],
+      };
+      renderValidateHint();
+      showAcceptFailed(data, { kind: "confirm" });
       el.confirm.disabled = false;
       el.confirm.textContent = t("card.confirm");
       syncConfirmEnabled();
       return;
     }
     if (!res.ok) throw new Error(data.error || t("err.autoFix"));
+    resetValidateGate();
     await applyConfirmSuccess(data);
   } catch (err) {
     addBubble(
@@ -877,8 +1163,10 @@ async function autoFixAccept(btn, issues) {
         msg: err instanceof Error ? err.message : err,
       }),
     );
-    el.confirm.disabled = false;
-    el.confirm.textContent = t("card.confirm");
+    if (kind === "confirm") {
+      el.confirm.disabled = false;
+      el.confirm.textContent = t("card.confirm");
+    }
     syncConfirmEnabled();
     if (btn) {
       btn.disabled = false;
@@ -886,6 +1174,7 @@ async function autoFixAccept(btn, issues) {
     }
   } finally {
     state.busy = false;
+    syncConfirmEnabled();
   }
 }
 
@@ -1598,6 +1887,7 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseMessages = [];
+  resetValidateGate();
   // Keep top confirm card as original requirements — do not clear it
   restoreConfirmCardFromOriginal();
   if (el.revGoal) el.revGoal.value = "";
@@ -1607,6 +1897,7 @@ function enterReviseMode() {
   setReviseFieldsReadonly(false);
   applyCardChrome();
   syncChatPlaceholder();
+  syncConfirmEnabled();
   el.input.focus();
   addBubble("bot", t("bot.enterRevise"));
   renderRevisePanel({
@@ -1736,6 +2027,11 @@ async function confirmReviseAndDispatch() {
     }
     return;
   }
+  if (!validationAllowsSend("revise")) {
+    scheduleValidate("revise");
+    addBubble("bot", t("bot.needValidate"));
+    return;
+  }
   if (el.reviseErr) el.reviseErr.hidden = true;
   state.reviseDispatching = true;
   syncReviseDispatchButton(false);
@@ -1770,7 +2066,22 @@ async function confirmReviseAndDispatch() {
           : `HTTP ${res.status} ${t("err.revise")}`,
       );
     }
+    if (res.status === 422 || data.passed === false) {
+      if (data.card) applyCard(data.card, { skipValidate: true });
+      state.validate = {
+        kind: "revise",
+        fingerprint: cardFingerprint(reviseCardValues()),
+        status: "failed",
+        summary: data.summary || data.error || "",
+        issues: Array.isArray(data.issues) ? data.issues : [],
+      };
+      renderValidateHint();
+      showAcceptFailed(data, { kind: "revise" });
+      syncConfirmEnabled();
+      return;
+    }
     if (!res.ok) throw new Error(data.error || `HTTP ${res.status} ${t("err.revise")}`);
+    resetValidateGate();
     const restated = data.restated
       ? t("bot.reviseRestate", {
           change: data.restated.change || "",
