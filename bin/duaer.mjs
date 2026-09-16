@@ -18,6 +18,13 @@ import {
 import { spawn } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  checkForUpdate,
+  formatUpdateHint,
+  localPackageVersion,
+  maybePrintUpdateHint,
+  runSelfUpdate,
+} from './update-check.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PKG_ROOT = resolve(__dirname, '..')
@@ -28,7 +35,8 @@ const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
 Install:  npx duaer-spec init --here
-Update:   npx duaer-spec update
+Update:   npx duaer-spec update          # product-repo adapters
+          duaer self-update              # upgrade global CLI from npm
 
 Then talk to the agent in plain language.
 
@@ -38,7 +46,7 @@ Also:
   duaer live config --base-url … --api-key … --model …
   duaer live repo add [path]         Remember a product repo for dispatch (default: cwd)
   duaer handoff [--run]   Restart services on develop after worktree remove
-  duaer status | check | policy | version | help
+  duaer status | check | policy | version | self-update | help
 
 Init options: --all | --method | --ops | --force | --branch <n> | --here
 `
@@ -999,11 +1007,24 @@ function cmdLive(opts) {
   } else if (opts.port) {
     args.push('--port', String(opts.port))
   }
+  void maybePrintUpdateHint()
   const child = spawn(process.execPath, args, {
     stdio: 'inherit',
     cwd: opts.liveRepoAdd ? resolve(opts.dir || '.') : PKG_ROOT,
   })
   child.on('exit', (code) => process.exit(code ?? 0))
+}
+
+async function cmdVersion() {
+  console.log(localPackageVersion())
+  const info = await checkForUpdate({ force: true })
+  if (info.latest) {
+    console.log(
+      `npm latest: ${info.latest}${info.outdated ? ' (update available)' : ''}`,
+    )
+  }
+  const line = formatUpdateHint(info)
+  if (line) console.log(line)
 }
 
 function main() {
@@ -1019,15 +1040,22 @@ function main() {
   try {
     switch (opts.cmd) {
       case 'init':
+        void maybePrintUpdateHint()
         cmdInit(opts)
         break
       case 'update':
+        void maybePrintUpdateHint()
         cmdUpdate(opts)
+        break
+      case 'self-update':
+      case 'selfupdate':
+        runSelfUpdate()
         break
       case 'live':
         cmdLive(opts)
         break
       case 'check':
+        void maybePrintUpdateHint()
         cmdCheck(opts)
         break
       case 'handoff':
@@ -1035,6 +1063,7 @@ function main() {
         break
       case 'job':
       case 'status':
+        void maybePrintUpdateHint()
         cmdJob(opts)
         break
       case 'policy':
@@ -1043,12 +1072,16 @@ function main() {
       case 'version':
       case '--version':
       case '-v':
-        console.log(PKG.version)
+        void cmdVersion().catch((e) => {
+          console.log(localPackageVersion())
+          console.error(e instanceof Error ? e.message : e)
+        })
         break
       case 'help':
       case '--help':
       case '-h':
         console.log(USAGE)
+        void maybePrintUpdateHint()
         break
       default:
         console.error(`Unknown command: ${opts.cmd}\n`)

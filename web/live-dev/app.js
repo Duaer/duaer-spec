@@ -92,7 +92,20 @@ const el = {
   lblAccept: document.getElementById("lblAccept"),
   lblAssume: document.getElementById("lblAssume"),
   chatPanel: document.querySelector(".chat-panel"),
+  updateNotice: document.getElementById("updateNotice"),
 };
+
+function showUpdateNotice(update) {
+  if (!el.updateNotice) return;
+  if (!update?.outdated || !update.latest) {
+    el.updateNotice.hidden = true;
+    el.updateNotice.textContent = "";
+    return;
+  }
+  const cur = update.current || "?";
+  el.updateNotice.hidden = false;
+  el.updateNotice.innerHTML = `新版本 <code>${escapeHtml(update.latest)}</code>（当前 <code>${escapeHtml(cur)}</code>）。终端运行 <code>duaer self-update</code>；业务仓再跑 <code>npx duaer-spec@latest update</code>`;
+}
 
 function cardValues() {
   return {
@@ -434,8 +447,9 @@ function showDesk(cfg) {
 }
 
 async function loadConfig() {
-  const res = await fetch("/api/config");
+  const res = await fetch("/api/health");
   const cfg = await res.json();
+  showUpdateNotice(cfg.update);
   if (cfg.ready) showDesk(cfg);
   else showSetup(cfg);
 }

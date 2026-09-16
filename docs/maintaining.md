@@ -35,7 +35,8 @@ Adopter install / update:
 
 ```bash
 npx duaer-spec init --here
-npx duaer-spec update
+duaer self-update              # global CLI
+npx duaer-spec update          # product-repo adapters
 ```
 
 ## Examples
@@ -47,4 +48,5 @@ this repository's `main` + `develop` + `.worktree/` policy.
 
 Projects that copied files do not auto-update. They re-run
 `npx duaer-spec update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
-method revision.
+method revision. Global CLI installs can run `duaer self-update` (or
+`npm i -g duaer-spec@latest`). The CLI notifies when npm has a newer release.

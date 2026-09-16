@@ -14,6 +14,16 @@ npx duaer-spec init --here
 
 ## 更新
 
+**全局 CLI**（已 `npm i -g duaer-spec` 时）：
+
+```bash
+duaer self-update
+```
+
+有新版本时 CLI / 现场开发会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
+
+**业务仓适配文件**（`init` 之后）：
+
 ```bash
 npx duaer-spec update
 ```

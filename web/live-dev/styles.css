@@ -42,6 +42,23 @@ body {
   display: none;
 }
 
+.update-notice {
+  position: relative;
+  z-index: 1;
+  max-width: 1120px;
+  margin: 0 auto 1rem;
+  padding: 0.65rem 1rem;
+  border: 1px solid var(--line);
+  background: rgba(222, 90, 44, 0.12);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.update-notice code {
+  color: var(--register);
+}
+
 .top {
   position: relative;
   z-index: 1;

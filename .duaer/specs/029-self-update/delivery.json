@@ -1,0 +1,19 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-16T03:10:00.000Z",
+  "verification": {
+    "levels": ["docs", "L0", "L1-smoke", "L3-catalog"],
+    "commands": [
+      "node --check bin/update-check.mjs",
+      "node --check bin/duaer.mjs",
+      "node --check bin/duaer-live.mjs",
+      "DUAER_NO_UPDATE_CHECK=1 node bin/duaer.mjs version",
+      "cmpSemver / formatUpdateHint unit smoke",
+      "curl /api/health → update.outdated + versions",
+      "rg CJK scrub on EN docs (CHANGELOG fixed)"
+    ],
+    "result": "pass",
+    "e2e": ["E2E-030"]
+  },
+  "notes": "Prompt-only update check; self-update is explicit. Product repos still use npx duaer-spec update."
+}

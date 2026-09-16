@@ -16,10 +16,18 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
+import {
+  checkForUpdate,
+  formatUpdateHint,
+  scheduleUpdateHint,
+} from "./update-check.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
 const WEB_ROOT = path.join(PACKAGE_ROOT, "web", "live-dev");
+
+/** Last npm update check result for /api/health (refreshed in background). */
+let updateInfoCache = null;
 
 /** Built-in OpenAI-compatible provider presets (UI + CLI). */
 const PROVIDERS = {
@@ -138,6 +146,26 @@ function configReady(cfg = readConfig()) {
   return Boolean(cfg.baseUrl && cfg.apiKey && cfg.model);
 }
 
+function publicUpdate() {
+  const info = updateInfoCache;
+  if (!info) {
+    return {
+      current: null,
+      latest: null,
+      outdated: false,
+      hint: null,
+    };
+  }
+  return {
+    current: info.current,
+    latest: info.latest,
+    outdated: Boolean(info.outdated),
+    hint: formatUpdateHint(info),
+    skipped: Boolean(info.skipped),
+    checkedAt: info.checkedAt || null,
+  };
+}
+
 function publicConfig(cfg = readConfig()) {
   return {
     ready: configReady(cfg),
@@ -149,7 +177,17 @@ function publicConfig(cfg = readConfig()) {
     liveRoot: liveRoot(),
     jobsRoot: jobsRoot(),
     providers: listProviders(),
+    update: publicUpdate(),
   };
+}
+
+async function refreshUpdateInfo({ force = false } = {}) {
+  try {
+    updateInfoCache = await checkForUpdate({ force });
+  } catch {
+    // keep prior cache
+  }
+  return updateInfoCache;
 }
 
 function parseArgs(argv) {
@@ -2327,6 +2365,9 @@ async function handleApi(req, res) {
   const url = new URL(req.url || "/", "http://local");
 
   if (req.method === "GET" && url.pathname === "/api/health") {
+    if (!updateInfoCache) {
+      await refreshUpdateInfo({ force: false });
+    }
     send(res, 200, { ok: true, ...publicConfig() });
     return;
   }
@@ -2792,6 +2833,8 @@ function serve(port) {
     } else {
       console.log(`模型      ${cfg.model} @ ${cfg.baseUrl}`);
     }
+    scheduleUpdateHint();
+    void refreshUpdateInfo({ force: false });
   });
 }
 

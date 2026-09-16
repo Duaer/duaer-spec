@@ -15,6 +15,17 @@ npx duaer-spec init --here
 
 ## Update
 
+**Global CLI** (when `duaer` is installed globally):
+
+```bash
+duaer self-update
+```
+
+The CLI also prints a one-line hint when a newer npm release exists
+(cache ≤24h; disable with `DUAER_NO_UPDATE_CHECK=1`).
+
+**Product repo adapters** (after `init`):
+
 ```bash
 npx duaer-spec update
 ```

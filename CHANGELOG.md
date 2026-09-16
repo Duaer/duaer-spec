@@ -2,10 +2,18 @@
 
 ## Unreleased
 
+### CLI update check + self-update
+
+- Shared npm latest check (24h cache under `~/.duaer/`; `DUAER_NO_UPDATE_CHECK=1` skips)
+- `duaer self-update` runs `npm i -g duaer-spec@latest` (prompt-only by default — no silent install)
+- Common commands and live desk print a one-line upgrade hint when outdated
+- Live `/api/health` exposes `update.*`; UI shows a short notice
+- Docs: global CLI vs product-repo `npx duaer-spec update`
+
 ### Fix stuck revise UI
 
-- Entering revise auto-starts left-chat questions; remove fake「正在左侧对话改进…」loading label
-- Revise panel shows **再派一版** when the revise card is ready
+- Entering revise auto-starts left-chat questions; remove fake loading label
+- Revise panel shows a **Dispatch again** CTA when the revise card is ready
 
 ### Start command prefix `Duaer`
 

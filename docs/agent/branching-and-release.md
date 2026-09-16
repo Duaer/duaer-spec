@@ -217,8 +217,13 @@ All implementation edits happen inside the request worktree.
 
 ```bash
 npx duaer-spec init --here     # once
-npx duaer-spec update          # later refresh — no --force recipe
+duaer self-update              # upgrade global CLI from npm
+npx duaer-spec update          # later refresh product-repo adapters — no --force recipe
 ```
+
+`duaer` prints a one-line hint when a newer npm release exists (≤24h cache;
+`DUAER_NO_UPDATE_CHECK=1` disables). Live desk `/api/health` exposes
+`update.outdated` / versions for a short UI notice.
 
 Details: [`ADOPT.md`](../../ADOPT.md). Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).
 
