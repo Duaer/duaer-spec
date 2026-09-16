@@ -1689,11 +1689,123 @@ function isTerminalRunnerBusy(queueDir) {
   return fs.existsSync(path.join(queueDir, "running.cmd"));
 }
 
+/** Brief pause between SIGTERM and SIGKILL during preempt. */
+function sleepBriefMs(ms) {
+  try {
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+  } catch {
+    try {
+      spawnSync("sleep", [String(ms / 1000)], {
+        encoding: "utf8",
+        timeout: Math.max(1000, ms + 500),
+      });
+    } catch {
+      // ignore
+    }
+  }
+}
+
+function isProtectedRunnerCmdLine(cmd) {
+  return (
+    cmd.includes("runner.command") ||
+    cmd.includes("live-terminal/runner")
+  );
+}
+
+function isWorktreeAgentCmdLine(cmd, worktreePath) {
+  if (!cmd || !worktreePath) return false;
+  if (!cmd.includes(worktreePath)) return false;
+  if (isProtectedRunnerCmdLine(cmd)) return false;
+  return (
+    cmd.includes("cursor-agent") ||
+    /(^|[\s/])claude([\s]|$)/.test(cmd) ||
+    /(^|[\s/])agent([\s]|$)/.test(cmd) ||
+    cmd.includes("/bin/agent") ||
+    cmd.includes(".local/bin/agent")
+  );
+}
+
+/**
+ * Enumerate agent/claude/cursor-agent PIDs scoped to a worktree path.
+ * Never matches the long-lived Terminal runner alone.
+ */
+function listWorktreeAgentPids(worktreePath) {
+  const wt = String(worktreePath || "").trim();
+  if (!wt) return [];
+  const found = new Map(); // pid -> cmdline snippet
+  const ingest = (text) => {
+    for (const line of String(text || "").split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const m = trimmed.match(/^(\d+)\s+(.*)$/);
+      if (!m) continue;
+      const pid = Number(m[1]);
+      const cmd = m[2];
+      if (!Number.isFinite(pid) || pid <= 1) continue;
+      if (!isWorktreeAgentCmdLine(cmd, wt)) continue;
+      found.set(pid, cmd.slice(0, 180));
+    }
+  };
+  try {
+    const pgrep = spawnSync("pgrep", ["-lf", wt], {
+      encoding: "utf8",
+      timeout: CHILD_BUDGET_MS.which,
+    });
+    if (pgrep.status === 0 || pgrep.stdout) ingest(pgrep.stdout);
+  } catch {
+    // ignore
+  }
+  if (found.size === 0) {
+    try {
+      const ps = spawnSync("ps", ["-ax", "-o", "pid=,command="], {
+        encoding: "utf8",
+        timeout: CHILD_BUDGET_MS.which,
+        maxBuffer: 8 * 1024 * 1024,
+      });
+      if (ps.stdout) ingest(ps.stdout);
+    } catch {
+      // ignore
+    }
+  }
+  return [...found.entries()].map(([pid, cmd]) => ({ pid, cmd }));
+}
+
+function signalPid(pid, signal) {
+  // Prefer Node signals (SIGTERM/SIGKILL); kill(1) gets TERM/KILL.
+  const nodeSig = signal.startsWith("SIG") ? signal : `SIG${signal}`;
+  const killArg = signal.startsWith("SIG") ? signal.slice(3) : signal;
+  try {
+    process.kill(pid, nodeSig);
+    return true;
+  } catch (err) {
+    if (err && err.code === "ESRCH") return false;
+    try {
+      const r = spawnSync("kill", [`-${killArg}`, String(pid)], {
+        encoding: "utf8",
+        timeout: CHILD_BUDGET_MS.which,
+      });
+      return r.status === 0;
+    } catch {
+      return false;
+    }
+  }
+}
+
+function pidAlive(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * After delivery is accepted, the first agent CLI often keeps running.
  * priorAccepted revise must not sit forever behind that leftover process.
- * SIGTERM the bash holding running.cmd (and matching agent/claude for this
- * worktree); the long-lived runner then drains the FIFO queue.
+ * SIGTERM the bash holding running.cmd, then TERM/KILL worktree-scoped
+ * agent/claude orphans (never the Terminal runner.command). Leave
+ * running.cmd on disk for the long-lived runner to clean up.
  */
 function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null } = {}) {
   const runningPath = path.join(queueDir, "running.cmd");
@@ -1718,34 +1830,48 @@ function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null 
   } catch {
     // ignore
   }
-  if (worktreePath) {
-    for (const needle of [
-      `--workspace ${worktreePath}`,
-      `--workspace '${worktreePath}'`,
-      `--workspace "${worktreePath}"`,
-    ]) {
-      try {
-        const r = spawnSync(
-          "pkill",
-          ["-TERM", "-f", needle],
-          { encoding: "utf8", timeout: CHILD_BUDGET_MS.which },
+
+  const agentTargets = worktreePath ? listWorktreeAgentPids(worktreePath) : [];
+  for (const { pid, cmd } of agentTargets) {
+    if (logPath) {
+      appendLaunchLog(
+        logPath,
+        `[${new Date().toISOString()}] preempt SIGTERM pid=${pid} cmd=${cmd}`,
+      );
+    }
+    if (signalPid(pid, "SIGTERM")) {
+      killed.push(`term:${pid}`);
+    }
+  }
+  if (agentTargets.length > 0) {
+    sleepBriefMs(300);
+    for (const { pid, cmd } of agentTargets) {
+      if (!pidAlive(pid)) continue;
+      if (logPath) {
+        appendLaunchLog(
+          logPath,
+          `[${new Date().toISOString()}] preempt SIGKILL pid=${pid} (still alive) cmd=${cmd}`,
         );
-        if (r.status === 0) {
-          killed.push("workspace-agent");
-          break;
-        }
-      } catch {
-        // ignore
+      }
+      if (signalPid(pid, "SIGKILL")) {
+        killed.push(`kill:${pid}`);
       }
     }
   }
+
+  // Do not unlink running.cmd here — runner.command owns cleanup after bash exits.
   if (logPath) {
     appendLaunchLog(
       logPath,
-      `[${new Date().toISOString()}] preempt signal sent targets=${killed.join(",") || "none"}`,
+      `[${new Date().toISOString()}] preempt signal sent targets=${killed.join(",") || "none"} agents=${agentTargets.map((t) => t.pid).join(",") || "none"}`,
     );
   }
-  return { preempted: killed.length > 0, reason: killed.join(",") || "signal-attempted", killed };
+  return {
+    preempted: killed.length > 0,
+    reason: killed.join(",") || "signal-attempted",
+    killed,
+    agentPids: agentTargets.map((t) => t.pid),
+  };
 }
 
 function terminalJobsDir(queueDir) {
