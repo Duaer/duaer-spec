@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "feature": "043-live-history",
-  "featureDirectory": ".duaer/specs/043-live-history",
-  "specDir": ".duaer/specs/043-live-history",
-  "branch": "feat/live-history",
-  "worktree": ".worktree/feat-live-history",
-  "startedAt": "2026-09-16T07:41:00.000Z",
-  "updatedAt": "2026-09-16T07:41:00.000Z",
+  "feature": "044-desk-layout",
+  "featureDirectory": ".duaer/specs/044-desk-layout",
+  "specDir": ".duaer/specs/044-desk-layout",
+  "branch": "fix/desk-layout",
+  "worktree": ".worktree/fix-desk-layout",
+  "startedAt": "2026-09-16T07:53:00.000Z",
+  "updatedAt": "2026-09-16T08:01:00.000Z",
   "source": "duaer-do",
-  "status": "active"
+  "status": "accepted"
 }

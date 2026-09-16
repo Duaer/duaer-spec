@@ -127,6 +127,7 @@ const el = {
   langSelect: document.getElementById("langSelect"),
   historyToggle: document.getElementById("historyToggle"),
   historyPanel: document.getElementById("historyPanel"),
+  historyBackdrop: document.getElementById("historyBackdrop"),
   historyClose: document.getElementById("historyClose"),
   historyList: document.getElementById("historyList"),
   historyErr: document.getElementById("historyErr"),
@@ -1777,6 +1778,8 @@ function formatHistoryTime(iso) {
 function setHistoryOpen(open) {
   if (!el.historyPanel) return;
   el.historyPanel.hidden = !open;
+  if (el.historyBackdrop) el.historyBackdrop.hidden = !open;
+  document.body.classList.toggle("history-open", Boolean(open));
   if (el.historyToggle) {
     el.historyToggle.setAttribute("aria-expanded", open ? "true" : "false");
   }
@@ -1940,6 +1943,9 @@ if (el.historyToggle) {
 }
 if (el.historyClose) {
   el.historyClose.addEventListener("click", () => setHistoryOpen(false));
+}
+if (el.historyBackdrop) {
+  el.historyBackdrop.addEventListener("click", () => setHistoryOpen(false));
 }
 if (el.historyRestore) {
   el.historyRestore.addEventListener("click", () => {

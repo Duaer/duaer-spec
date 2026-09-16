@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "status": "accepted",
+  "feature": "044-desk-layout",
+  "acceptedAt": "2026-09-16T08:01:00.000Z",
+  "summary": "Calm live desk layout: compact header, history as fixed side drawer, shell width/spacing cleanup, no sight chrome clutter.",
+  "verification": {
+    "commands": [
+      {
+        "command": "node --check web/live-dev/app.js",
+        "result": "pass — exit 0"
+      }
+    ],
+    "e2e": ["E2E-045"],
+    "notes": "T005: ESM syntax check pass. Post-merge handoff: launchctl kickstart com.duaer.live8787."
+  },
+  "tasksCompleted": ["T001", "T002", "T003", "T004", "T005"]
+}
