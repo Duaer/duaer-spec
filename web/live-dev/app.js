@@ -28,6 +28,9 @@ const state = {
   /** After a successful revise: right card stays locked 改进卡. */
   reviseLocked: false,
   lastRevision: null, // { revision, change, keep, acceptance, reason }
+  originalCard: null, // snapshot after first confirm
+  lastStatus: null,
+  lastDeliveryAccepted: false,
   rawAsk: "",
   messages: [],
   reviseMessages: [],
@@ -88,8 +91,11 @@ const el = {
   revisePanel: document.getElementById("revisePanel"),
   reviseHint: document.getElementById("reviseHint"),
   startReviseChat: document.getElementById("startReviseChat"),
+  startReviseChatAlt: document.getElementById("startReviseChatAlt"),
   doReviseDispatch: document.getElementById("doReviseDispatch"),
   reviseErr: document.getElementById("reviseErr"),
+  originalBrief: document.getElementById("originalBrief"),
+  originalBriefBody: document.getElementById("originalBriefBody"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
   lblGoal: document.getElementById("lblGoal"),
@@ -131,6 +137,22 @@ function setCardFieldsReadonly(ro) {
   }
 }
 
+function syncOriginalBrief() {
+  if (!el.originalBrief || !el.originalBriefBody) return;
+  const show = isReviseChrome() && state.originalCard;
+  el.originalBrief.hidden = !show;
+  if (!show) return;
+  const c = state.originalCard;
+  el.originalBriefBody.textContent = [
+    `要做什么：${c.goal || "—"}`,
+    `不做什么：${c.outOfScope || "—"}`,
+    `验收：${c.acceptance || "—"}`,
+    c.assumptions ? `假设：${c.assumptions}` : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
 function syncConfirmEnabled() {
   const v = cardValues();
   if (state.reviseLocked && state.mode !== "revise") {
@@ -138,9 +160,10 @@ function syncConfirmEnabled() {
     el.confirm.disabled = true;
     el.confirm.textContent = n ? `已续派 · Revision ${n}` : "已续派";
     el.lockHint.textContent =
-      "本轮改进已确认并派工。右侧为本次改进卡；要再改请点下方「继续改进」。";
+      "本轮改进已确认并派工。上方可展开「原始需求」；右侧为本轮改进卡。";
     setCardFieldsReadonly(true);
     syncReviseDispatchButton(false);
+    syncOriginalBrief();
     return;
   }
   if (state.mode === "revise") {
@@ -151,13 +174,14 @@ function syncConfirmEnabled() {
       !state.reviseDispatching;
     el.confirm.disabled = !ok;
     el.lockHint.textContent = state.reviseDispatching
-      ? "正在续派到同一 worktree…"
-      : "左侧对话弄清原因与改动；确认后才会 --continue 续派。右侧即本轮改进卡。";
+      ? "正在续派到同一 worktree / Terminal…"
+      : "左侧对话弄清改动；确认后送入同一 Terminal。上方可展开原始需求。";
     el.confirm.textContent = state.reviseDispatching
       ? "续派中…"
       : "改进方案确认，再派一版";
     setCardFieldsReadonly(false);
     syncReviseDispatchButton(ok);
+    syncOriginalBrief();
     return;
   }
   const ok = Boolean(v.goal && v.acceptance) && !state.locked && state.ready;
@@ -170,6 +194,7 @@ function syncConfirmEnabled() {
   if (!state.locked) el.confirm.textContent = "需求无误，开始干活";
   setCardFieldsReadonly(state.locked);
   syncReviseDispatchButton(false);
+  syncOriginalBrief();
 }
 
 function syncReviseDispatchButton(ready) {
@@ -184,33 +209,45 @@ function syncReviseDispatchButton(ready) {
       ? "续派中…"
       : "改进方案确认，再派一版";
   }
+  const status = state.lastStatus;
+  const accepted = state.lastDeliveryAccepted || status === "accepted";
+  const revising = status === "revising";
   if (el.reviseHint) {
-    if (state.reviseLocked && !dialoguing) {
+    if (revising && !dialoguing) {
       el.reviseHint.textContent =
-        "本轮改进卡见右侧。改完验收后若仍不满意，再点「继续改进」。";
+        "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。";
+    } else if (state.reviseLocked && !dialoguing) {
+      el.reviseHint.textContent =
+        "本轮改进卡见右侧。改完验收后若仍不满意，再点成品旁「再改一版」。";
     } else if (!dialoguing) {
       el.reviseHint.textContent =
-        "不满意时点下方按钮，在左侧对话说清原因；右侧改进卡就绪后再派。";
+        "成品可用后，点成品旁「再改一版」；左侧对话，右侧改进卡。";
     } else if (state.reviseDispatching) {
-      el.reviseHint.textContent = "正在续派，请稍候…";
+      el.reviseHint.textContent =
+        "正在送入同一 Terminal（不新开窗口）…";
     } else if (state.busy) {
       el.reviseHint.textContent = "正在左侧对话完善改进卡…";
     } else if (ready) {
       el.reviseHint.textContent =
-        "改进卡已就绪（见右侧）：点「再派一版」，Terminal 会用 --continue 继续改。";
+        "改进卡已就绪：点「再派一版」，任务送入原 Terminal。";
     } else {
       el.reviseHint.textContent =
         "请在左侧说明哪里不满意；我会填右侧改进卡。卡齐后可点再派。";
     }
   }
-  if (el.startReviseChat) {
-    // Show when not actively dialoguing (including after locked revise)
-    el.startReviseChat.hidden = dialoguing;
-    el.startReviseChat.disabled = state.reviseDispatching || state.busy;
-    if (!dialoguing) {
-      el.startReviseChat.textContent = state.reviseLocked
-        ? "再改一版（左侧对话）"
-        : "继续改进（左侧对话）";
+  if (el.startReviseChat || el.startReviseChatAlt) {
+    // Beside preview when accepted; alt CTA if no preview panel
+    const showCta = !dialoguing && accepted && !revising;
+    const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+    if (el.startReviseChat) {
+      el.startReviseChat.hidden = !(showCta && previewVisible);
+      el.startReviseChat.disabled = state.reviseDispatching || state.busy;
+      el.startReviseChat.textContent = "再改一版";
+    }
+    if (el.startReviseChatAlt) {
+      el.startReviseChatAlt.hidden = !(showCta && !previewVisible);
+      el.startReviseChatAlt.disabled = state.reviseDispatching || state.busy;
+      el.startReviseChatAlt.textContent = "再改一版";
     }
   }
   if (el.chatPanel) {
@@ -605,6 +642,7 @@ function showAcceptFailed(data) {
 async function applyConfirmSuccess(data) {
   state.locked = true;
   state.jobId = data.jobId || null;
+  state.originalCard = cardValues();
   el.confirm.textContent = "已确认";
   el.result.hidden = false;
   const reviewLine = data.review?.summary
@@ -1047,9 +1085,11 @@ el.doDispatch.addEventListener("click", async () => {
     el.result.hidden = false;
     el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
     const who =
-      launch.mode === "terminal"
-        ? `已打开 Terminal，正在执行 CLI（${launch.command || launch.label || "agent"}）`
-        : `已用 ${launch.label || launch.agentId || "CLI"} 启动`;
+      launch.mode === "terminal-reuse" || launch.reused
+        ? `已送入原 Terminal（${launch.command || launch.label || "agent"}）`
+        : launch.mode === "terminal"
+          ? `已打开 Terminal，正在执行 CLI（${launch.command || launch.label || "agent"}）`
+          : `已用 ${launch.label || launch.agentId || "CLI"} 启动`;
     const duaerLine =
       data.duaerInstall?.worktree?.action === "init" ||
       data.duaerInstall?.repo?.action === "init"
@@ -1057,7 +1097,7 @@ el.doDispatch.addEventListener("click", async () => {
         : "Duaer 已就绪；";
     addBubble(
       "bot",
-      `${duaerLine}${who}。进度看下方清单与日志；完成后 delivery 会显示在此。\n${data.worktreePath}`,
+      `${duaerLine}${who}。进度看下方清单与日志；完成后可「查看成品」。\n${data.worktreePath}`,
     );
     el.doDispatch.textContent = "已派工";
     el.dispatchStatus.hidden = false;
@@ -1154,6 +1194,9 @@ function renderProgress(data) {
 
 function renderPreview(data) {
   if (!el.previewPanel || !el.previewLink) return;
+  state.lastStatus = data?.status || state.lastStatus;
+  state.lastDeliveryAccepted =
+    data?.delivery?.status === "accepted" || data?.status === "accepted";
   const preview = data?.preview;
   if (!preview?.url) {
     el.previewPanel.hidden = true;
@@ -1166,6 +1209,7 @@ function renderPreview(data) {
       if (preview.path) bits.push(preview.path);
       if (preview.source)
         bits.push(preview.source === "auto" ? "自动发现" : "delivery.preview");
+      if (data?.revision > 0) bits.push(`r${data.revision}`);
       el.previewMeta.textContent = bits.join(" · ");
     }
   }
@@ -1174,6 +1218,12 @@ function renderPreview(data) {
 
 function renderRevisePanel(data) {
   if (!el.revisePanel) return;
+  state.lastStatus = data?.status || state.lastStatus;
+  if (data?.delivery?.status === "accepted") {
+    state.lastDeliveryAccepted = true;
+  } else if (data?.status === "revising") {
+    state.lastDeliveryAccepted = false;
+  }
   const show =
     Boolean(data?.canRevise) &&
     (data?.status === "accepted" ||
@@ -1181,7 +1231,8 @@ function renderRevisePanel(data) {
       Number(data?.revision || 0) > 0 ||
       data?.delivery?.status === "accepted" ||
       state.mode === "revise" ||
-      state.reviseLocked);
+      state.reviseLocked ||
+      Boolean(data?.preview?.url));
   el.revisePanel.hidden = !show;
   const v = cardValues();
   const ready =
@@ -1191,6 +1242,7 @@ function renderRevisePanel(data) {
     !state.busy &&
     !state.reviseDispatching;
   syncReviseDispatchButton(ready);
+  syncOriginalBrief();
 }
 
 function enterReviseMode() {
@@ -1211,6 +1263,12 @@ function enterReviseMode() {
     return;
   }
 
+  if (!state.originalCard) {
+    // Best-effort: if we still have confirm fields before wipe, keep them
+    const cur = cardValues();
+    if (cur.goal || cur.acceptance) state.originalCard = { ...cur };
+  }
+
   state.mode = "revise";
   state.reviseLocked = false;
   state.reviseDispatching = false;
@@ -1221,14 +1279,19 @@ function enterReviseMode() {
   el.assumptions.value = "";
   setCardFieldsReadonly(false);
   applyCardChrome();
+  syncOriginalBrief();
   el.input.placeholder = "说说哪里不满意、为什么…";
   el.input.focus();
   el.chatPanel?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   addBubble(
     "bot",
-    "已进入改进。左侧对话；右侧是本轮改进卡（与上方确认卡同结构）。填齐后点「再派一版」。",
+    "已进入改进。左侧对话；右侧是本轮改进卡。上方可展开「原始需求」。填齐后点「再派一版」（同一 Terminal）。",
   );
-  renderRevisePanel({ canRevise: true, status: "accepted" });
+  renderRevisePanel({
+    canRevise: true,
+    status: "accepted",
+    delivery: { status: "accepted" },
+  });
   void kickoffReviseDialogue();
 }
 
@@ -1366,7 +1429,13 @@ async function confirmReviseAndDispatch() {
       : "";
     addBubble(
       "bot",
-      `已确认改进方案并启动 Revision ${data.revision}（Terminal ${data.continueSession ? "agent/claude --continue" : "新会话"}）。${restated}\n右侧保留本轮改进卡；改完会再出现成品链接。`,
+      `已确认改进方案并启动 Revision ${data.revision}（${
+        data.launch?.reused || data.launch?.mode === "terminal-reuse"
+          ? "已送入原 Terminal"
+          : data.continueSession
+            ? "Terminal agent/claude --continue"
+            : "新会话"
+      }）。${restated}\n右侧保留本轮改进卡；上方可展开原始需求；可继续查看成品。`,
     );
     lockReviseCard(data, v);
     if (el.dispatchStatus) {
@@ -1423,7 +1492,7 @@ function startStatusPoll() {
             : "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）";
           addBubble(
             "bot",
-            `数字员工已验收通过。不满意请点「继续改进（左侧对话）」说清原因后再派。${link}`,
+            `数字员工已验收通过。可点「查看成品」；不满意再点成品旁「再改一版」。${link}`,
           );
         }
         clearInterval(state.statusTimer);
@@ -1439,6 +1508,12 @@ function startStatusPoll() {
 
 if (el.startReviseChat) {
   el.startReviseChat.addEventListener("click", () => {
+    enterReviseMode();
+  });
+}
+
+if (el.startReviseChatAlt) {
+  el.startReviseChatAlt.addEventListener("click", () => {
     enterReviseMode();
   });
 }

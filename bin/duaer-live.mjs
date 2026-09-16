@@ -1378,10 +1378,128 @@ function appleScriptString(s) {
  * Open a visible Terminal and run the Cursor CLI command.
  * Never block the HTTP thread (no spawnSync / no waiting on osascript).
  * macOS: write `.command` and `open` it asynchronously.
+ *
+ * When `reuseKey` is set (typically the worktree path), subsequent launches
+ * enqueue into the same Terminal runner instead of opening a new window.
  */
-function launchInTerminal({ cwd, commandLine, logPath }) {
+function terminalQueueDir(worktreePath) {
+  return path.join(worktreePath, ".duaer", "live-terminal");
+}
+
+function isPidAlive(pid) {
+  const n = Number(pid);
+  if (!Number.isFinite(n) || n <= 0) return false;
+  try {
+    process.kill(n, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function writePendingCmd(queueDir, commandLine) {
+  const pending = path.join(queueDir, "pending.cmd");
+  fs.writeFileSync(
+    pending,
+    `#!/bin/bash
+set +e
+${commandLine}
+status=$?
+echo
+echo "[duaer] task exit=$status"
+exit $status
+`,
+    { mode: 0o755 },
+  );
+  return pending;
+}
+
+function launchInTerminal({ cwd, commandLine, logPath, reuseKey = null }) {
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
   appendLaunchLog(logPath, stamped);
+
+  const key = reuseKey || cwd;
+  if (key && fs.existsSync(key)) {
+    const qdir = terminalQueueDir(key);
+    fs.mkdirSync(qdir, { recursive: true });
+    writePendingCmd(qdir, commandLine);
+    const pidPath = path.join(qdir, "runner.pid");
+    if (fs.existsSync(pidPath)) {
+      const pid = Number(String(fs.readFileSync(pidPath, "utf8")).trim());
+      if (isPidAlive(pid)) {
+        appendLaunchLog(
+          logPath,
+          `[${new Date().toISOString()}] enqueue → existing Terminal runner pid=${pid}`,
+        );
+        return {
+          pid,
+          mode: "terminal-reuse",
+          reused: true,
+          queueDir: qdir,
+        };
+      }
+    }
+
+    // Start a long-lived runner window for this worktree
+    if (process.platform === "darwin") {
+      const runnerPath = path.join(qdir, "runner.command");
+      const body = `#!/bin/bash
+QDIR=${shellSingleQuote(qdir)}
+cd ${shellSingleQuote(cwd)} || exit 1
+echo $$ > "$QDIR/runner.pid"
+trap 'rm -f "$QDIR/runner.pid" "$QDIR/running.cmd"' EXIT
+run_pending() {
+  if [ ! -f "$QDIR/pending.cmd" ]; then
+    return 0
+  fi
+  mv "$QDIR/pending.cmd" "$QDIR/running.cmd"
+  chmod +x "$QDIR/running.cmd" 2>/dev/null
+  bash "$QDIR/running.cmd"
+  local status=$?
+  rm -f "$QDIR/running.cmd"
+  return $status
+}
+clear
+echo "[duaer] live Terminal — 同一窗口承接派工与续派"
+echo "[duaer] cwd: $(pwd)"
+echo
+run_pending
+while true; do
+  echo
+  echo "[duaer] 等待下一轮任务（现场点「再派一版」会送到这里）。Ctrl+C 结束。"
+  while [ ! -f "$QDIR/pending.cmd" ]; do
+    sleep 1
+  done
+  echo "[duaer] 收到新任务…"
+  echo
+  run_pending
+done
+`;
+      fs.writeFileSync(runnerPath, body, { mode: 0o755 });
+      appendLaunchLog(
+        logPath,
+        `[${new Date().toISOString()}] open runner ${runnerPath}`,
+      );
+      const child = spawn("open", [runnerPath], {
+        detached: true,
+        stdio: "ignore",
+      });
+      child.on("error", (err) => {
+        appendLaunchLog(
+          logPath,
+          `[${new Date().toISOString()}] open error: ${err.message}`,
+        );
+      });
+      child.unref();
+      return {
+        pid: child.pid ?? null,
+        mode: "terminal",
+        commandFile: runnerPath,
+        reused: false,
+        queueDir: qdir,
+      };
+    }
+  }
 
   if (process.platform === "darwin") {
     const stamp = Date.now();
@@ -1420,6 +1538,7 @@ read _
       pid: child.pid ?? null,
       mode: "terminal",
       commandFile: cmdPath,
+      reused: false,
     };
   }
 
@@ -1436,7 +1555,7 @@ read _
       cwd,
     });
     child.unref();
-    return { pid: child.pid ?? null, mode: "terminal" };
+    return { pid: child.pid ?? null, mode: "terminal", reused: false };
   }
 
   const child = spawn("bash", ["-lc", commandLine], {
@@ -1446,7 +1565,7 @@ read _
     env: process.env,
   });
   child.unref();
-  return { pid: child.pid ?? null, mode: "detached" };
+  return { pid: child.pid ?? null, mode: "detached", reused: false };
 }
 
 function openEditor(cmd, worktreePath, logPath, extraArgs = []) {
@@ -1630,13 +1749,15 @@ function launchAgent({
       cwd: worktreePath,
       commandLine: line,
       logPath: outLog,
+      reuseKey: worktreePath,
     });
     launch.pid = term.pid;
-    launch.mode = "terminal";
+    launch.mode = term.mode || "terminal";
+    launch.reused = Boolean(term.reused);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
     const resolved = resolveCursorAgentCommand();
-    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (Terminal)`;
+    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${launch.reused ? "Terminal reuse" : "Terminal"})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
     const cont = continueSession ? "--continue " : "";
@@ -1645,19 +1766,21 @@ function launchAgent({
       cwd: worktreePath,
       commandLine: line,
       logPath: outLog,
+      reuseKey: worktreePath,
     });
     launch.pid = term.pid;
-    launch.mode = "terminal";
+    launch.mode = term.mode || "terminal";
+    launch.reused = Boolean(term.reused);
     launch.openedWorktree = false;
     launch.commandFile = term.commandFile || null;
-    launch.command = `claude${continueSession ? " --continue" : ""} (Terminal)`;
+    launch.command = `claude${continueSession ? " --continue" : ""} (${launch.reused ? "Terminal reuse" : "Terminal"})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
 
   appendLaunchLog(
     outLog,
-    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid} continue=${launch.continueSession}`,
+    `[${new Date().toISOString()}] spawned mode=${launch.mode} pid=${launch.pid} continue=${launch.continueSession} reused=${Boolean(launch.reused)}`,
   );
   return launch;
 }
@@ -2425,15 +2548,18 @@ function dispatchStatus(jobId) {
     };
   }
   const preview = resolvePreview({
-    delivery: accepted ? delivery : { status: "open" },
+    // Keep preview.url even when delivery is reopened during revise
+    delivery: delivery || { status: "open" },
     worktreePath: dispatch.worktreePath,
     jobId: live.id,
   });
-  // Only expose preview after first accept (or during revise rounds)
+  // Expose preview after first accept, during revise, or whenever an artifact exists
   const showPreview =
     accepted ||
     Number(live.job.revisionCount || 0) > 0 ||
-    live.job.status === "revising";
+    live.job.status === "revising" ||
+    live.job.status === "dispatched" ||
+    Boolean(preview?.url);
   return {
     jobId: live.id,
     status: accepted ? "accepted" : live.job.status,

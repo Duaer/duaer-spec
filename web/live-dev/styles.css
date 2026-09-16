@@ -666,6 +666,48 @@ input:focus {
   min-width: auto;
 }
 
+.revise-cta {
+  display: inline-flex;
+  margin-top: 0.65rem;
+  margin-left: 0.5rem;
+  min-width: auto;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.revise-cta:hover {
+  border-color: var(--register);
+  color: var(--register);
+}
+
+.original-brief {
+  margin-top: 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px dashed var(--line);
+  background: rgba(0, 0, 0, 0.12);
+  color: var(--mute);
+  font-size: 0.85rem;
+}
+
+.original-brief summary {
+  cursor: pointer;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.original-brief-body {
+  margin: 0.5rem 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--mute);
+}
+
 .revise-panel {
   margin-top: 0.85rem;
   padding: 0.85rem 0.9rem;

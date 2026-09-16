@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Revise UX: brief visible, preview, Terminal reuse
+
+-「原始需求」expandable while revising so confirm card is not buried
+-「再改一版」is a compact CTA beside preview (only when accepted), not a permanent primary button
+- Preview stays available during revise (keeps delivery.preview / artifact)
+- Same worktree reuses one Terminal runner; follow-up tasks enqueue instead of opening new windows
+
 ### Init Duaer in the chosen product directory
 
 - Live browse / `repo add` / dispatch use the **exact** folder the user picked (no silent switch to a single child git repo)

@@ -89,6 +89,10 @@
         <button type="button" class="btn confirm" id="confirm" disabled>
           需求无误，开始干活
         </button>
+        <details id="originalBrief" class="original-brief" hidden>
+          <summary>原始需求</summary>
+          <pre id="originalBriefBody" class="original-brief-body"></pre>
+        </details>
         <pre id="result" class="result" hidden></pre>
 
         <section id="dispatch" class="dispatch" hidden>
@@ -138,11 +142,16 @@
             <p class="preview-title">成品</p>
             <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener">查看成品</a>
             <p id="previewMeta" class="hint"></p>
+            <button type="button" class="btn revise-cta" id="startReviseChat" hidden>
+              再改一版
+            </button>
           </div>
           <div id="revisePanel" class="revise-panel" hidden>
             <p class="revise-title">继续改进</p>
-            <p id="reviseHint" class="hint">不满意时点下方；左侧对话，右侧改进卡（同确认卡结构）就绪后再派。</p>
-            <button type="button" class="btn primary" id="startReviseChat">继续改进（左侧对话）</button>
+            <p id="reviseHint" class="hint">成品可用后可再改；对话在左侧，改进卡在右侧。</p>
+            <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden>
+              再改一版
+            </button>
             <button type="button" class="btn confirm" id="doReviseDispatch" hidden disabled>
               改进方案确认，再派一版
             </button>
