@@ -139,8 +139,11 @@
           </div>
           <div id="revisePanel" class="revise-panel" hidden>
             <p class="revise-title">继续改进</p>
-            <p class="hint">不满意时先点下方按钮，在<strong>左侧对话</strong>说清原因与期望；右侧改进卡确认后，才会用 Terminal <code>--continue</code> 续派数字员工。</p>
+            <p id="reviseHint" class="hint">不满意时点下方按钮，在左侧对话说清原因；改进卡就绪后再派。</p>
             <button type="button" class="btn primary" id="startReviseChat">继续改进（左侧对话）</button>
+            <button type="button" class="btn confirm" id="doReviseDispatch" hidden disabled>
+              改进方案确认，再派一版
+            </button>
             <p id="reviseErr" class="hint" hidden></p>
           </div>
         </section>
