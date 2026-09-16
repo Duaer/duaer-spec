@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Progress moved to a per-run timeline below revise/dispatch; each revision owns its block.",
+  "verification": {
+    "levels": ["L0", "L3-doc"],
+    "notes": "Structure: #runTimeline after #revisePanel; beginRunBlock on dispatch/revise; no #dispatchProgress. E2E-049 documents progress ownership/placement. Live kickstart after merge for UI confirm."
+  }
+}

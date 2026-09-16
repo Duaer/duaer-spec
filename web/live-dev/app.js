@@ -58,6 +58,8 @@ const state = {
   historyJobs: [],
   selectedHistoryId: null,
   selectedHistoryDetail: null,
+  /** Active run-block for progress polling ({ revision, root, summary, tasks, log }). */
+  activeRun: null,
 };
 
 const el = {
@@ -97,10 +99,7 @@ const el = {
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
-  dispatchProgress: document.getElementById("dispatchProgress"),
-  progressSummary: document.getElementById("progressSummary"),
-  progressTasks: document.getElementById("progressTasks"),
-  progressLog: document.getElementById("progressLog"),
+  runTimeline: document.getElementById("runTimeline"),
   previewPanel: document.getElementById("previewPanel"),
   previewLink: document.getElementById("previewLink"),
   previewMeta: document.getElementById("previewMeta"),
@@ -160,8 +159,11 @@ function activeRightFocusEl() {
     }
     return el.previewPanel;
   }
-  if (el.dispatchProgress && !el.dispatchProgress.hidden) {
-    return el.dispatchProgress;
+  if (state.activeRun?.root?.isConnected) {
+    return state.activeRun.root;
+  }
+  if (el.runTimeline && !el.runTimeline.hidden) {
+    return el.runTimeline;
   }
   if (el.dispatch && !el.dispatch.hidden) {
     return el.dispatch;
@@ -810,6 +812,7 @@ async function applyConfirmSuccess(data) {
   state.locked = true;
   state.jobId = data.jobId || null;
   state.originalCard = cardValues();
+  clearRunTimeline();
   el.confirm.textContent = t("card.confirmed");
   el.result.hidden = false;
   const reviewLine = data.review?.summary
@@ -1309,7 +1312,7 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchStatus.hidden = false;
     el.dispatchStatus.textContent =
       launch.kind === "worker" ? t("status.running") : t("status.waiting");
-    if (el.dispatchProgress) el.dispatchProgress.hidden = false;
+    beginRunBlock({ revision: 0, note: t("run.note.dispatch") });
     startStatusPoll();
     focusRightPanel({ force: true });
   } catch (err) {
@@ -1359,44 +1362,143 @@ el.copyInstallCmd?.addEventListener("click", async () => {
 
 el.startCommand?.addEventListener("blur", () => ensureStartCommandPrefix());
 
-function renderProgress(data) {
-  if (!el.dispatchProgress) return;
-  const progress = data.progress;
+function clearRunTimeline() {
+  state.activeRun = null;
+  if (!el.runTimeline) return;
+  el.runTimeline.replaceChildren();
+  el.runTimeline.hidden = true;
+}
+
+function freezeActiveRun() {
+  const prev = state.activeRun;
+  if (!prev?.root) return;
+  prev.root.dataset.active = "false";
+  state.activeRun = null;
+}
+
+/**
+ * Append a progress block under the timeline (below revise/dispatch UI).
+ * Each revision/dispatch owns its own block; older blocks stay frozen above.
+ */
+function beginRunBlock({ revision = 0, note = "" } = {}) {
+  if (!el.runTimeline) return null;
+  const rev = Number(revision) || 0;
+  if (state.activeRun && Number(state.activeRun.revision) === rev) {
+    if (note && state.activeRun.noteEl) {
+      state.activeRun.noteEl.hidden = false;
+      state.activeRun.noteEl.textContent = note;
+    }
+    el.runTimeline.hidden = false;
+    return state.activeRun;
+  }
+  freezeActiveRun();
+  const root = document.createElement("article");
+  root.className = "run-block";
+  root.dataset.revision = String(rev);
+  root.dataset.active = "true";
+
+  const mark = document.createElement("p");
+  mark.className = "mark";
+  mark.textContent = t("run.mark");
+
+  const title = document.createElement("h4");
+  title.className = "run-block-title";
+  title.textContent =
+    rev > 0 ? t("run.revision", { revision: rev }) : t("run.dispatch");
+
+  const noteEl = document.createElement("p");
+  noteEl.className = "run-block-note";
+  if (note) {
+    noteEl.textContent = note;
+  } else {
+    noteEl.hidden = true;
+  }
+
+  const panel = document.createElement("div");
+  panel.className = "progress-panel";
+  const summary = document.createElement("p");
+  summary.className = "progress-summary";
+  const tasks = document.createElement("ul");
+  tasks.className = "progress-tasks";
+  const log = document.createElement("pre");
+  log.className = "progress-log";
+  log.hidden = true;
+  panel.appendChild(summary);
+  panel.appendChild(tasks);
+  panel.appendChild(log);
+
+  root.appendChild(mark);
+  root.appendChild(title);
+  root.appendChild(noteEl);
+  root.appendChild(panel);
+  el.runTimeline.appendChild(root);
+  el.runTimeline.hidden = false;
+
+  state.activeRun = {
+    revision: rev,
+    root,
+    summary,
+    tasks,
+    log,
+    noteEl,
+  };
+  return state.activeRun;
+}
+
+function fillRunProgress(block, data) {
+  if (!block) return;
+  const progress = data?.progress;
   if (!progress) {
-    el.dispatchProgress.hidden = true;
+    if (block.summary) block.summary.textContent = "";
+    if (block.tasks) block.tasks.replaceChildren();
+    if (block.log) {
+      block.log.hidden = true;
+      block.log.textContent = "";
+    }
     return;
   }
-  el.dispatchProgress.hidden = false;
-  if (el.progressSummary) {
-    el.progressSummary.textContent = `${progress.done}/${progress.total} · ${progress.current || ""}`;
+  if (block.summary) {
+    block.summary.textContent = `${progress.done}/${progress.total} · ${progress.current || ""}`;
   }
-  if (el.progressTasks) {
-    el.progressTasks.replaceChildren();
-    const nextId = progress.tasks?.find((t) => !t.done)?.id;
-    for (const t of progress.tasks || []) {
+  if (block.tasks) {
+    block.tasks.replaceChildren();
+    const nextId = progress.tasks?.find((task) => !task.done)?.id;
+    for (const task of progress.tasks || []) {
       const li = document.createElement("li");
-      li.dataset.done = t.done ? "true" : "false";
-      if (!t.done && t.id === nextId) li.dataset.current = "true";
+      li.dataset.done = task.done ? "true" : "false";
+      if (!task.done && task.id === nextId) li.dataset.current = "true";
       const mark = document.createElement("span");
       mark.className = "mark";
-      mark.textContent = t.done ? "✓" : "·";
+      mark.textContent = task.done ? "✓" : "·";
       const text = document.createElement("span");
-      text.textContent = t.text;
+      text.textContent = task.text;
       li.appendChild(mark);
       li.appendChild(text);
-      el.progressTasks.appendChild(li);
+      block.tasks.appendChild(li);
     }
   }
-  if (el.progressLog) {
+  if (block.log) {
     const lines = data.logTail || [];
     if (lines.length) {
-      el.progressLog.hidden = false;
-      el.progressLog.textContent = lines.join("\n");
+      block.log.hidden = false;
+      block.log.textContent = lines.join("\n");
     } else {
-      el.progressLog.hidden = true;
-      el.progressLog.textContent = "";
+      block.log.hidden = true;
+      block.log.textContent = "";
     }
   }
+}
+
+function renderProgress(data) {
+  if (!el.runTimeline) return;
+  const progress = data?.progress;
+  if (!progress) {
+    if (!state.activeRun) el.runTimeline.hidden = el.runTimeline.childElementCount === 0;
+    return;
+  }
+  const rev = Number(data.revision || 0);
+  const block = beginRunBlock({ revision: rev });
+  fillRunProgress(block, data);
   focusRightPanel();
 }
 
@@ -1606,6 +1708,13 @@ function lockReviseCard(data, card) {
     canRevise: true,
     status: "revising",
     revision: data.revision,
+  });
+  beginRunBlock({
+    revision: data.revision,
+    note: t("run.note.revision", {
+      goal: card.goal,
+      acceptance: card.acceptance,
+    }),
   });
   focusRightPanel({ force: true });
 }
@@ -1910,6 +2019,7 @@ async function restoreHistoryJob() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.lastRevision = null;
+  clearRunTimeline();
   const card = data.card || {};
   el.goal.value = card.goal || "";
   el.outOfScope.value = card.outOfScope || "";

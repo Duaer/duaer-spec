@@ -61,6 +61,7 @@ the table for their app.
 | E2E-046 | Revise dispatch always returns: a stuck child (e.g. blocking `post-checkout` hook on `git worktree add`) yields HTTP 504 with an actionable message within its budget instead of hanging, so the button never sits on「续派中…」forever; normal revise still enqueues into `.duaer/live-terminal/jobs/` | manual / curl |
 | E2E-047 | After delivery accepted, revise while first agent still holds `running.cmd`: `POST /api/revise` preempts leftover CLI, enqueues revise, and Terminal drains the revise job (not forever behind the accepted first agent); pre-accept busy revise still waits without interrupt | manual / curl |
 | E2E-048 | PriorAccepted preempt also TERM→KILL worktree `agent`/`cursor-agent`/`claude` orphans (match worktree path + CLI name; never kill `runner.command`); every signaled PID logged; revise agent runs Revision prompt with no leftover first-Brief orphan | manual / curl |
+| E2E-049 | Progress ownership: each dispatch/revision has its own run block under the revise/dispatch stack (timeline below); older blocks stay frozen with their revision; no single progress pile above preview/revise | manual |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
