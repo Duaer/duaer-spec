@@ -60,6 +60,12 @@ duaer live
 3. 只选 **CLI 数字员工**：**Cursor Agent** 或 **Claude Code**（未装 Cursor 时页面会提示：`curl https://cursor.com/install -fsS | bash`）  
 4. 编辑「启动命令」（须以 `Agent` 开头）→ 派工建 `.worktree/feat-*`，并打开 **Terminal** 跑对应 CLI  
 5. 页面轮询 `tasks.md` 进度；`delivery.json` 为 `accepted` 后出现 **查看成品**（`preview.url`，或自动发现 `index.html`）
+6. 若需求需要上线 / 公网访问：默认用 **GitHub CLI（`gh`）+ Actions** 自动化部署（静态站可参考 `.duaer/templates/deploy-github-pages.yml`；说明见英文 [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)）
+
+### 文档语言
+
+- 英文文档不得出现中文
+- 中文文档可以夹英文术语（如 `gh`、Actions、worktree）
 
 ### 目录不要同名套娃
 

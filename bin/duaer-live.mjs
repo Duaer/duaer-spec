@@ -1485,6 +1485,13 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
   return launch;
 }
 
+/** True when Brief text implies the product needs a public/hosted deploy. */
+function needsGithubDeploy(text) {
+  return /部署|上线|托管|公网|域名|发布站点|发布网站|github\s*pages|gh-pages|\bdeploy\b|\bhosting\b|\bhosted\b|put\s+online|go\s+live|public\s+url|publish\s+(the\s+)?(site|app|page)/i.test(
+    String(text || ""),
+  );
+}
+
 function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
   const live = readLiveJob(jobId);
   const probe = probeRepo(repoPath, { bootstrap: true });
@@ -1520,6 +1527,12 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
   const today = new Date().toISOString().slice(0, 10);
   const goalMatch = live.spec.match(/^# Feature Specification:\s*(.+)$/m);
   const goal = goalMatch ? goalMatch[1].trim() : live.id;
+  const goalBody = extractSection(live.spec, "Goal") || goal;
+  const acceptBody = extractSection(live.spec, "Acceptance") || "";
+  const assumeBody = extractSection(live.spec, "Assumptions") || "- (none)";
+  const deployNeeded = needsGithubDeploy(
+    [live.spec, goalBody, acceptBody, assumeBody].join("\n"),
+  );
   const productSpec = `# Feature Specification: ${goal}
 
 **Feature Branch**: \`${branch}\`
@@ -1531,35 +1544,42 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
 ## Goal
-${extractSection(live.spec, "Goal") || goal}
+${goalBody}
 
 ## Out of scope
 ${extractSection(live.spec, "Out of scope") || "- (none listed)"}
 
 ## Acceptance
-${extractSection(live.spec, "Acceptance") || ""}
+${acceptBody}
 
 ## Assumptions
-${extractSection(live.spec, "Assumptions") || "- (none)"}
+${assumeBody}
 
 ## Notes
 
 Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
+${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `docs/agent/deploy-github.md`).\n" : ""}
 `;
+
+  const deployTasks = deployNeeded
+    ? `
+- [ ] T004 Deploy with GitHub CLI (\`gh\`) + Actions（默认 Pages 模板：.duaer/templates/deploy-github-pages.yml；公网 URL 写入 preview.url）
+`
+    : "";
 
   const productTasks = `# Tasks
 
 - [ ] T001 Implement against this Brief
 - [ ] T002 Risk-based verification per testing.md
 - [ ] T003 Stamp delivery.json accepted（若有可打开的成品，写入 preview.url）
-
+${deployTasks}
 做完一步就立刻把对应项改成 \`- [x]\`，方便现场开发显示进度。
 
 若交付物是页面/静态文件，在 delivery.json 增加：
 \`\`\`json
 "preview": { "url": "index.html", "label": "查看成品" }
 \`\`\`
-（也可用 http(s) 地址；相对路径相对 worktree 根目录）
+（也可用 http(s) 地址；相对路径相对 worktree 根目录；若已 GitHub Pages 部署，优先写公网 URL）
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -1573,12 +1593,25 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
         startedAt: new Date().toISOString(),
         source: "live-dispatch",
         liveJobId: live.id,
+        deployViaGithubCli: deployNeeded,
       },
       null,
       2,
     )}\n`,
     "utf8",
   );
+
+  const deployPrompt = deployNeeded
+    ? `
+8. 本需求需要部署：默认走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
+9. 静态站：复制 duaer-spec 的 .duaer/templates/deploy-github-pages.yml → 产品仓 .github/workflows/deploy.yml（按构建产物改 path）
+10. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
+11. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看成品」）
+12. 用户要部署即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）
+`
+    : `
+8. 不要推远程除非用户明确要求
+`;
 
   const defaultPrompt = `Agent
 
@@ -1594,9 +1627,9 @@ Brief: ${featureDir}
 3. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
 4. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 5. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）
-6. 不要推远程除非用户明确要求
-7. 合入 develop 并 handoff 清理 worktree
-`;
+6. 合入 develop 并 handoff 清理 worktree
+7. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
+${deployPrompt}`;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
   if (!/^Agent\b/m.test(agentPrompt)) {
@@ -1673,6 +1706,7 @@ Brief: ${featureDir}
     ok: true,
     jobId: live.id,
     ...dispatch,
+    deployViaGithubCli: deployNeeded,
     agentPrompt,
     agents: detectAgents(),
   };

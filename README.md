@@ -23,7 +23,7 @@ Then use **Cursor**, **Claude Code**, **Codex**, **Copilot**, **Windsurf**, **Cl
 
 Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
 
-中文说明：[`README.zh-CN.md`](README.zh-CN.md)
+Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 
 ## What the employee does (by itself)
 
@@ -57,7 +57,8 @@ Open the printed URL (default `http://127.0.0.1:8787`).
 2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
 4. Edit the start command (must begin with `Agent`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
-5. Watch `tasks.md` progress on the desk; when `delivery.json` is `accepted`, open **查看成品** (`preview.url` or auto-detected `index.html`)
+5. Watch `tasks.md` progress on the desk; when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)
+6. If the job needs hosting / a public URL, deploy with **GitHub CLI (`gh`) + Actions** (Pages template under `.duaer/templates/deploy-github-pages.yml`; see [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
 Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
 

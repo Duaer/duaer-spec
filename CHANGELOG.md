@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Deploy via GitHub CLI
+
+- When a product job needs hosting / a public URL, default to `gh` + GitHub Actions (Pages template: `.duaer/templates/deploy-github-pages.yml`)
+- Live dispatch detects deploy intent and adds task + agent prompt rules
+- Docs: `docs/agent/deploy-github.md`; AGENTS immutable rule
+
+### Docs language purity
+
+- English docs must not contain Chinese (CJK); Chinese docs may include English terms
+- Scrubbed CJK from `README.md`, `CHANGELOG.md`, and English agent catalog notes
+
 ## 0.12.0 — 2026-09-16
 
 ### Live desk → product dispatch (closed loop)
@@ -9,7 +22,7 @@
 - Launchers are **CLI only**: Cursor Agent and Claude Code — open Terminal and run `agent` / `cursor agent` or `claude` with the start command (prefix `Agent`)
 - Missing Cursor CLI shows install: `curl https://cursor.com/install -fsS | bash`
 - Progress: poll product Brief `tasks.md` checkboxes; optional agent-launch.log tail
-- On `delivery.json` accepted: show **查看成品** from `preview.url` (or auto-detect `index.html`); serve worktree files at `/api/artifact/<jobId>/…`
+- On `delivery.json` accepted: show **View product** from `preview.url` (or auto-detect `index.html`); serve worktree files at `/api/artifact/<jobId>/…`
 - Dispatch does not block the UI on Terminal open (async); 60s client timeout
 
 ### Docs
@@ -20,7 +33,7 @@
 
 ### Live browse remember
 
-- Fix「浏览…」: persist selection into recent list immediately; normalize paths; accept `master`
+- Fix Browse…: persist selection into recent list immediately; normalize paths; accept `master`
 
 ### Live repo pick
 
@@ -43,7 +56,7 @@
 
 ### Live desk UI
 
-- Restyle 现场开发 to Probe visual language (steel plate, Outfit + Chivo Mono, register/lock accents)
+- Restyle Live Dev to Probe visual language (steel plate, Outfit + Chivo Mono, register/lock accents)
 
 ### Live model presets
 
@@ -53,7 +66,7 @@
 
 ## 0.10.0 — 2026-09-15
 
-### 现场开发 Web
+### Live Dev Web
 
 - `duaer live` opens a local page in an **isolated** workspace (`~/.duaer/live`)
 - Requires model config: `duaer live config --base-url … --api-key … --model …`
@@ -116,7 +129,7 @@
 
 ## 0.6.3 — 2026-09-15
 
-### Docs: update path in installed 说明
+### Docs: update path in installed guides
 
 - `DUADER.md` and `docs/agent/branching-and-release.md` document `npx duaer-spec update`
 - Add `README.zh-CN.md` (install / update / branches)

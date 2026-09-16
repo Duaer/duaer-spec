@@ -1,37 +1,40 @@
-# npm Trusted Publishing（怎么弄）
+# npm Trusted Publishing
 
-不用长期 `NPM_TOKEN`。npm 只接受**你指定的** GitHub Actions 工作流用 OIDC 发版。
+Avoid long-lived `NPM_TOKEN`. npm only accepts publishes from the **GitHub
+Actions workflow you configure** via OIDC.
 
-官方文档：https://docs.npmjs.com/trusted-publishers/
+Official docs: https://docs.npmjs.com/trusted-publishers/
 
-## 1. 在 npm 网站配置（一次性）
+Chinese guide: [`npm-trusted-publishing.zh-CN.md`](npm-trusted-publishing.zh-CN.md)
 
-1. 打开包页：https://www.npmjs.com/package/duaer-spec  
-2. 点 **Settings**（需已登录且是 maintainer）  
-3. 找到 **Trusted Publisher** → 选 **GitHub Actions**  
-4. 填写：
+## 1. Configure on npmjs.com (once)
 
-| 字段 | 填什么 |
+1. Open https://www.npmjs.com/package/duaer-spec
+2. Open **Settings** (maintainer login required)
+3. **Trusted Publisher** → **GitHub Actions**
+4. Fill in:
+
+| Field | Value |
 |---|---|
 | Organization or user | `fujiezee` |
 | Repository | `duaer-spec` |
-| Workflow filename | `npm-publish.yml`（**只要文件名**，不要 `.github/workflows/`） |
-| Environment name | 留空（除非你在 GitHub 建了 Environment） |
-| Allowed actions | 勾选 **npm publish** |
+| Workflow filename | `npm-publish.yml` (filename only, no `.github/workflows/`) |
+| Environment name | leave empty unless you use a GitHub Environment |
+| Allowed actions | include **npm publish** |
 
 5. Save
 
-名字必须和仓库里真实文件一致：`.github/workflows/npm-publish.yml`。
+The filename must match `.github/workflows/npm-publish.yml` in this repo.
 
-## 2. 仓库侧（已就绪）
+## 2. Repo side (already wired)
 
-工作流：`.github/workflows/npm-publish.yml`
+Workflow: `.github/workflows/npm-publish.yml`
 
-- `permissions.id-token: write` — 允许发 OIDC  
-- `npm publish` — **不**再依赖 `secrets.NPM_TOKEN`  
-- 触发：创建 GitHub Release，或手动 **Actions → Publish npm package → Run workflow**
+- `permissions.id-token: write` — OIDC
+- `npm publish` — no `secrets.NPM_TOKEN`
+- Triggers: GitHub Release published, or **Actions → Publish npm package → Run workflow**
 
-## 3. 以后怎么发新版本
+## 3. Shipping a new version
 
 ```bash
 # 1. bump package.json version + CHANGELOG
@@ -42,23 +45,24 @@ git push origin v0.1.1
 gh release create v0.1.1 --generate-notes
 ```
 
-Release 发布后，workflow 会自动 `npm publish`。
+After the Release is published, the workflow runs `npm publish`.
 
-也可在 GitHub → **Actions** → **Publish npm package** → **Run workflow** 手动跑（用于验证 Trusted Publisher 是否配好）。
+You can also run **Actions → Publish npm package → Run workflow** to verify
+Trusted Publisher.
 
-## 4. 常见失败
+## 4. Common failures
 
-| 现象 | 原因 |
+| Symptom | Cause |
 |---|---|
-| `ENEEDAUTH` | ① Actions 里 npm &lt; 11.5.1（本仓库已强制升到 npm@11）；② 网站上 workflow 文件名写错；③ Trusted Publisher 的 Allowed actions 只勾了 stage、没勾 **npm publish** |
-| 404 | 配置未 Save，或 repository / 用户名大小写不一致 |
-| OIDC 相关错误 | 工作流缺 `id-token: write` |
-| `cannot publish over existing version` | **鉴权已成功**，只是版本号已存在；下次先 bump `package.json` 再发 |
+| `ENEEDAUTH` | (1) Actions npm &lt; 11.5.1 (this repo forces npm@11); (2) wrong workflow filename on npm; (3) Allowed actions only has stage, not **npm publish** |
+| 404 | Config not saved, or org/repo casing mismatch |
+| OIDC errors | Missing `id-token: write` |
+| `cannot publish over existing version` | Auth worked; version already exists — bump `package.json` next time |
 
-npm 官方要求：**Node ≥ 22.14** 且 **npm CLI ≥ 11.5.1**。
+npm requires **Node ≥ 22.14** and **npm CLI ≥ 11.5.1**.
 
-## 5. 和 token 的关系
+## 5. Tokens
 
-- 配好 Trusted Publishing 后：**不必**再把 npm token 放进 GitHub Secrets  
-- 聊天里用过的 token 仍应吊销  
-- 本机偶尔手发：继续用 OTP 或本机 token，与 CI 无关
+- After Trusted Publishing is configured: do **not** keep an npm token in GitHub Secrets
+- Revoke any token that was pasted in chat
+- Local one-off publishes can still use OTP / local token; unrelated to CI
