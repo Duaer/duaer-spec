@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Live Terminal open fix
+
+- Cursor Agent uses `open *.command` to pop Terminal (fixed broken osascript quoting)
+
 ### Live Cursor Agent via Terminal
 
 - Cursor Agent opens macOS Terminal (or Linux terminal) and runs `agent` / `cursor agent` CLI there — not `cursor -n` IDE and not silent `-p` background

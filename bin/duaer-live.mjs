@@ -1253,28 +1253,83 @@ function shellSingleQuote(s) {
   return `'${String(s).replace(/'/g, `'\\''`)}'`;
 }
 
-/** Open a visible terminal session that runs the agent command. */
+function appleScriptString(s) {
+  return `"${String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
+}
+
+/**
+ * Open a visible Terminal and run the Cursor CLI command.
+ * macOS: write a .command file and `open` it (does not need Automation permission).
+ * Fallback: osascript with correct AppleScript string quoting.
+ */
 function launchInTerminal({ cwd, commandLine, logPath }) {
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
   appendLaunchLog(logPath, stamped);
 
   if (process.platform === "darwin") {
-    const script = `cd ${shellSingleQuote(cwd)} && ${commandLine}; echo; echo '[duaer] agent session ended — press Enter to close'; read _`;
-    const child = spawn(
+    const stamp = Date.now();
+    const cmdPath = path.join(
+      os.tmpdir(),
+      `duaer-live-agent-${stamp}.command`,
+    );
+    const body = `#!/bin/bash
+cd ${shellSingleQuote(cwd)} || exit 1
+clear
+echo "[duaer] running Cursor CLI in Terminal"
+echo "[duaer] cwd: $(pwd)"
+echo
+${commandLine}
+status=$?
+echo
+echo "[duaer] exit=$status — press Enter to close"
+read _
+`;
+    fs.writeFileSync(cmdPath, body, { mode: 0o755 });
+    appendLaunchLog(logPath, `[${new Date().toISOString()}] open ${cmdPath}`);
+
+    const openChild = spawnSync("open", [cmdPath], { encoding: "utf8" });
+    if (openChild.status === 0) {
+      appendLaunchLog(logPath, `[${new Date().toISOString()}] open .command ok`);
+      return {
+        pid: null,
+        mode: "terminal",
+        commandFile: cmdPath,
+      };
+    }
+
+    appendLaunchLog(
+      logPath,
+      `[${new Date().toISOString()}] open .command failed: ${(openChild.stderr || openChild.stdout || "").trim()} — trying osascript`,
+    );
+
+    const script = `cd ${shellSingleQuote(cwd)} && ${commandLine}`;
+    const osa = spawnSync(
       "osascript",
       [
         "-e",
-        'tell application "Terminal" to activate',
+        "tell application \"Terminal\" to activate",
         "-e",
-        `tell application "Terminal" to do script ${shellSingleQuote(script)}`,
+        `tell application "Terminal" to do script ${appleScriptString(script)}`,
       ],
-      { detached: true, stdio: "ignore" },
+      { encoding: "utf8" },
     );
-    child.unref();
-    return { pid: child.pid ?? null, mode: "terminal" };
+    appendLaunchLog(
+      logPath,
+      `[${new Date().toISOString()}] osascript exit=${osa.status}${(osa.stderr || "").trim() ? ` ${String(osa.stderr).trim()}` : ""}`,
+    );
+    if (osa.status !== 0) {
+      throw new Error(
+        `无法打开 Terminal（open 与 osascript 均失败）。请在「系统设置 → 隐私与安全性 → 自动化」允许终端控制，或手动运行：\n${commandLine}`,
+      );
+    }
+    return {
+      pid: null,
+      mode: "terminal",
+      commandFile: cmdPath,
+    };
   }
 
-  // Linux / other: try gnome-terminal / x-terminal-emulator / fall back to detached shell
+  // Linux / other
   for (const [cmd, args] of [
     ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
     ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
