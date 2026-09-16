@@ -109,6 +109,20 @@
             <p class="agent-pick-label">用哪个数字员工启动</p>
             <div id="agentList" class="agent-list"></div>
             <p id="agentHint" class="hint">检测本机 PATH 上的 Cursor Agent / Claude Code 等</p>
+            <div id="agentInstall" class="agent-install" hidden>
+              <p class="agent-install-title">需要安装 CLI</p>
+              <pre id="agentInstallCmd" class="agent-install-cmd"></pre>
+              <button type="button" class="btn" id="copyInstallCmd">复制安装命令</button>
+            </div>
+            <label class="field start-cmd-field" id="startCmdField">
+              <span>启动命令（开头须为 Agent）</span>
+              <textarea
+                id="startCommand"
+                rows="6"
+                placeholder="Agent&#10;&#10;在这里写要数字员工做的事…"
+                spellcheck="false"
+              ></textarea>
+            </label>
           </div>
           <button type="button" class="btn confirm" id="doDispatch">写入 Brief 并启动</button>
           <p id="dispatchErr" class="hint" hidden></p>

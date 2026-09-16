@@ -1112,36 +1112,44 @@ function whichCmd(cmd) {
 }
 
 /** Digital-employee / editor launchers detectable on PATH. */
+const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
+
 const AGENT_CATALOG = [
   {
     id: "cursor-agent",
     label: "Cursor Agent",
     kind: "worker",
     hint: "cursor -n 打开 worktree + agent -p 后台开工",
+    installCommand: CURSOR_INSTALL_CMD,
   },
   {
     id: "claude",
     label: "Claude Code",
     kind: "worker",
     hint: "打开 worktree + claude --bg",
+    installCommand:
+      "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI",
   },
   {
     id: "cursor",
     label: "Cursor（仅打开）",
     kind: "open",
     hint: "cursor -n 打开命名 worktree",
+    installCommand: CURSOR_INSTALL_CMD,
   },
   {
     id: "code",
     label: "VS Code（仅打开）",
     kind: "open",
     hint: "code 打开 worktree",
+    installCommand: null,
   },
   {
     id: "none",
     label: "仅派工不启动",
     kind: "none",
     hint: "只建 worktree / Brief",
+    installCommand: null,
   },
 ];
 
@@ -1216,7 +1224,13 @@ function detectAgents() {
   const ids = new Set(installed.map((a) => a.id));
   const missing = AGENT_CATALOG.filter(
     (a) => a.id !== "none" && !ids.has(a.id),
-  ).map((a) => ({ ...a, available: false, command: null, path: null }));
+  ).map((a) => ({
+    ...a,
+    available: false,
+    command: null,
+    path: null,
+    installCommand: a.installCommand || null,
+  }));
 
   return {
     preferredAgentId: preferred && ids.has(preferred) ? preferred : "",
@@ -1502,7 +1516,7 @@ function launchAgent({ agentId, worktreePath, agentPrompt, logPath, featureDir }
   return launch;
 }
 
-function dispatchToRepo({ jobId, repoPath, agentId }) {
+function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
   const live = readLiveJob(jobId);
   const probe = probeRepo(repoPath, { bootstrap: true });
   const branch =
@@ -1591,7 +1605,9 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
     "utf8",
   );
 
-  const agentPrompt = `按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
+  const defaultPrompt = `Agent
+
+按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
 
 工作目录: ${worktreePath}
 Brief: ${featureDir}
@@ -1606,10 +1622,36 @@ Brief: ${featureDir}
 6. 合入 develop 并 handoff 清理 worktree
 `;
 
+  let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
+  if (!/^Agent\b/m.test(agentPrompt)) {
+    agentPrompt = `Agent\n\n${agentPrompt}`;
+  }
+  if (!agentPrompt.includes(worktreePath)) {
+    agentPrompt = `${agentPrompt}
+
+——
+工作目录: ${worktreePath}
+Brief: ${featureDir}
+分支: ${branch}
+`;
+  }
+
   const chosen =
     String(agentId || "").trim() ||
     readConfig().preferredAgentId ||
     "none";
+
+  // Block Cursor workers/openers when CLI missing
+  if (chosen === "cursor-agent" || chosen === "cursor") {
+    const detected = detectAgents();
+    const ok = detected.agents.some((a) => a.id === chosen && a.available);
+    if (!ok) {
+      throw new Error(
+        `未安装 Cursor CLI。请先执行：\n${CURSOR_INSTALL_CMD}\n安装后重新打开终端 / 刷新本页。`,
+      );
+    }
+  }
+
   const logPath = path.join(featureDir, "agent-launch.log");
   const launch = launchAgent({
     agentId: chosen,
@@ -1632,6 +1674,7 @@ Brief: ${featureDir}
     dispatchedAt: new Date().toISOString(),
     openedWith: launch.kind === "open" ? launch.agentId : null,
     launch,
+    startCommand: agentPrompt,
   };
 
   const nextJob = {
@@ -2021,6 +2064,7 @@ async function handleApi(req, res) {
         jobId: body.jobId,
         repoPath: body.repoPath,
         agentId: body.agentId,
+        startCommand: body.startCommand,
       });
       send(res, 200, result);
     } catch (err) {

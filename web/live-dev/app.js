@@ -63,6 +63,11 @@ const el = {
   repoScan: document.getElementById("repoScan"),
   agentList: document.getElementById("agentList"),
   agentHint: document.getElementById("agentHint"),
+  agentInstall: document.getElementById("agentInstall"),
+  agentInstallCmd: document.getElementById("agentInstallCmd"),
+  copyInstallCmd: document.getElementById("copyInstallCmd"),
+  startCommand: document.getElementById("startCommand"),
+  startCmdField: document.getElementById("startCmdField"),
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
@@ -417,6 +422,11 @@ async function showDispatchPanel() {
   el.dispatchErr.hidden = true;
   el.dispatchStatus.hidden = true;
   el.doDispatch.disabled = false;
+  if (el.startCommand && !el.startCommand.value.trim()) {
+    el.startCommand.value = defaultStartCommand();
+  } else {
+    ensureStartCommandPrefix();
+  }
   syncDispatchButton();
   state.repoCatalog = { recent: [], discovered: [] };
   await Promise.all([loadRepoCatalog(false), loadAgents()]);
@@ -451,6 +461,72 @@ async function loadAgents() {
   }
 }
 
+function defaultStartCommand() {
+  const goal = el.goal?.value?.trim() || "（在此写清要做什么）";
+  return `Agent
+
+${goal}
+
+按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted；不要推远程除非明确要求。
+`;
+}
+
+function ensureStartCommandPrefix() {
+  if (!el.startCommand) return;
+  const raw = el.startCommand.value;
+  if (!raw.trim()) {
+    el.startCommand.value = defaultStartCommand();
+    return;
+  }
+  if (!/^Agent\b/m.test(raw.trim())) {
+    el.startCommand.value = `Agent\n\n${raw.trim()}\n`;
+  }
+}
+
+function syncInstallHint() {
+  if (!el.agentInstall) return;
+  const miss = (state.missingAgents || []).find(
+    (m) =>
+      m.installCommand &&
+      (m.id === state.agentId ||
+        (state.agentId === "cursor-agent" && m.id === "cursor") ||
+        (state.agentId === "cursor" && m.id === "cursor-agent")),
+  );
+  const selectedMissing =
+    miss ||
+    (state.missingAgents || []).find((m) => m.id === state.agentId && m.installCommand);
+  // Also: selected agent needs install if not in available list as worker/open that requires cli
+  const available = state.agents.some((a) => a.id === state.agentId);
+  const needsCursor =
+    (state.agentId === "cursor-agent" || state.agentId === "cursor") &&
+    !(state.agents || []).some((a) => a.id === state.agentId);
+
+  const installFromMissing = (state.missingAgents || []).find(
+    (m) => m.id === state.agentId && m.installCommand,
+  );
+
+  if (installFromMissing || needsCursor) {
+    const cmd =
+      installFromMissing?.installCommand ||
+      "curl https://cursor.com/install -fsS | bash";
+    el.agentInstall.hidden = false;
+    if (el.agentInstallCmd) el.agentInstallCmd.textContent = cmd;
+  } else if (selectedMissing) {
+    el.agentInstall.hidden = false;
+    if (el.agentInstallCmd) el.agentInstallCmd.textContent = selectedMissing.installCommand;
+  } else {
+    el.agentInstall.hidden = true;
+  }
+}
+
+function syncStartCommandField() {
+  if (!el.startCmdField || !el.startCommand) return;
+  const a = state.agents.find((x) => x.id === state.agentId);
+  const show = a?.kind === "worker" || state.agentId === "cursor-agent";
+  el.startCmdField.hidden = !show;
+  if (show) ensureStartCommandPrefix();
+}
+
 function renderAgentList() {
   if (!el.agentList) return;
   el.agentList.replaceChildren();
@@ -471,6 +547,31 @@ function renderAgentList() {
       state.agentId = a.id;
       renderAgentList();
       syncDispatchButton();
+      syncInstallHint();
+      syncStartCommandField();
+    });
+    el.agentList.appendChild(b);
+  }
+  // Show missing as disabled-looking chips with install cue
+  for (const m of state.missingAgents || []) {
+    if (!m.installCommand) continue;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "agent-chip";
+    b.style.opacity = "0.55";
+    b.setAttribute("aria-pressed", m.id === state.agentId ? "true" : "false");
+    const strong = document.createElement("strong");
+    strong.textContent = `${m.label} · 未安装`;
+    b.appendChild(strong);
+    const span = document.createElement("span");
+    span.textContent = "点选查看安装命令";
+    b.appendChild(span);
+    b.addEventListener("click", () => {
+      state.agentId = m.id;
+      renderAgentList();
+      syncDispatchButton();
+      syncInstallHint();
+      syncStartCommandField();
     });
     el.agentList.appendChild(b);
   }
@@ -479,15 +580,24 @@ function renderAgentList() {
       .map((m) => m.label)
       .filter(Boolean);
     el.agentHint.textContent = miss.length
-      ? `未检测到：${miss.join("、")}（安装 CLI 并加入 PATH 后刷新）`
+      ? `未检测到：${miss.join("、")} — 见下方安装命令`
       : "已检测本机可用启动器";
   }
+  syncInstallHint();
+  syncStartCommandField();
 }
 
 function syncDispatchButton() {
   if (!el.doDispatch) return;
   const label = el.doDispatch.textContent;
   if (label === "已派工" || label === "派工中…") return;
+  const missingSelected = (state.missingAgents || []).some(
+    (m) => m.id === state.agentId,
+  );
+  if (missingSelected) {
+    el.doDispatch.textContent = "请先安装 CLI";
+    return;
+  }
   const a = state.agents.find((x) => x.id === state.agentId);
   if (!a || a.id === "none") {
     el.doDispatch.textContent = "写入 Brief 并建 worktree";
@@ -655,6 +765,20 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchErr.textContent = "先点选仓库，或浏览 / 扫描";
     return;
   }
+  const missingSelected = (state.missingAgents || []).some(
+    (m) => m.id === state.agentId,
+  );
+  if (missingSelected) {
+    el.dispatchErr.hidden = false;
+    const m = (state.missingAgents || []).find((x) => x.id === state.agentId);
+    el.dispatchErr.textContent = m?.installCommand
+      ? `请先安装：${m.installCommand}`
+      : "请先安装对应 CLI";
+    syncInstallHint();
+    return;
+  }
+  ensureStartCommandPrefix();
+  const startCommand = el.startCommand?.value?.trim() || "";
   el.dispatchErr.hidden = true;
   el.doDispatch.disabled = true;
   el.doDispatch.textContent = "派工中…";
@@ -667,6 +791,10 @@ el.doDispatch.addEventListener("click", async () => {
         jobId: state.jobId,
         repoPath,
         agentId: state.agentId || "none",
+        startCommand:
+          state.agentId === "none" || state.agentId === "cursor" || state.agentId === "code"
+            ? undefined
+            : startCommand,
       }),
     });
     const data = await res.json();
@@ -675,11 +803,11 @@ el.doDispatch.addEventListener("click", async () => {
     const launchLine =
       launch.agentId && launch.agentId !== "none"
         ? `启动: ${launch.label || launch.agentId}${launch.pid ? ` (pid ${launch.pid})` : ""}${
-            launch.logPath ? `\n日志: ${launch.logPath}` : ""
-          }`
+            launch.command ? `\nCLI: ${launch.command}` : ""
+          }${launch.logPath ? `\n日志: ${launch.logPath}` : ""}`
         : "启动: 未启动（仅派工）";
     el.result.hidden = false;
-    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 开工说明（备用） ——\n${data.agentPrompt}`;
+    el.result.textContent = `派工完成\n仓库: ${data.repoPath}\nWorktree: ${data.worktreePath}\nBrief: ${data.featureDir}\n${launchLine}\n\n—— 启动命令 ——\n${data.agentPrompt || startCommand}`;
     const who =
       launch.mode === "background"
         ? `已用 Cursor CLI 后台开工（${launch.label || launch.agentId}，pid ${launch.pid || "?"}${
@@ -712,10 +840,34 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent =
       err instanceof Error ? err.message : String(err);
+    if (String(err?.message || err).includes("curl https://cursor.com/install")) {
+      syncInstallHint();
+      if (el.agentInstall) el.agentInstall.hidden = false;
+      if (el.agentInstallCmd) {
+        el.agentInstallCmd.textContent =
+          "curl https://cursor.com/install -fsS | bash";
+      }
+    }
   } finally {
     state.busy = false;
   }
 });
+
+el.copyInstallCmd?.addEventListener("click", async () => {
+  const cmd = el.agentInstallCmd?.textContent?.trim();
+  if (!cmd) return;
+  try {
+    await navigator.clipboard.writeText(cmd);
+    el.copyInstallCmd.textContent = "已复制";
+    setTimeout(() => {
+      el.copyInstallCmd.textContent = "复制安装命令";
+    }, 1500);
+  } catch {
+    el.copyInstallCmd.textContent = "复制失败";
+  }
+});
+
+el.startCommand?.addEventListener("blur", () => ensureStartCommandPrefix());
 
 function renderProgress(data) {
   if (!el.dispatchProgress) return;

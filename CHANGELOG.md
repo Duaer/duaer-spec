@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Live CLI install + Agent start command
+
+- Missing Cursor CLI shows install command `curl https://cursor.com/install -fsS | bash` (copyable)
+- Dispatch panel: editable 启动命令 box; defaults / enforced prefix `Agent`
+- `POST /api/dispatch` accepts `startCommand` as the agent prompt
+
 ### Live Cursor CLI support
 
 - Open named worktree with `cursor -n` (+ focus Brief `tasks.md` via `-g`)
