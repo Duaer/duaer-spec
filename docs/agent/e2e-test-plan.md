@@ -33,7 +33,7 @@ the table for their app.
 | E2E-003 | Always-on rule requires autonomous job loop without user slash | manual |
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
-| E2E-021 | `duaer live` stream + auto-accept + dispatch to product worktree | manual / curl |
+| E2E-021 | `duaer live` stream + auto-accept + CLI dispatch (Terminal agent/claude) | manual / curl |
 | E2E-022 | Live desk detects agents and launches selected digital employee | manual / curl |
 | E2E-023 | Live desk shows task progress from dispatched Brief tasks.md | manual / curl |
 | E2E-024 | Live desk shows preview link when delivery accepted | manual / curl |
