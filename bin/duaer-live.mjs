@@ -3311,7 +3311,7 @@ function parseTasksProgress(tasksMd) {
     if (!m) continue;
     const done = m[1].toLowerCase() === "x";
     const text = m[2].trim();
-    const idMatch = text.match(/^(T\d+)\b/i);
+    const idMatch = text.match(/^(T\d+|R\d+[-\w]*)\b/i);
     tasks.push({
       id: idMatch ? idMatch[1].toUpperCase() : `S${tasks.length + 1}`,
       text,
@@ -3331,6 +3331,47 @@ function parseTasksProgress(tasksMd) {
     current,
     tasks,
   };
+}
+
+/** When delivery is accepted, never show 0/N · 工单完成 — treat checklist as complete. */
+function progressForAcceptedDelivery(progress, { worktreeExists = true } = {}) {
+  const base =
+    progress && typeof progress === "object"
+      ? progress
+      : { total: 0, done: 0, current: "", tasks: [] };
+  const tasks = Array.isArray(base.tasks)
+    ? base.tasks.map((t) => ({ ...t, done: true }))
+    : [];
+  const total = Number(base.total) || tasks.length;
+  return {
+    ...base,
+    total,
+    done: total,
+    tasks,
+    current: worktreeExists
+      ? "delivery accepted · 工单完成"
+      : "delivery accepted · 已合入 develop（worktree 已清理）",
+  };
+}
+
+/** Idempotent: flip remaining `- [ ]` to `- [x]` once delivery is accepted. */
+function reconcileTasksMdOnAccept(tasksPath) {
+  if (!tasksPath || !fs.existsSync(tasksPath)) return false;
+  let raw;
+  try {
+    raw = fs.readFileSync(tasksPath, "utf8");
+  } catch {
+    return false;
+  }
+  if (!/^\s*[-*]\s+\[\s\]\s+/m.test(raw)) return false;
+  const next = raw.replace(/^(\s*[-*]\s+)\[\s\](\s+)/gm, "$1[x]$2");
+  if (next === raw) return false;
+  try {
+    fs.writeFileSync(tasksPath, next, "utf8");
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function readLogTail(logPath, maxLines = 12) {
@@ -3509,13 +3550,16 @@ function dispatchStatus(jobId) {
   const logTail = logPath ? readLogTail(logPath) : [];
   const worktreeExists = roots.worktreeExists;
   const accepted = delivery?.status === "accepted";
-  if (accepted && progress.total > 0) {
-    progress = {
-      ...progress,
-      current: worktreeExists
-        ? "delivery accepted · 工单完成"
-        : "delivery accepted · 已合入 develop（worktree 已清理）",
-    };
+  if (accepted) {
+    if (tasksPath) reconcileTasksMdOnAccept(tasksPath);
+    if (tasksPath && fs.existsSync(tasksPath)) {
+      try {
+        progress = parseTasksProgress(fs.readFileSync(tasksPath, "utf8"));
+      } catch {
+        // keep prior progress
+      }
+    }
+    progress = progressForAcceptedDelivery(progress, { worktreeExists });
   } else if (!worktreeExists && roots.source === "primary") {
     progress = {
       ...progress,

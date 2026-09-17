@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/056-revise-reliability",
-  "branch": "feat/revise-reliability",
-  "worktree": ".worktree/feat-revise-reliability",
+  "featureDir": ".duaer/specs/057-progress-accepted",
+  "branch": "fix/progress-accepted",
+  "worktree": ".worktree/fix-progress-accepted",
   "status": "active"
 }
