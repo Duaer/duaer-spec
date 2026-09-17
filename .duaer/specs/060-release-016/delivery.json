@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "summary": "Release 0.16.0: honest revise preempt, revise progress scope, accept progress sync.",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": ["npm test"],
+    "result": "pass (14 tests)"
+  }
+}

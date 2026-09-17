@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/059-revise-preempt-order",
-  "branch": "fix/revise-preempt-order",
-  "worktree": ".worktree/fix-revise-preempt-order",
+  "featureDir": ".duaer/specs/060-release-016",
+  "branch": "feat/release-016",
+  "worktree": ".worktree/feat-release-016",
   "status": "accepted"
 }

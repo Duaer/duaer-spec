@@ -75,7 +75,7 @@ duaer live
 3. 只选 **CLI 数字员工**：**Cursor Agent** 或 **Claude Code**（未装 Cursor 时页面会提示：`curl https://cursor.com/install -fsS | bash`）  
 4. 编辑「启动命令」（须以 `Duaer` 开头）→ 派工建 `.worktree/feat-*`，并打开 **Terminal** 跑对应 CLI  
 5. 右侧进度列轮询 `tasks.md`；`delivery.json` 为 `accepted` 后出现 **查看成品**（`preview.url`，或自动发现 `index.html`）  
-6. 成品不满意：点 **继续改进（左侧对话）**，说清原因与期望，确认改进卡（同样须校验通过）后，用 Terminal `agent --continue` / `claude --continue` 续派（`POST /api/revise`）。启动失败会回滚本轮 Brief Revision，并可再点「再派一版」；状态行显示 Terminal 忙闲/队列。  
+6. 成品不满意：点 **继续改进（左侧对话）**，说清原因与期望，确认改进卡（同样须校验通过）后续派（先清残留 Agent 再入队）。进度跟本轮 `R{n}-*` 任务。启动失败会回滚本轮 Brief Revision，并可再点「再派一版」；状态行显示 Terminal 忙闲/队列。  
 7. 若需求需要上线 / 公网访问：默认用 **GitHub CLI（`gh`）+ Actions** 自动化部署（静态站可参考 `.duaer/templates/deploy-github-pages.yml`；说明见英文 [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)）
 
 ### 文档语言
