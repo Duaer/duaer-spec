@@ -1,26 +1,41 @@
 # Changelog
 
-## Unreleased
+## 0.14.0 — 2026-09-17
+
+### Live desk layout
+
+- Full-width desk (no 1440px shell cap); three columns: chat | requirements / confirm / dispatch / revise | task progress
+- Confirm column wider than chat; requirements fully expanded (no inner scroll) with structured paragraphs/lists and click-to-edit
+- Progress lives in its own far-right column (per-run timeline, not stacked inside the confirm column)
+
+### Validate before confirm / revise send
+
+- Confirm and revise-dispatch stay blocked until `/api/validate` passes for current card fields
+- Failures surface issues; auto-fix remains available; agent launch prompts forbid Confirming-intent / multi-choice re-confirm loops
 
 ### Hide preview/revise until delivery accepted
 
-- While tasks are still in progress (`0/N · 进行中`), do not show 查看成品 or 再改一版
+- While tasks are still in progress, do not show View product or Revise again
 - Preview and revise CTAs appear only after accept (or during an active revise round)
 
 ### Revise card stays below confirm card
 
-- Top **确认卡** keeps original labels/fields/styles; never morphs into 改进卡
-- **改进卡** lives in the bottom revise panel (under preview) for easy viewing after dialogue
+- Top confirm card keeps original labels/fields/styles; never morphs into the revise card
+- Revise card lives in the bottom revise panel (under preview) for easy viewing after dialogue
 
 ### Survive worktree handoff cleanup
 
 - Status/preview read Brief from product `develop` when the request worktree was removed
-- Revise recreates a new worktree from develop (copies Brief) instead of failing「worktree 已不存在」
+- Revise recreates a new worktree from develop (copies Brief) instead of failing when the worktree is gone
 
 ### Detect CLI agents under LaunchAgent PATH
 
 - Prepend `~/.local/bin`, `/usr/local/bin`, `/opt/homebrew/bin` to PATH when live starts
 - `whichCmd` falls back to those directories so Cursor Agent / Claude Code are found under launchd
+
+### Docs
+
+- README (EN/ZH) live-desk flow updated for fullscreen, three columns, validate-before-send, and structured confirm
 
 ## 0.13.0 — 2026-09-16
 

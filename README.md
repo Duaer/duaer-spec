@@ -60,16 +60,20 @@ duaer live repo add
 duaer live
 ```
 
-Open the printed URL (default `http://127.0.0.1:8787`).
+Open the printed URL (default `http://127.0.0.1:8787`). The desk is **full-width**
+with three columns: **chat** | **requirements / confirm / dispatch / revise** |
+**task progress**.
 
 **Flow**
 
-1. Dialogue → fill confirm card → auto-accept  
+1. Dialogue → fill the confirm card (structured goal / out-of-scope / acceptance /
+   assumptions). Auto-validate must pass before **Confirm** is enabled; auto-fix
+   stays available on failure  
 2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
-5. Watch `tasks.md` progress on the desk; when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)
-6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change in dialogue, confirm the revise card, then the desk relaunches with `agent --continue` / `claude --continue` on the same worktree
+5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)  
+6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches with `agent --continue` / `claude --continue` on the same worktree  
 7. If the job needs hosting / a public URL, deploy with **GitHub CLI (`gh`) + Actions** (Pages template under `.duaer/templates/deploy-github-pages.yml`; see [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
 Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.

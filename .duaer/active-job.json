@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/052-desk-fullscreen",
-  "branch": "feat/desk-fullscreen",
-  "worktree": ".worktree/feat-desk-fullscreen",
+  "featureDir": ".duaer/specs/053-release-014",
+  "branch": "feat/release-014",
+  "worktree": ".worktree/feat-release-014",
   "status": "active"
 }

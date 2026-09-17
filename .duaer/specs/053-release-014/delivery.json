@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "0.14.0 docs + version bump; release via main tag and GitHub Release.",
+  "verification": {
+    "levels": ["L0"],
+    "notes": "README EN/ZH updated; CHANGELOG 0.14.0 English-only; package.json 0.14.0; promote main + tag + gh release."
+  }
+}
