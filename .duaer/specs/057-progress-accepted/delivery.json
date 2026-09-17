@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "On delivery accepted, progress shows N/N and reconciles unchecked tasks.md boxes.",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["npm test"],
+    "notes": "E2E-056."
+  }
+}

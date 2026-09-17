@@ -68,6 +68,7 @@ the table for their app.
 | E2E-053 | Full-screen desk (no 1440 shell cap); chat column ~50px wider than prior confirm-wide min; confirm still wider than chat | manual |
 | E2E-054 | Live L3 smoke: `npm run test:live` covers desk shell markers + validate fail/pass + validate/fix via mock LLM (no paid API) | `npm run test:live` |
 | E2E-055 | Revise reliability: preempt failure returns `PREEMPT_FAILED` without locking card; failed launch rolls back Brief Revision; status shows Terminal busy/queue; retry stays available | `npm test` + manual |
+| E2E-056 | Progress on accept: status never shows `0/N · delivery accepted`; unchecked tasks reconciled to `[x]` | `npm test` |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |

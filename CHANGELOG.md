@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Progress sync when delivery accepted
+
+- When `delivery.json` is `accepted`, task progress shows `N/N` (not `0/N · 工单完成`)
+- Unchecked `tasks.md` boxes are reconciled to `[x]` on status poll after accept
+
 ### Revise round reliability
 
 - Honest Terminal preempt: no false `preempted` / HTTP 200 when agents still run (`PREEMPT_FAILED`, retryable)
