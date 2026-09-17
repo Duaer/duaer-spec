@@ -113,8 +113,10 @@ const el = {
   agentList: document.getElementById("agentList"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
+  agentInstallTitle: document.getElementById("agentInstallTitle"),
   agentInstallCmd: document.getElementById("agentInstallCmd"),
   copyInstallCmd: document.getElementById("copyInstallCmd"),
+  agentRedetect: document.getElementById("agentRedetect"),
   startCommand: document.getElementById("startCommand"),
   startCmdField: document.getElementById("startCmdField"),
   doDispatch: document.getElementById("doDispatch"),
@@ -279,6 +281,8 @@ function syncDynamicI18n() {
   if (el.copyInstallCmd && el.agentInstall && !el.agentInstall.hidden) {
     el.copyInstallCmd.textContent = t("dispatch.copyInstall");
   }
+  if (el.agentRedetect) el.agentRedetect.textContent = t("dispatch.redetect");
+  if (el.agentInstall && !el.agentInstall.hidden) syncInstallHint();
 }
 
 function showUpdateNotice(update) {
@@ -1277,13 +1281,21 @@ function ensureStartCommandPrefix() {
 
 function syncInstallHint() {
   if (!el.agentInstall) return;
-  const installFromMissing = (state.missingAgents || []).find(
+  const missing = state.missingAgents || [];
+  const selectedMissing = missing.find(
     (m) => m.id === state.agentId && m.installCommand,
   );
-  if (installFromMissing) {
+  // Prefer the selected missing CLI; otherwise first missing with a command.
+  const show = selectedMissing || missing.find((m) => m.installCommand) || null;
+  if (show) {
     el.agentInstall.hidden = false;
+    if (el.agentInstallTitle) {
+      el.agentInstallTitle.textContent = t("dispatch.needCliNamed", {
+        label: show.label || show.id,
+      });
+    }
     if (el.agentInstallCmd) {
-      el.agentInstallCmd.textContent = installFromMissing.installCommand;
+      el.agentInstallCmd.textContent = show.installCommand;
     }
   } else {
     el.agentInstall.hidden = true;
@@ -1307,11 +1319,11 @@ function renderAgentList() {
     const strong = document.createElement("strong");
     strong.textContent = a.label;
     b.appendChild(strong);
-    if (a.hint) {
-      const span = document.createElement("span");
-      span.textContent = a.hint;
-      b.appendChild(span);
-    }
+    const span = document.createElement("span");
+    span.textContent = a.path
+      ? t("agent.installedPath", { path: a.path })
+      : a.hint || t("agent.installed");
+    b.appendChild(span);
     b.addEventListener("click", () => {
       state.agentId = a.id;
       renderAgentList();
@@ -1321,13 +1333,12 @@ function renderAgentList() {
     });
     el.agentList.appendChild(b);
   }
-  // Show missing as disabled-looking chips with install cue
+  // Missing CLIs: dashed chip + install command visible on the chip
   for (const m of state.missingAgents || []) {
     if (!m.installCommand) continue;
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "agent-chip";
-    b.style.opacity = "0.55";
+    b.className = "agent-chip is-missing";
     b.setAttribute("aria-pressed", m.id === state.agentId ? "true" : "false");
     const strong = document.createElement("strong");
     strong.textContent = t("agent.notInstalled", { label: m.label });
@@ -1335,6 +1346,10 @@ function renderAgentList() {
     const span = document.createElement("span");
     span.textContent = t("agent.clickInstall");
     b.appendChild(span);
+    const code = document.createElement("code");
+    code.className = "agent-chip-cmd";
+    code.textContent = m.installCommand;
+    b.appendChild(code);
     b.addEventListener("click", () => {
       state.agentId = m.id;
       renderAgentList();
@@ -1348,9 +1363,19 @@ function renderAgentList() {
     const miss = (state.missingAgents || [])
       .map((m) => m.label)
       .filter(Boolean);
-    el.agentHint.textContent = miss.length
-      ? t("agent.missingHint", { list: miss.join(getLocale() === "en" ? ", " : "、") })
-      : t("agent.detected");
+    const ok = (state.agents || []).map((a) => a.label).filter(Boolean);
+    if (miss.length && ok.length) {
+      el.agentHint.textContent = t("agent.partialHint", {
+        ok: ok.join(getLocale() === "en" ? ", " : "、"),
+        miss: miss.join(getLocale() === "en" ? ", " : "、"),
+      });
+    } else if (miss.length) {
+      el.agentHint.textContent = t("agent.missingHint", {
+        list: miss.join(getLocale() === "en" ? ", " : "、"),
+      });
+    } else {
+      el.agentHint.textContent = t("agent.detected");
+    }
   }
   syncInstallHint();
   syncStartCommandField();
@@ -1813,6 +1838,18 @@ el.copyInstallCmd?.addEventListener("click", async () => {
     }, 1500);
   } catch {
     el.copyInstallCmd.textContent = t("err.copy");
+  }
+});
+
+el.agentRedetect?.addEventListener("click", async () => {
+  if (!el.agentRedetect) return;
+  el.agentRedetect.disabled = true;
+  el.agentRedetect.textContent = t("dispatch.redetecting");
+  try {
+    await loadAgents();
+  } finally {
+    el.agentRedetect.disabled = false;
+    el.agentRedetect.textContent = t("dispatch.redetect");
   }
 });
 

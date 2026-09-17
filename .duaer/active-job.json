@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/063-queued-count",
-  "branch": "fix/queued-count",
-  "worktree": ".worktree/fix-queued-count",
+  "featureDir": ".duaer/specs/064-cli-install-show",
+  "branch": "feat/cli-install-show",
+  "worktree": ".worktree/feat-cli-install-show",
   "status": "accepted"
 }

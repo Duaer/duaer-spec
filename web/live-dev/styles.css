@@ -852,12 +852,26 @@ input:focus {
   margin: 0.85rem 0 1rem;
 }
 
+.agent-pick-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
 .agent-pick-label {
-  margin: 0 0 0.45rem;
+  margin: 0;
   font-size: 0.78rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mute);
+}
+
+.agent-redetect {
+  flex-shrink: 0;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.72rem;
 }
 
 .agent-list {
@@ -877,6 +891,7 @@ input:focus {
   font-size: 0.8rem;
   cursor: pointer;
   min-width: 7.5rem;
+  max-width: 18rem;
 }
 
 .agent-chip:hover,
@@ -890,6 +905,15 @@ input:focus {
   background: rgba(47, 158, 143, 0.12);
 }
 
+.agent-chip.is-missing {
+  border-style: dashed;
+}
+
+.agent-chip.is-missing[aria-pressed="true"] {
+  border-style: solid;
+  background: rgba(196, 92, 62, 0.1);
+}
+
 .agent-chip strong {
   display: block;
   font-weight: 700;
@@ -900,7 +924,20 @@ input:focus {
   margin-top: 0.15rem;
   font-size: 0.68rem;
   color: var(--mute);
-  max-width: 14rem;
+  max-width: 16rem;
+}
+
+.agent-chip code.agent-chip-cmd {
+  display: block;
+  margin-top: 0.35rem;
+  padding: 0.25rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1.35;
+  color: var(--ink);
+  background: rgba(0, 0, 0, 0.06);
+  word-break: break-all;
+  white-space: pre-wrap;
 }
 
 .agent-install {

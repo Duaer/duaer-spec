@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### CLI install visibility
+
+- Missing CLI chips show the install command on the chip; install panel + copy
+  stay visible whenever any CLI is missing; **Redetect** refreshes PATH detection
+
 ### Fix
 
 - Fresh Terminal open path no longer throws `queuedCount is not defined`
