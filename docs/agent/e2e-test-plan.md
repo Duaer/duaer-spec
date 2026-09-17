@@ -73,6 +73,7 @@ the table for their app.
 | E2E-058 | priorAccepted revise: preempt clears leftovers then enqueue; false `PREEMPT_FAILED` must not appear while that revise Agent is already running; hard fail leaves nothing queued | `npm test` + manual |
 | E2E-059 | Satisfactory delivery gate: vague acceptance fails `/api/validate`; checkable acceptance can pass; README leads with norms → satisfactory delivery | `npm test` + manual |
 | E2E-060 | DeepSeek CLI: desk lists DeepSeek when `deepseek` on PATH; dispatch/revise use `deepseek -w … --yolo`; missing shows `npm install -g deepseek-tui` | `npm test` + manual |
+| E2E-061 | Missing CLI chips show install command + copy panel; Redetect refreshes `/api/agents` | `npm test` + manual |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
@@ -139,3 +140,4 @@ the table for their app.
 | E2E-058 | `059-revise-preempt-order` | preempt before enqueue |
 | E2E-059 | `061-satisfactory-delivery` | checkable acceptance gate |
 | E2E-060 | `062-deepseek-cli` | DeepSeek TUI as worker CLI |
+| E2E-061 | `064-cli-install-show` | missing CLI install cmds |

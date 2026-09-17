@@ -130,11 +130,14 @@
               <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product" />
             </label>
             <div class="agent-pick">
-              <p class="agent-pick-label" data-i18n="dispatch.agentLabel">用哪个 CLI 数字员工启动</p>
+              <div class="agent-pick-head">
+                <p class="agent-pick-label" data-i18n="dispatch.agentLabel">用哪个 CLI 数字员工启动</p>
+                <button type="button" class="btn agent-redetect" id="agentRedetect" data-i18n="dispatch.redetect">重新检测</button>
+              </div>
               <div id="agentList" class="agent-list"></div>
-              <p id="agentHint" class="hint" data-i18n="dispatch.agentHint">检测本机 PATH 上的 Cursor Agent / Claude Code 等</p>
+              <p id="agentHint" class="hint" data-i18n="dispatch.agentHint">检测本机 PATH 上的 Cursor Agent / Claude Code / DeepSeek 等</p>
               <div id="agentInstall" class="agent-install" hidden>
-                <p class="agent-install-title" data-i18n="dispatch.needCli">需要安装 CLI</p>
+                <p class="agent-install-title" id="agentInstallTitle" data-i18n="dispatch.needCli">需要安装 CLI</p>
                 <pre id="agentInstallCmd" class="agent-install-cmd"></pre>
                 <button type="button" class="btn" id="copyInstallCmd" data-i18n="dispatch.copyInstall">复制安装命令</button>
               </div>
