@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Chat send after confirm / restore
+
+- Composer no longer silently ignores Send when the Brief is locked; chat stays
+  open for dialogue while locked cards skip model field patches
+- Send button tracks ready/busy; blocked attempts show a bot notice; Enter sends
+  (Shift+Enter newline); stale busy clears after ~90s on retry
+
 ### Structured requirements display
 
 - Middle confirm/revise fields split jammed `;` / `；` / `1、` text into list

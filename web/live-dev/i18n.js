@@ -164,6 +164,11 @@ const zhCN = {
   "bot.reviseLaunchNew": "新会话",
   "bot.reviseRestate": "\n改：{change}\n验：{acceptance}",
   "bot.chatError": "出错：{msg}",
+  "bot.chatNotReady": "模型尚未就绪，请先完成左侧配置并保存。",
+  "bot.chatBusy": "上一条还在处理，请稍候再发；若卡住可再点一次发送。",
+  "bot.chatReviseBusy": "正在续派改进，请稍候。",
+  "bot.chatLockedHint":
+    "需求卡已确认锁定，对话不会改卡内容。要改 Brief 请点「再改一版」。",
   "bot.reviseKickoffFail":
     "改进对话没启动起来：{msg}。你也可以直接在左侧输入哪里不满意。",
   "update.notice":
@@ -429,6 +434,11 @@ const en = {
   "bot.reviseLaunchNew": "new session",
   "bot.reviseRestate": "\nChange: {change}\nAccept: {acceptance}",
   "bot.chatError": "Error: {msg}",
+  "bot.chatNotReady": "Model is not ready yet — finish setup and save first.",
+  "bot.chatBusy": "Still handling the last message — wait a moment, or tap Send again if it is stuck.",
+  "bot.chatReviseBusy": "Revise dispatch is in progress — please wait.",
+  "bot.chatLockedHint":
+    "The requirements card is locked. Chat will not change it — tap Revise again to edit the Brief.",
   "bot.reviseKickoffFail":
     "Revise chat failed to start: {msg}. You can type what is wrong on the left.",
   "update.notice":

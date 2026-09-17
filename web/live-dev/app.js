@@ -76,6 +76,10 @@ const state = {
   },
   validateTimer: 0,
   validateSeq: 0,
+  /** Timestamp when busy became true (ms); 0 when idle. */
+  busySince: 0,
+  /** Dedupe identical composer-block notices. */
+  lastChatBlockMsg: "",
 };
 
 const el = {
@@ -256,6 +260,53 @@ function syncChatPlaceholder() {
       : t("chat.placeholder");
 }
 
+/** Soft busy timeout — hung streams should not block Send forever. */
+const BUSY_STALE_MS = 90_000;
+
+function setBusy(on) {
+  state.busy = Boolean(on);
+  state.busySince = state.busy ? Date.now() : 0;
+  syncComposerEnabled();
+}
+
+function maybeClearStaleBusy() {
+  if (!state.busy || !state.busySince) return false;
+  if (Date.now() - state.busySince < BUSY_STALE_MS) return false;
+  setBusy(false);
+  return true;
+}
+
+/**
+ * Chat may run whenever the desk is ready and not mid-request.
+ * Locked Briefs no longer hard-block send (card writes are skipped instead).
+ */
+function chatAllowed() {
+  maybeClearStaleBusy();
+  return Boolean(state.ready && !state.busy && !state.reviseDispatching);
+}
+
+function chatBlockReason() {
+  if (!state.ready) return t("bot.chatNotReady");
+  if (state.reviseDispatching) return t("bot.chatReviseBusy");
+  if (state.busy) return t("bot.chatBusy");
+  return "";
+}
+
+function syncComposerEnabled() {
+  const ok = chatAllowed();
+  if (el.send) el.send.disabled = !ok;
+  if (el.input) el.input.disabled = !state.ready;
+  syncChatPlaceholder();
+}
+
+function explainChatBlocked() {
+  const msg = chatBlockReason();
+  if (!msg) return;
+  if (state.lastChatBlockMsg === msg) return;
+  state.lastChatBlockMsg = msg;
+  addBubble("bot", msg);
+}
+
 function syncDynamicI18n() {
   for (const p of state.providers) {
     if (p.id === "custom") p.label = t("provider.custom");
@@ -279,6 +330,7 @@ function syncDynamicI18n() {
   syncChatPlaceholder();
   syncReqSections();
   syncConfirmEnabled();
+  syncComposerEnabled();
   if (el.agentList && !el.dispatch?.hidden) renderAgentList();
   if (el.repoList && !el.dispatch?.hidden) renderRepoList();
   if (el.doDispatch && !el.dispatch?.hidden) syncDispatchButton();
@@ -572,6 +624,7 @@ async function runValidate(kind, expectedFp) {
 
 function syncConfirmEnabled() {
   applyConfirmCardChrome();
+  syncComposerEnabled();
   // Top confirm card: only for initial specify flow
   if (state.mode === "revise" || state.reviseLocked) {
     restoreConfirmCardFromOriginal();
@@ -834,9 +887,10 @@ async function sendChat(userText) {
   addBubble("user", userText);
   if (state.mode !== "revise" && !state.rawAsk) state.rawAsk = userText;
 
-  state.busy = true;
-  el.send.disabled = true;
+  setBusy(true);
+  state.lastChatBlockMsg = "";
   const streamBubble = startStreamingBubble();
+  const lockedSpecify = state.mode !== "revise" && state.locked;
   try {
     const history = bag.slice(-16);
     const res = await fetch("/api/chat", {
@@ -871,7 +925,9 @@ async function sendChat(userText) {
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
       bag.push({ role: "assistant", content: final.reply });
-      if (final.ready) {
+      if (lockedSpecify && (final.goal || final.acceptance)) {
+        addBubble("bot", t("bot.chatLockedHint"));
+      } else if (final.ready) {
         addBubble(
           "bot",
           state.mode === "revise"
@@ -889,7 +945,9 @@ async function sendChat(userText) {
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
       bag.push({ role: "assistant", content: data.reply });
-      if (data.ready) {
+      if (lockedSpecify && (data.goal || data.acceptance)) {
+        addBubble("bot", t("bot.chatLockedHint"));
+      } else if (data.ready) {
         addBubble(
           "bot",
           state.mode === "revise"
@@ -910,18 +968,25 @@ async function sendChat(userText) {
     );
     streamBubble.finish();
   } finally {
-    state.busy = false;
-    el.send.disabled = false;
+    setBusy(false);
     syncConfirmEnabled();
   }
 }
 
 function applyCard(data, { skipValidate = false } = {}) {
   if (state.mode === "revise") {
+    if (state.reviseLocked) {
+      syncConfirmEnabled();
+      return;
+    }
     if (data.goal && el.revGoal) el.revGoal.value = data.goal;
     if (data.outOfScope && el.revOut) el.revOut.value = data.outOfScope;
     if (data.acceptance && el.revAccept) el.revAccept.value = data.acceptance;
     if (data.assumptions && el.revAssume) el.revAssume.value = data.assumptions;
+  } else if (state.locked) {
+    // Confirmed Brief stays frozen; chat remains conversational only.
+    syncConfirmEnabled();
+    return;
   } else {
     if (data.goal) el.goal.value = data.goal;
     if (data.outOfScope) el.outOfScope.value = data.outOfScope;
@@ -997,6 +1062,7 @@ function showDesk(cfg) {
     addBubble("bot", t("bot.ready"));
   }
   syncConfirmEnabled();
+  syncComposerEnabled();
 }
 
 async function loadConfig() {
@@ -1032,17 +1098,32 @@ el.saveCfg.addEventListener("click", async () => {
 
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
-  const chatAllowed =
-    state.ready &&
-    !state.busy &&
-    !state.reviseDispatching &&
-    (state.mode === "revise" || !state.locked);
-  if (!chatAllowed) return;
+  if (!chatAllowed()) {
+    explainChatBlocked();
+    syncComposerEnabled();
+    return;
+  }
   const text = el.input.value.trim();
   if (!text) return;
   el.input.value = "";
   void sendChat(text);
 });
+
+if (el.input) {
+  el.input.addEventListener("keydown", (ev) => {
+    if (ev.key !== "Enter" || ev.shiftKey || ev.isComposing) return;
+    ev.preventDefault();
+    if (!chatAllowed()) {
+      explainChatBlocked();
+      syncComposerEnabled();
+      return;
+    }
+    const text = el.input.value.trim();
+    if (!text) return;
+    el.input.value = "";
+    void sendChat(text);
+  });
+}
 
 el.confirm.addEventListener("click", async () => {
   if (state.mode === "revise") {
@@ -1058,7 +1139,7 @@ el.confirm.addEventListener("click", async () => {
   }
   el.confirm.disabled = true;
   el.confirm.textContent = t("card.accepting");
-  state.busy = true;
+  setBusy(true);
   try {
     const res = await fetch("/api/confirm", {
       method: "POST",
@@ -1098,7 +1179,7 @@ el.confirm.addEventListener("click", async () => {
       }),
     );
   } finally {
-    state.busy = false;
+    setBusy(false);
     syncConfirmEnabled();
   }
 });
@@ -1133,7 +1214,7 @@ async function autoHandleFromGate(kind, btn) {
     ? state.validate.issues
     : [];
   const v = kind === "revise" ? reviseCardValues() : cardValues();
-  state.busy = true;
+  setBusy(true);
   syncAutoHandleButtons();
   if (btn) {
     btn.disabled = true;
@@ -1178,7 +1259,7 @@ async function autoHandleFromGate(kind, btn) {
       }),
     );
   } finally {
-    state.busy = false;
+    setBusy(false);
     if (btn) {
       btn.disabled = false;
       btn.textContent = t("card.autoHandle");
@@ -1218,7 +1299,7 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
   if (kind === "confirm" && state.locked) return;
   if (kind === "revise" && state.reviseLocked) return;
   const v = kind === "revise" ? reviseCardValues() : cardValues();
-  state.busy = true;
+  setBusy(true);
   if (btn) {
     btn.disabled = true;
     btn.textContent = t("bot.fixing");
@@ -1307,7 +1388,7 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
       btn.textContent = t("bot.autoFix");
     }
   } finally {
-    state.busy = false;
+    setBusy(false);
     syncConfirmEnabled();
   }
 }
@@ -1776,7 +1857,7 @@ el.doDispatch.addEventListener("click", async () => {
   el.doDispatch.disabled = true;
   state.dispatchPhase = "working";
   el.doDispatch.textContent = t("dispatch.working");
-  state.busy = true;
+  setBusy(true);
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 60000);
   try {
@@ -1867,7 +1948,7 @@ el.doDispatch.addEventListener("click", async () => {
     }
   } finally {
     clearTimeout(timer);
-    state.busy = false;
+    setBusy(false);
     if (state.dispatchPhase === "working") {
       state.dispatchPhase = null;
       el.doDispatch.disabled = false;
@@ -2188,8 +2269,7 @@ function enterReviseMode() {
 
 async function kickoffReviseDialogue() {
   if (state.busy || state.reviseDispatching || state.mode !== "revise") return;
-  state.busy = true;
-  el.send.disabled = true;
+  setBusy(true);
   syncReviseDispatchButton(false);
   const streamBubble = startStreamingBubble();
   const kick =
@@ -2244,8 +2324,7 @@ async function kickoffReviseDialogue() {
     );
     streamBubble.finish();
   } finally {
-    state.busy = false;
-    el.send.disabled = false;
+    setBusy(false);
     syncConfirmEnabled();
     el.input.focus();
   }
@@ -2741,6 +2820,7 @@ if (el.langSelect) {
 applyDomI18n();
 syncChatPlaceholder();
 wireReqSections();
+syncComposerEnabled();
 
 if (el.autoFixCard) {
   el.autoFixCard.addEventListener("click", () => {

@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/071-req-structured-display",
-  "branch": "feat/req-structured-display",
-  "worktree": ".worktree/feat-req-structured-display",
-  "status": "accepted"
+  "featureDir": ".duaer/specs/072-chat-send",
+  "slug": "072-chat-send",
+  "branch": "fix/chat-send",
+  "worktree": ".worktree/fix-chat-send"
 }
