@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### DeepSeek CLI digital employee
+
+- Live desk detects and launches **DeepSeek TUI** (`deepseek`) alongside Cursor
+  Agent and Claude Code (`npm install -g deepseek-tui`)
+- PATH discovery also checks npm global / nvm / `~/.cargo/bin` for LaunchAgent
+
 ### Norms → satisfactory delivery
 
 - Positioning: README / DUADER / npm description lead with checkable Briefs that

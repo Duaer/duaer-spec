@@ -29,18 +29,51 @@ const WEB_ROOT = path.join(PACKAGE_ROOT, "web", "live-dev");
 /** Extra dirs for CLI discovery (launchd PATH is often /usr/bin:/bin only). */
 const CLI_PATH_DIRS = [
   path.join(os.homedir(), ".local", "bin"),
+  path.join(os.homedir(), ".cargo", "bin"),
   "/usr/local/bin",
   "/opt/homebrew/bin",
 ];
 
+function npmGlobalBinDir() {
+  try {
+    const r = spawnSync("npm", ["prefix", "-g"], {
+      encoding: "utf8",
+      timeout: 4000,
+      env: process.env,
+    });
+    if (r.status === 0) {
+      const prefix = String(r.stdout || "").trim();
+      if (prefix) return path.join(prefix, "bin");
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+function nvmNodeBinDir() {
+  const ver = String(process.version || "").trim();
+  if (!ver) return null;
+  const dir = path.join(os.homedir(), ".nvm", "versions", "node", ver, "bin");
+  return fs.existsSync(dir) ? dir : null;
+}
+
+function cliSearchDirs() {
+  const dirs = [...CLI_PATH_DIRS];
+  for (const d of [npmGlobalBinDir(), nvmNodeBinDir()]) {
+    if (d && !dirs.includes(d)) dirs.push(d);
+  }
+  return dirs;
+}
+
 function ensureCliSearchPath() {
   const cur = String(process.env.PATH || "");
   const parts = cur.split(path.delimiter).filter(Boolean);
-  const prepend = CLI_PATH_DIRS.filter(
-    (d) => fs.existsSync(d) && !parts.includes(d),
+  const extras = cliSearchDirs().filter(
+    (d) => d && fs.existsSync(d) && !parts.includes(d),
   );
-  if (prepend.length) {
-    process.env.PATH = [...prepend, ...parts].join(path.delimiter);
+  if (extras.length) {
+    process.env.PATH = [...extras, ...parts].join(path.delimiter);
   }
 }
 
@@ -1570,7 +1603,7 @@ function whichCmd(cmd) {
     // fall through to the PATH scan below
   }
   // Fallback when `which` is missing or PATH still incomplete (e.g. launchd)
-  for (const dir of CLI_PATH_DIRS) {
+  for (const dir of cliSearchDirs()) {
     const full = path.join(dir, name);
     try {
       if (fs.existsSync(full) && fs.statSync(full).isFile()) {
@@ -1587,6 +1620,7 @@ function whichCmd(cmd) {
 
 /** CLI-only digital-employee launchers (Terminal). */
 const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
+const DEEPSEEK_INSTALL_CMD = "npm install -g deepseek-tui";
 
 const AGENT_CATALOG = [
   {
@@ -1603,6 +1637,13 @@ const AGENT_CATALOG = [
     hint: "Terminal 执行 claude CLI",
     installCommand:
       "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI",
+  },
+  {
+    id: "deepseek",
+    label: "DeepSeek",
+    kind: "worker",
+    hint: "Terminal 执行 deepseek（DeepSeek TUI）",
+    installCommand: DEEPSEEK_INSTALL_CMD,
   },
 ];
 
@@ -1627,6 +1668,25 @@ function cursorCliVersion() {
     .slice(0, 120);
 }
 
+function deepseekCliVersion() {
+  const bin = whichCmd("deepseek");
+  if (!bin) return null;
+  let r;
+  try {
+    r = runChildSync("读取 DeepSeek CLI 版本", bin, ["--version"], {
+      encoding: "utf8",
+      timeout: 5000,
+    });
+  } catch {
+    return null;
+  }
+  if (r.status !== 0) return null;
+  return String(r.stdout || r.stderr || "")
+    .trim()
+    .split("\n")[0]
+    .slice(0, 120);
+}
+
 function detectAgents() {
   const preferredRaw = readConfig().preferredAgentId || "";
   const preferredMeta = AGENT_CATALOG.find((a) => a.id === preferredRaw);
@@ -1634,7 +1694,9 @@ function detectAgents() {
   const agentBin = whichCmd("agent");
   const cursorBin = whichCmd("cursor");
   const claudeBin = whichCmd("claude");
+  const deepseekBin = whichCmd("deepseek");
   const version = cursorCliVersion();
+  const deepseekVersion = deepseekCliVersion();
 
   const installed = [];
   if (agentBin || cursorBin) {
@@ -1652,6 +1714,15 @@ function detectAgents() {
       available: true,
       command: "claude",
       path: claudeBin,
+    });
+  }
+  if (deepseekBin) {
+    installed.push({
+      ...AGENT_CATALOG.find((a) => a.id === "deepseek"),
+      available: true,
+      command: "deepseek",
+      path: deepseekBin,
+      version: deepseekVersion,
     });
   }
 
@@ -1672,7 +1743,9 @@ function detectAgents() {
       cursor: cursorBin,
       agent: agentBin,
       claude: claudeBin,
+      deepseek: deepseekBin,
       version,
+      deepseekVersion,
     },
   };
 }
@@ -1790,7 +1863,10 @@ function isWorktreeAgentCmdLine(cmd, worktreePath) {
     /(^|[\s/])claude([\s]|$)/.test(cmd) ||
     /(^|[\s/])agent([\s]|$)/.test(cmd) ||
     cmd.includes("/bin/agent") ||
-    cmd.includes(".local/bin/agent")
+    cmd.includes(".local/bin/agent") ||
+    cmd.includes("deepseek-tui") ||
+    /(^|[\s/])deepseek([\s]|$)/.test(cmd) ||
+    cmd.includes("/bin/deepseek")
   );
 }
 
@@ -2398,6 +2474,18 @@ function cursorAgentTerminalCommand(worktreePath, promptFile, { continueSession 
   return `${bin} ${sub}${cont}--workspace ${ws} --trust --sandbox disabled --force "$(cat ${pf})"`;
 }
 
+/** Shell one-liner: DeepSeek TUI with workspace + YOLO tools + prompt from file. */
+function deepseekTerminalCommand(worktreePath, promptFile, { continueSession = false } = {}) {
+  const binPath = whichCmd("deepseek");
+  if (!binPath) return null;
+  const bin = shellSingleQuote(binPath);
+  const ws = shellSingleQuote(worktreePath);
+  const pf = shellSingleQuote(promptFile);
+  const cont = continueSession ? "--continue " : "";
+  // --yolo enables agent tools + shell; --skip-onboarding avoids first-run blockers in Terminal.
+  return `${bin} --workspace ${ws} --yolo --skip-onboarding ${cont}-p "$(cat ${pf})"`;
+}
+
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const logFd = fs.openSync(logPath, "a");
@@ -2469,7 +2557,7 @@ function launchAgent({
   };
 
   if (id === "none") {
-    throw new Error("只支持 CLI 启动：请选择 Cursor Agent 或 Claude Code");
+    throw new Error("只支持 CLI 启动：请选择 Cursor Agent、Claude Code 或 DeepSeek");
   }
 
   if (!worktreePath || !fs.existsSync(worktreePath)) {
@@ -2557,8 +2645,36 @@ function launchAgent({
           ? "Terminal reuse"
           : "Terminal";
     launch.command = `claude${continueSession ? " --continue" : ""} (${queueNote})`;
+  } else if (id === "deepseek") {
+    const line = deepseekTerminalCommand(worktreePath, promptFile, {
+      continueSession,
+    });
+    if (!line) throw new Error("未找到 deepseek CLI（npm install -g deepseek-tui）");
+    const term = launchInTerminal({
+      cwd: worktreePath,
+      commandLine: line,
+      logPath: outLog,
+      reuseKey: worktreePath,
+      preemptBusy,
+    });
+    launch.pid = term.pid;
+    launch.mode = term.mode || "terminal";
+    launch.reused = Boolean(term.reused);
+    launch.queued = Boolean(term.queued);
+    launch.busy = Boolean(term.busy);
+    launch.preempted = Boolean(term.preempted);
+    launch.openedWorktree = false;
+    launch.commandFile = term.commandFile || null;
+    const queueNote = term.preempted
+      ? "preempt+queue"
+      : term.busy
+        ? "queued wait"
+        : term.reused
+          ? "Terminal reuse"
+          : "Terminal";
+    launch.command = `deepseek${continueSession ? " --continue" : ""} --workspace --yolo (${queueNote})`;
   } else {
-    throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
+    throw new Error("只支持 CLI 启动：Cursor Agent、Claude Code 或 DeepSeek");
   }
 
   appendLaunchLog(
@@ -2751,7 +2867,7 @@ Brief: ${featureDir}
       .filter(Boolean)
       .join("\n");
     throw new Error(
-      `未检测到可用 CLI（Cursor Agent / Claude Code）。请先安装：\n${hint || CURSOR_INSTALL_CMD}`,
+      `未检测到可用 CLI（Cursor Agent / Claude Code / DeepSeek）。请先安装：\n${hint || CURSOR_INSTALL_CMD}`,
     );
   }
 
@@ -3199,7 +3315,7 @@ ${reasonLine || text}
     restoreTextFile(specPath, snapSpec);
     restoreTextFile(tasksPath, snapTasks);
     restoreTextFile(deliveryPath, snapDelivery);
-    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code）", {
+    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code / DeepSeek）", {
       code: "NO_AGENT",
       retryable: true,
     });
