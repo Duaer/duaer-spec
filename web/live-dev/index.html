@@ -17,11 +17,14 @@
       <header class="top">
         <div class="top-row">
           <div class="top-lead">
-            <p class="brand" data-i18n="header.brand">Duaer-spec FED</p>
+            <p class="brand">
+              <span data-i18n="header.brandProduct">Duaer-spec</span>
+              <span class="brand-fed" data-i18n="header.brandFed">FED</span>
+            </p>
             <p class="flow-line">
               <span class="mark" data-i18n="header.mark">现场开发</span>
               <span class="flow-sep" aria-hidden="true">·</span>
-              <span class="tag" data-i18n="header.tag">Clarify → confirm → dispatch → preview → revise</span>
+              <span class="tag" data-i18n="header.tag">规范需求 → 可检查验收 → 派工 → 满意成品 → 可继续改进</span>
             </p>
           </div>
           <div class="top-actions">
@@ -67,7 +70,13 @@
 
       <main id="desk" class="layout" hidden>
         <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
-          <div id="log" class="log"></div>
+          <div id="log" class="log">
+            <div id="chatEmpty" class="chat-empty">
+              <p class="chat-empty-mark" data-i18n="chat.emptyMark">Field Engineering Desk</p>
+              <p class="chat-empty-title" data-i18n="chat.emptyTitle">用一句话说清要交付什么</p>
+              <p class="chat-empty-hint" data-i18n="chat.emptyHint">中间栏会整理成可检查验收；右侧显示写代码进度</p>
+            </div>
+          </div>
           <form id="composer" class="composer">
             <label class="sr-only" for="input" data-i18n="chat.inputLabel">你的话</label>
             <textarea
@@ -204,7 +213,7 @@
           <p class="mark" data-i18n="progress.mark">Progress</p>
           <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
           <p id="dispatchStatus" class="meta progress-status" hidden></p>
-          <p id="progressEmpty" class="hint" data-i18n="progress.empty">派工后在此显示各轮进度</p>
+          <p id="progressEmpty" class="progress-empty" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>
           <div id="runTimeline" class="run-timeline" hidden></div>
         </aside>
       </main>

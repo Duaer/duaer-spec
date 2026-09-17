@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "featureDir": ".duaer/specs/068-fed-ux-polish",
+  "branch": "feat/fed-ux-polish",
+  "worktree": ".worktree/feat-fed-ux-polish",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": ["npm test", "npm run test:live"]
+  }
+}

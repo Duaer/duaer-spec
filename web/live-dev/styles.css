@@ -1,15 +1,17 @@
 :root {
-  --steel: #15202c;
-  --plate: #1e2d3d;
-  --plate-2: #243647;
-  --ink: #efe6d6;
-  --mute: #7f95a8;
-  --line: #4d657a;
-  --register: #de5a2c;
+  --steel: #121c26;
+  --plate: #1a2836;
+  --plate-2: #223445;
+  --ink: #f2ebe0;
+  --mute: #8aa0b4;
+  --line: #3f566c;
+  --register: #e05a2b;
   --lock: #2f9e8f;
-  --shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  --glow: rgba(224, 90, 43, 0.18);
+  --shadow: 0 20px 48px rgba(0, 0, 0, 0.4);
   --font-display: "Outfit", "Avenir Next", sans-serif;
   --font-mono: "Chivo Mono", ui-monospace, monospace;
+  --radius-panel: 2px;
 }
 
 * {
@@ -22,20 +24,52 @@ body {
   min-height: 100%;
 }
 
+::selection {
+  background: rgba(224, 90, 43, 0.35);
+  color: var(--ink);
+}
+
 body {
   font-family: var(--font-display);
   color: var(--ink);
   background:
-    radial-gradient(circle at 50% 8%, #2a4158 0%, transparent 42%),
+    radial-gradient(ellipse 80% 50% at 12% -10%, var(--glow), transparent 55%),
+    radial-gradient(circle at 88% 0%, rgba(47, 158, 143, 0.12), transparent 40%),
     repeating-linear-gradient(
       0deg,
       transparent,
       transparent 23px,
-      rgba(127, 149, 168, 0.07) 23px,
-      rgba(127, 149, 168, 0.07) 24px
+      rgba(127, 149, 168, 0.05) 23px,
+      rgba(127, 149, 168, 0.05) 24px
     ),
     var(--steel);
   line-height: 1.5;
+}
+
+/* Thin scrollbars for desk columns */
+.log,
+.progress-col,
+.history-list,
+.history-detail,
+.repo-list,
+.progress-log {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+.log::-webkit-scrollbar,
+.progress-col::-webkit-scrollbar,
+.history-list::-webkit-scrollbar,
+.repo-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.log::-webkit-scrollbar-thumb,
+.progress-col::-webkit-scrollbar-thumb,
+.history-list::-webkit-scrollbar-thumb,
+.repo-list::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
 }
 
 .atmosphere {
@@ -92,10 +126,20 @@ body {
 
 .top-lead .brand {
   margin: 0;
-  font-size: clamp(1.75rem, 3.5vw, 2.35rem);
+  font-size: clamp(1.75rem, 3.5vw, 2.4rem);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   line-height: 1.05;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+}
+
+.brand-fed {
+  color: var(--register);
+  letter-spacing: 0.12em;
+  font-weight: 700;
 }
 
 .flow-line {
@@ -185,6 +229,7 @@ body {
   padding: 1.15rem 1.1rem 1.35rem;
   border-left: 1px solid var(--line);
   border-radius: 0;
+  background: var(--plate);
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
@@ -360,6 +405,12 @@ body.history-open {
   background: var(--plate);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  border-radius: var(--radius-panel);
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 12px
+  );
 }
 
 .chat-panel {
@@ -380,6 +431,43 @@ body.history-open {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+}
+
+.chat-empty {
+  margin: auto 0;
+  padding: 1.25rem 0.85rem 1.75rem;
+  max-width: 22rem;
+  align-self: center;
+  text-align: left;
+}
+
+.chat-empty[hidden] {
+  display: none !important;
+}
+
+.chat-empty-mark {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--register);
+}
+
+.chat-empty-title {
+  margin: 0 0 0.45rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.chat-empty-hint {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--mute);
 }
 
 .bubble {
@@ -491,7 +579,7 @@ body.history-open {
   gap: 0.55rem;
   padding: 0.85rem;
   border-top: 1px solid var(--line);
-  background: #182735;
+  background: linear-gradient(180deg, #162331 0%, #13202b 100%);
 }
 
 textarea,
@@ -550,22 +638,31 @@ input:focus {
 
 .btn.primary {
   align-self: end;
-  background: #13202b;
-  border-color: var(--line);
+  background: var(--register);
+  border-color: var(--register);
+  color: #1a100c;
+}
+
+.btn.primary:hover,
+.btn.primary:focus-visible {
+  background: #f06a3a;
+  border-color: #f06a3a;
+  color: #1a100c;
 }
 
 .btn.confirm {
   width: 100%;
   margin-top: 0.55rem;
-  background: transparent;
+  background: rgba(47, 158, 143, 0.14);
   border-color: var(--lock);
-  color: var(--lock);
+  color: #9fe8dc;
 }
 
 .btn.confirm:not(:disabled):hover,
 .btn.confirm:not(:disabled):focus-visible {
-  background: rgba(47, 158, 143, 0.12);
+  background: rgba(47, 158, 143, 0.28);
   border-color: var(--lock);
+  color: var(--ink);
 }
 
 .btn:disabled {
@@ -601,6 +698,20 @@ input:focus {
 
 .progress-col .card-title {
   font-size: 1.25rem;
+}
+
+.progress-empty {
+  margin: 1.25rem 0 0;
+  padding: 0.85rem 0.75rem;
+  border: 1px dashed var(--line);
+  background: rgba(8, 14, 20, 0.25);
+  color: var(--mute);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+.progress-empty[hidden] {
+  display: none !important;
 }
 
 .progress-status {
@@ -935,7 +1046,8 @@ input:focus {
   font-size: 0.65rem;
   line-height: 1.35;
   color: var(--ink);
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(8, 14, 20, 0.55);
+  border: 1px solid var(--line);
   word-break: break-all;
   white-space: pre-wrap;
 }
@@ -961,7 +1073,9 @@ input:focus {
   font-size: 0.72rem;
   white-space: pre-wrap;
   word-break: break-all;
-  background: rgba(0, 0, 0, 0.05);
+  background: rgba(8, 14, 20, 0.55);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .start-cmd-field textarea {

@@ -81,6 +81,7 @@ const el = {
   setup: document.getElementById("setup"),
   desk: document.getElementById("desk"),
   log: document.getElementById("log"),
+  chatEmpty: document.getElementById("chatEmpty"),
   form: document.getElementById("composer"),
   input: document.getElementById("input"),
   goal: document.getElementById("goal"),
@@ -681,6 +682,11 @@ function applyCardChrome() {
   }
 });
 
+function syncChatEmpty() {
+  if (!el.chatEmpty || !el.log) return;
+  el.chatEmpty.hidden = Boolean(el.log.querySelector(".bubble"));
+}
+
 function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
@@ -718,6 +724,7 @@ function addBubble(role, text, { options, actions } = {}) {
     div.appendChild(row);
   }
   el.log.appendChild(div);
+  syncChatEmpty();
   scrollChatToLatest();
   focusRightPanel();
   return { div, textNode };

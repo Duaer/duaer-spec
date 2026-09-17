@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### FED UX polish
+
+- Clearer hierarchy: accented **FED** brand mark, stronger primary/confirm CTAs
+- Chat and progress empty states; history drawer opaque plate surface
+- Readable install/code chip surfaces on dark; selection + thin scrollbars
+
 ### Duaer-spec FED brand
 
 - Correct product name to **Duaer-spec FED** (was briefly labeled Duaer FED)
