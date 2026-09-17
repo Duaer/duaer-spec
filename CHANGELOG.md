@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Auto-handle on validate fail
+
+- Failed confirm/revise validation shows **Auto-handle** next to the fail hint; click narrates in chat and runs `/api/validate/fix`
+
 ### FED UX polish
 
 - Clearer hierarchy: accented **FED** brand mark, stronger primary/confirm CTAs
