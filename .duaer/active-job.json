@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/074-chat-blank",
-  "slug": "074-chat-blank",
-  "branch": "fix/chat-blank",
-  "worktree": ".worktree/fix-chat-blank"
+  "featureDir": ".duaer/specs/075-header-beginner",
+  "slug": "075-header-beginner",
+  "branch": "feat/header-beginner",
+  "worktree": ".worktree/feat-header-beginner"
 }

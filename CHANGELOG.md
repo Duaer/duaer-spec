@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Header beginner line
+
+- 「小白也能用 FED」 moves to top-nav center (always on); chat empty keeps only
+  the three how-to steps so the slogan no longer flashes away on load
+
 ### Live desk module MIME
 
 - Serve `.mjs` as `text/javascript` so `structured-html.mjs` loads; desk chat

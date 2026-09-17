@@ -110,10 +110,10 @@ body {
 }
 
 .top-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.75rem 1.25rem;
 }
 
 .top-lead {
@@ -121,7 +121,19 @@ body {
   flex-direction: column;
   gap: 0.35rem;
   min-width: 0;
-  flex: 1;
+  justify-self: start;
+}
+
+.top-beginner {
+  margin: 0;
+  justify-self: center;
+  text-align: center;
+  max-width: 16rem;
+  font-size: clamp(0.95rem, 1.6vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  color: var(--ink);
 }
 
 .top-lead .brand {
@@ -179,6 +191,7 @@ body {
   gap: 0.5rem;
   flex-shrink: 0;
   padding-bottom: 0.15rem;
+  justify-self: end;
 }
 
 .top-actions .history-btn,
@@ -478,24 +491,6 @@ body.history-open {
 
 .chat-empty[hidden] {
   display: none !important;
-}
-
-.chat-empty-mark {
-  margin: 0 0 0.55rem;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--register);
-}
-
-.chat-empty-title {
-  margin: 0 0 0.75rem;
-  font-size: 1.2rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.25;
-  color: var(--ink);
 }
 
 .chat-empty-steps {
@@ -1526,13 +1521,26 @@ code {
   }
 
   .top-row {
+    grid-template-columns: 1fr;
     align-items: flex-start;
-    flex-wrap: wrap;
+  }
+
+  .top-beginner {
+    justify-self: start;
+    text-align: left;
+    max-width: none;
+    order: 2;
   }
 
   .top-actions {
     width: 100%;
     justify-content: flex-end;
+    justify-self: stretch;
+    order: 3;
+  }
+
+  .top-lead {
+    order: 1;
   }
 
   .layout {
