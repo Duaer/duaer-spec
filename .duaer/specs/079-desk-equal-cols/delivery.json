@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "verification": {
+    "levels": ["L1", "L3"],
+    "commands": ["npm test", "npm run test:live"],
+    "result": "pass"
+  },
+  "summary": "Sticky header; equal-height columns with internal scroll."
+}

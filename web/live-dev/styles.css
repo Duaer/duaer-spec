@@ -21,7 +21,8 @@
 html,
 body {
   margin: 0;
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
 }
 
 ::selection {
@@ -79,6 +80,7 @@ body {
 .update-notice {
   position: relative;
   z-index: 1;
+  flex-shrink: 0;
   max-width: none;
   margin: 0 0 0.85rem;
   padding: 0.55rem 0.85rem;
@@ -96,17 +98,32 @@ body {
 .shell {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: none;
   margin: 0;
   padding: 0.65rem 0.75rem 0.75rem;
-  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .top {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  flex-shrink: 0;
   margin: 0 0 0.65rem;
-  padding: 0;
+  padding: 0.15rem 0 0.35rem;
+  background: linear-gradient(
+    180deg,
+    var(--steel) 0%,
+    var(--steel) 70%,
+    rgba(18, 28, 38, 0) 100%
+  );
 }
 
 .top-row {
@@ -443,10 +460,12 @@ body.history-open {
   max-width: none;
   margin: 0;
   padding: 0;
-  align-items: start;
+  flex: 1 1 auto;
+  align-items: stretch;
+  min-height: 0;
   height: auto;
   max-height: none;
-  min-height: calc(100dvh - 5.5rem);
+  overflow: hidden;
 }
 
 .panel {
@@ -461,14 +480,19 @@ body.history-open {
   );
 }
 
+.chat-panel,
+.card-panel,
+.progress-col {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  position: relative;
+  top: auto;
+}
+
 .chat-panel {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  height: calc(100dvh - 5.5rem);
-  max-height: calc(100dvh - 5.5rem);
-  position: sticky;
-  top: 0.5rem;
   overflow: hidden;
 }
 
@@ -479,6 +503,7 @@ body.history-open {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-height: 0;
 }
 
 .chat-empty {
@@ -775,21 +800,17 @@ input:focus {
 
 .card-panel {
   padding: 1.15rem 1.2rem 1.25rem;
-  align-self: start;
-  min-height: 0;
-  height: auto;
-  max-height: none;
-  overflow: visible;
+  align-self: stretch;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-behavior: smooth;
 }
 
 .progress-col {
   padding: 1.15rem 1.05rem 1.25rem;
-  align-self: start;
-  min-height: 0;
-  height: calc(100dvh - 5.5rem);
-  max-height: calc(100dvh - 5.5rem);
-  position: sticky;
-  top: 0.5rem;
+  align-self: stretch;
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1465,6 +1486,9 @@ input:focus {
 .setup-panel {
   position: relative;
   z-index: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   width: min(28rem, calc(100% - 2rem));
   margin: 0 auto 2.5rem;
   padding: 1.35rem 1.35rem 1.45rem;
@@ -1531,9 +1555,22 @@ code {
 }
 
 @media (max-width: 860px) {
+  html,
+  body {
+    height: auto;
+    overflow: auto;
+  }
+
   .shell {
-    width: 100%;
-    padding: 0.55rem 0.65rem 0.75rem;
+    height: auto;
+    max-height: none;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .top {
+    position: sticky;
+    top: 0;
   }
 
   .top-row {
@@ -1561,11 +1598,19 @@ code {
 
   .layout {
     grid-template-columns: 1fr;
+    flex: none;
     height: auto;
     max-height: none;
     min-height: 0;
     overflow: visible;
     gap: 0.85rem;
+  }
+
+  .chat-panel,
+  .card-panel,
+  .progress-col {
+    height: auto;
+    max-height: none;
   }
 
   .chat-panel {
@@ -1575,14 +1620,12 @@ code {
   }
 
   .card-panel {
-    height: auto;
-    max-height: none;
-    overflow: visible;
+    max-height: min(70vh, 36rem);
+    overflow-y: auto;
   }
 
   .progress-col {
     position: static;
-    height: auto;
     max-height: min(55vh, 28rem);
   }
 

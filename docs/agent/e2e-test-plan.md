@@ -58,6 +58,7 @@ the table for their app.
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
 | E2E-044 | Duaer-spec FED history: header row has Duaer-spec FED + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-072 | Sticky top nav; three desk columns equal height; card-panel (middle) and siblings scroll internally | `npm run test:live` + manual |
 | E2E-071 | Choice chips use muted (non-orange) styling; still clickable | `npm run test:live` + manual |
 | E2E-070 | Dispatch into a product repo when `.worktree/feat-<slug>` already exists allocates a new branch/worktree (e.g. feat/html-043) instead of failing `worktree 已存在` | `npm test` + manual |
 | E2E-069 | Choice questions show clickable chips (tap sends); ready bubble has starter chips; `.mjs` option enrich when JSON omits options | `npm test` + `npm run test:live` + manual |
@@ -73,7 +74,7 @@ the table for their app.
 | E2E-049 | Progress ownership: each dispatch/revision has its own run block under the revise/dispatch stack (timeline below); older blocks stay frozen with their revision; no single progress pile above preview/revise | manual |
 | E2E-050 | Live desk three columns: chat widest, middle requirements/confirm/dispatch/revise, far-right task progress alone (run timeline not inside requirements column) | manual |
 | E2E-051 | Validate-before-send: Confirm and revise-dispatch stay blocked until `/api/validate` passes for current card fields; fail shows issues + auto-fix; agent launch prompt forbids Confirming-intent / multi-choice re-confirm | manual |
-| E2E-052 | Confirm column wider than chat; requirements (and revise) fields fully expanded without inner scroll; structured paragraphs/lists display with click-to-edit | manual |
+| E2E-052 | Confirm column wider than chat; requirements fields expand in structured view with click-to-edit; middle column scrolls internally when content is tall | manual |
 | E2E-053 | Full-screen desk (no 1440 shell cap); chat column ~50px wider than prior confirm-wide min; confirm still wider than chat | manual |
 | E2E-054 | Live L3 smoke: `npm run test:live` covers desk shell markers + validate fail/pass + validate/fix via mock LLM (no paid API) | `npm run test:live` |
 | E2E-055 | Revise reliability: preempt failure returns `PREEMPT_FAILED` without locking card; failed launch rolls back Brief Revision; status shows Terminal busy/queue; retry stays available | `npm test` + manual |

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Equal-height desk columns
+
+- Sticky top nav; three columns share remaining viewport height; chat /
+  requirements / progress each scroll internally (middle column included)
+
 ### Quieter choice chips
 
 - Chat option chips use muted plate/line styling instead of orange emphasis

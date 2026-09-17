@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/078-chip-tone",
-  "slug": "078-chip-tone",
-  "branch": "fix/chip-tone",
-  "worktree": ".worktree/fix-chip-tone"
+  "featureDir": ".duaer/specs/079-desk-equal-cols",
+  "slug": "079-desk-equal-cols",
+  "branch": "feat/desk-equal-cols",
+  "worktree": ".worktree/feat-desk-equal-cols"
 }

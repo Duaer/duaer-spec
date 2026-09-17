@@ -216,6 +216,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /grid-template-columns/);
   assert.match(css, /req-structured/);
   assert.match(css, /width:\s*100%/);
+  assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
+  assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
   assert.match(js, /validationAllowsSend/);
