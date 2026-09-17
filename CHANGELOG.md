@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Revise progress tracking
+
+- After Confirm revise, task progress scopes to the active `Revision N` checklist
+  (not the prior dispatch’s completed `T*` pile)
+- While revise is active (or Terminal is busy on open `R{n}` work), status does
+  not freeze on `delivery accepted · 工单完成`
+- Live `revisionCount` is inferred from Brief/`tasks.md` when the job stamp lags
+
 ### Progress sync when delivery accepted
 
 - When `delivery.json` is `accepted`, task progress shows `N/N` (not `0/N · 工单完成`)
