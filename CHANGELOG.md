@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Structured chat empty steps
+
+- Empty-state guidance is three numbered steps (plain words → confirm/dispatch
+  → deliver to acceptance), not one semicolon-jammed hint line
+
 ### Chat send after confirm / restore
 
 - Composer no longer silently ignores Send when the Brief is locked; chat stays

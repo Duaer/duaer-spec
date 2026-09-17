@@ -220,6 +220,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const js = await (await fetch(`${live.base}/app.js`)).text();
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
+  assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
+  assert.match(css, /chat-empty-steps/);
   assert.match(js, /structuredHtml/);
   assert.match(js, /\/api\/validate/);
   assert.match(js, /card\.acceptHint|acceptHint/);
