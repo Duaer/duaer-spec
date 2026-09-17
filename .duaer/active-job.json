@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/065-detailed-progress",
-  "branch": "feat/detailed-progress",
-  "worktree": ".worktree/feat-detailed-progress",
+  "featureDir": ".duaer/specs/066-duaer-fed",
+  "branch": "feat/duaer-fed",
+  "worktree": ".worktree/feat-duaer-fed",
   "status": "accepted"
 }

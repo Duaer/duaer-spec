@@ -1,5 +1,5 @@
 /**
- * Live desk i18n — zh-CN (default) + en.
+ * Duaer FED (live desk) i18n — zh-CN (default) + en.
  */
 
 export const LOCALES = ["zh-CN", "en"];
@@ -7,9 +7,9 @@ export const LOCALES = ["zh-CN", "en"];
 const STORAGE_KEY = "duaer.live.locale";
 
 const zhCN = {
-  "doc.title": "现场开发",
-  "header.mark": "Live desk",
-  "header.brand": "现场开发",
+  "doc.title": "Duaer FED",
+  "header.mark": "现场开发",
+  "header.brand": "Duaer FED",
   "header.tag": "规范需求 → 可检查验收 → 派工 → 满意成品 → 可继续改进",
   "lang.label": "语言",
   "history.toggle": "历史",
@@ -254,9 +254,9 @@ const zhCN = {
 };
 
 const en = {
-  "doc.title": "Live desk",
-  "header.mark": "Live desk",
-  "header.brand": "Live desk",
+  "doc.title": "Duaer FED",
+  "header.mark": "Field Engineering Desk",
+  "header.brand": "Duaer FED",
   "header.tag": "Norms → checkable acceptance → dispatch → satisfactory preview → revise",
   "lang.label": "Language",
   "history.toggle": "History",

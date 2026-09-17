@@ -41,7 +41,7 @@ Update:   npx duaer-spec update          # product-repo adapters
 Then talk to the agent in plain language.
 
 Also:
-  duaer live [--port N]              Open 现场开发 (isolated ~/.duaer/live)
+  duaer live [--port N]              Open Duaer FED (isolated ~/.duaer/live)
   duaer live config --provider deepseek --api-key …
   duaer live config --base-url … --api-key … --model …
   duaer live repo add [path]         Remember a product repo for dispatch (default: cwd)

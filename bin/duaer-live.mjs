@@ -1,5 +1,5 @@
 /**
- * 现场开发 — isolated desk (not the user's product repo).
+ * Duaer FED (现场开发) — isolated desk (not the user's product repo).
  *
  * Workspace: ~/.duaer/live/  (override with DUAER_HOME)
  *   config.json   model settings
@@ -371,7 +371,7 @@ function nextJobDir() {
   return { root, nextNum: max + 1 };
 }
 
-const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
+const SYSTEM_PROMPT = `你是「Duaer FED」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
 
 规则：
 1. 缺关键可执行信息时，每次只问 1 个卡点问题（可给简短选项）；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
@@ -387,7 +387,7 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
-const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
+const REVISE_CHAT_PROMPT = `你是「Duaer FED」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
 
 规则：
 1. 缺关键信息时每次只问 1 个问题；信息够时直接填可执行的四块并 ready=true，不要用「请从 A/B/C/D 风格里选」代替验收标准。
@@ -404,7 +404,7 @@ const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
+const ACCEPT_PROMPT = `你是「Duaer FED」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
 
 检查：
 1. goal 是否单一、可执行（一件事，不要堆多个无关功能）
@@ -420,7 +420,7 @@ const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「现场开发」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「Duaer FED」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
@@ -827,7 +827,7 @@ function writeBrief(payload) {
 
 **Created**: ${today}
 
-**Status**: Confirmed (现场开发)
+**Status**: Confirmed (Duaer FED)
 
 **Input**: ${rawAsk || goal}
 
@@ -849,7 +849,7 @@ ${assumptions || "- (none)"}
 ${reviewBlock}
 ## Notes
 
-Confirmed via 现场开发 after auto-accept. Next: dispatch into a product repo worktree from the live desk.
+Confirmed via Duaer FED after auto-accept. Next: dispatch into a product repo worktree from the live desk.
 `;
 
   const tasks = `# Tasks
@@ -884,7 +884,7 @@ Confirmed via 现场开发 after auto-accept. Next: dispatch into a product repo
     "utf8",
   );
 
-  const agentPrompt = `现场开发已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
+  const agentPrompt = `Duaer FED 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
@@ -1121,7 +1121,7 @@ function cmdRepoAdd(opts) {
     probe.path,
   );
   console.log(JSON.stringify(probe, null, 2));
-  console.log("现场开发派工时可直接点选。");
+  console.log("Duaer FED 派工时可直接点选。");
 }
 
 /**
@@ -2769,7 +2769,7 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
 
 **Created**: ${today}
 
-**Status**: Dispatched (现场开发)
+**Status**: Dispatched (Duaer FED)
 
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
@@ -2787,7 +2787,7 @@ ${assumeBody}
 
 ## Notes
 
-Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
+Dispatched from Duaer FED into product worktree \`${worktreePath}\`.
 ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `docs/agent/deploy-github.md`).\n" : ""}
 `;
 
@@ -2830,7 +2830,7 @@ ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `doc
 
   const defaultPrompt = `Duaer
 
-按 Duaer 数字员工流程在本 worktree 开工（现场开发已派工）。
+按 Duaer 数字员工流程在本 worktree 开工（Duaer FED 已派工）。
 
 工作目录: ${worktreePath}
 Brief: ${featureDir}
@@ -2838,11 +2838,11 @@ Brief: ${featureDir}
 产品仓: ${probe.path}
 
 要求：
-0. 本 Brief 已在现场开发自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本 Brief 已在 Duaer FED 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示细粒度进度）
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer FED 靠此显示细粒度进度）
 4b. 若 tasks.md 仍偏粗：开工后先扩成 8–15 条可勾选步骤（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的成品
@@ -2972,7 +2972,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
   };
 }
 
-const REVISE_PROMPT = `你是「现场开发」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
+const REVISE_PROMPT = `你是「Duaer FED」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
 
 规则：
 1. 提炼 change（改什么）、acceptance（怎么算改好）、keep（不要动什么）
@@ -3348,7 +3348,7 @@ ${reasonLine || text}
 
   const defaultPrompt = `Duaer
 
-用户看过成品后不满意，请在同一 worktree 继续改进（现场开发 Revision ${revN}）。
+用户看过成品后不满意，请在同一 worktree 继续改进（Duaer FED Revision ${revN}）。
 ${
   recreated
     ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。"
@@ -3374,9 +3374,9 @@ ${restated.acceptance}
 ${restated.keep}
 
 要求：
-0. 本轮 Revision 已在现场开发自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本轮 Revision 已在 Duaer FED 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
-2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（现场开发靠此显示细粒度进度）
+2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer FED 靠此显示细粒度进度）
 2b. 若本轮 R${revN}-* 仍偏粗：先扩成 6–12 条可勾选步骤（仍用 R${revN}-*），保存后再做；小步勾选
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开成品是默认证据）
 4. 按 testing.md 做风险验证（若有）
@@ -4579,7 +4579,7 @@ function serve(port) {
 
   server.listen(port, "127.0.0.1", () => {
     const cfg = publicConfig();
-    console.log(`现场开发  http://127.0.0.1:${port}`);
+    console.log(`Duaer FED  http://127.0.0.1:${port}`);
     console.log(`隔离目录  ${liveRoot()}`);
     console.log(`Brief 写入 ${jobsRoot()}  （不会写入你当前业务仓库）`);
     if (!cfg.ready) {

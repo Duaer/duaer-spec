@@ -1,0 +1,16 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "featureDir": ".duaer/specs/066-duaer-fed",
+  "branch": "feat/duaer-fed",
+  "worktree": ".worktree/feat-duaer-fed",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "node --check web/live-dev/i18n.js",
+      "npm test",
+      "npm run test:live"
+    ]
+  }
+}

@@ -22,7 +22,7 @@ npx duaer-spec init --here
 duaer self-update
 ```
 
-有新版本时 CLI / 现场开发会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
+有新版本时 CLI / Duaer FED 会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
 
 **业务仓适配文件**（`init` 之后）：
 
@@ -45,9 +45,10 @@ npx duaer-spec update
 
 合并后：`duaer handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.duaer/handoff.json`）。
 
-## 现场开发（网页确认台）
+## Duaer FED（现场开发）
 
 与业务仓库隔离。配置与 Brief 写在本机 `~/.duaer/live/`。
+**Duaer FED** = Field Engineering Desk（现场工程台）。
 
 ```bash
 # DeepSeek（推荐）
@@ -66,7 +67,7 @@ duaer live
 浏览器打开提示地址（默认 `http://127.0.0.1:8787`）。台面**全屏宽**，三列：
 **对话** | **需求 / 确认 / 派工 / 改进** | **任务进度**。
 
-**验收（维护者 / 数字员工）：** 改现场台 UI 或确认校验门禁后，跑
+**验收（维护者 / 数字员工）：** 改 Duaer FED UI 或确认校验门禁后，跑
 `npm run test:live`（L3 冒烟：台面结构标记 + `/api/validate`，内置 mock 模型，
 不产生付费 API 调用）。
 

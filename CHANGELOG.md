@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Duaer FED brand
+
+- Live desk user-facing name is **Duaer FED** (Field Engineering Desk);
+  Chinese secondary mark remains「现场开发」
+- README, CLI help/banner, and agent prompts use Duaer FED; `duaer live`
+  command path unchanged
+
 ### Detailed coding progress
 
 - Dispatch writes a finer `tasks.md` checklist (≥6 boxes from Goal/Acceptance;

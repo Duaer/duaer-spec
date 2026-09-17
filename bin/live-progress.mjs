@@ -86,7 +86,7 @@ export function buildDetailedProductTasksMd({
 
 ${items.join("\n")}
 
-做完一步就立刻把对应项改成 \`- [x]\`，方便现场开发显示进度。
+做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer FED 显示进度。
 若清单仍偏粗，开工后先扩成 8–15 条可勾选步骤（仍用 T00x），保存后再做。
 
 若交付物是页面/静态文件，在 delivery.json 增加：

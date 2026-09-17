@@ -56,7 +56,8 @@ the table for their app.
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt) while job is still in progress; after accept, see E2E-047 | manual |
 | E2E-042 | Wide desk layout; FIFO jobs/ queue auto-runs next task after running.cmd finishes | manual |
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
-| E2E-044 | Live desk history: header row has Live desk + flow tag; History lists past jobs; restore loads job | manual |
+| E2E-044 | Duaer FED history: header row has Duaer FED + flow tag; History lists past jobs; restore loads job | manual |
+| E2E-063 | Duaer FED brand: header/title show Duaer FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
 | E2E-045 | Desk layout: compact header, history as side drawer (does not push columns), calm two-column desk | manual |
 | E2E-046 | Revise dispatch always returns: a stuck child (e.g. blocking `post-checkout` hook on `git worktree add`) yields HTTP 504 with an actionable message within its budget instead of hanging, so the button never sits on「续派中…」forever; normal revise still enqueues into `.duaer/live-terminal/jobs/` | manual / curl |
 | E2E-047 | After delivery accepted, revise while first agent still holds `running.cmd`: `POST /api/revise` preempts leftover CLI, enqueues revise, and Terminal drains the revise job (not forever behind the accepted first agent); pre-accept busy revise still waits without interrupt | manual / curl |
@@ -143,3 +144,4 @@ the table for their app.
 | E2E-060 | `062-deepseek-cli` | DeepSeek TUI as worker CLI |
 | E2E-061 | `064-cli-install-show` | missing CLI install cmds |
 | E2E-062 | `065-detailed-progress` | fine tasks + worktree activity |
+| E2E-063 | `066-duaer-fed` | Duaer FED brand |
