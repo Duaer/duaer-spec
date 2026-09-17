@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.15.0 — 2026-09-17
 
 ### Live desk L3 smoke
 

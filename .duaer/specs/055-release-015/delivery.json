@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Release 0.15.0 with live L3 smoke suite.",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"]
+  }
+}
