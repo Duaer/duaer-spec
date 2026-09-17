@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix
+
+- Fresh Terminal open path no longer throws `queuedCount is not defined`
+
 ### DeepSeek CLI digital employee
 
 - Live desk detects and launches **DeepSeek TUI** (`deepseek`) alongside Cursor

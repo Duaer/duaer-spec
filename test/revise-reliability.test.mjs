@@ -53,6 +53,11 @@ test("live sources declare reliability contracts", () => {
   assert.ok(iPreempt >= 0, "preempt call missing in gate");
   assert.ok(iEnqueue > iPreempt, "enqueue must follow preempt");
   assert.match(slice, /enqueued:\s*false/);
+  // Fresh Terminal open path defines queuedCount before return
+  assert.match(
+    live,
+    /const jobPath = enqueueTerminalJob[\s\S]{0,120}const queuedCount = countQueuedJobs/,
+  );
 
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /180000/);
