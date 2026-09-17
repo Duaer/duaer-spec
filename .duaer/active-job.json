@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/061-satisfactory-delivery",
-  "branch": "feat/satisfactory-delivery",
-  "worktree": ".worktree/feat-satisfactory-delivery",
-  "status": "active"
+  "featureDir": ".duaer/specs/062-deepseek-cli",
+  "branch": "feat/deepseek-cli",
+  "worktree": ".worktree/feat-deepseek-cli",
+  "status": "accepted"
 }
