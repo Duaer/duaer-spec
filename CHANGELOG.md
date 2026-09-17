@@ -5,7 +5,7 @@
 ### Duaer FED brand
 
 - Live desk user-facing name is **Duaer FED** (Field Engineering Desk);
-  Chinese secondary mark remains「现场开发」
+  Chinese locale keeps the secondary on-site desk mark
 - README, CLI help/banner, and agent prompts use Duaer FED; `duaer live`
   command path unchanged
 
