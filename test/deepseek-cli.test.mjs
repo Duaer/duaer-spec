@@ -16,7 +16,7 @@ test("live sources declare DeepSeek CLI worker", () => {
   assert.match(live, /npm install -g deepseek-tui/);
   assert.match(live, /--yolo --skip-onboarding/);
   assert.match(live, /deepseek-tui/);
-  assert.match(live, /nvmNodeBinDir|npmGlobalBinDir/);
+  assert.match(live, /nvmBinDirs|npmGlobalBinDir/);
 
   const i18n = fs.readFileSync(path.join(ROOT, "web/live-dev/i18n.js"), "utf8");
   assert.match(i18n, /DeepSeek/);
