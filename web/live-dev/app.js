@@ -2047,6 +2047,16 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
 
   const panel = document.createElement("div");
   panel.className = "progress-panel";
+  const meter = document.createElement("div");
+  meter.className = "progress-meter";
+  meter.setAttribute("role", "progressbar");
+  meter.setAttribute("aria-valuemin", "0");
+  meter.setAttribute("aria-valuemax", "100");
+  meter.setAttribute("aria-valuenow", "0");
+  meter.hidden = true;
+  const meterFill = document.createElement("div");
+  meterFill.className = "progress-meter-fill";
+  meter.appendChild(meterFill);
   const summary = document.createElement("p");
   summary.className = "progress-summary";
   const activity = document.createElement("p");
@@ -2057,6 +2067,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   const log = document.createElement("pre");
   log.className = "progress-log";
   log.hidden = true;
+  panel.appendChild(meter);
   panel.appendChild(summary);
   panel.appendChild(activity);
   panel.appendChild(tasks);
@@ -2073,6 +2084,8 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   state.activeRun = {
     revision: rev,
     root,
+    meter,
+    meterFill,
     summary,
     activity,
     tasks,
@@ -2087,6 +2100,10 @@ function fillRunProgress(block, data) {
   const progress = data?.progress;
   if (!progress) {
     if (block.summary) block.summary.textContent = "";
+    if (block.meter) {
+      block.meter.hidden = true;
+      if (block.meterFill) block.meterFill.style.width = "0%";
+    }
     if (block.activity) {
       block.activity.hidden = true;
       block.activity.textContent = "";
@@ -2098,8 +2115,17 @@ function fillRunProgress(block, data) {
     }
     return;
   }
+  const done = Number(progress.done) || 0;
+  const total = Number(progress.total) || 0;
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  if (block.meter && block.meterFill) {
+    block.meter.hidden = total <= 0;
+    block.meterFill.style.width = `${pct}%`;
+    block.meter.setAttribute("aria-valuenow", String(pct));
+    block.meter.dataset.complete = done >= total && total > 0 ? "true" : "false";
+  }
   if (block.summary) {
-    block.summary.textContent = `${progress.done}/${progress.total} · ${progress.current || ""}`;
+    block.summary.textContent = `${done}/${total} · ${progress.current || ""}`;
   }
   if (block.activity) {
     const act = data?.activity;

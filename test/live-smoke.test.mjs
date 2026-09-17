@@ -219,9 +219,12 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
   assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
+  assert.match(css, /progress-meter|progress-empty-title/);
+  assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
   assert.match(js, /validationAllowsSend/);
+  assert.match(js, /progress-meter-fill|meterFill/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
   assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);

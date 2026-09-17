@@ -219,10 +219,15 @@
         </section>
 
         <aside class="panel progress-col" data-i18n-aria="progress.aria" aria-label="任务进度">
-          <p class="mark" data-i18n="progress.mark">Progress</p>
-          <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
-          <p id="dispatchStatus" class="meta progress-status" hidden></p>
-          <p id="progressEmpty" class="progress-empty" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>
+          <header class="progress-head">
+            <p class="mark" data-i18n="progress.mark">Progress</p>
+            <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
+            <p id="dispatchStatus" class="meta progress-status" hidden></p>
+          </header>
+          <div id="progressEmpty" class="progress-empty">
+            <p class="progress-empty-title" data-i18n="progress.emptyTitle">还没有进度</p>
+            <p class="progress-empty-hint" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>
+          </div>
           <div id="runTimeline" class="run-timeline" hidden></div>
         </aside>
       </main>

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Progress column polish
+
+- Run cards with active accent, done/total meter, clearer checklist rows,
+  quieter empty state
+
 ### Equal-height desk columns
 
 - Sticky top nav; three columns share remaining viewport height; chat /
