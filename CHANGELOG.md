@@ -2,11 +2,12 @@
 
 ## Unreleased
 
-### Duaer FED brand
+### Duaer-spec FED brand
 
-- Live desk user-facing name is **Duaer FED** (Field Engineering Desk);
+- Correct product name to **Duaer-spec FED** (was briefly labeled Duaer FED)
+- Live desk user-facing name is **Duaer-spec FED** (Field Engineering Desk);
   Chinese locale keeps the secondary on-site desk mark
-- README, CLI help/banner, and agent prompts use Duaer FED; `duaer live`
+- README, CLI help/banner, and agent prompts use Duaer-spec FED; `duaer live`
   command path unchanged
 
 ### Detailed coding progress

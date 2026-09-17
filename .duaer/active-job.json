@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/066-duaer-fed",
-  "branch": "feat/duaer-fed",
-  "worktree": ".worktree/feat-duaer-fed",
+  "featureDir": ".duaer/specs/067-duaer-spec-fed",
+  "branch": "feat/duaer-spec-fed",
+  "worktree": ".worktree/feat-duaer-spec-fed",
   "status": "accepted"
 }

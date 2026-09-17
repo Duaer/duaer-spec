@@ -1,5 +1,5 @@
 /**
- * Duaer FED UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
+ * Duaer-spec FED UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
  */
 
 import {
