@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Structured requirements display
+
+- Middle confirm/revise fields split jammed `;` / `；` / `1、` text into list
+  items with clearer visual blocks
+
 ### Auto-handle on validate fail
 
 - Failed confirm/revise validation shows **Auto-handle** next to the fail hint; click narrates in chat and runs `/api/validate/fix`

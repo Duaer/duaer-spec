@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "featureDir": ".duaer/specs/071-req-structured-display",
+  "branch": "feat/req-structured-display",
+  "verification": {
+    "levels": ["L1", "L3"],
+    "commands": ["npm test", "npm run test:live"]
+  }
+}

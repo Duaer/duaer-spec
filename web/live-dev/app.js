@@ -10,6 +10,7 @@ import {
   setLocale,
   applyDomI18n,
 } from "./i18n.js";
+import { structuredHtml, escapeHtml } from "./structured-html.mjs";
 
 const FALLBACK_PROVIDERS = [
   {
@@ -1577,14 +1578,6 @@ function pathBasename(p) {
   return parts.filter(Boolean).pop() || p;
 }
 
-function escapeHtml(s) {
-  return String(s)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
 const REQ_FIELD_PAIRS = [
   { ta: "goal", view: "goalView", emptyKey: "card.placeholder" },
   { ta: "outOfScope", view: "outOfScopeView", emptyKey: "card.placeholder" },
@@ -1595,56 +1588,6 @@ const REQ_FIELD_PAIRS = [
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
   { ta: "revAssume", view: "revAssumeView", emptyKey: "revise.assumePh" },
 ];
-
-function structuredHtml(text, emptyLabel) {
-  const raw = String(text || "").replace(/\r\n/g, "\n");
-  if (!raw.trim()) {
-    return `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
-  }
-  const lines = raw.split("\n");
-  let html = "";
-  let i = 0;
-  while (i < lines.length) {
-    const bullet = lines[i].match(/^\s*[-*•]\s+(.*)$/);
-    const numbered = lines[i].match(/^\s*\d+[.)]\s+(.*)$/);
-    if (bullet) {
-      html += "<ul>";
-      while (i < lines.length) {
-        const m = lines[i].match(/^\s*[-*•]\s+(.*)$/);
-        if (!m) break;
-        html += `<li>${escapeHtml(m[1])}</li>`;
-        i += 1;
-      }
-      html += "</ul>";
-      continue;
-    }
-    if (numbered) {
-      html += "<ol>";
-      while (i < lines.length) {
-        const m = lines[i].match(/^\s*\d+[.)]\s+(.*)$/);
-        if (!m) break;
-        html += `<li>${escapeHtml(m[1])}</li>`;
-        i += 1;
-      }
-      html += "</ol>";
-      continue;
-    }
-    if (!lines[i].trim()) {
-      i += 1;
-      continue;
-    }
-    const parts = [];
-    while (i < lines.length) {
-      const line = lines[i];
-      if (!line.trim()) break;
-      if (/^\s*[-*•]\s+/.test(line) || /^\s*\d+[.)]\s+/.test(line)) break;
-      parts.push(escapeHtml(line.trim()));
-      i += 1;
-    }
-    html += `<p>${parts.join("<br>")}</p>`;
-  }
-  return html || `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
-}
 
 function autoGrowTextarea(ta) {
   if (!ta) return;

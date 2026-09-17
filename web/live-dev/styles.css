@@ -849,27 +849,72 @@ input:focus {
   outline-offset: 2px;
 }
 
-.req-structured p {
+.req-structured .req-para {
   margin: 0 0 0.55rem;
 }
 
-.req-structured p:last-child {
+.req-structured .req-para:last-child {
   margin-bottom: 0;
 }
 
-.req-structured ul,
-.req-structured ol {
+.req-structured .req-list {
+  list-style: none;
   margin: 0 0 0.55rem;
-  padding-left: 1.25rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
-.req-structured ul:last-child,
-.req-structured ol:last-child {
+.req-structured .req-list:last-child {
   margin-bottom: 0;
 }
 
-.req-structured li {
-  margin: 0.2rem 0;
+.req-structured .req-item {
+  position: relative;
+  margin: 0;
+  padding: 0.5rem 0.65rem 0.5rem 1.55rem;
+  border: 1px solid var(--line);
+  background: rgba(8, 14, 20, 0.4);
+  color: var(--ink);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.req-structured .req-list-num {
+  counter-reset: req-n;
+}
+
+.req-structured .req-list-num .req-item {
+  counter-increment: req-n;
+  padding-left: 2rem;
+}
+
+.req-structured .req-item::before {
+  content: "";
+  position: absolute;
+  left: 0.65rem;
+  top: 0.85rem;
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 1px;
+  background: var(--lock);
+}
+
+.req-structured .req-list-num .req-item::before {
+  content: counter(req-n);
+  left: 0.45rem;
+  top: 0.45rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 2px;
+  background: rgba(47, 158, 143, 0.2);
+  border: 1px solid var(--lock);
+  color: var(--lock);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  line-height: 1.15rem;
+  text-align: center;
 }
 
 .req-structured .req-empty {

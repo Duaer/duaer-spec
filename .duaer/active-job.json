@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/070-validate-autofix-btn",
-  "branch": "feat/validate-autofix-btn",
-  "worktree": ".worktree/feat-validate-autofix-btn",
+  "featureDir": ".duaer/specs/071-req-structured-display",
+  "branch": "feat/req-structured-display",
+  "worktree": ".worktree/feat-req-structured-display",
   "status": "accepted"
 }
