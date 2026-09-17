@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.16.0 — 2026-09-18
+
 ### Honest revise preempt
 
 - priorAccepted revise preempts leftover Agents **before** enqueueing the new
@@ -13,12 +15,13 @@
 - After Confirm revise, task progress scopes to the active `Revision N` checklist
   (not the prior dispatch’s completed `T*` pile)
 - While revise is active (or Terminal is busy on open `R{n}` work), status does
-  not freeze on `delivery accepted · 工单完成`
+  not freeze on the accepted “job complete” label
 - Live `revisionCount` is inferred from Brief/`tasks.md` when the job stamp lags
 
 ### Progress sync when delivery accepted
 
-- When `delivery.json` is `accepted`, task progress shows `N/N` (not `0/N · 工单完成`)
+- When `delivery.json` is `accepted`, task progress shows `N/N` (not `0/N` with
+  an accepted label)
 - Unchecked `tasks.md` boxes are reconciled to `[x]` on status poll after accept
 
 ### Revise round reliability
