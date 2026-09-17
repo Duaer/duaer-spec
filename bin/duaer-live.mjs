@@ -2218,6 +2218,7 @@ function launchInTerminal({
 
     // Stale/dead PID or pre-heartbeat runner: do not claim reuse
     const jobPath = enqueueTerminalJob(qdir, commandLine);
+    const queuedCount = countQueuedJobs(qdir);
     const stalePid = readRunnerPid(qdir);
     if (stalePid != null) {
       appendLaunchLog(

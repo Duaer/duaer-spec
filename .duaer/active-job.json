@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/062-deepseek-cli",
-  "branch": "feat/deepseek-cli",
-  "worktree": ".worktree/feat-deepseek-cli",
+  "featureDir": ".duaer/specs/063-queued-count",
+  "branch": "fix/queued-count",
+  "worktree": ".worktree/fix-queued-count",
   "status": "accepted"
 }
