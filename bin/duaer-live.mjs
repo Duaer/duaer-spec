@@ -3303,9 +3303,47 @@ function extractSection(md, title) {
   return m ? m[1].trim() : "";
 }
 
-function parseTasksProgress(tasksMd) {
+function inferRevisionFromTasksMd(tasksMd) {
+  let max = 0;
+  for (const line of String(tasksMd || "").split(/\r?\n/)) {
+    const header = line.match(/^##\s+Revision\s+(\d+)\b/i);
+    if (header) max = Math.max(max, Number(header[1]) || 0);
+    const item = line.match(/^\s*[-*]\s+\[[ xX]\]\s+R(\d+)(?:[-.\s]|$)/i);
+    if (item) max = Math.max(max, Number(item[1]) || 0);
+  }
+  return max;
+}
+
+function tasksMdScope(tasksMd, revision = 0) {
+  const raw = String(tasksMd || "");
+  const rev = Number(revision) || 0;
+  if (rev > 0) {
+    const section = raw.match(
+      new RegExp(
+        `##\\s+Revision\\s+${rev}\\b[^\\n]*\\n([\\s\\S]*?)(?=\\n##\\s+Revision\\s+\\d+|$)`,
+        "i",
+      ),
+    );
+    if (section) return section[1];
+    // Fallback: only checkbox lines for this revision id (R1-1 / R1-01 / R1 …)
+    return raw
+      .split(/\r?\n/)
+      .filter((line) =>
+        new RegExp(`^\\s*[-*]\\s+\\[[ xX]\\]\\s+R${rev}(?:[-.\\s]|$)`, "i").test(
+          line,
+        ),
+      )
+      .join("\n");
+  }
+  // Dispatch scope: everything before the first Revision section
+  const cut = raw.search(/\n##\s+Revision\s+\d+\b/i);
+  return cut >= 0 ? raw.slice(0, cut) : raw;
+}
+
+function parseTasksProgress(tasksMd, { revision = 0 } = {}) {
   const tasks = [];
-  const lines = String(tasksMd || "").split(/\r?\n/);
+  const scope = tasksMdScope(tasksMd, revision);
+  const lines = String(scope || "").split(/\r?\n/);
   for (const line of lines) {
     const m = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$/);
     if (!m) continue;
@@ -3322,14 +3360,25 @@ function parseTasksProgress(tasksMd) {
   const doneCount = tasks.filter((t) => t.done).length;
   const next = tasks.find((t) => !t.done) || null;
   let current = "暂无任务清单";
-  if (total === 0) current = "暂无任务清单";
-  else if (!next) current = "任务已全部勾选 · 等待 delivery accepted";
-  else current = `进行中：${next.text}`;
+  if (total === 0) {
+    current =
+      Number(revision) > 0
+        ? `Revision ${revision} · 等待任务清单`
+        : "暂无任务清单";
+  } else if (!next) {
+    current =
+      Number(revision) > 0
+        ? `Revision ${revision} · 任务已全部勾选 · 等待 delivery accepted`
+        : "任务已全部勾选 · 等待 delivery accepted";
+  } else {
+    current = `进行中：${next.text}`;
+  }
   return {
     total,
     done: doneCount,
     current,
     tasks,
+    revision: Number(revision) || 0,
   };
 }
 
@@ -3536,12 +3585,12 @@ function dispatchStatus(jobId) {
     }
   }
   const tasksPath = featureDir ? path.join(featureDir, "tasks.md") : null;
-  let progress = parseTasksProgress("");
+  let tasksRaw = "";
   if (tasksPath && fs.existsSync(tasksPath)) {
     try {
-      progress = parseTasksProgress(fs.readFileSync(tasksPath, "utf8"));
+      tasksRaw = fs.readFileSync(tasksPath, "utf8");
     } catch {
-      progress = parseTasksProgress("");
+      tasksRaw = "";
     }
   }
   const logPath =
@@ -3549,17 +3598,62 @@ function dispatchStatus(jobId) {
     (featureDir ? path.join(featureDir, "agent-launch.log") : null);
   const logTail = logPath ? readLogTail(logPath) : [];
   const worktreeExists = roots.worktreeExists;
-  const accepted = delivery?.status === "accepted";
+  const terminal = terminalQueueSnapshot(dispatch.worktreePath);
+  const inferredFromTasks = inferRevisionFromTasksMd(tasksRaw);
+  const revisionHint = Math.max(
+    Number(live.job.revisionCount || 0),
+    Number(delivery?.revision || 0),
+    inferredFromTasks,
+  );
+  const revProgressHint =
+    revisionHint > 0
+      ? parseTasksProgress(tasksRaw, { revision: revisionHint })
+      : null;
+  const hasOpenRevWork =
+    Boolean(revProgressHint) &&
+    revProgressHint.total > 0 &&
+    revProgressHint.done < revProgressHint.total;
+  // First-dispatch delivery is also "open" — only treat as revise when a
+  // Revision N already exists (job / delivery / tasks.md), or Terminal is
+  // busy on open R{n} work while status still lags on accepted.
+  const deliveryAccepted = delivery?.status === "accepted";
+  const deliveryOpen = delivery?.status === "open";
+  const activelyRevising =
+    (!deliveryAccepted && live.job.status === "revising") ||
+    (revisionHint > 0 && deliveryOpen) ||
+    (hasOpenRevWork &&
+      (terminal.busy || Number(terminal.queueDepth || 0) > 0));
+  const activeRevision =
+    revisionHint > 0 &&
+    (activelyRevising ||
+      Number(live.job.revisionCount || 0) > 0 ||
+      Number(delivery?.revision || 0) > 0 ||
+      inferredFromTasks > 0)
+      ? revisionHint
+      : 0;
+
+  let progress = parseTasksProgress(tasksRaw, {
+    revision: activeRevision > 0 ? activeRevision : 0,
+  });
+  const accepted = deliveryAccepted && !activelyRevising;
   if (accepted) {
     if (tasksPath) reconcileTasksMdOnAccept(tasksPath);
     if (tasksPath && fs.existsSync(tasksPath)) {
       try {
-        progress = parseTasksProgress(fs.readFileSync(tasksPath, "utf8"));
+        tasksRaw = fs.readFileSync(tasksPath, "utf8");
       } catch {
-        // keep prior progress
+        // keep
       }
     }
+    progress = parseTasksProgress(tasksRaw, {
+      revision: activeRevision > 0 ? activeRevision : 0,
+    });
     progress = progressForAcceptedDelivery(progress, { worktreeExists });
+  } else if (activelyRevising && progress.total === 0 && activeRevision > 0) {
+    progress = {
+      ...progress,
+      current: `Revision ${activeRevision} · 已续派，等待任务勾选…`,
+    };
   } else if (!worktreeExists && roots.source === "primary") {
     progress = {
       ...progress,
@@ -3568,6 +3662,36 @@ function dispatchStatus(jobId) {
         "worktree 已清理；成品与 Brief 在产品仓 develop",
     };
   }
+
+  // Keep live job revisionCount in sync when Brief/tasks already show Revision N
+  if (
+    activeRevision > Number(live.job.revisionCount || 0) ||
+    (activelyRevising && live.job.status !== "revising")
+  ) {
+    try {
+      const nextJob = {
+        ...live.job,
+        revisionCount: Math.max(
+          Number(live.job.revisionCount || 0),
+          activeRevision,
+        ),
+        status: activelyRevising
+          ? "revising"
+          : accepted
+            ? "accepted"
+            : live.job.status,
+      };
+      fs.writeFileSync(
+        live.jobPath,
+        `${JSON.stringify(nextJob, null, 2)}\n`,
+        "utf8",
+      );
+      live.job = nextJob;
+    } catch {
+      // ignore
+    }
+  }
+
   const preview = resolvePreview({
     delivery: delivery || { status: "open" },
     worktreePath: roots.root,
@@ -3576,8 +3700,10 @@ function dispatchStatus(jobId) {
   // Only after accept (or during a revise round). Not while first dispatch is still in progress.
   const showPreview =
     accepted ||
+    activelyRevising ||
     live.job.status === "revising" ||
-    Number(live.job.revisionCount || 0) > 0;
+    Number(live.job.revisionCount || 0) > 0 ||
+    activeRevision > 0;
 
   // Persist accepted status when handoff moved Brief to primary
   if (accepted && live.job.status !== "accepted" && roots.source === "primary") {
@@ -3588,6 +3714,7 @@ function dispatchStatus(jobId) {
         `${JSON.stringify(nextJob, null, 2)}\n`,
         "utf8",
       );
+      live.job = nextJob;
     } catch {
       // ignore
     }
@@ -3596,12 +3723,20 @@ function dispatchStatus(jobId) {
   const canRevise =
     Boolean(dispatch.repoPath && fs.existsSync(dispatch.repoPath)) &&
     (accepted ||
+      activelyRevising ||
       live.job.status === "revising" ||
-      Number(live.job.revisionCount || 0) > 0);
+      Number(live.job.revisionCount || 0) > 0 ||
+      activeRevision > 0);
+
+  const statusOut = activelyRevising
+    ? "revising"
+    : accepted
+      ? "accepted"
+      : live.job.status;
 
   return {
     jobId: live.id,
-    status: accepted ? "accepted" : live.job.status,
+    status: statusOut,
     dispatch: {
       ...dispatch,
       worktreeExists,
@@ -3613,9 +3748,13 @@ function dispatchStatus(jobId) {
     logTail,
     preview: showPreview ? preview : null,
     canRevise,
-    revision: live.job.revisionCount || 0,
+    revision: Math.max(
+      Number(live.job.revisionCount || 0),
+      activeRevision,
+      Number(delivery?.revision || 0),
+    ),
     handoffCleaned: !worktreeExists && roots.source === "primary",
-    terminal: terminalQueueSnapshot(dispatch.worktreePath),
+    terminal,
   };
 }
 
