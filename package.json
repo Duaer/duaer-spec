@@ -63,6 +63,8 @@
   "license": "MIT",
   "scripts": {
     "duaer": "node ./bin/duaer.mjs",
-    "live": "node ./bin/duaer-live.mjs"
+    "live": "node ./bin/duaer-live.mjs",
+    "test": "node --test test/**/*.test.mjs",
+    "test:live": "node --test test/live-smoke.test.mjs"
   }
 }

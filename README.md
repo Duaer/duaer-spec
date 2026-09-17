@@ -64,6 +64,10 @@ Open the printed URL (default `http://127.0.0.1:8787`). The desk is **full-width
 with three columns: **chat** | **requirements / confirm / dispatch / revise** |
 **task progress**.
 
+**Verify (maintainers / agents):** after live desk UI or validate-gate changes,
+run `npm run test:live` (L3 smoke: desk shell markers + `/api/validate` with a
+mock LLM — no paid API).
+
 **Flow**
 
 1. Dialogue → fill the confirm card (structured goal / out-of-scope / acceptance /

@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/053-release-014",
-  "branch": "feat/release-014",
-  "worktree": ".worktree/feat-release-014",
+  "featureDir": ".duaer/specs/054-live-l3-smoke",
+  "branch": "feat/live-l3-smoke",
+  "worktree": ".worktree/feat-live-l3-smoke",
   "status": "active"
 }

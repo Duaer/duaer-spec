@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Live desk L3 smoke
+
+- `npm run test:live` — automated desk shell + `/api/validate` / `/api/validate/fix` with mock LLM
+- Documented in `.duaer/memory/testing.md`, README EN/ZH; CI runs on push/PR to develop/main
+
 ## 0.14.0 — 2026-09-17
 
 ### Live desk layout
