@@ -1,8 +1,10 @@
 # Duaer methodology
 
 AI coding agents are **digital employees**. The human states intent; the agent
-runs Brief → **understand** → work → accept. Humans are not the operators of
-the phase machine.
+turns it into a **checkable Brief**, implements within that scope, and only
+claims done when acceptance is met — **norms → satisfactory delivery**.
+
+Humans are not the operators of the phase machine.
 
 **Precedence:** [`AGENTS.md`](AGENTS.md) wins on isolation, commits, Issue/PR.
 
@@ -11,7 +13,8 @@ the phase machine.
 1. One-time install: `npx duaer-spec init --here`  
 2. Later refresh: `npx duaer-spec update`  
 3. Ongoing: describe work in chat  
-4. Review the handoff line (accepted / not yet)
+4. Review the handoff line (accepted / not yet) — accepted means the result
+   should satisfy the Brief acceptance, not that phases were clicked through
 
 ## Agent procedure (autonomous)
 
@@ -19,9 +22,11 @@ Follow the `duaer-do` skill (`.cursor/skills/`, `.claude/skills/`, or `.agents/s
 waiting for a slash invocation:
 
 1. Assign Brief + `active-job.json`  
-2. **Understand** — Restate precise goal / scope / acceptance; if the ask is
-   vague, confirm with the human (≤3 blocking questions or recommended
-   defaults) before coding; write the confirmed intent into the Brief  
+2. **Understand** — Restate precise goal / scope / **checkable acceptance**; if
+   the ask is vague, confirm with the human (≤3 blocking questions or recommended
+   defaults) before coding; write the confirmed intent into the Brief.
+   Acceptance must be objectively verifiable (open X / see Y / command passes),
+   not “looks better”.  
 3. Light `tasks.md` if needed (include verification tasks from `testing.md`)  
 4. Implement + run risk-based checks  
 5. Converge → `delivery.json` (with verification evidence or waiver)  

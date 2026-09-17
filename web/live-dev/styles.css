@@ -661,6 +661,13 @@ input:focus {
   margin-bottom: 0.45rem;
 }
 
+.req-hint {
+  margin: -0.15rem 0 0.55rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--mute);
+}
+
 .req-structured {
   display: block;
   min-height: 2.4rem;

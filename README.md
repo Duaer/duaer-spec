@@ -1,8 +1,12 @@
 # duaer-spec
 
-**Duaer** turns AI coding agents into **digital employees**: they take a normal
-language ask, run Spec → work → accept themselves, and only claim a job done
-when the handoff is clean.
+**Duaer** turns AI coding agents into **digital employees** that deliver
+**satisfactory work**: you speak in normal language; the employee turns that
+into a checkable Brief (goal / boundary / acceptance), implements only that
+scope, and only claims done when acceptance is met.
+
+The product pitch is **norms → satisfactory delivery** — not teaching humans
+to operate Spec phases or slash commands.
 
 You should **not** have to operate the workflow. After a one-time install, you
 talk; the employee runs the process.
@@ -38,10 +42,10 @@ Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 
 ## What the employee does (by itself)
 
-1. Writes a Brief (Spec) for the ask  
+1. Turns your ask into a Brief with **checkable acceptance**  
 2. Implements within that Brief  
-3. Checks the result and stamps accept / still-open  
-4. Tells you in one line whether the job is ready for review  
+3. Verifies against acceptance (and project testing rules)  
+4. Stamps accept only when the result should satisfy you — one handoff line  
 
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
@@ -70,9 +74,9 @@ mock LLM — no paid API).
 
 **Flow**
 
-1. Dialogue → fill the confirm card (structured goal / out-of-scope / acceptance /
-   assumptions). Auto-validate must pass before **Confirm** is enabled; auto-fix
-   stays available on failure  
+1. Dialogue → fill the confirm card (structured goal / out-of-scope / **checkable**
+   acceptance / assumptions). Vague acceptance fails the gate; auto-validate must
+   pass before **Confirm** is enabled; auto-fix stays available on failure  
 2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  

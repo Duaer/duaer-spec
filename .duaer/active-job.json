@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/060-release-016",
-  "branch": "feat/release-016",
-  "worktree": ".worktree/feat-release-016",
-  "status": "accepted"
+  "featureDir": ".duaer/specs/061-satisfactory-delivery",
+  "branch": "feat/satisfactory-delivery",
+  "worktree": ".worktree/feat-satisfactory-delivery",
+  "status": "active"
 }

@@ -71,6 +71,7 @@ the table for their app.
 | E2E-056 | Progress on accept: status never shows `0/N · delivery accepted`; unchecked tasks reconciled to `[x]` | `npm test` |
 | E2E-057 | After Confirm revise, progress tracks this revision’s `R{n}-*` tasks (not prior T* / frozen accepted); busy Terminal + lagging revisionCount still scopes correctly | `npm test` + manual |
 | E2E-058 | priorAccepted revise: preempt clears leftovers then enqueue; false `PREEMPT_FAILED` must not appear while that revise Agent is already running; hard fail leaves nothing queued | `npm test` + manual |
+| E2E-059 | Satisfactory delivery gate: vague acceptance fails `/api/validate`; checkable acceptance can pass; README leads with norms → satisfactory delivery | `npm test` + manual |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
@@ -135,3 +136,4 @@ the table for their app.
 | E2E-056 | `057-progress-accepted` | accept never shows 0/N |
 | E2E-057 | `058-revise-progress-track` | revise scopes R{n} progress |
 | E2E-058 | `059-revise-preempt-order` | preempt before enqueue |
+| E2E-059 | `061-satisfactory-delivery` | checkable acceptance gate |

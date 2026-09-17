@@ -316,14 +316,15 @@ function nextJobDir() {
   return { root, nextNum: max + 1 };
 }
 
-const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话把用户随口说的话整理成精确需求。
+const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
 
 规则：
 1. 缺关键可执行信息时，每次只问 1 个卡点问题（可给简短选项）；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
 2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
-3. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
-4. 不要写代码。不要假设用户仓库路径。
-5. 输出格式（严格）：
+3. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
+4. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
+5. 不要写代码。不要假设用户仓库路径。
+6. 输出格式（严格）：
    - 先写对用户说的纯文本（可多行，不要 JSON）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
@@ -331,14 +332,14 @@ const SYSTEM_PROMPT = `你是「现场开发」需求助手。通过多轮对话
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
-const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。
+const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
 
 规则：
 1. 缺关键信息时每次只问 1 个问题；信息够时直接填可执行的四块并 ready=true，不要用「请从 A/B/C/D 风格里选」代替验收标准。
 2. 维护四块（仍用确认卡字段名，便于前端复用）：
    - goal = 本轮要改什么（具体可执行）
    - outOfScope = 本轮不要动什么
-   - acceptance = 怎么算改好了（可检查）
+   - acceptance = 怎么算改好了（可检查：打开/看到/命令通过）
    - assumptions = 用户不满意的原因 / 背景摘要
 3. 四块够清楚且可执行时 ready=true（确认前系统会自动校验）。
 4. 不要写代码。不要立刻派工。不要假设仓库路径。
@@ -348,22 +349,23 @@ const REVISE_CHAT_PROMPT = `你是「现场开发」改进对话助手。用户�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。请自动验收这份需求。
+const ACCEPT_PROMPT = `你是「现场开发」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
 
 检查：
-1. goal 是否单一、可执行
-2. acceptance 是否可客观检查（避免「更好用」这类空话）
+1. goal 是否单一、可执行（一件事，不要堆多个无关功能）
+2. acceptance 是否可客观检查：必须写清「打开/看到/点击/返回/命令通过/接口返回」等可核对结果；禁止仅「更好用 / 更好看 / nicer / looks better」这类空话
 3. outOfScope 是否划清边界（可简短）
 4. assumptions 是否合理、不偷换目标
+5. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
 
 规则：
-- 若小改即可通过：修订四块，passed=true
+- 若小改即可通过：修订四块（尤其把 acceptance 改成可检查句子），passed=true
 - 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
 - 不要写代码。不要假设仓库路径。
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「现场开发」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块，尽量补全可检查的验收标准，不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「现场开发」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
@@ -608,13 +610,40 @@ function parseAcceptResult(content, fallback) {
   };
 }
 
+function acceptanceLooksCheckable(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  // Observable outcome cues (CN + EN + common commands/paths)
+  return /打开|看到|显示|点击|返回|为空|出现|通过|等于|包含|列表|页面|接口|按钮|标题|颜色|导航|首页|登录|公告|截图|对照|#[0-9a-fA-F]{3,8}|npm\s|test:|http|curl|\.html|\.json|passes?\b|shows?\b|returns?\b|opens?\b|click\b|empty\b|status\s*\d{3}|assert\b|expect\b/i.test(
+    t,
+  );
+}
+
+function acceptanceLooksVague(text) {
+  const t = String(text || "").trim();
+  if (!t) return false;
+  return /更好用|更好看|更美观|更漂亮|更流畅|优化体验|提升体验|用户满意|看起来不错|(?:^|[\s,.;:，。；])(better|nicer|prettier|more beautiful|improved ux|looks?\s+better|polish(?:ed)?|more polished)(?:$|[\s,.;:])/i.test(
+    t,
+  );
+}
+
 function localAcceptCheck(card) {
   const issues = [];
   const goal = String(card.goal || "").trim();
   const acceptance = String(card.acceptance || "").trim();
-  if (goal.length < 4) issues.push("「要做什么」过短，写不清目标");
-  if (acceptance.length < 4) {
-    issues.push("「验收标准」过短，无法检查是否完成");
+  if (goal.length < 8) {
+    issues.push("「要做什么」过短，写清单一可执行目标");
+  }
+  if (acceptance.length < 12) {
+    issues.push("「验收标准」过短，写清可核对的完成结果");
+  } else if (acceptanceLooksVague(acceptance) && !acceptanceLooksCheckable(acceptance)) {
+    issues.push(
+      "「验收标准」太空泛（如更好用/更好看）；请写可检查结果：打开何处、看到什么、哪条命令通过",
+    );
+  } else if (!acceptanceLooksCheckable(acceptance) && acceptance.length < 40) {
+    issues.push(
+      "「验收标准」须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词",
+    );
   }
   return issues;
 }
@@ -2687,11 +2716,11 @@ Brief: ${featureDir}
 要求：
 0. 本 Brief 已在现场开发自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
-2. 只做 Brief 范围
+2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
-5. 完成后 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）
+5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
+6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的成品
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 ${deployPrompt}`;
@@ -3223,7 +3252,7 @@ ${restated.keep}
 0. 本轮 Revision 已在现场开发自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]
-3. 改完后 stamp delivery.json 为 accepted，并更新 preview.url
+3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开成品是默认证据）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
 `;
