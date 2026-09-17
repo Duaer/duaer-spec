@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/055-release-015",
-  "branch": "feat/release-015",
-  "worktree": ".worktree/feat-release-015",
+  "featureDir": ".duaer/specs/056-revise-reliability",
+  "branch": "feat/revise-reliability",
+  "worktree": ".worktree/feat-revise-reliability",
   "status": "active"
 }

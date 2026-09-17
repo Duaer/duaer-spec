@@ -1908,9 +1908,48 @@ function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null 
   }
   return {
     preempted: killed.length > 0,
-    reason: killed.join(",") || "signal-attempted",
+    reason: killed.length > 0 ? killed.join(",") : "signal-attempted",
     killed,
     agentPids: agentTargets.map((t) => t.pid),
+  };
+}
+
+class LaunchGateError extends Error {
+  constructor(message, { code = "LAUNCH_FAILED", retryable = true, detail = null } = {}) {
+    super(message);
+    this.name = "LaunchGateError";
+    this.code = code;
+    this.retryable = Boolean(retryable);
+    this.detail = detail;
+  }
+}
+
+function snapshotTextFile(filePath) {
+  if (!fs.existsSync(filePath)) return { exists: false, content: "" };
+  return { exists: true, content: fs.readFileSync(filePath, "utf8") };
+}
+
+function restoreTextFile(filePath, snap) {
+  if (!snap?.exists) {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    return;
+  }
+  fs.writeFileSync(filePath, snap.content, "utf8");
+}
+
+function terminalQueueSnapshot(worktreePath) {
+  if (!worktreePath || !fs.existsSync(worktreePath)) {
+    return {
+      busy: false,
+      queueDepth: 0,
+      runnerHealthy: false,
+    };
+  }
+  const qdir = terminalQueueDir(worktreePath);
+  return {
+    busy: isTerminalRunnerBusy(qdir),
+    queueDepth: countQueuedJobs(qdir),
+    runnerHealthy: isTerminalRunnerHealthy(qdir),
   };
 }
 
@@ -1990,8 +2029,11 @@ function launchInTerminal({
           worktreePath: cwd,
           logPath,
         });
-        preempted = Boolean(pre.preempted || pre.reason === "signal-attempted");
+        sleepBriefMs(400);
         busy = isTerminalRunnerBusy(qdir);
+        const agentsLeft = cwd ? listWorktreeAgentPids(cwd).length : 0;
+        // Honest outcome: only "preempted" when something actually died.
+        preempted = Array.isArray(pre.killed) && pre.killed.length > 0;
         queuedCount = countQueuedJobs(qdir);
         try {
           fs.writeFileSync(
@@ -2000,6 +2042,22 @@ function launchInTerminal({
           );
         } catch {
           // ignore
+        }
+        // Still busy with live agent PIDs → do not claim success.
+        if (busy && agentsLeft > 0) {
+          throw new LaunchGateError(
+            "无法抢占仍在运行的 Agent。请结束该 worktree 的 Terminal 任务后重试续派。",
+            {
+              code: "PREEMPT_FAILED",
+              retryable: true,
+              detail: {
+                busy,
+                agentsLeft,
+                killed: pre.killed || [],
+                reason: pre.reason,
+              },
+            },
+          );
         }
       }
       const pid = readRunnerPid(qdir);
@@ -3022,10 +3080,11 @@ async function reviseDispatchedJob({
   const specPath = path.join(dispatch.featureDir, "spec.md");
   const tasksPath = path.join(dispatch.featureDir, "tasks.md");
   const deliveryPath = path.join(dispatch.featureDir, "delivery.json");
+  const snapSpec = snapshotTextFile(specPath);
+  const snapTasks = snapshotTextFile(tasksPath);
+  const snapDelivery = snapshotTextFile(deliveryPath);
 
-  let specMd = fs.existsSync(specPath)
-    ? fs.readFileSync(specPath, "utf8")
-    : "";
+  let specMd = snapSpec.exists ? snapSpec.content : "";
   specMd = specMd.replace(/\*\*Status\*\*:\s*.+$/m, `**Status**: Revising (r${revN})`);
   if (!/\*\*Status\*\*:/.test(specMd)) {
     specMd = `${specMd.trim()}\n\n**Status**: Revising (r${revN})\n`;
@@ -3047,9 +3106,7 @@ ${reasonLine || text}
 `;
   fs.writeFileSync(specPath, `${specMd.trim()}\n${revisionBlock}\n`, "utf8");
 
-  let tasksMd = fs.existsSync(tasksPath)
-    ? fs.readFileSync(tasksPath, "utf8")
-    : "# Tasks\n\n";
+  let tasksMd = snapTasks.exists ? snapTasks.content : "# Tasks\n\n";
   const taskBlock = `
 - [ ] R${revN}-1 Apply revision: ${restated.change.replace(/\n/g, " ").slice(0, 160)}
 - [ ] R${revN}-2 Verify against revision acceptance
@@ -3062,9 +3119,9 @@ ${reasonLine || text}
   );
 
   let prevDelivery = null;
-  if (fs.existsSync(deliveryPath)) {
+  if (snapDelivery.exists) {
     try {
-      prevDelivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+      prevDelivery = JSON.parse(snapDelivery.content);
     } catch {
       prevDelivery = null;
     }
@@ -3093,11 +3150,23 @@ ${reasonLine || text}
     chosen = detected.agents[0]?.id || "";
   }
   if (!chosen) {
-    throw new Error("未检测到可用 CLI（Cursor Agent / Claude Code）");
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code）", {
+      code: "NO_AGENT",
+      retryable: true,
+    });
   }
   const ok = detected.agents.some((a) => a.id === chosen && a.available);
   if (!ok) {
-    throw new Error(`未安装启动器：${chosen}`);
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    throw new LaunchGateError(`未安装启动器：${chosen}`, {
+      code: "AGENT_MISSING",
+      retryable: true,
+    });
   }
 
   // After accepted delivery (or recreated worktree), do not use --continue:
@@ -3153,17 +3222,37 @@ ${restated.keep}
     logPath,
     `\n—— revise r${revN} ${now} (continue=${continueSession} recreated=${recreated} priorAccepted=${priorAccepted}) ——\n${restated.summary}\n`,
   );
-  const launch = launchAgent({
-    agentId: chosen,
-    worktreePath: dispatch.worktreePath,
-    agentPrompt,
-    logPath,
-    featureDir: dispatch.featureDir,
-    continueSession,
-    // Revise after accept/recreate must not wait forever behind leftover agent.
-    reviseLaunch: true,
-    // preempt only when !continueSession (priorAccepted || recreated) — see launchAgent
-  });
+
+  let launch;
+  try {
+    launch = launchAgent({
+      agentId: chosen,
+      worktreePath: dispatch.worktreePath,
+      agentPrompt,
+      logPath,
+      featureDir: dispatch.featureDir,
+      continueSession,
+      // Revise after accept/recreate must not wait forever behind leftover agent.
+      reviseLaunch: true,
+      // preempt only when !continueSession (priorAccepted || recreated) — see launchAgent
+    });
+  } catch (err) {
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    if (err?.code === "PREEMPT_FAILED" || err?.name === "LaunchGateError") {
+      throw err;
+    }
+    const wrapped = new LaunchGateError(
+      err instanceof Error ? err.message : "续派启动失败",
+      {
+        code: err?.code === "CHILD_TIMEOUT" ? "CHILD_TIMEOUT" : "LAUNCH_FAILED",
+        retryable: true,
+        detail: { cause: err?.code || err?.name || null },
+      },
+    );
+    throw wrapped;
+  }
   rememberPreferredAgent(chosen);
 
   const nextDispatch = {
@@ -3482,6 +3571,7 @@ function dispatchStatus(jobId) {
     canRevise,
     revision: live.job.revisionCount || 0,
     handoffCleaned: !worktreeExists && roots.source === "primary",
+    terminal: terminalQueueSnapshot(dispatch.worktreePath),
   };
 }
 
@@ -3932,6 +4022,8 @@ async function handleApi(req, res) {
         send(res, 422, {
           ok: false,
           passed: false,
+          code: "VALIDATE_GATE",
+          retryable: true,
           error: err.message,
           summary: review.summary || err.message,
           issues: review.issues || [],
@@ -3944,8 +4036,28 @@ async function handleApi(req, res) {
         });
         return;
       }
-      send(res, err?.code === "CHILD_TIMEOUT" ? 504 : 400, {
+      const code =
+        err?.code === "PREEMPT_FAILED"
+          ? "PREEMPT_FAILED"
+          : err?.code === "CHILD_TIMEOUT"
+            ? "CHILD_TIMEOUT"
+            : err?.code === "NO_AGENT" || err?.code === "AGENT_MISSING"
+              ? err.code
+              : err?.name === "LaunchGateError"
+                ? err.code || "LAUNCH_FAILED"
+                : err?.code || "REVISE_FAILED";
+      const status =
+        code === "CHILD_TIMEOUT"
+          ? 504
+          : code === "PREEMPT_FAILED"
+            ? 409
+            : 400;
+      send(res, status, {
+        ok: false,
+        code,
+        retryable: err?.retryable !== false,
         error: err instanceof Error ? err.message : "revise failed",
+        detail: err?.detail || undefined,
       });
     }
     return;

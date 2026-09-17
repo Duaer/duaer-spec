@@ -77,7 +77,7 @@ mock LLM — no paid API).
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (install Cursor CLI if needed: `curl https://cursor.com/install -fsS | bash`)  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)  
-6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches with `agent --continue` / `claude --continue` on the same worktree  
+6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches with `agent --continue` / `claude --continue` on the same worktree. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  
 7. If the job needs hosting / a public URL, deploy with **GitHub CLI (`gh`) + Actions** (Pages template under `.duaer/templates/deploy-github-pages.yml`; see [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
 Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
