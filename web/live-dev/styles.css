@@ -621,22 +621,23 @@ body.history-open {
 }
 
 .choice-chip {
-  border-color: var(--register);
-  background: rgba(224, 90, 43, 0.12);
-  color: var(--ink);
-  font-weight: 600;
+  border-color: var(--line);
+  background: rgba(127, 149, 168, 0.08);
+  color: var(--mute);
+  font-weight: 500;
 }
 
 .choice-chip:hover,
 .choice-chip:focus-visible {
-  border-color: var(--register);
-  background: rgba(224, 90, 43, 0.22);
+  border-color: var(--mute);
+  background: rgba(127, 149, 168, 0.14);
+  color: var(--ink);
   outline: none;
 }
 
 .chip:hover,
 .chip:focus-visible {
-  border-color: var(--register);
+  border-color: var(--mute);
   outline: none;
 }
 

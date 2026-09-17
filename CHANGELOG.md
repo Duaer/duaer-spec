@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Quieter choice chips
+
+- Chat option chips use muted plate/line styling instead of orange emphasis
+
 ### Unique dispatch worktrees
 
 - Confirm branch hint is `feat/<jobId>` (unique per live job)

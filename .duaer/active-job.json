@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/077-dispatch-unique",
-  "slug": "077-dispatch-unique",
-  "branch": "fix/dispatch-unique",
-  "worktree": ".worktree/fix-dispatch-unique"
+  "featureDir": ".duaer/specs/078-chip-tone",
+  "slug": "078-chip-tone",
+  "branch": "fix/chip-tone",
+  "worktree": ".worktree/fix-chip-tone"
 }

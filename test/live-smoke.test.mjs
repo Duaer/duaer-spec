@@ -227,8 +227,12 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.match(html, /header\.beginner|top-beginner/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
-  assert.match(css, /chat-empty-steps/);
-  assert.match(css, /top-beginner/);
+  assert.match(css, /choice-chip/);
+  assert.match(css, /rgba\(127,\s*149,\s*168/);
+  assert.doesNotMatch(
+    css,
+    /\.choice-chip\s*\{[^}]*var\(--register\)/,
+  );
   assert.match(js, /structuredHtml/);
   assert.match(js, /\/api\/validate/);
   assert.match(js, /card\.acceptHint|acceptHint/);
