@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/073-empty-structured",
-  "slug": "073-empty-structured",
-  "branch": "feat/empty-structured",
-  "worktree": ".worktree/feat-empty-structured"
+  "featureDir": ".duaer/specs/074-chat-blank",
+  "slug": "074-chat-blank",
+  "branch": "fix/chat-blank",
+  "worktree": ".worktree/fix-chat-blank"
 }

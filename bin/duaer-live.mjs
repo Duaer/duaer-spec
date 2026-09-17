@@ -312,7 +312,9 @@ function send(res, status, body, type = "application/json; charset=utf-8") {
 function contentType(filePath) {
   if (filePath.endsWith(".html")) return "text/html; charset=utf-8";
   if (filePath.endsWith(".css")) return "text/css; charset=utf-8";
-  if (filePath.endsWith(".js")) return "text/javascript; charset=utf-8";
+  if (filePath.endsWith(".mjs") || filePath.endsWith(".js")) {
+    return "text/javascript; charset=utf-8";
+  }
   return "application/octet-stream";
 }
 

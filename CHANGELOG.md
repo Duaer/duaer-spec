@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Live desk module MIME
+
+- Serve `.mjs` as `text/javascript` so `structured-html.mjs` loads; desk chat
+  UI works again in browsers that enforce module MIME types
+
 ### Structured chat empty steps
 
 - Empty-state guidance is three numbered steps (plain words → confirm/dispatch

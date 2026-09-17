@@ -231,6 +231,13 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="autoFixCard"/);
   assert.match(html, /id="agentInstall"/);
 
+  const mjsRes = await fetch(`${live.base}/structured-html.mjs`);
+  assert.equal(mjsRes.status, 200);
+  const mjsType = mjsRes.headers.get("content-type") || "";
+  assert.match(mjsType, /javascript/);
+  const mjsBody = await mjsRes.text();
+  assert.match(mjsBody, /structuredHtml|normalizeReqText/);
+
   const health = await (await fetch(`${live.base}/api/health`)).json();
   assert.equal(health.ready, true);
 
