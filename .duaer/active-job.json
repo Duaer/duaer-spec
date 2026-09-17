@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/068-fed-ux-polish",
-  "branch": "feat/fed-ux-polish",
-  "worktree": ".worktree/feat-fed-ux-polish",
+  "featureDir": ".duaer/specs/069-history-btn-size",
+  "branch": "fix/history-btn-size",
+  "worktree": ".worktree/fix-history-btn-size",
   "status": "accepted"
 }

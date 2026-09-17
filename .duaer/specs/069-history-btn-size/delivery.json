@@ -1,0 +1,6 @@
+{
+  "status": "accepted",
+  "featureDir": ".duaer/specs/069-history-btn-size",
+  "branch": "fix/history-btn-size",
+  "verification": { "levels": ["L1", "L3"], "commands": ["npm test", "npm run test:live"] }
+}
