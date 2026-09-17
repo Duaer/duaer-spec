@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "featureDir": ".duaer/specs/070-validate-autofix-btn",
+  "branch": "feat/validate-autofix-btn",
+  "verification": {
+    "levels": ["L1", "L3"],
+    "commands": ["npm test", "npm run test:live"]
+  }
+}

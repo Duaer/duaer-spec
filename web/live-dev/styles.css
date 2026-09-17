@@ -700,6 +700,25 @@ input:focus {
   color: var(--ink);
 }
 
+.auto-handle-btn {
+  width: 100%;
+  margin: 0.45rem 0 0.15rem;
+  background: rgba(224, 90, 43, 0.12);
+  border-color: var(--register);
+  color: #f0b39a;
+}
+
+.auto-handle-btn:hover,
+.auto-handle-btn:focus-visible {
+  background: rgba(224, 90, 43, 0.22);
+  border-color: var(--register);
+  color: var(--ink);
+}
+
+.auto-handle-btn[hidden] {
+  display: none !important;
+}
+
 .btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;

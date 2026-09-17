@@ -97,6 +97,8 @@ const el = {
   lockHint: document.getElementById("lockHint"),
   validateHint: document.getElementById("validateHint"),
   reviseValidateHint: document.getElementById("reviseValidateHint"),
+  autoFixCard: document.getElementById("autoFixCard"),
+  autoFixRevise: document.getElementById("autoFixRevise"),
   meta: document.getElementById("meta"),
   send: document.getElementById("send"),
   cfgProviders: document.getElementById("cfgProviders"),
@@ -390,6 +392,7 @@ function resetValidateGate({ keepHint = false } = {}) {
       el.reviseValidateHint.textContent = "";
     }
   }
+  syncAutoHandleButtons();
 }
 
 function renderValidateHint() {
@@ -407,17 +410,20 @@ function renderValidateHint() {
   if (st === "idle") {
     target.hidden = true;
     target.textContent = "";
+    syncAutoHandleButtons();
     return;
   }
   target.hidden = false;
   if (st === "checking") {
     target.textContent = t("validate.checking");
+    syncAutoHandleButtons();
     return;
   }
   if (st === "passed") {
     target.textContent = t("validate.passed", {
       summary: state.validate.summary || "",
     });
+    syncAutoHandleButtons();
     return;
   }
   const issues = state.validate.issues || [];
@@ -426,6 +432,32 @@ function renderValidateHint() {
     summary: state.validate.summary || t("bot.acceptFailedDefault"),
     detail,
   });
+  syncAutoHandleButtons();
+}
+
+function syncAutoHandleButtons() {
+  const failed = state.validate.status === "failed";
+  const confirmFail =
+    failed &&
+    state.validate.kind === "confirm" &&
+    !state.locked &&
+    state.mode !== "revise" &&
+    !state.reviseLocked;
+  const reviseFail =
+    failed &&
+    state.validate.kind === "revise" &&
+    state.mode === "revise" &&
+    !state.reviseLocked;
+  if (el.autoFixCard) {
+    el.autoFixCard.hidden = !confirmFail;
+    el.autoFixCard.disabled = state.busy || !state.ready;
+    if (!state.busy) el.autoFixCard.textContent = t("card.autoHandle");
+  }
+  if (el.autoFixRevise) {
+    el.autoFixRevise.hidden = !reviseFail;
+    el.autoFixRevise.disabled = state.busy || !state.ready;
+    if (!state.busy) el.autoFixRevise.textContent = t("card.autoHandle");
+  }
 }
 
 function validationAllowsSend(kind) {
@@ -561,6 +593,7 @@ function syncConfirmEnabled() {
       }
     }
     syncReviseDispatchButton(ok);
+    syncAutoHandleButtons();
     return;
   }
   const v = cardValues();
@@ -593,6 +626,7 @@ function syncConfirmEnabled() {
   }
   setConfirmFieldsReadonly(state.locked);
   syncReviseDispatchButton(false);
+  syncAutoHandleButtons();
 }
 
 function syncReviseDispatchButton(ready) {
@@ -1086,6 +1120,71 @@ function showAcceptFailed(data, { kind = "confirm" } = {}) {
       ],
     },
   );
+}
+
+/** Gate-side Auto-handle: fix card via validate/fix and narrate in chat. */
+async function autoHandleFromGate(kind, btn) {
+  if (state.busy || !state.ready) return;
+  if (state.validate.status !== "failed") return;
+  if (kind === "confirm" && state.locked) return;
+  if (kind === "revise" && state.reviseLocked) return;
+  const issues = Array.isArray(state.validate.issues)
+    ? state.validate.issues
+    : [];
+  const v = kind === "revise" ? reviseCardValues() : cardValues();
+  state.busy = true;
+  syncAutoHandleButtons();
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = t("card.autoHandling");
+  }
+  addBubble("bot", t("bot.autoHandleStart"));
+  try {
+    const res = await fetch("/api/validate/fix", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ...v, issues }),
+    });
+    const data = await res.json();
+    if (data.card) applyCard(data.card, { skipValidate: true });
+    const next = kind === "revise" ? reviseCardValues() : cardValues();
+    const passed = Boolean(data.passed) && res.ok;
+    state.validate = {
+      kind,
+      fingerprint: cardFingerprint(next),
+      status: passed ? "passed" : "failed",
+      summary: data.summary || data.error || "",
+      issues: Array.isArray(data.issues) ? data.issues : [],
+    };
+    renderValidateHint();
+    if (passed) {
+      addBubble(
+        "bot",
+        t("bot.validateFixed", {
+          summary: data.fixSummary || data.summary || "",
+        }),
+      );
+    } else {
+      const note = data.fixSummary ? `（${data.fixSummary}）` : "";
+      addBubble("bot", t("bot.fixStillFailed", { note }));
+      showAcceptFailed(data, { kind });
+    }
+  } catch (err) {
+    addBubble(
+      "bot",
+      t("bot.autoFixFail", {
+        msg: err instanceof Error ? err.message : err,
+      }),
+    );
+  } finally {
+    state.busy = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = t("card.autoHandle");
+    }
+    syncConfirmEnabled();
+    syncAutoHandleButtons();
+  }
 }
 
 async function applyConfirmSuccess(data) {
@@ -2699,5 +2798,16 @@ if (el.langSelect) {
 applyDomI18n();
 syncChatPlaceholder();
 wireReqSections();
+
+if (el.autoFixCard) {
+  el.autoFixCard.addEventListener("click", () => {
+    void autoHandleFromGate("confirm", el.autoFixCard);
+  });
+}
+if (el.autoFixRevise) {
+  el.autoFixRevise.addEventListener("click", () => {
+    void autoHandleFromGate("revise", el.autoFixRevise);
+  });
+}
 
 void loadConfig();

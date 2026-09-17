@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/069-history-btn-size",
-  "branch": "fix/history-btn-size",
-  "worktree": ".worktree/fix-history-btn-size",
+  "featureDir": ".duaer/specs/070-validate-autofix-btn",
+  "branch": "feat/validate-autofix-btn",
+  "worktree": ".worktree/feat-validate-autofix-btn",
   "status": "accepted"
 }

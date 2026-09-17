@@ -223,7 +223,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /\/api\/validate/);
   assert.match(js, /card\.acceptHint|acceptHint/);
   assert.match(js, /agentRedetect|is-missing|agent-chip-cmd/);
+  assert.match(js, /autoHandleFromGate|autoFixCard|card\.autoHandle/);
   assert.match(html, /id="agentRedetect"/);
+  assert.match(html, /id="autoFixCard"/);
   assert.match(html, /id="agentInstall"/);
 
   const health = await (await fetch(`${live.base}/api/health`)).json();
