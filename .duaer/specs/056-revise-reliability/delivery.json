@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "summary": "Revise dispatch: honest preempt, Brief rollback on launch fail, structured retryable errors, terminal status line, longer client wait.",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "npm run test:live",
+      "node --test test/revise-reliability.test.mjs"
+    ],
+    "notes": "E2E-055 manual for live Terminal preempt path."
+  }
+}

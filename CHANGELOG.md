@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Revise round reliability
+
+- Honest Terminal preempt: no false `preempted` / HTTP 200 when agents still run (`PREEMPT_FAILED`, retryable)
+- Rollback Brief `spec.md` / `tasks.md` / `delivery.json` if revise launch fails
+- `/api/status` includes `terminal: { busy, queueDepth, runnerHealthy }`; desk shows the line
+- Client revise wait raised to ~3 minutes; structured error codes + keep Confirm revise unlocked on failure
+- Stuck revising (busy Terminal, no task progress) resurfaces **Revise again**
+
 ## 0.15.0 — 2026-09-17
 
 ### Live desk L3 smoke

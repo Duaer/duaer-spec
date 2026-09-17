@@ -41,8 +41,13 @@ Covers without a paid LLM:
 3. `/api/validate` pass and `/api/validate/fix` via an in-process mock
    OpenAI-compatible server
 
-Does **not** cover: real model quality, Terminal CLI launch, or full revise
-dispatch. Those stay manual E2E catalog rows or future suites.
+Also run `npm test` (includes revise-reliability contract tests: Brief
+snapshot/rollback helpers + source markers for `PREEMPT_FAILED` / longer
+client timeout).
+
+Does **not** cover: real model quality, live Terminal CLI launch against a
+real Cursor/Claude session. Those stay manual E2E catalog rows (E2E-055) or
+future suites.
 
 ## Opt-in (still need an explicit ask or Spec note)
 

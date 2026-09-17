@@ -36,6 +36,8 @@ const state = {
   mode: "specify", // specify | revise
   /** After a successful revise: right card stays locked 改进卡. */
   reviseLocked: false,
+  /** Revising but Terminal busy with no task progress — offer retry CTA. */
+  reviseStuckHint: false,
   lastRevision: null, // { revision, change, keep, acceptance, reason }
   originalCard: null, // snapshot after first confirm
   lastStatus: null,
@@ -612,7 +614,9 @@ function syncReviseDispatchButton(ready) {
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
   if (el.reviseHint) {
-    if (revising && !dialoguing) {
+    if (revising && state.reviseStuckHint && !dialoguing) {
+      el.reviseHint.textContent = t("revise.hintStuck");
+    } else if (revising && !dialoguing) {
       el.reviseHint.textContent = t("revise.hintRevising");
     } else if (state.reviseLocked && !dialoguing) {
       el.reviseHint.textContent = t("revise.hintLocked");
@@ -629,7 +633,8 @@ function syncReviseDispatchButton(ready) {
     }
   }
   if (el.startReviseChat || el.startReviseChatAlt) {
-    const showCta = !dialoguing && accepted && !revising;
+    const showCta =
+      !dialoguing && accepted && (!revising || state.reviseStuckHint);
     const previewVisible = el.previewPanel && !el.previewPanel.hidden;
     if (el.startReviseChat) {
       el.startReviseChat.hidden = !(showCta && previewVisible);
@@ -2204,7 +2209,8 @@ async function confirmReviseAndDispatch() {
       agentId: state.agentId,
     };
     const ac = new AbortController();
-    const timer = setTimeout(() => ac.abort(), 90000);
+    // Cover recreate (git ≤60s) + optional duaer init (≤120s) + validate/launch headroom.
+    const timer = setTimeout(() => ac.abort(), 180000);
     const res = await fetch("/api/revise", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -2218,10 +2224,13 @@ async function confirmReviseAndDispatch() {
       data = rawText ? JSON.parse(rawText) : {};
     } catch {
       const snippet = String(rawText || "").replace(/\s+/g, " ").slice(0, 180);
-      throw new Error(
-        snippet
-          ? `HTTP ${res.status}: ${snippet}`
-          : `HTTP ${res.status} ${t("err.revise")}`,
+      throw Object.assign(
+        new Error(
+          snippet
+            ? `HTTP ${res.status}: ${snippet}`
+            : `HTTP ${res.status} ${t("err.revise")}`,
+        ),
+        { retryable: true },
       );
     }
     if (res.status === 422 || data.passed === false) {
@@ -2238,7 +2247,12 @@ async function confirmReviseAndDispatch() {
       syncConfirmEnabled();
       return;
     }
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status} ${t("err.revise")}`);
+    if (!res.ok) {
+      const err = new Error(reviseErrorMessage(data, res.status));
+      err.retryable = data.retryable !== false;
+      err.code = data.code || "";
+      throw err;
+    }
     resetValidateGate();
     const restated = data.restated
       ? t("bot.reviseRestate", {
@@ -2273,21 +2287,47 @@ async function confirmReviseAndDispatch() {
     }
     startStatusPoll();
   } catch (err) {
-    const msg =
-      err?.name === "AbortError"
-        ? t("err.timeout")
-        : err instanceof Error
-          ? err.message
-          : t("err.revise");
+    const timedOut = err?.name === "AbortError";
+    const msg = timedOut
+      ? t("err.reviseTimeout")
+      : err instanceof Error
+        ? err.message
+        : t("err.revise");
+    const retryable = timedOut || err?.retryable !== false;
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
-      el.reviseErr.textContent = msg;
+      el.reviseErr.textContent = retryable
+        ? `${msg} ${t("err.retryableHint")}`
+        : msg;
     }
     addBubble("bot", msg);
+    // Keep card unlocked so Confirm revise stays available.
+    state.reviseLocked = false;
+    setReviseFieldsReadonly(false);
   } finally {
     state.reviseDispatching = false;
     syncConfirmEnabled();
   }
+}
+
+function reviseErrorMessage(data, status) {
+  const code = String(data?.code || "").trim();
+  if (code) {
+    const keyed = t(`err.code.${code}`);
+    if (keyed && keyed !== `err.code.${code}`) return keyed;
+  }
+  return data?.error || `HTTP ${status} ${t("err.revise")}`;
+}
+
+function formatTerminalStatus(term) {
+  if (!term || typeof term !== "object") return "";
+  if (!term.runnerHealthy) return t("status.terminalDown");
+  const parts = [
+    term.busy ? t("status.terminalBusy") : t("status.terminalIdle"),
+  ];
+  const depth = Number(term.queueDepth || 0);
+  if (depth > 0) parts.push(t("status.terminalQueue", { n: depth }));
+  return parts.join(" · ");
 }
 
 function startStatusPoll() {
@@ -2317,6 +2357,25 @@ function startStatusPoll() {
             ? t("status.worktreeGone")
             : "",
       });
+      const termLine = formatTerminalStatus(data.terminal);
+      if (termLine) {
+        el.dispatchStatus.textContent = `${el.dispatchStatus.textContent} · ${t(
+          "status.terminalLine",
+          { state: termLine },
+        )}`;
+      }
+      // If revising but Terminal is stuck busy with no progress, keep「再改一版」visible.
+      if (
+        data.status === "revising" &&
+        data.terminal?.busy &&
+        data.terminal?.runnerHealthy &&
+        !(data.progress?.done > 0)
+      ) {
+        state.reviseStuckHint = true;
+      } else {
+        state.reviseStuckHint = false;
+      }
+      renderRevisePanel(data);
       if (data.status === "accepted" && data.delivery?.status === "accepted") {
         el.dispatchStatus.textContent = t("status.acceptedRevise", { rev });
         if (!acceptedNotified || data.revision !== lastRevision) {

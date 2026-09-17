@@ -112,6 +112,8 @@ const zhCN = {
   "revise.hintEnqueue": "正在送入同一 Terminal（不新开窗口）…",
   "revise.hintLocked": "本轮改进卡（下方）已确认。改完验收后若仍不满意，再点「再改一版」。",
   "revise.hintRevising": "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。",
+  "revise.hintStuck":
+    "Terminal 仍忙且尚无任务进度。可结束旧任务后点「再改一版」重试续派。",
   "bot.ready":
     "模型已就绪。随便说你想做什么；我会多轮问清，右侧是确认卡。确认前不会改你的业务仓库。",
   "bot.cardReady": "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
@@ -222,6 +224,20 @@ const zhCN = {
   "err.reviseKickoff": "改进对话启动失败",
   "err.confirm": "确认失败",
   "err.timeout": "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。",
+  "err.reviseTimeout":
+    "续派超时（约 3 分钟）。Brief 未写入本轮 Revision 时可直接再点「再派一版」；若 Terminal 已有任务请在窗口里继续。",
+  "err.code.PREEMPT_FAILED":
+    "无法抢占仍在运行的 Agent。请结束该 worktree 的 Terminal 任务后，再点「再派一版」。",
+  "err.code.CHILD_TIMEOUT": "子进程超时被中止。请重试续派；若 git/init 卡住请检查仓库与钩子。",
+  "err.code.LAUNCH_FAILED": "续派启动失败。可直接再点「再派一版」重试。",
+  "err.code.NO_AGENT": "未检测到可用 CLI。请安装 Cursor Agent 或 Claude Code 后重试。",
+  "err.code.AGENT_MISSING": "所选 CLI 未安装。请安装后重试。",
+  "err.retryableHint": "可以再试一次。",
+  "status.terminalLine": "Terminal：{state}",
+  "status.terminalBusy": "忙碌中",
+  "status.terminalIdle": "空闲",
+  "status.terminalQueue": "队列 {n}",
+  "status.terminalDown": "无 runner",
   "err.installAgent": "请先安装：{cmd}",
   "err.needAgent": "请先安装所选 CLI",
   "err.needAgentAlt": "请先安装对应 CLI",
@@ -342,6 +358,8 @@ const en = {
     "This revise card is locked. After accept, tap Revise again if needed.",
   "revise.hintRevising":
     "Employee is revising. You can View product; Revise again after accept.",
+  "revise.hintStuck":
+    "Terminal is still busy with no task progress. Stop the old job, then tap Revise again to retry.",
   "bot.ready":
     "Model ready. Tell me what you want; I will clarify in chat. The confirm card is on the right. Nothing touches your product repo until you confirm.",
   "bot.cardReady":
@@ -453,6 +471,21 @@ const en = {
   "err.reviseKickoff": "Could not start revise chat",
   "err.confirm": "Confirm failed",
   "err.timeout": "Timed out. Refresh; if the Agent is open, continue in Terminal.",
+  "err.reviseTimeout":
+    "Revise timed out (~3 min). If this Revision was not written, tap Confirm revise again; if Terminal already has a job, continue there.",
+  "err.code.PREEMPT_FAILED":
+    "Could not preempt a running Agent. Stop that worktree Terminal job, then tap Confirm revise again.",
+  "err.code.CHILD_TIMEOUT":
+    "A child process timed out. Retry revise; check git hooks if checkout/init stalls.",
+  "err.code.LAUNCH_FAILED": "Revise launch failed. Tap Confirm revise to retry.",
+  "err.code.NO_AGENT": "No CLI found. Install Cursor Agent or Claude Code, then retry.",
+  "err.code.AGENT_MISSING": "Selected CLI is not installed. Install it, then retry.",
+  "err.retryableHint": "You can retry.",
+  "status.terminalLine": "Terminal: {state}",
+  "status.terminalBusy": "busy",
+  "status.terminalIdle": "idle",
+  "status.terminalQueue": "queue {n}",
+  "status.terminalDown": "no runner",
   "err.installAgent": "Install first: {cmd}",
   "err.needAgent": "Install the selected CLI first",
   "err.needAgentAlt": "Install the matching CLI first",
