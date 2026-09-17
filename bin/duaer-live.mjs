@@ -2017,48 +2017,64 @@ function launchInTerminal({
   if (key && fs.existsSync(key)) {
     const qdir = terminalQueueDir(key);
     fs.mkdirSync(qdir, { recursive: true });
-    const jobPath = enqueueTerminalJob(qdir, commandLine);
-    let queuedCount = countQueuedJobs(qdir);
 
     if (isTerminalRunnerHealthy(qdir)) {
       let busy = isTerminalRunnerBusy(qdir);
       let preempted = false;
+      let pre = null;
       // After accept, leftover first-agent must not block revise forever.
+      // Preempt *before* enqueue so the new revise Agent is never mistaken
+      // for a leftover (false PREEMPT_FAILED while work already started).
       if (busy && preemptBusy) {
-        const pre = preemptBusyTerminalJob(qdir, {
+        pre = preemptBusyTerminalJob(qdir, {
           worktreePath: cwd,
           logPath,
         });
-        sleepBriefMs(400);
-        busy = isTerminalRunnerBusy(qdir);
-        const agentsLeft = cwd ? listWorktreeAgentPids(cwd).length : 0;
-        // Honest outcome: only "preempted" when something actually died.
         preempted = Array.isArray(pre.killed) && pre.killed.length > 0;
-        queuedCount = countQueuedJobs(qdir);
-        try {
-          fs.writeFileSync(
-            path.join(qdir, "wake"),
-            `${path.basename(jobPath)}\n`,
-          );
-        } catch {
-          // ignore
+        let agentsLeft = cwd ? listWorktreeAgentPids(cwd).length : 0;
+        for (let i = 0; i < 10 && agentsLeft > 0; i += 1) {
+          sleepBriefMs(200);
+          if (i === 4 || i === 8) {
+            preemptBusyTerminalJob(qdir, {
+              worktreePath: cwd,
+              logPath,
+            });
+          }
+          agentsLeft = cwd ? listWorktreeAgentPids(cwd).length : 0;
         }
-        // Still busy with live agent PIDs → do not claim success.
-        if (busy && agentsLeft > 0) {
+        if (agentsLeft > 0) {
           throw new LaunchGateError(
             "无法抢占仍在运行的 Agent。请结束该 worktree 的 Terminal 任务后重试续派。",
             {
               code: "PREEMPT_FAILED",
               retryable: true,
               detail: {
-                busy,
+                busy: isTerminalRunnerBusy(qdir),
                 agentsLeft,
-                killed: pre.killed || [],
-                reason: pre.reason,
+                killed: pre?.killed || [],
+                reason: pre?.reason || null,
+                enqueued: false,
               },
             },
           );
         }
+        // Best-effort: let runner drop running.cmd before we queue revise.
+        for (let i = 0; i < 10; i += 1) {
+          if (!isTerminalRunnerBusy(qdir)) break;
+          sleepBriefMs(150);
+        }
+      }
+
+      const jobPath = enqueueTerminalJob(qdir, commandLine);
+      const queuedCount = countQueuedJobs(qdir);
+      busy = isTerminalRunnerBusy(qdir);
+      try {
+        fs.writeFileSync(
+          path.join(qdir, "wake"),
+          `${path.basename(jobPath)}\n`,
+        );
+      } catch {
+        // ignore
       }
       const pid = readRunnerPid(qdir);
       appendLaunchLog(
@@ -2079,6 +2095,7 @@ function launchInTerminal({
     }
 
     // Stale/dead PID or pre-heartbeat runner: do not claim reuse
+    const jobPath = enqueueTerminalJob(qdir, commandLine);
     const stalePid = readRunnerPid(qdir);
     if (stalePid != null) {
       appendLaunchLog(

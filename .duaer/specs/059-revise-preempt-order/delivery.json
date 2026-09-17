@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-17T10:05:00.000Z",
+  "summary": "priorAccepted revise preempts leftovers before enqueue so Confirm revise no longer returns PREEMPT_FAILED while the revise Agent is already running.",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "npm test"
+    ],
+    "result": "pass (14 tests)"
+  }
+}

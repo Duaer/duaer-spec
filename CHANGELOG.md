@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Honest revise preempt
+
+- priorAccepted revise preempts leftover Agents **before** enqueueing the new
+  Terminal job (no false `PREEMPT_FAILED` while the revise Agent already runs)
+- `PREEMPT_FAILED` only when leftovers remain — nothing queued for that attempt
+
 ### Revise progress tracking
 
 - After Confirm revise, task progress scopes to the active `Revision N` checklist
