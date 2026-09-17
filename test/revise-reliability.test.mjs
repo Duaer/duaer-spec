@@ -44,6 +44,16 @@ test("live sources declare reliability contracts", () => {
   assert.match(live, /restoreTextFile/);
   assert.match(live, /preempted: killed\.length > 0/);
 
+  // priorAccepted revise: clear leftovers before enqueue (no false PREEMPT_FAILED)
+  const gate = live.indexOf("if (busy && preemptBusy)");
+  assert.ok(gate >= 0, "preemptBusy gate missing");
+  const slice = live.slice(gate, gate + 2800);
+  const iPreempt = slice.indexOf("preemptBusyTerminalJob");
+  const iEnqueue = slice.indexOf("enqueueTerminalJob");
+  assert.ok(iPreempt >= 0, "preempt call missing in gate");
+  assert.ok(iEnqueue > iPreempt, "enqueue must follow preempt");
+  assert.match(slice, /enqueued:\s*false/);
+
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /180000/);
   assert.match(app, /reviseErrorMessage/);

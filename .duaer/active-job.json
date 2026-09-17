@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/058-revise-progress-track",
-  "branch": "fix/revise-progress-track",
-  "worktree": ".worktree/fix-revise-progress-track",
+  "featureDir": ".duaer/specs/059-revise-preempt-order",
+  "branch": "fix/revise-preempt-order",
+  "worktree": ".worktree/fix-revise-preempt-order",
   "status": "accepted"
 }
