@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Unique dispatch worktrees
+
+- Confirm branch hint is `feat/<jobId>` (unique per live job)
+- Dispatch auto-allocates `feat/html-043` / `feat/html-2` when
+  `.worktree/feat-html` (or the branch) is already taken — no more
+  `worktree 已存在` hard fail on repeated same-slug goals
+
 ### Clickable chat choices
 
 - Choice questions must ship `options` chips (tap to send); server/client also

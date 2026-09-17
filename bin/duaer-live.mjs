@@ -27,6 +27,7 @@ import {
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
+import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -817,7 +818,7 @@ function writeBrief(payload) {
   fs.mkdirSync(featureDir, { recursive: true });
 
   const today = new Date().toISOString().slice(0, 10);
-  const branchHint = `feat/${slug}`;
+  const branchHint = `feat/${dirName}`;
   const reviewBlock = review
     ? `
 
@@ -2728,17 +2729,15 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
     exact: true,
     ensureDuaer: true,
   });
-  const branch =
+  const preferred =
     String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
-  const worktreeId = branch.replace(/\//g, "-");
+  const { branch, worktreeId } = allocateUniqueFeatBranch(preferred, {
+    jobId: live.id,
+    isTaken: (b, wtId) =>
+      hasLocalBranch(probe.path, b) ||
+      fs.existsSync(path.join(probe.path, ".worktree", wtId)),
+  });
   const worktreePath = path.join(probe.path, ".worktree", worktreeId);
-
-  if (fs.existsSync(worktreePath)) {
-    throw new Error(`worktree 已存在：${worktreePath}`);
-  }
-  if (hasLocalBranch(probe.path, branch)) {
-    throw new Error(`分支已存在：${branch}（请换目标或删分支后再派工）`);
-  }
 
   fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
   runGit(probe.path, [
@@ -2925,6 +2924,7 @@ Brief: ${featureDir}
 
   const nextJob = {
     ...live.job,
+    branch,
     status: "dispatched",
     dispatch,
     agentPrompt,

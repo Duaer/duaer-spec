@@ -58,6 +58,7 @@ the table for their app.
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
 | E2E-044 | Duaer-spec FED history: header row has Duaer-spec FED + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-070 | Dispatch into a product repo when `.worktree/feat-<slug>` already exists allocates a new branch/worktree (e.g. feat/html-043) instead of failing `worktree 已存在` | `npm test` + manual |
 | E2E-069 | Choice questions show clickable chips (tap sends); ready bubble has starter chips; `.mjs` option enrich when JSON omits options | `npm test` + `npm run test:live` + manual |
 | E2E-068 | Header center shows beginner line (`header.beginner`); chat empty has steps only (no emptyTitle flash) | `npm run test:live` + manual |
 | E2E-067 | Live serves `.mjs` as `text/javascript`; desk module graph loads; send shows chat bubbles | `npm run test:live` |

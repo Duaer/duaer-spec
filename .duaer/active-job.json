@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/076-click-options",
-  "slug": "076-click-options",
-  "branch": "feat/click-options",
-  "worktree": ".worktree/feat-click-options"
+  "featureDir": ".duaer/specs/077-dispatch-unique",
+  "slug": "077-dispatch-unique",
+  "branch": "fix/dispatch-unique",
+  "worktree": ".worktree/fix-dispatch-unique"
 }

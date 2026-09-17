@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": ["node --check bin/duaer-live.mjs", "npm test", "npm run test:live"],
+    "result": "pass"
+  },
+  "summary": "Dispatch allocates unique feat branch/worktree when feat-html already exists."
+}
