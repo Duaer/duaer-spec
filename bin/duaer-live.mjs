@@ -51,8 +51,25 @@ function npmGlobalBinDir() {
   return null;
 }
 
-function nvmNodeBinDir() {
-  const ver = String(process.version || "").trim();
+function nvmBinDirs() {
+  const root = path.join(os.homedir(), ".nvm", "versions", "node");
+  const dirs = [];
+  const preferred = nvmNodeBinDirFor(process.version);
+  if (preferred) dirs.push(preferred);
+  if (!fs.existsSync(root)) return dirs;
+  try {
+    for (const name of fs.readdirSync(root)) {
+      const d = path.join(root, name, "bin");
+      if (fs.existsSync(d) && !dirs.includes(d)) dirs.push(d);
+    }
+  } catch {
+    // ignore
+  }
+  return dirs;
+}
+
+function nvmNodeBinDirFor(version) {
+  const ver = String(version || "").trim();
   if (!ver) return null;
   const dir = path.join(os.homedir(), ".nvm", "versions", "node", ver, "bin");
   return fs.existsSync(dir) ? dir : null;
@@ -60,7 +77,7 @@ function nvmNodeBinDir() {
 
 function cliSearchDirs() {
   const dirs = [...CLI_PATH_DIRS];
-  for (const d of [npmGlobalBinDir(), nvmNodeBinDir()]) {
+  for (const d of [npmGlobalBinDir(), ...nvmBinDirs()]) {
     if (d && !dirs.includes(d)) dirs.push(d);
   }
   return dirs;
