@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Norms → satisfactory delivery
+
+- Positioning: README / DUADER / npm description lead with checkable Briefs that
+  yield satisfactory delivery (not phase/skill operation)
+- Stricter confirm/revise validate gate: vague acceptance (e.g. “looks better”)
+  fails locally; checkable outcomes required
+- Live desk acceptance hint + agent prompts emphasize meeting Acceptance and
+  openable `preview.url`
+
 ## 0.16.0 — 2026-09-18
 
 ### Honest revise preempt

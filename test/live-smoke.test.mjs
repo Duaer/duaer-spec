@@ -221,6 +221,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /structuredHtml/);
   assert.match(js, /\/api\/validate/);
+  assert.match(js, /card\.acceptHint|acceptHint/);
 
   const health = await (await fetch(`${live.base}/api/health`)).json();
   assert.equal(health.ready, true);
@@ -243,6 +244,18 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const shortBody = await short.json();
   assert.equal(shortBody.passed, false);
   assert.ok((shortBody.issues || []).length >= 1);
+
+  const vague = await fetch(`${live.base}/api/validate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      goal: "Polish the homepage design a bit",
+      acceptance: "Make it look better and nicer overall",
+    }),
+  });
+  assert.equal(vague.status, 422);
+  const vagueBody = await vague.json();
+  assert.equal(vagueBody.passed, false);
 
   const goodCard = {
     goal: "Ship live L3 smoke suite for validate gate",

@@ -1,7 +1,7 @@
 {
   "name": "duaer-spec",
   "version": "0.16.0",
-  "description": "Digital employees for Cursor, Claude, Codex, Copilot, Windsurf, Cline, Continue, Gemini, Aider",
+  "description": "Norms → satisfactory delivery: digital employees for Cursor, Claude, Codex, Copilot, Windsurf, Cline, Continue, Gemini, Aider",
   "type": "module",
   "bin": {
     "duaer": "bin/duaer.mjs",

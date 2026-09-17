@@ -146,6 +146,7 @@ const el = {
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
+  acceptHint: document.getElementById("acceptHint"),
   lblAssume: document.getElementById("lblAssume"),
   chatPanel: document.querySelector(".chat-panel"),
   cardPanel: document.querySelector(".card-panel"),
@@ -345,6 +346,7 @@ function applyConfirmCardChrome() {
   if (el.lblGoal) el.lblGoal.textContent = t("card.goal");
   if (el.lblOut) el.lblOut.textContent = t("card.out");
   if (el.lblAccept) el.lblAccept.textContent = t("card.accept");
+  if (el.acceptHint) el.acceptHint.textContent = t("card.acceptHint");
   if (el.lblAssume) el.lblAssume.textContent = t("card.assume");
 }
 

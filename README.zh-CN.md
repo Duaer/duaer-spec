@@ -1,6 +1,8 @@
 # duaer-spec
 
-**Duaer** 把 AI 编程助手变成**数字员工**：你用自然语言提需求，它自己跑 Spec → 实现 → 按 `.duaer/memory/testing.md` 做风险分级验证 → 验收；只有交接干净才算完成。
+**Duaer** 把 AI 编程助手变成能**满意交付**的**数字员工**：你用自然语言说意图，它先把需求规范成可检查的 Brief（目标 / 边界 / 验收），再按范围实现，对照验收通过才算完成。
+
+主打的是 **规范 → 满意交付**——不是让人学会操作 Spec 阶段或 slash 命令。
 
 你**不用**操作流程。装一次之后，在 **Cursor** / **Claude Code** / **Codex** / **Copilot** / **Windsurf** / **Cline** / **Continue** / **Gemini** / **Aider** 里说话即可。
 
@@ -70,7 +72,7 @@ duaer live
 
 **流程**
 
-1. 多轮对话 → 确认卡（目标 / 不做 / 验收 / 假设，结构化展示）。须**校验通过**后才能点确认；失败可自动修订  
+1. 多轮对话 → 确认卡（目标 / 不做 / **可检查验收** / 假设）。空泛验收（如「更好用」）过不了门禁；须**校验通过**后才能点确认；失败可自动修订  
 2. 浏览 / 扫描 / 点选产品仓派工（非 git 目录会自动 `git init -b develop`；没有 develop/main/master 会自动建本地 `develop`）  
 3. 只选 **CLI 数字员工**：**Cursor Agent** 或 **Claude Code**（未装 Cursor 时页面会提示：`curl https://cursor.com/install -fsS | bash`）  
 4. 编辑「启动命令」（须以 `Duaer` 开头）→ 派工建 `.worktree/feat-*`，并打开 **Terminal** 跑对应 CLI  
