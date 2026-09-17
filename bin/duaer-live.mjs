@@ -26,6 +26,7 @@ import {
   buildDetailedRevisionTasksMd,
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
+import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -376,13 +377,14 @@ function nextJobDir() {
 const SYSTEM_PROMPT = `你是「Duaer-spec FED」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
 
 规则：
-1. 缺关键可执行信息时，每次只问 1 个卡点问题（可给简短选项）；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
+1. 缺关键可执行信息时，每次只问 1 个卡点问题；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
 2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
 3. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
 4. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
 5. 不要写代码。不要假设用户仓库路径。
-6. 输出格式（严格）：
-   - 先写对用户说的纯文本（可多行，不要 JSON）
+6. 只要问题是让用户做选择（A/B、平台、是否、静态/带后端等），必须在 JSON 的 options 填 2～5 个短选项（每个≤20字）。用户界面会显示可点击按钮，一点即发。禁止只在正文用「1. 2. 3.」或「请回复数字/请输入」却把 options 留空。
+7. 输出格式（严格）：
+   - 先写对用户说的纯文本（可多行，不要 JSON；正文里不要再列一遍选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
@@ -400,8 +402,9 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用�
    - assumptions = 用户不满意的原因 / 背景摘要
 3. 四块够清楚且可执行时 ready=true（确认前系统会自动校验）。
 4. 不要写代码。不要立刻派工。不要假设仓库路径。
-5. 输出格式（严格）：
-   - 先写对用户说的纯文本
+5. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）；界面可点选发送。禁止只让用户手打或「请回复数字」。
+6. 输出格式（严格）：
+   - 先写对用户说的纯文本（正文不要再列选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
@@ -591,9 +594,10 @@ function parseChatResult(content) {
     acceptance: String(obj.acceptance || "").trim(),
     assumptions: String(obj.assumptions || "").trim(),
     ready: Boolean(obj.ready),
-    options: Array.isArray(obj.options)
-      ? obj.options.map((x) => String(x).trim()).filter(Boolean).slice(0, 5)
-      : [],
+    options: enrichChatOptions(
+      reply || String(obj.reply || ""),
+      Array.isArray(obj.options) ? obj.options : [],
+    ),
   };
 }
 

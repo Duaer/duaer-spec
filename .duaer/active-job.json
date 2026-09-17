@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/075-header-beginner",
-  "slug": "075-header-beginner",
-  "branch": "feat/header-beginner",
-  "worktree": ".worktree/feat-header-beginner"
+  "featureDir": ".duaer/specs/076-click-options",
+  "slug": "076-click-options",
+  "branch": "feat/click-options",
+  "worktree": ".worktree/feat-click-options"
 }

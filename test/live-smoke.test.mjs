@@ -221,6 +221,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
   assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
+  assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
+  const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
+  assert.match(liveBin, /enrichChatOptions/);
+  assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.match(html, /header\.beginner|top-beginner/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   assert.match(css, /chat-empty-steps/);

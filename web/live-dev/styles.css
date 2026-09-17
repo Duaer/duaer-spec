@@ -616,7 +616,22 @@ body.history-open {
   cursor: pointer;
   transition:
     border-color 180ms ease,
-    color 180ms ease;
+    color 180ms ease,
+    background 180ms ease;
+}
+
+.choice-chip {
+  border-color: var(--register);
+  background: rgba(224, 90, 43, 0.12);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.choice-chip:hover,
+.choice-chip:focus-visible {
+  border-color: var(--register);
+  background: rgba(224, 90, 43, 0.22);
+  outline: none;
 }
 
 .chip:hover,

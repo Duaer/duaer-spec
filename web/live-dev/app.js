@@ -11,6 +11,7 @@ import {
   applyDomI18n,
 } from "./i18n.js";
 import { structuredHtml, escapeHtml } from "./structured-html.mjs";
+import { enrichChatOptions } from "./choice-options.mjs";
 
 const FALLBACK_PROVIDERS = [
   {
@@ -775,27 +776,38 @@ function syncChatEmpty() {
   el.chatEmpty.hidden = Boolean(el.log.querySelector(".bubble"));
 }
 
+function appendOptionChips(host, options) {
+  const opts = enrichChatOptions("", options);
+  if (!host || !opts.length) return;
+  host.querySelectorAll(":scope > .options.choice-options").forEach((n) => n.remove());
+  const row = document.createElement("div");
+  row.className = "options choice-options";
+  for (const opt of opts) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip choice-chip";
+    b.textContent = opt;
+    b.addEventListener("click", () => {
+      if (!chatAllowed()) {
+        explainChatBlocked();
+        syncComposerEnabled();
+        return;
+      }
+      el.input.value = opt;
+      el.form.requestSubmit();
+    });
+    row.appendChild(b);
+  }
+  host.appendChild(row);
+  scrollChatToLatest();
+}
+
 function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
   const textNode = document.createTextNode(text);
   div.appendChild(textNode);
-  if (options?.length) {
-    const row = document.createElement("div");
-    row.className = "options";
-    for (const opt of options) {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "chip";
-      b.textContent = opt;
-      b.addEventListener("click", () => {
-        el.input.value = opt;
-        el.form.requestSubmit();
-      });
-      row.appendChild(b);
-    }
-    div.appendChild(row);
-  }
+  if (options?.length) appendOptionChips(div, options);
   if (actions?.length) {
     const row = document.createElement("div");
     row.className = "options";
@@ -832,24 +844,11 @@ function startStreamingBubble() {
     },
     finish(options) {
       div.classList.remove("streaming");
+      const reply = textNode.textContent || "";
+      const opts = enrichChatOptions(reply, options);
+      appendOptionChips(div, opts);
       scrollChatToLatest();
       focusRightPanel({ force: true });
-      if (!options?.length) return;
-      const row = document.createElement("div");
-      row.className = "options";
-      for (const opt of options) {
-        const b = document.createElement("button");
-        b.type = "button";
-        b.className = "chip";
-        b.textContent = opt;
-        b.addEventListener("click", () => {
-          el.input.value = opt;
-          el.form.requestSubmit();
-        });
-        row.appendChild(b);
-      }
-      div.appendChild(row);
-      scrollChatToLatest();
     },
   };
 }
@@ -1059,7 +1058,14 @@ function showDesk(cfg) {
     jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
   });
   if (!state.messages.length) {
-    addBubble("bot", t("bot.ready"));
+    addBubble("bot", t("bot.ready"), {
+      options: [
+        t("chat.optFeature"),
+        t("chat.optChange"),
+        t("chat.optBug"),
+        t("chat.optScript"),
+      ],
+    });
   }
   syncConfirmEnabled();
   syncComposerEnabled();

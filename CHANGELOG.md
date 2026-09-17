@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Clickable chat choices
+
+- Choice questions must ship `options` chips (tap to send); server/client also
+  enrich chips from numbered / A-or-B reply text when JSON omits them
+- Ready bubble offers starter chips; choice chips use a stronger go-affordance
+
 ### Header beginner line
 
 - 「小白也能用 FED」 moves to top-nav center (always on); chat empty keeps only
