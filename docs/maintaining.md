@@ -20,6 +20,15 @@ when a phase's contract changes.
 Day-to-day work integrates on **`develop`**. See
 [branching-and-release](agent/branching-and-release.md).
 
+## Verification (this repo)
+
+| Level | Command |
+|---|---|
+| L0 | `node --check bin/duaer-live.mjs` (and other touched files) |
+| L3 (live desk) | `npm run test:live` |
+
+Details: [`.duaer/memory/testing.md`](../.duaer/memory/testing.md).
+
 ## Releases (go online)
 
 1. Land changes on **`develop`**

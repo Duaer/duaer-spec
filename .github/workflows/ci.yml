@@ -1,0 +1,20 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Live desk L3 smoke
+        run: npm run test:live
+        env:
+          DUAER_NO_UPDATE_CHECK: "1"

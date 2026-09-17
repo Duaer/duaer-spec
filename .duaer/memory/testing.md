@@ -1,21 +1,22 @@
 # Testing expectations (project contract)
 
 Agents **must** read this file before marking work verified or accepting a job.
-Replace command examples with the adopting project's real scripts. Keep the
-level model and risk rules unless an ADR documents a change.
+This file is the **duaer-spec** repo contract. Adopters replace command examples
+with their product scripts; keep the level model and risk rules unless an ADR
+documents a change.
 
 ## Levels
 
-| Level | What | Typical commands (replace) | Default owner |
+| Level | What | Typical commands (this repo) | Default owner |
 |---|---|---|---|
-| **L0** | Lint / typecheck / static | `npm run lint`, `tsc --noEmit` | After every implementation pass |
-| **L1** | Unit tests for changed modules | `npm test` (or package subset) | Default for code changes |
+| **L0** | Lint / typecheck / static | `node --check bin/duaer-live.mjs` `node --check web/live-dev/app.js` | After every implementation pass |
+| **L1** | Unit tests for changed modules | `npm test` when unit files exist under `test/` | Default for code changes |
 | **L2** | Integration / product acceptance at changed boundaries | project acceptance or integration suite | When boundaries or core paths change |
-| **L3** | Automated E2E / browser for user-visible paths | `npm run test:e2e` or equivalent **subset** | When UI / protocol UX changes |
+| **L3** | Automated E2E / protocol smoke for user-visible paths | **`npm run test:live`** (live desk shell + `/api/validate` gate; mock LLM, no paid API) | When live desk UI / protocol UX changes |
 | **L4** | Manual account / device path when automation cannot cover auth or real data | documented steps in the Brief | When UI/auth and no automated substitute |
 
 IDE Browser / MCP exploration is **optional discovery**. It does **not** replace
-L3 automation when the project has an E2E suite.
+L3 when `npm run test:live` covers the touched path.
 
 ## Risk table (what to run)
 
@@ -24,11 +25,24 @@ L3 automation when the project has an E2E suite.
 | Docs / comments only | None (note in Brief) |
 | Internal code, same behavior | L0 + L1 for affected packages |
 | API / data / core path | L0 + L1 + L2 (or documented equivalent) |
-| User-visible or protocol-visible UI/UX | L0 + L1 + **L3 subset for touched flows** + update E2E catalog |
+| User-visible or protocol-visible UI/UX (live desk) | L0 + **`npm run test:live` (L3)** + update E2E catalog |
 | Auth / payments / irreversible ops | Above + L4 if L3 cannot cover |
 
 Prefer **targeted subsets** over full monorepo suites. Do not skip a required
 level without an explicit waiver in the feature docs (`tasks.md` or Spec).
+
+## Live desk L3 (`npm run test:live`)
+
+Covers without a paid LLM:
+
+1. Desk shell HTML/CSS/JS markers (three columns, structured confirm fields,
+   `validationAllowsSend`)
+2. Local validate failures (empty / too-short card)
+3. `/api/validate` pass and `/api/validate/fix` via an in-process mock
+   OpenAI-compatible server
+
+Does **not** cover: real model quality, Terminal CLI launch, or full revise
+dispatch. Those stay manual E2E catalog rows or future suites.
 
 ## Opt-in (still need an explicit ask or Spec note)
 

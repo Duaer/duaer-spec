@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Added npm run test:live L3 smoke for desk shell + validate gate; documented in manuals and testing.md; CI on develop/main.",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["npm run test:live", "node --check bin/duaer-live.mjs"],
+    "notes": "Mock LLM; no paid API. E2E-054."
+  }
+}
