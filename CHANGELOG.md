@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Detailed coding progress
+
+- Dispatch writes a finer `tasks.md` checklist (≥6 boxes from Goal/Acceptance;
+  deploy adds another) instead of only T001–T003
+- Revision checklists expand to ≥5 `R{n}-*` boxes from change/acceptance
+- `/api/status` includes `activity` (git porcelain / changed files in the
+  product worktree); progress column shows an activity line under the summary
+- Agent prompts require expanding coarse lists and checking off small steps
+- Longer `agent-launch.log` tail (24 lines) on status polls
+
 ### CLI install visibility
 
 - Missing CLI chips show the install command on the chip; install panel + copy

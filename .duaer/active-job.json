@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/064-cli-install-show",
-  "branch": "feat/cli-install-show",
-  "worktree": ".worktree/feat-cli-install-show",
+  "featureDir": ".duaer/specs/065-detailed-progress",
+  "branch": "feat/detailed-progress",
+  "worktree": ".worktree/feat-detailed-progress",
   "status": "accepted"
 }

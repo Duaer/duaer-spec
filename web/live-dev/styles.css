@@ -1038,6 +1038,16 @@ input:focus {
   color: var(--ink);
 }
 
+.progress-activity {
+  margin: -0.35rem 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--mute);
+  line-height: 1.45;
+  word-break: break-word;
+}
+
 .progress-tasks {
   list-style: none;
   margin: 0;

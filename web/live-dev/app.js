@@ -1913,12 +1913,16 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   panel.className = "progress-panel";
   const summary = document.createElement("p");
   summary.className = "progress-summary";
+  const activity = document.createElement("p");
+  activity.className = "progress-activity";
+  activity.hidden = true;
   const tasks = document.createElement("ul");
   tasks.className = "progress-tasks";
   const log = document.createElement("pre");
   log.className = "progress-log";
   log.hidden = true;
   panel.appendChild(summary);
+  panel.appendChild(activity);
   panel.appendChild(tasks);
   panel.appendChild(log);
 
@@ -1934,6 +1938,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
     revision: rev,
     root,
     summary,
+    activity,
     tasks,
     log,
     noteEl,
@@ -1946,6 +1951,10 @@ function fillRunProgress(block, data) {
   const progress = data?.progress;
   if (!progress) {
     if (block.summary) block.summary.textContent = "";
+    if (block.activity) {
+      block.activity.hidden = true;
+      block.activity.textContent = "";
+    }
     if (block.tasks) block.tasks.replaceChildren();
     if (block.log) {
       block.log.hidden = true;
@@ -1955,6 +1964,24 @@ function fillRunProgress(block, data) {
   }
   if (block.summary) {
     block.summary.textContent = `${progress.done}/${progress.total} · ${progress.current || ""}`;
+  }
+  if (block.activity) {
+    const act = data?.activity;
+    const line =
+      (act && act.summary) ||
+      (Array.isArray(act?.files) && act.files.length
+        ? `改动中：${act.files
+            .slice(0, 4)
+            .map((f) => f.path || f)
+            .join(" · ")}`
+        : "");
+    if (line) {
+      block.activity.hidden = false;
+      block.activity.textContent = line;
+    } else {
+      block.activity.hidden = true;
+      block.activity.textContent = "";
+    }
   }
   if (block.tasks) {
     block.tasks.replaceChildren();

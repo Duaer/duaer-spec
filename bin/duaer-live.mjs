@@ -21,6 +21,11 @@ import {
   formatUpdateHint,
   scheduleUpdateHint,
 } from "./update-check.mjs";
+import {
+  buildDetailedProductTasksMd,
+  buildDetailedRevisionTasksMd,
+  parseWorktreeActivityFromGit,
+} from "./live-progress.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -2786,26 +2791,11 @@ Dispatched from 现场开发 into product worktree \`${worktreePath}\`.
 ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `docs/agent/deploy-github.md`).\n" : ""}
 `;
 
-  const deployTasks = deployNeeded
-    ? `
-- [ ] T004 Deploy with GitHub CLI (\`gh\`) + Actions（默认 Pages 模板：.duaer/templates/deploy-github-pages.yml；公网 URL 写入 preview.url）
-`
-    : "";
-
-  const productTasks = `# Tasks
-
-- [ ] T001 Implement against this Brief
-- [ ] T002 Risk-based verification per testing.md
-- [ ] T003 Stamp delivery.json accepted（若有可打开的成品，写入 preview.url）
-${deployTasks}
-做完一步就立刻把对应项改成 \`- [x]\`，方便现场开发显示进度。
-
-若交付物是页面/静态文件，在 delivery.json 增加：
-\`\`\`json
-"preview": { "url": "index.html", "label": "查看成品" }
-\`\`\`
-（也可用 http(s) 地址；相对路径相对 worktree 根目录；若已 GitHub Pages 部署，优先写公网 URL）
-`;
+  const productTasks = buildDetailedProductTasksMd({
+    goal: goalBody || goal,
+    acceptance: acceptBody,
+    deployNeeded,
+  });
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
   fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
@@ -2852,7 +2842,8 @@ Brief: ${featureDir}
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示进度）
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（现场开发靠此显示细粒度进度）
+4b. 若 tasks.md 仍偏粗：开工后先扩成 8–15 条可勾选步骤（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的成品
 7. 合入 develop 并 handoff 清理 worktree
@@ -3287,11 +3278,11 @@ ${reasonLine || text}
   fs.writeFileSync(specPath, `${specMd.trim()}\n${revisionBlock}\n`, "utf8");
 
   let tasksMd = snapTasks.exists ? snapTasks.content : "# Tasks\n\n";
-  const taskBlock = `
-- [ ] R${revN}-1 Apply revision: ${restated.change.replace(/\n/g, " ").slice(0, 160)}
-- [ ] R${revN}-2 Verify against revision acceptance
-- [ ] R${revN}-3 Stamp delivery.json accepted（更新 preview.url）
-`;
+  const taskBlock = buildDetailedRevisionTasksMd({
+    revN,
+    change: restated.change,
+    acceptance: restated.acceptance,
+  });
   fs.writeFileSync(
     tasksPath,
     `${tasksMd.trim()}\n\n## Revision ${revN} tasks\n${taskBlock}\n`,
@@ -3385,7 +3376,8 @@ ${restated.keep}
 要求：
 0. 本轮 Revision 已在现场开发自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
-2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]
+2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（现场开发靠此显示细粒度进度）
+2b. 若本轮 R${revN}-* 仍偏粗：先扩成 6–12 条可勾选步骤（仍用 R${revN}-*），保存后再做；小步勾选
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开成品是默认证据）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
@@ -3603,7 +3595,7 @@ function reconcileTasksMdOnAccept(tasksPath) {
   }
 }
 
-function readLogTail(logPath, maxLines = 12) {
+function readLogTail(logPath, maxLines = 24) {
   if (!logPath || !fs.existsSync(logPath)) return [];
   try {
     const raw = fs.readFileSync(logPath, "utf8");
@@ -3614,6 +3606,33 @@ function readLogTail(logPath, maxLines = 12) {
   } catch {
     return [];
   }
+}
+
+/** Recent git changes in the product worktree (for progress column). */
+function worktreeActivity(worktreePath, { limit = 10 } = {}) {
+  if (!worktreePath || !fs.existsSync(worktreePath)) {
+    return { files: [], summary: "" };
+  }
+  let porcelain = "";
+  let diffNames = "";
+  try {
+    porcelain = runGit(
+      worktreePath,
+      ["status", "--porcelain", "-uall"],
+      null,
+      { timeout: 5000 },
+    );
+  } catch {
+    porcelain = "";
+  }
+  try {
+    diffNames = runGit(worktreePath, ["diff", "--name-only", "HEAD"], null, {
+      timeout: 5000,
+    });
+  } catch {
+    diffNames = "";
+  }
+  return parseWorktreeActivityFromGit({ porcelain, diffNames, limit });
 }
 
 const PREVIEW_CANDIDATES = [
@@ -3747,6 +3766,7 @@ function dispatchStatus(jobId) {
       dispatch: null,
       delivery: null,
       progress: null,
+      activity: null,
       logTail: [],
       preview: null,
     };
@@ -3776,8 +3796,12 @@ function dispatchStatus(jobId) {
   const logPath =
     dispatch.launch?.logPath ||
     (featureDir ? path.join(featureDir, "agent-launch.log") : null);
-  const logTail = logPath ? readLogTail(logPath) : [];
+  const logTail = logPath ? readLogTail(logPath, 24) : [];
   const worktreeExists = roots.worktreeExists;
+  const activity =
+    worktreeExists && dispatch.worktreePath
+      ? worktreeActivity(dispatch.worktreePath)
+      : { files: [], summary: "" };
   const terminal = terminalQueueSnapshot(dispatch.worktreePath);
   const inferredFromTasks = inferRevisionFromTasksMd(tasksRaw);
   const revisionHint = Math.max(
@@ -3925,6 +3949,7 @@ function dispatchStatus(jobId) {
     },
     delivery,
     progress,
+    activity,
     logTail,
     preview: showPreview ? preview : null,
     canRevise,

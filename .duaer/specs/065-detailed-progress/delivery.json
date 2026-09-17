@@ -1,0 +1,18 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:00:00.000Z",
+  "featureDir": ".duaer/specs/065-detailed-progress",
+  "branch": "feat/detailed-progress",
+  "worktree": ".worktree/feat-detailed-progress",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "node --check bin/live-progress.mjs",
+      "node --check web/live-dev/app.js",
+      "npm test",
+      "npm run test:live"
+    ],
+    "notes": "Richer default tasks.md, status.activity, progress-activity UI"
+  }
+}
