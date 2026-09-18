@@ -27,13 +27,17 @@ export function normalizeReqText(text) {
       /(?:^|\n)\s*(?:\d+[.)、]|[（(]\d+[）)])/.test(s));
   if (hasNewlineList) return s;
 
-  // Inline numbered: "1、foo 2、bar" / "1. foo 2. bar" / "(1) foo (2) bar"
+  // Inline numbered: "1、foo 2、bar" / "1) foo；2) bar" / "(1) foo (2) bar"
+  const numberedMarker =
+    /(?:^|[；;\s])(?:\d+[.)、]|[（(]\d+[）)])\s*\S/;
   if (
     !/\n/.test(s) &&
-    /(?:^|\s)(?:\d+[.)、]|[（(]\d+[）)])\s*\S/.test(s) &&
-    (s.match(/(?:^|\s)(?:\d+[.)、]|[（(]\d+[）)])\s*\S/g) || []).length >= 2
+    numberedMarker.test(s) &&
+    (s.match(/(?:^|[；;\s])(?:\d+[.)、]|[（(]\d+[）)])\s*\S/g) || [])
+      .length >= 2
   ) {
     s = s
+      .replace(/[；;]\s*((?:\d+[.)、]|[（(]\d+[）)]))\s*/g, "\n$1 ")
       .replace(/(?:^|\s)((?:\d+[.)、]|[（(]\d+[）)]))\s*/g, "\n$1 ")
       .trim();
     return s;

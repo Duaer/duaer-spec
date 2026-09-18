@@ -129,6 +129,13 @@ test("structuredBody splits inline numbered acceptance and chips", async () => {
   assert.match(chips, /收样登记/);
   const flow = structuredBody("浏览器 → 报告服务 → PDF 生成器 → 文件存储");
   assert.match(flow, /flow-steps|flow-node/);
+  const goalProse = structuredBody(
+    "覆盖收样登记、审核复核、报告签发与财务计费全链路，并支持按样品追溯",
+    { as: "prose" },
+  );
+  assert.match(goalProse, /struct-p/);
+  assert.equal((goalProse.match(/struct-p/g) || []).length, 1);
+  assert.doesNotMatch(goalProse, /chip-list/);
 });
 
 test("task pool and confirmation registry render structured", () => {

@@ -1,4 +1,5 @@
 {
-  "featureDir": ".duaer/specs/184-deliverables-layout",
-  "slug": "184-deliverables-layout"
+  "feature": "185-req-card-structure",
+  "spec": ".duaer/specs/185-req-card-structure/spec.md",
+  "updatedAt": "2026-09-19T00:00:00.000Z"
 }
