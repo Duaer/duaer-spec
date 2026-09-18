@@ -88,6 +88,14 @@ function emptySession(projectPath = "") {
     deployTarget: "none",
     agentId: "",
     validate: clipValidate(null),
+    architecture: {
+      status: "idle",
+      ir: null,
+      url: null,
+      summary: "",
+      confirmed: false,
+    },
+    architectureMessages: [],
   };
 }
 
@@ -117,9 +125,28 @@ export function readProjectChat(liveRoot, projectPath) {
         raw.lastRevision && typeof raw.lastRevision === "object"
           ? raw.lastRevision
           : null,
-      deployTarget: String(raw.deployTarget || "none").slice(0, 40),
+    deployTarget: String(raw.deployTarget || "none").slice(0, 40),
       agentId: String(raw.agentId || "").slice(0, 80),
       validate: clipValidate(raw.validate),
+      architecture:
+        raw.architecture && typeof raw.architecture === "object"
+          ? {
+              status: String(raw.architecture.status || "idle").slice(0, 20),
+              ir: raw.architecture.ir || null,
+              url: raw.architecture.url
+                ? String(raw.architecture.url).slice(0, 300)
+                : null,
+              summary: String(raw.architecture.summary || "").slice(0, 2000),
+              confirmed: Boolean(raw.architecture.confirmed),
+            }
+          : {
+              status: "idle",
+              ir: null,
+              url: null,
+              summary: "",
+              confirmed: false,
+            },
+      architectureMessages: clipMessages(raw.architectureMessages),
     };
   } catch {
     return empty;
@@ -155,6 +182,25 @@ export function writeProjectChat(liveRoot, payload) {
     deployTarget: String(payload.deployTarget || "none").slice(0, 40),
     agentId: String(payload.agentId || "").slice(0, 80),
     validate: clipValidate(payload.validate),
+    architecture:
+      payload.architecture && typeof payload.architecture === "object"
+        ? {
+            status: String(payload.architecture.status || "idle").slice(0, 20),
+            ir: payload.architecture.ir || null,
+            url: payload.architecture.url
+              ? String(payload.architecture.url).slice(0, 300)
+              : null,
+            summary: String(payload.architecture.summary || "").slice(0, 2000),
+            confirmed: Boolean(payload.architecture.confirmed),
+          }
+        : {
+            status: "idle",
+            ir: null,
+            url: null,
+            summary: "",
+            confirmed: false,
+          },
+    architectureMessages: clipMessages(payload.architectureMessages),
   };
   fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
   return doc;

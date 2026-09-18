@@ -191,6 +191,20 @@
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
               <div id="deployTargetList" class="deploy-target-list" role="radiogroup" aria-label="deploy target"></div>
+              <div id="architecturePanel" class="architecture-panel" hidden>
+                <p class="architecture-title" data-i18n="arch.title">系统架构</p>
+                <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
+                <p id="architectureSummary" class="architecture-summary" hidden></p>
+                <iframe
+                  id="architectureFrame"
+                  class="architecture-frame"
+                  title="architecture"
+                  hidden
+                ></iframe>
+                <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
+                  确认架构，可派工
+                </button>
+              </div>
             </div>
             <div class="agent-pick">
               <div class="agent-pick-head">

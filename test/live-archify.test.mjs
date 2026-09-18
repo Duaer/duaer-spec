@@ -1,0 +1,70 @@
+/**
+ * Architecture layout + IR extract helpers.
+ */
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import {
+  extractArchitectureIr,
+  layoutArchitectureIr,
+  renderArchitectureHtml,
+} from "../bin/live-archify.mjs";
+import { extractArchitectureIr as extractBrowser } from "../web/live-dev/architecture-ir.mjs";
+
+test("layoutArchitectureIr assigns pos and viewBox", () => {
+  const ir = layoutArchitectureIr({
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "T" },
+    components: [
+      { id: "a", type: "external", label: "A" },
+      { id: "b", type: "frontend", label: "B" },
+    ],
+    connections: [{ id: "c1", from: "a", to: "b" }],
+  });
+  assert.equal(ir.components[0].pos.length, 2);
+  assert.equal(ir.meta.viewBox.length, 2);
+  assert.ok(ir.meta.viewBox[0] >= 320);
+});
+
+test("extractArchitectureIr finds diagram JSON", () => {
+  const text = `ok\n<<<JSON>>>\n{"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"X"},"components":[{"id":"u","type":"external","label":"U"}],"connections":[]}`;
+  const ir = extractArchitectureIr(text);
+  assert.equal(ir.diagram_type, "architecture");
+  assert.equal(ir.components[0].id, "u");
+  assert.equal(extractBrowser(text).components[0].id, "u");
+});
+
+test("renderArchitectureHtml produces HTML via Archify", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-test-"));
+  const out = renderArchitectureHtml(root, {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "Unit" },
+    components: [
+      { id: "users", type: "external", label: "Users" },
+      { id: "app", type: "frontend", label: "App" },
+    ],
+    connections: [
+      { id: "c1", from: "users", to: "app", label: "HTTPS", variant: "emphasis" },
+    ],
+    cards: [{ dot: "cyan", title: "Edge", items: ["App"] }],
+  });
+  assert.match(out.urlPath, /\/api\/architecture\//);
+  assert.ok(fs.existsSync(out.htmlPath));
+  assert.ok(fs.statSync(out.htmlPath).size > 1000);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("live sources wire architecture API + desk panel", () => {
+  const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
+  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  assert.match(live, /\/api\/architecture\/render/);
+  assert.match(live, /ARCHITECTURE_CHAT_PROMPT/);
+  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
+  assert.match(html, /architecturePanel|architectureFrame/);
+  const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  assert.match(js, /beginArchitectureDesign|confirmArchitecture/);
+});

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Architecture design with Archify render
+
+- After Confirm, desk runs an architecture dialogue for every job
+- Renders interactive HTML via Archify (like https://tt-a1i.github.io/archify/)
+- Diagram shows under planned hosting; dispatch waits for architecture confirm
+- Requirements revise invalidates architecture until re-confirmed
+
 ### Setup guide: CLI install + other models
 
 - FED「配置模型」页下方说明：Cursor / Claude 安装命令，以及其它模型接法

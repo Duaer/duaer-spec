@@ -11,6 +11,7 @@ import {
   applyDomI18n,
 } from "./i18n.js";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
+import { extractArchitectureIr } from "./architecture-ir.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
 
 const FALLBACK_PROVIDERS = [
@@ -35,9 +36,21 @@ const state = {
   busy: false,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
-  mode: "specify", // specify | revise
+  mode: "specify", // specify | revise | architecture
   /** After a successful revise: right card stays locked 改进卡. */
   reviseLocked: false,
+  /**
+   * Architecture gate (after confirm, before dispatch).
+   * status: idle | designing | preview | confirmed
+   */
+  architecture: {
+    status: "idle",
+    ir: null,
+    url: null,
+    summary: "",
+    confirmed: false,
+  },
+  architectureMessages: [],
   /** Revising but Terminal busy with no task progress — offer retry CTA. */
   reviseStuckHint: false,
   lastRevision: null, // { revision, change, keep, acceptance, reason }
@@ -146,6 +159,11 @@ const el = {
   repoScan: document.getElementById("repoScan"),
   agentList: document.getElementById("agentList"),
   deployTargetList: document.getElementById("deployTargetList"),
+  architecturePanel: document.getElementById("architecturePanel"),
+  architectureHint: document.getElementById("architectureHint"),
+  architectureSummary: document.getElementById("architectureSummary"),
+  architectureFrame: document.getElementById("architectureFrame"),
+  architectureConfirm: document.getElementById("architectureConfirm"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -788,11 +806,16 @@ function syncReviseDispatchButton(ready) {
   const showDispatch = dialoguing && !state.reviseLocked;
   el.doReviseDispatch.hidden = !showDispatch;
   el.doReviseDispatch.disabled =
-    !ready || state.busy || state.reviseDispatching;
+    !ready ||
+    state.busy ||
+    state.reviseDispatching ||
+    !state.architecture.confirmed;
   if (showDispatch) {
-    el.doReviseDispatch.textContent = state.reviseDispatching
-      ? t("revise.dispatching")
-      : t("revise.dispatch");
+    el.doReviseDispatch.textContent = !state.architecture.confirmed
+      ? t("arch.needConfirm")
+      : state.reviseDispatching
+        ? t("revise.dispatching")
+        : t("revise.dispatch");
   }
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
@@ -1013,6 +1036,14 @@ async function persistProjectChat() {
         lastRevision: state.lastRevision,
         deployTarget: state.deployTarget || "none",
         agentId: state.agentId || "",
+        architecture: {
+          status: state.architecture.status,
+          ir: state.architecture.ir,
+          url: state.architecture.url,
+          summary: state.architecture.summary,
+          confirmed: state.architecture.confirmed,
+        },
+        architectureMessages: state.architectureMessages,
         validate: {
           kind: state.validate.kind,
           fingerprint: state.validate.fingerprint,
@@ -1129,6 +1160,18 @@ async function loadProjectChatIntoUi(projectPath) {
     state.lastRevision = data.lastRevision || null;
     if (data.deployTarget) state.deployTarget = data.deployTarget;
     if (data.agentId) state.agentId = data.agentId;
+    if (data.architecture && typeof data.architecture === "object") {
+      state.architecture = {
+        status: data.architecture.status || "idle",
+        ir: data.architecture.ir || null,
+        url: data.architecture.url || null,
+        summary: data.architecture.summary || "",
+        confirmed: Boolean(data.architecture.confirmed),
+      };
+    }
+    state.architectureMessages = Array.isArray(data.architectureMessages)
+      ? data.architectureMessages
+      : [];
     applySavedCardFields(data.card, data.reviseCard);
     setConfirmFieldsReadonly(state.locked);
     setReviseFieldsReadonly(state.reviseLocked);
@@ -1136,6 +1179,9 @@ async function loadProjectChatIntoUi(projectPath) {
     applyCardChrome();
     renderMessagesToLog(state.messages);
     restoreValidateGate(data.validate);
+    syncArchitecturePanel(
+      state.locked && !state.architecture.confirmed ? "stale" : undefined,
+    );
     syncConfirmEnabled();
     syncComposerEnabled();
     if (state.jobId) {
@@ -1147,6 +1193,13 @@ async function loadProjectChatIntoUi(projectPath) {
       }
       startStatusPoll();
       void loadAgents();
+    }
+    if (
+      state.locked &&
+      !state.architecture.confirmed &&
+      state.mode !== "revise"
+    ) {
+      beginArchitectureDesign({ kickoff: !state.architectureMessages.length });
     }
     return state.messages.length;
   } catch {
@@ -1173,16 +1226,23 @@ async function sendChat(userText) {
     setHistoryOpen(true);
     return;
   }
-  const bag = state.mode === "revise" ? state.reviseMessages : state.messages;
+  const bag =
+    state.mode === "revise"
+      ? state.reviseMessages
+      : state.mode === "architecture"
+        ? state.architectureMessages
+        : state.messages;
   bag.push({ role: "user", content: userText });
   addBubble("user", userText);
-  if (state.mode !== "revise" && !state.rawAsk) state.rawAsk = userText;
+  if (state.mode !== "revise" && state.mode !== "architecture" && !state.rawAsk) {
+    state.rawAsk = userText;
+  }
   void persistProjectChat();
 
   setBusy(true);
   state.lastChatBlockMsg = "";
   const streamBubble = startStreamingBubble();
-  const lockedSpecify = state.mode !== "revise" && state.locked;
+  const lockedSpecify = state.mode !== "revise" && state.mode !== "architecture" && state.locked;
   try {
     const history = bag.slice(-16);
     const res = await fetch("/api/chat", {
@@ -1191,7 +1251,13 @@ async function sendChat(userText) {
       body: JSON.stringify({
         messages: history,
         card: state.mode === "revise" ? reviseCardValues() : cardValues(),
-        mode: state.mode === "revise" ? "revise" : "specify",
+        mode:
+          state.mode === "revise"
+            ? "revise"
+            : state.mode === "architecture"
+              ? "architecture"
+              : "specify",
+        deployTarget: state.deployTarget || "none",
         stream: true,
       }),
     });
@@ -1217,12 +1283,16 @@ async function sendChat(userText) {
       });
       if (streamError) throw streamError;
       if (!final) throw new Error(t("err.streamIncomplete"));
-      applyCard(final);
+      if (state.mode !== "architecture") applyCard(final);
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
       bag.push({ role: "assistant", content: final.reply });
       void persistProjectChat();
-      if (lockedSpecify && (final.goal || final.acceptance)) {
+      if (state.mode === "architecture") {
+        await maybeRenderArchitectureFromReply(
+          `${final.reply || ""}\n${JSON.stringify(final)}`,
+        );
+      } else if (lockedSpecify && (final.goal || final.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (final.ready) {
         addBubble(
@@ -1238,12 +1308,16 @@ async function sendChat(userText) {
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
-      applyCard(data);
+      if (state.mode !== "architecture") applyCard(data);
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
       bag.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
-      if (lockedSpecify && (data.goal || data.acceptance)) {
+      if (state.mode === "architecture") {
+        await maybeRenderArchitectureFromReply(
+          `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
+        );
+      } else if (lockedSpecify && (data.goal || data.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (data.ready) {
         addBubble(
@@ -1667,6 +1741,128 @@ async function applyConfirmSuccess(data) {
   syncConfirmEnabled();
   void persistProjectChat();
   await showDispatchPanel();
+  beginArchitectureDesign({ kickoff: true });
+}
+
+function resetArchitecture({ stale = false } = {}) {
+  state.architecture = {
+    status: stale ? "idle" : "idle",
+    ir: null,
+    url: null,
+    summary: "",
+    confirmed: false,
+  };
+  state.architectureMessages = [];
+  syncArchitecturePanel(stale ? "stale" : "need");
+}
+
+function syncArchitecturePanel(kind) {
+  if (!el.architecturePanel) return;
+  el.architecturePanel.hidden = false;
+  const a = state.architecture;
+  if (el.architectureSummary) {
+    el.architectureSummary.hidden = !a.summary;
+    el.architectureSummary.textContent = a.summary || "";
+  }
+  if (el.architectureFrame) {
+    if (a.url) {
+      el.architectureFrame.hidden = false;
+      el.architectureFrame.src = a.url;
+    } else {
+      el.architectureFrame.hidden = true;
+      el.architectureFrame.removeAttribute("src");
+    }
+  }
+  if (el.architectureConfirm) {
+    const canConfirm = a.status === "preview" && a.url && !a.confirmed;
+    el.architectureConfirm.hidden = !canConfirm && a.status !== "confirmed";
+    if (a.confirmed) {
+      el.architectureConfirm.hidden = false;
+      el.architectureConfirm.disabled = true;
+      el.architectureConfirm.textContent = t("arch.confirmed");
+    } else {
+      el.architectureConfirm.disabled = !canConfirm || state.busy;
+      el.architectureConfirm.textContent = t("arch.confirm");
+    }
+  }
+  if (el.architectureHint) {
+    if (kind === "stale" || (a.status === "idle" && state.locked && !a.confirmed)) {
+      el.architectureHint.textContent = t(
+        kind === "stale" ? "arch.hintStale" : "arch.hintNeed",
+      );
+    } else if (a.confirmed) {
+      el.architectureHint.textContent = t("arch.hintConfirmed");
+    } else if (a.status === "preview") {
+      el.architectureHint.textContent = t("arch.hintPreview");
+    } else if (a.status === "designing") {
+      el.architectureHint.textContent = t("arch.hintDesigning");
+    } else {
+      el.architectureHint.textContent = t("arch.hintNeed");
+    }
+  }
+  syncDispatchButton();
+}
+
+function beginArchitectureDesign({ kickoff = false } = {}) {
+  state.architecture.confirmed = false;
+  state.architecture.status = "designing";
+  state.mode = "architecture";
+  syncArchitecturePanel();
+  syncChatPlaceholder();
+  if (kickoff) {
+    const target = t(`dispatch.deploy.${state.deployTarget || "none"}`);
+    void sendChat(t("arch.kickoff", { target }));
+  }
+}
+
+async function renderArchitectureFromIr(ir) {
+  if (!ir) return false;
+  try {
+    const res = await fetch("/api/architecture/render", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ir }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "render failed");
+    state.architecture.ir = data.ir || ir;
+    state.architecture.url = data.url;
+    state.architecture.summary = data.summary || "";
+    state.architecture.status = "preview";
+    state.architecture.confirmed = false;
+    syncArchitecturePanel();
+    schedulePersistProjectDesk();
+    return true;
+  } catch (err) {
+    addBubble(
+      "bot",
+      t("arch.renderFail", {
+        msg: err instanceof Error ? err.message : String(err),
+      }),
+    );
+    return false;
+  }
+}
+
+async function maybeRenderArchitectureFromReply(reply) {
+  if (state.mode !== "architecture") return;
+  const ir = extractArchitectureIr(reply);
+  if (!ir) return;
+  await renderArchitectureFromIr(ir);
+}
+
+function confirmArchitecture() {
+  if (!state.architecture.url || !state.architecture.ir) return;
+  state.architecture.confirmed = true;
+  state.architecture.status = "confirmed";
+  const revisePending = Boolean(
+    (el.revGoal?.value || "").trim() || (el.revAccept?.value || "").trim(),
+  );
+  state.mode = revisePending && !state.reviseLocked ? "revise" : "specify";
+  syncArchitecturePanel();
+  syncChatPlaceholder();
+  schedulePersistProjectDesk();
+  addBubble("bot", t("arch.hintConfirmed"));
 }
 
 async function autoFixAccept(btn, issues, kind = "confirm") {
@@ -1784,6 +1980,7 @@ async function showDispatchPanel() {
     ensureStartCommandPrefix();
   }
   renderDeployTargetList();
+  syncArchitecturePanel();
   syncDispatchButton();
   state.repoCatalog = { recent: [], discovered: [] };
   focusRightPanel({ force: true });
@@ -1982,6 +2179,7 @@ function syncDispatchButton() {
   if (!el.doDispatch) return;
   if (state.dispatchPhase === "done") {
     el.doDispatch.textContent = t("dispatch.done");
+    el.doDispatch.disabled = true;
     return;
   }
   if (state.dispatchPhase === "working") {
@@ -1993,8 +2191,15 @@ function syncDispatchButton() {
   );
   if (missingSelected || !state.agents.length) {
     el.doDispatch.textContent = t("dispatch.needInstall");
+    el.doDispatch.disabled = true;
     return;
   }
+  if (state.locked && !state.architecture.confirmed) {
+    el.doDispatch.textContent = t("arch.needConfirm");
+    el.doDispatch.disabled = true;
+    return;
+  }
+  el.doDispatch.disabled = false;
   const a = state.agents.find((x) => x.id === state.agentId);
   el.doDispatch.textContent = a
     ? t("dispatch.doWithAgent", { label: a.label })
@@ -2380,8 +2585,8 @@ el.repoBrowse?.addEventListener("click", async () => {
   }
 });
 
-el.repoScan?.addEventListener("click", () => {
-  void loadRepoCatalog(true);
+el.architectureConfirm?.addEventListener("click", () => {
+  confirmArchitecture();
 });
 
 el.saveProjectsRoot?.addEventListener("click", async () => {
@@ -2443,6 +2648,12 @@ el.doDispatch.addEventListener("click", async () => {
     syncInstallHint();
     return;
   }
+  if (!state.architecture.confirmed) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("arch.needConfirm");
+    syncArchitecturePanel("stale");
+    return;
+  }
   ensureStartCommandPrefix();
   const startCommand = el.startCommand?.value?.trim() || "";
   el.dispatchErr.hidden = true;
@@ -2463,6 +2674,9 @@ el.doDispatch.addEventListener("click", async () => {
         agentId: state.agentId || "cursor-agent",
         startCommand,
         deployTarget: state.deployTarget || "none",
+        architectureSummary: state.architecture.summary || "",
+        architectureUrl: state.architecture.url || "",
+        architectureIr: state.architecture.ir || null,
       }),
     });
     const data = await res.json();
@@ -2914,6 +3128,7 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseMessages = [];
+  resetArchitecture({ stale: true });
   resetValidateGate();
   // Keep top confirm card as original requirements — do not clear it
   restoreConfirmCardFromOriginal();
@@ -3057,6 +3272,14 @@ async function confirmReviseAndDispatch() {
   if (!validationAllowsSend("revise")) {
     scheduleValidate("revise");
     addBubble("bot", t("bot.needValidate"));
+    return;
+  }
+  if (!state.architecture.confirmed) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = t("arch.needConfirm");
+    }
+    beginArchitectureDesign({ kickoff: true });
     return;
   }
   if (el.reviseErr) el.reviseErr.hidden = true;

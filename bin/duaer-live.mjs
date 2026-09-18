@@ -31,6 +31,11 @@ import {
   isDeployPlanned,
   normalizeDeployTarget,
 } from "./deploy-targets.mjs";
+import {
+  extractArchitectureIr,
+  renderArchitectureHtml,
+  architectureStoreDir,
+} from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
@@ -452,6 +457,23 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
+const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需求已确认。通过多轮对话设计系统架构图（Archify architecture JSON），供数字员工按图开发。
+
+规则：
+1. 缺关键结构时每次只问 1 个问题（前后端、数据、托管边界等）；够清楚时产出完整架构 JSON。
+2. 组件 type 只能是：frontend / backend / database / cloud / security / messagebus / external。
+3. 控制在 4～12 个组件；一条主路径；可用 boundaries 与 cards。
+4. 不要写业务代码。不要派工。
+5. 只要问题是选择，options 填 2～5 个短选项。
+6. 输出格式（严格）：
+   - 先写对用户说的纯文本
+   - 然后单独一行：<<<JSON>>>
+   - 再输出 JSON（不要 markdown 围栏）。未成型时：
+{"ready":false,"options":["…"],"title":"可选标题"}
+   - 架构已可确认时必须 ready=true，并带完整 Archify IR：
+{"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"…","quality_profile":"standard"},"components":[{"id":"users","type":"external","label":"Users","sublabel":"Browser"}],"boundaries":[],"connections":[{"id":"c1","from":"users","to":"app","label":"HTTPS","variant":"emphasis"}],"cards":[{"dot":"cyan","title":"Overview","items":["…"]}],"options":[]}
+7. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。`;
+
 const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
 
 检查：
@@ -641,6 +663,15 @@ function parseChatResult(content) {
       reply || String(obj.reply || ""),
       Array.isArray(obj.options) ? obj.options : [],
     ),
+    // Architecture mode may embed a full Archify IR in the JSON block
+    diagram_type: obj.diagram_type || undefined,
+    schema_version: obj.schema_version || undefined,
+    meta: obj.meta || undefined,
+    components: Array.isArray(obj.components) ? obj.components : undefined,
+    boundaries: Array.isArray(obj.boundaries) ? obj.boundaries : undefined,
+    connections: Array.isArray(obj.connections) ? obj.connections : undefined,
+    cards: Array.isArray(obj.cards) ? obj.cards : undefined,
+    title: obj.title || undefined,
   };
 }
 
@@ -2848,6 +2879,9 @@ function dispatchToRepo({
   agentId,
   startCommand,
   deployTarget: deployTargetRaw,
+  architectureSummary: architectureSummaryRaw,
+  architectureUrl: architectureUrlRaw,
+  architectureIr: architectureIrRaw,
 }) {
   const live = readLiveJob(jobId);
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
@@ -2941,6 +2975,22 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
   fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
+  const archSummary = String(architectureSummaryRaw || "").trim();
+  const archUrl = String(architectureUrlRaw || "").trim();
+  if (architectureIrRaw && typeof architectureIrRaw === "object") {
+    fs.writeFileSync(
+      path.join(featureDir, "architecture.json"),
+      `${JSON.stringify(architectureIrRaw, null, 2)}\n`,
+      "utf8",
+    );
+  }
+  if (archSummary) {
+    fs.writeFileSync(
+      path.join(featureDir, "architecture.md"),
+      `# Architecture\n\n${archSummary}\n${archUrl ? `\nDiagram: ${archUrl}\n` : ""}\n`,
+      "utf8",
+    );
+  }
   fs.writeFileSync(
     path.join(worktreePath, ".duaer", "active-job.json"),
     `${JSON.stringify(
@@ -2952,6 +3002,7 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
         liveJobId: live.id,
         deployTarget,
         deployViaGithubCli: deployTarget === "github-pages",
+        architectureSummary: archSummary || undefined,
       },
       null,
       2,
@@ -2960,6 +3011,14 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
   );
 
   const deployPrompt = deployPlan.promptBlock;
+  const architecturePrompt = archSummary
+    ? `
+14. 已确认系统架构（必须按此实现，不要擅自改拓扑）：
+${archSummary}
+${archUrl ? `架构图（只读参考）：${archUrl}` : ""}
+架构 IR 文件：${path.join(featureDir, "architecture.json")}（若存在）
+`
+    : "";
 
   const defaultPrompt = `Duaer
 
@@ -2982,7 +3041,7 @@ Brief: ${featureDir}
 6. 若有可打开结果（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的结果
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
-${deployPrompt}`;
+${deployPrompt}${architecturePrompt}`;
 
   let agentPrompt = String(startCommand || "").trim() || defaultPrompt;
   agentPrompt = agentPrompt.replace(/^Agent\b/m, "Duaer");
@@ -4431,12 +4490,21 @@ async function handleApi(req, res) {
       const card = body.card && typeof body.card === "object" ? body.card : {};
       const mode = String(body.mode || "specify").trim();
       const reviseMode = mode === "revise";
-      const systemPrompt = reviseMode ? REVISE_CHAT_PROMPT : SYSTEM_PROMPT;
+      const architectureMode = mode === "architecture";
+      const deployTarget = normalizeDeployTarget(body.deployTarget);
+      const systemPrompt = architectureMode
+        ? ARCHITECTURE_CHAT_PROMPT
+        : reviseMode
+          ? REVISE_CHAT_PROMPT
+          : SYSTEM_PROMPT;
+      const followUp = architectureMode
+        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并给出完整 diagram_type=architecture 的 JSON。`
+        : reviseMode
+          ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
+          : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`;
       messages.push({
         role: "user",
-        content: reviseMode
-          ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
-          : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`,
+        content: followUp,
       });
       const wantStream = body.stream !== false;
       if (wantStream) {
@@ -4444,7 +4512,15 @@ async function handleApi(req, res) {
         return;
       }
       const result = await callChatModel(cfg, messages, systemPrompt);
-      send(res, 200, parseChatResult(result));
+      const parsed = parseChatResult(result);
+      if (architectureMode) {
+        const ir =
+          extractArchitectureIr(result) ||
+          (parsed?.diagram_type === "architecture" ? parsed : null);
+        send(res, 200, { ...parsed, architectureIr: ir || undefined });
+        return;
+      }
+      send(res, 200, parsed);
     } catch (err) {
       send(res, 500, {
         error: err instanceof Error ? err.message : "chat failed",
@@ -4754,6 +4830,49 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/architecture/render") {
+    try {
+      const body = await readJson(req);
+      const ir = body.ir || body.architecture || body;
+      const rendered = renderArchitectureHtml(liveRoot(), ir);
+      send(res, 200, {
+        ok: true,
+        key: rendered.key,
+        url: rendered.urlPath,
+        summary: rendered.summary,
+        ir: rendered.ir,
+      });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "architecture render failed",
+        code: err?.code || undefined,
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/architecture/")) {
+    const name = decodeURIComponent(
+      url.pathname.slice("/api/architecture/".length).split("/")[0] || "",
+    );
+    if (!/^[a-f0-9]{8,32}\.html$/i.test(name)) {
+      send(res, 400, { error: "invalid architecture id" });
+      return;
+    }
+    const file = path.join(architectureStoreDir(liveRoot()), name);
+    if (!fs.existsSync(file)) {
+      send(res, 404, { error: "architecture not found" });
+      return;
+    }
+    const html = fs.readFileSync(file);
+    res.writeHead(200, {
+      "content-type": "text/html; charset=utf-8",
+      "cache-control": "no-store",
+    });
+    res.end(html);
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/dispatch") {
     try {
       const body = await readJson(req);
@@ -4763,6 +4882,9 @@ async function handleApi(req, res) {
         agentId: body.agentId,
         startCommand: body.startCommand,
         deployTarget: body.deployTarget,
+        architectureSummary: body.architectureSummary,
+        architectureUrl: body.architectureUrl,
+        architectureIr: body.architectureIr,
       });
       send(res, 200, result);
     } catch (err) {
@@ -4926,6 +5048,8 @@ async function handleApi(req, res) {
         deployTarget: body.deployTarget,
         agentId: body.agentId,
         validate: body.validate,
+        architecture: body.architecture,
+        architectureMessages: body.architectureMessages,
       });
       send(res, 200, { ok: true, ...saved });
     } catch (err) {
