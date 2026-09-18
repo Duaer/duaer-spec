@@ -924,6 +924,27 @@ function appendOptionChips(host, options) {
   scrollChatToLatest();
 }
 
+/** Keep focus in chat while designing architecture; otherwise follow card stage. */
+function afterChatBubbleUi({ forceRight = false } = {}) {
+  scrollChatToLatest();
+  if (state.mode === "architecture" && !forceRight) {
+    el.input?.focus();
+    return;
+  }
+  focusRightPanel({ force: forceRight });
+}
+
+function architectureContinueOptions(parsed) {
+  const hasIr =
+    parsed?.ready &&
+    (Array.isArray(parsed.components) || parsed.diagram_type === "architecture");
+  if (hasIr) return [];
+  if (Array.isArray(parsed?.options) && parsed.options.length) {
+    return parsed.options;
+  }
+  return [t("arch.optDrawNow"), t("arch.optStorage"), t("arch.optChangePath")];
+}
+
 function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
@@ -947,8 +968,7 @@ function addBubble(role, text, { options, actions } = {}) {
   }
   el.log.appendChild(div);
   syncChatEmpty();
-  scrollChatToLatest();
-  focusRightPanel();
+  afterChatBubbleUi();
   return { div, textNode };
 }
 
@@ -969,8 +989,7 @@ function startStreamingBubble() {
       const reply = textNode.textContent || "";
       const opts = enrichChatOptions(reply, options);
       appendOptionChips(div, opts);
-      scrollChatToLatest();
-      focusRightPanel({ force: true });
+      afterChatBubbleUi();
     },
   };
 }
@@ -1215,6 +1234,9 @@ async function loadProjectChatIntoUi(projectPath) {
       beginArchitectureDesign({
         kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
       });
+      if (state.architectureMessages.some((m) => m.role === "assistant")) {
+        maybeNudgeArchitectureContinue();
+      }
     }
     return state.messages.length;
   } catch {
@@ -1300,7 +1322,11 @@ async function sendChat(userText) {
       if (!final) throw new Error(t("err.streamIncomplete"));
       if (state.mode !== "architecture") applyCard(final);
       if (final.reply) streamBubble.set(final.reply);
-      streamBubble.finish(final.options);
+      streamBubble.finish(
+        state.mode === "architecture"
+          ? architectureContinueOptions(final)
+          : final.options,
+      );
       bag.push({ role: "assistant", content: final.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
@@ -1325,7 +1351,11 @@ async function sendChat(userText) {
       if (!res.ok) throw new Error(data.error || t("err.chat"));
       if (state.mode !== "architecture") applyCard(data);
       streamBubble.set(data.reply || "");
-      streamBubble.finish(data.options);
+      streamBubble.finish(
+        state.mode === "architecture"
+          ? architectureContinueOptions(data)
+          : data.options,
+      );
       bag.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
@@ -1869,6 +1899,25 @@ function appendArchitectureMessagesToLog() {
   }
 }
 
+function maybeNudgeArchitectureContinue() {
+  if (state.mode !== "architecture") return;
+  if (state.architecture.confirmed) return;
+  if (state.architecture.status === "preview" && state.architecture.url) return;
+  const hasAssistant = (state.architectureMessages || []).some(
+    (m) => m.role === "assistant",
+  );
+  if (!hasAssistant) return;
+  // Avoid stacking nudges
+  const lastVisible = [...(el.log?.querySelectorAll(".bubble.bot") || [])]
+    .map((n) => n.textContent || "")
+    .filter(Boolean)
+    .pop();
+  if (lastVisible && lastVisible.includes(t("arch.nudgeContinue"))) return;
+  addBubble("bot", t("arch.nudgeContinue"), {
+    options: architectureContinueOptions({}),
+  });
+}
+
 function beginArchitectureDesign({ kickoff = false } = {}) {
   state.architecture.confirmed = false;
   state.architecture.status = "designing";
@@ -1938,7 +1987,7 @@ async function kickoffArchitectureDialogue() {
       if (streamError) throw streamError;
       if (!final) throw new Error(t("err.streamIncomplete"));
       if (final.reply) streamBubble.set(final.reply);
-      streamBubble.finish(final.options);
+      streamBubble.finish(architectureContinueOptions(final));
       state.architectureMessages.push({
         role: "assistant",
         content: final.reply,
@@ -1951,7 +2000,7 @@ async function kickoffArchitectureDialogue() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
       streamBubble.set(data.reply || "");
-      streamBubble.finish(data.options);
+      streamBubble.finish(architectureContinueOptions(data));
       state.architectureMessages.push({
         role: "assistant",
         content: data.reply,
