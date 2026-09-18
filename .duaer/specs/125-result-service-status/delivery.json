@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "125-result-service-status",
+  "summary": "Clean result panel with listen status and one-click start",
+  "verification": {
+    "L0": "node --check live + app + i18n",
+    "L1": "node --test test/live-preview.test.mjs test/result-versions.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

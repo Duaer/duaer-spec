@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Result panel: listen status + one-click start
+
+- Single result block (heading + service status + actions); drop Progress duplicate
+- Localhost previews poll `/api/preview/status`; down → 启动服务
+
 ### Uniform header actions + GitHub stars
 
 - Top-right controls share one button chrome (Projects / Settings / language / GitHub)

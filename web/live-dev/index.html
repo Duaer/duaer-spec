@@ -207,17 +207,23 @@
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
             <div id="previewPanel" class="preview-panel" hidden>
-              <p class="preview-title" data-i18n="preview.title">成品</p>
+              <p class="preview-title" id="previewHeading" data-i18n="preview.headingInitial">结果 · 初版</p>
+              <div id="previewService" class="preview-service" hidden>
+                <span id="previewServiceDot" class="preview-service-dot is-unknown" aria-hidden="true"></span>
+                <p id="previewServiceStatus" class="preview-service-status"></p>
+                <button type="button" class="btn" id="previewStartService" hidden data-i18n="preview.startService">
+                  启动服务
+                </button>
+              </div>
               <div class="preview-actions">
                 <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
-                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开文件夹</button>
+                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开项目目录</button>
+                <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
+                  再改一版
+                </button>
               </div>
-              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开文件夹看看。</p>
-              <p id="previewMeta" class="hint"></p>
+              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开项目目录看看。</p>
               <ul id="previewVersions" class="preview-versions" hidden></ul>
-              <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
-                再改一版
-              </button>
             </div>
             <div id="revisePanel" class="revise-panel" hidden>
               <p class="mark" data-i18n="revise.mark">Revise card</p>
@@ -266,14 +272,6 @@
             <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
             <p id="dispatchStatus" class="meta progress-status" hidden></p>
           </header>
-          <div id="progressResult" class="progress-result" hidden>
-            <p class="progress-result-title" data-i18n="preview.title">成品</p>
-            <div class="preview-actions">
-              <button type="button" class="btn confirm" id="progressPreviewLink" hidden data-i18n="preview.view">打开看看</button>
-              <button type="button" class="btn" id="progressOpenFolder" hidden data-i18n="preview.openFolder">打开文件夹</button>
-            </div>
-            <p id="progressResultMeta" class="hint"></p>
-          </div>
           <div id="progressEmpty" class="progress-empty">
             <p class="progress-empty-title" data-i18n="progress.emptyTitle">还没有进度</p>
             <p class="progress-empty-hint" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>

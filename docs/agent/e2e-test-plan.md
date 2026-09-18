@@ -73,6 +73,7 @@ the table for their app.
 | E2E-090 | Accepted delivery always has openable preview (page or http://localhost service); missing index.html alone does not hide 打开看看 | `npm test` + `npm run test:live` |
 | E2E-091 | 打开看看 starts localhost service if needed then opens; 打开文件夹 kept; plain-language result copy | `npm test` + `npm run test:live` |
 | E2E-092 | Revise dialogue + 改进卡 restore after refresh; kickoff/lock persist reviseMessages | `npm test` + `npm run test:live` |
+| E2E-094 | Result panel: one heading + listen status + start when down; open/folder/revise in one row; no Progress duplicate | `npm test` + `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
@@ -197,3 +198,4 @@ the table for their app.
 | E2E-091 | `121-preview-start-service` | ensure+open local preview service |
 | E2E-092 | `122-revise-chat-persist` | restore revise dialogue on reload |
 | E2E-093 | `124-header-github-stars` | uniform header actions + GitHub stars |
+| E2E-094 | `125-result-service-status` | result panel listen status + one-click start |
