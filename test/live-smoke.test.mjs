@@ -303,6 +303,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /ir:\s*null/);
   assert.match(js, /architectureFpOf|normalizeViewBox|architectureViewBoxOf/);
   assert.match(js, /architectureIr:\s*null/);
+  assert.match(js, /setReviseDispatchBusy|scrubArchitectureIrMemory|stripReviseKickoffFailBubbles/);
+  assert.match(js, /kickoff-stringify/);
   assert.match(liveBin, /chatDoneSsePayload/);
   assert.match(liveBin, /resolveArchitectureIr|includeJsonBlock/);
   assert.doesNotMatch(

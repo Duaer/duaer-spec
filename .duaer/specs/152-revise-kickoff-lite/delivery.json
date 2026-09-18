@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T14:00:00.000Z",
+  "verification": {
+    "levels": ["L3-live-smoke"],
+    "commands": ["npm run test:live"]
+  },
+  "notes": "Lite revise kickoff: no heavy chrome before fetch; chrome after success; stage-tagged errors; ResizeObserver re-entry guard."
+}

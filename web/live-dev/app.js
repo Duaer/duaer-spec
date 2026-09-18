@@ -443,6 +443,20 @@ function setBusy(on) {
   }
 }
 
+/** Flip revise dispatch disabled without accordion / field chrome rebuild. */
+function setReviseDispatchBusy(busy) {
+  if (!el.doReviseDispatch) return;
+  try {
+    el.doReviseDispatch.disabled =
+      Boolean(busy) ||
+      state.reviseDispatching ||
+      state.revisePlanConfirmed ||
+      !state.ready;
+  } catch {
+    /* ignore */
+  }
+}
+
 function maybeClearStaleBusy() {
   if (!state.busy || !state.busySince) return false;
   if (Date.now() - state.busySince < BUSY_STALE_MS) return false;
@@ -1264,12 +1278,15 @@ function syncReviseDispatchButton(ready) {
   }
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
-  } else if (dialoguing) {
+  } else if (dialoguing && !state.reviseKickoffInFlight) {
     setReviseFieldsReadonly(
       state.revisePlanConfirmed || !isReviseDraftFocus(),
     );
   }
-  syncReviseCardChrome({ rebuildAccordion: false });
+  // Never rebuild accordion / iframes while revise kickoff is streaming.
+  if (!state.reviseKickoffInFlight) {
+    syncReviseCardChrome({ rebuildAccordion: false });
+  }
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
@@ -2771,8 +2788,18 @@ function ensureArchitectureFrameObserver() {
   if (!el.architectureFrame || typeof ResizeObserver === "undefined") return;
   ensureArchitectureEmbedMessageListener();
   if (architectureFrameResizeObserver) return;
+  let resizing = false;
   architectureFrameResizeObserver = new ResizeObserver(() => {
-    syncArchitectureFrameSize();
+    if (resizing) return;
+    resizing = true;
+    try {
+      syncArchitectureFrameSize();
+    } finally {
+      // Defer unlock so nested observer notifications cannot re-enter.
+      queueMicrotask(() => {
+        resizing = false;
+      });
+    }
   });
   architectureFrameResizeObserver.observe(el.architectureFrame);
 }
@@ -4838,6 +4865,10 @@ function enterReviseMode() {
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
 
+  // Drop any leftover deep IR and prior kickoff-fail bubbles before retry.
+  scrubArchitectureIrMemory();
+  stripReviseKickoffFailBubbles();
+
   // Already in revise dialogue: keep chat focused; re-kick only if idle
   // and the employee never answered (first click may have aborted).
   if (state.reviseDialogueOpen && state.mode === "revise" && !state.reviseLocked) {
@@ -4850,8 +4881,8 @@ function enterReviseMode() {
       !reviseDialogueHasAssistantReply()
     ) {
       postReviseAgainUserMessage();
-      void kickoffReviseDialogue().then(() => {
-        syncReviseChromeAfterKickoff();
+      void kickoffReviseDialogue().then((ok) => {
+        if (ok) syncReviseChromeAfterKickoff();
       });
     } else {
       addBubble("bot", t("bot.continueRevise"));
@@ -4870,10 +4901,6 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
-  // Never keep deep IR in memory across revise kickoff stringify paths.
-  if (state.architecture) state.architecture.ir = null;
-  if (state.architecturePrevious) state.architecturePrevious.ir = null;
-  if (state.initialArchitecture) state.initialArchitecture.ir = null;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Advance to the next iteration card — never overwrite prior reviseCards.
   const nextRev = nextReviseRevisionNumber();
@@ -4893,16 +4920,48 @@ function enterReviseMode() {
   el.input?.focus();
   scrollChatToLatest();
 
-  // 2) Kick off employee reply first; chrome after (avoids focus/DOM races)
-  void kickoffReviseDialogue().then(() => {
-    syncReviseChromeAfterKickoff();
+  // 2) Kick off employee reply first; chrome after success only
+  void kickoffReviseDialogue().then((ok) => {
+    if (ok) syncReviseChromeAfterKickoff();
   });
+}
+
+/** Null out any leftover architecture.ir graphs in desk memory. */
+function scrubArchitectureIrMemory() {
+  const wipe = (arch) => {
+    if (arch && typeof arch === "object") arch.ir = null;
+  };
+  wipe(state.architecture);
+  wipe(state.architecturePrevious);
+  wipe(state.initialArchitecture);
+  for (const entry of state.reviseCards || []) wipe(entry?.architecture);
+}
+
+/** Remove prior kickoff-fail assistant turns so retry can re-kick. */
+function stripReviseKickoffFailBubbles() {
+  const failRe =
+    /改进对话启动失败|Maximum call stack|call stack size exceeded|内部数据过大/i;
+  const before = state.reviseMessages || [];
+  state.reviseMessages = before.filter(
+    (m) =>
+      !(
+        m?.role === "assistant" &&
+        failRe.test(String(m.content || ""))
+      ),
+  );
+  if (state.reviseMessages.length !== before.length && el.log) {
+    // Refresh visible log if we stripped fail bubbles.
+    if (state.mode === "revise" || state.reviseDialogueOpen) {
+      switchChatLogForMode("revise");
+    }
+  }
 }
 
 /** Card chrome after revise kickoff — must not flip lastDeliveryAccepted. */
 function syncReviseChromeAfterKickoff() {
   if (state.mode !== "revise") return;
   try {
+    scrubArchitectureIrMemory();
     syncArchitecturePanel();
     resetValidateGate();
     restoreConfirmCardFromOriginal();
@@ -4917,16 +4976,16 @@ function syncReviseChromeAfterKickoff() {
       canRevise: true,
       status: "revising",
     });
-  } catch {
-    /* keep chat usable even if chrome sync fails */
+  } catch (err) {
+    console.warn("[revise-chrome]", err);
   }
   el.input?.focus();
   scrollChatToLatest();
 }
 
 async function kickoffReviseDialogue() {
-  if (state.reviseDispatching || state.mode !== "revise") return;
-  if (state.reviseKickoffInFlight) return;
+  if (state.reviseDispatching || state.mode !== "revise") return false;
+  if (state.reviseKickoffInFlight) return false;
   state.reviseKickoffInFlight = true;
   for (let i = 0; i < 40 && state.busy; i += 1) {
     await new Promise((r) => setTimeout(r, 50));
@@ -4935,20 +4994,21 @@ async function kickoffReviseDialogue() {
   if (state.busy) setBusy(false);
   if (state.mode !== "revise") {
     state.reviseKickoffInFlight = false;
-    return;
+    return false;
   }
 
   let streamBubble = null;
   let gotReply = false;
   let pushedKick = false;
-  const isStackOverflow = (err) =>
-    /call stack size exceeded|Maximum call stack/i.test(
-      String(err?.message || err || ""),
-    );
+  let stage = "init";
+  let ok = false;
 
   try {
+    scrubArchitectureIrMemory();
+    stage = "busy";
     setBusy(true);
-    syncReviseDispatchButton(false);
+    setReviseDispatchBusy(true);
+    stage = "bubble";
     streamBubble = startStreamingBubble();
     // No hidden system kick — visible user.reviseAgain + server followUp is enough.
     // Keep a short steer only if the bag has no user turn yet.
@@ -4962,10 +5022,10 @@ async function kickoffReviseDialogue() {
       state.reviseMessages.push({ role: "user", content: kick });
       pushedKick = true;
     }
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
+    stage = "stringify";
+    let body;
+    try {
+      body = JSON.stringify({
         messages: (state.reviseMessages || []).slice(-16).map((m) => ({
           role: m?.role === "user" ? "user" : "assistant",
           content: String(m?.content || "").slice(0, 8000),
@@ -4973,7 +5033,16 @@ async function kickoffReviseDialogue() {
         card: reviseCardValues(),
         mode: "revise",
         stream: true,
-      }),
+      });
+    } catch (err) {
+      const msg = String(err?.message || err || "");
+      throw new Error(`kickoff-stringify: ${msg.slice(0, 160)}`);
+    }
+    stage = "fetch";
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body,
     });
     const ctype = res.headers.get("content-type") || "";
     if (!res.ok && !ctype.includes("text/event-stream")) {
@@ -4983,6 +5052,7 @@ async function kickoffReviseDialogue() {
     if (ctype.includes("text/event-stream") && res.body) {
       let final = null;
       let streamError = null;
+      stage = "stream";
       await readChatStream(res, (evt) => {
         if (evt.type === "delta" && evt.text) {
           streamBubble.append(evt.text);
@@ -4995,6 +5065,7 @@ async function kickoffReviseDialogue() {
       const streamed = String(streamBubble.getText() || "").trim();
       if (streamError && !final && !streamed) throw streamError;
       if (!final && !streamed) throw new Error(t("err.streamIncomplete"));
+      stage = "apply";
       if (final) {
         try {
           applyCard(final, { skipValidate: true });
@@ -5020,6 +5091,7 @@ async function kickoffReviseDialogue() {
       }
       void persistProjectChat();
     } else {
+      stage = "json";
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
       try {
@@ -5037,15 +5109,16 @@ async function kickoffReviseDialogue() {
       state.reviseMessages.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
     }
+    ok = true;
   } catch (err) {
     if (pushedKick) state.reviseMessages.pop();
     const streamed = String(streamBubble?.getText?.() || "").trim();
     const rawMsg = String(err?.message || err || "").trim();
-    const friendly = isStackOverflow(err)
-      ? t("err.reviseKickoffStack")
-      : rawMsg && rawMsg !== t("err.reviseKickoff")
-        ? `${t("err.reviseKickoff")}: ${rawMsg.slice(0, 240)}`
+    const friendly =
+      rawMsg && rawMsg !== t("err.reviseKickoff")
+        ? `${t("err.reviseKickoff")}: ${rawMsg.slice(0, 200)}`
         : t("err.reviseKickoff");
+    console.warn("[revise-kickoff]", stage, err);
     if (gotReply || streamed) {
       try {
         streamBubble?.set(streamed);
@@ -5054,6 +5127,7 @@ async function kickoffReviseDialogue() {
         /* ignore */
       }
       state.reviseMessages.push({ role: "assistant", content: streamed });
+      ok = true;
     } else if (streamBubble) {
       try {
         streamBubble.set(friendly);
@@ -5061,6 +5135,7 @@ async function kickoffReviseDialogue() {
       } catch {
         addBubble("bot", friendly);
       }
+      // Do not persist fail text as a real assistant reply — strip on retry.
       state.reviseMessages.push({ role: "assistant", content: friendly });
     } else {
       addBubble("bot", friendly);
@@ -5069,15 +5144,12 @@ async function kickoffReviseDialogue() {
   } finally {
     state.reviseKickoffInFlight = false;
     setBusy(false);
-    try {
-      syncConfirmEnabled();
-    } catch {
-      /* ignore */
-    }
+    setReviseDispatchBusy(false);
     void persistProjectChat();
     el.input?.focus();
     scrollChatToLatest();
   }
+  return ok;
 }
 
 /** After revise dispatch: keep bottom 改进卡 visible with confirmed values (locked). */
