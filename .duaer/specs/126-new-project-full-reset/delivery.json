@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "126-new-project-full-reset",
+  "summary": "New/empty project clears chat, requirements, and run surfaces",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js",
+    "L1": "node --test test/live-project-chat.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

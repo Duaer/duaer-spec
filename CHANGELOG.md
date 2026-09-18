@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### New project resets full desk
+
+- Switching to an empty project clears 需求 / 运行 / 结果, not only chat
+
 ### Result panel: listen status + one-click start
 
 - Single result block (heading + service status + actions); drop Progress duplicate

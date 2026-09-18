@@ -170,6 +170,7 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(live, /body\.validate/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /persistProjectChat|loadProjectChatIntoUi/);
+  assert.match(js, /clearDeskWorkspace|stopStatusPoll/);
   assert.match(js, /schedulePersistProjectDesk/);
   assert.match(js, /applySavedCardFields/);
   assert.match(js, /restoreValidateGate/);
