@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.17.0
+
 ### Claude auto permissions on dispatch
 
 - Terminal Claude Code launches with `--permission-mode bypassPermissions` so

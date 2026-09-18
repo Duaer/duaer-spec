@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/086-claude-auto-perms",
-  "slug": "086-claude-auto-perms",
-  "branch": "fix/claude-auto-perms",
-  "worktree": ".worktree/fix-claude-auto"
+  "featureDir": ".duaer/specs/087-release-017",
+  "slug": "087-release-017",
+  "branch": "chore/release-017",
+  "worktree": ".worktree/chore-release-017"
 }
