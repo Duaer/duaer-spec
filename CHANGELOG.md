@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: Cloudflare / AWS keys in FED settings
+
+- Settings: Cloudflare API Token + Account ID; AWS Access Key (+ optional Region)
+- Cloudflare / AWS only appear in planned host / Deploy when credentials are set
+
 ### Feat: Alibaba Cloud keys in FED settings
 
 - Settings: AccessKey ID + Secret (local config only)

@@ -267,7 +267,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);
   assert.match(html, /id="cfgAliyunId"|id="saveAliyunCfg"/);
-  assert.match(js, /hasAliyunCredentials|visibleDeployHostIds/);
+  assert.match(html, /id="cfgCfToken"|id="cfgAwsId"/);
+  assert.match(js, /hasAliyunCredentials|hasCloudflareCredentials|hasAwsCredentials/);
+  assert.match(js, /visibleDeployHostIds/);
   assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);
   assert.match(html, /architecturePanel|architectureFrame/);
   assert.match(js, /beginArchitectureDesign|\/api\/architecture\/render/);

@@ -371,7 +371,7 @@ body {
   margin: 0 0 0.35rem;
 }
 
-.setup-aliyun {
+.setup-host-creds {
   margin-top: 0.85rem;
   padding-top: 0.85rem;
   border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
@@ -380,7 +380,7 @@ body {
   gap: 0.55rem;
 }
 
-.setup-aliyun-actions {
+.setup-host-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
