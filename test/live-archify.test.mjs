@@ -189,4 +189,11 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(js, /beginArchitectureDesign|confirmArchitecture|kickoffArchitectureDialogue/);
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
   assert.match(js, /architectureEmbedUrl|embed=1/);
+  assert.match(js, /announceArchitectureRendered|arch\.renderedReady/);
+  assert.doesNotMatch(js, /可渲染的架构 JSON/);
+  const i18n = fs.readFileSync(path.join(ROOT, "web/live-dev/i18n.js"), "utf8");
+  assert.match(i18n, /arch\.renderedReady/);
+  assert.doesNotMatch(i18n, /可渲染的架构 JSON/);
+  assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
+  assert.match(live, /禁止提 JSON|右侧「计划托管」/);
 });

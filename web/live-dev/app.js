@@ -1330,9 +1330,13 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: final.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        await maybeRenderArchitectureFromReply(
+        const rendered = await maybeRenderArchitectureFromReply(
           `${final.reply || ""}\n${JSON.stringify(final)}`,
         );
+        if (rendered) {
+          announceArchitectureRendered(streamBubble, bag);
+          void persistProjectChat();
+        }
       } else if (lockedSpecify && (final.goal || final.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (final.ready) {
@@ -1359,9 +1363,13 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        await maybeRenderArchitectureFromReply(
+        const rendered = await maybeRenderArchitectureFromReply(
           `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
         );
+        if (rendered) {
+          announceArchitectureRendered(streamBubble, bag);
+          void persistProjectChat();
+        }
       } else if (lockedSpecify && (data.goal || data.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (data.ready) {
@@ -2012,9 +2020,13 @@ async function kickoffArchitectureDialogue() {
         content: final.reply,
       });
       void persistProjectChat();
-      await maybeRenderArchitectureFromReply(
+      const rendered = await maybeRenderArchitectureFromReply(
         `${final.reply || ""}\n${JSON.stringify(final)}`,
       );
+      if (rendered) {
+        announceArchitectureRendered(streamBubble, state.architectureMessages);
+        void persistProjectChat();
+      }
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
@@ -2025,9 +2037,13 @@ async function kickoffArchitectureDialogue() {
         content: data.reply,
       });
       void persistProjectChat();
-      await maybeRenderArchitectureFromReply(
+      const rendered = await maybeRenderArchitectureFromReply(
         `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
       );
+      if (rendered) {
+        announceArchitectureRendered(streamBubble, state.architectureMessages);
+        void persistProjectChat();
+      }
     }
   } catch (err) {
     state.architectureMessages.pop();
@@ -2075,10 +2091,31 @@ async function renderArchitectureFromIr(ir) {
 }
 
 async function maybeRenderArchitectureFromReply(reply) {
-  if (state.mode !== "architecture") return;
+  if (state.mode !== "architecture") return false;
   const ir = extractArchitectureIr(reply);
-  if (!ir) return;
-  await renderArchitectureFromIr(ir);
+  if (!ir) return false;
+  return renderArchitectureFromIr(ir);
+}
+
+/** After a successful diagram render, replace JSON-talk with a desk hint. */
+function announceArchitectureRendered(streamBubble, bag) {
+  const msg = t("arch.renderedReady");
+  if (streamBubble) {
+    streamBubble.set(msg);
+    const bubbles = el.chat?.querySelectorAll(".bubble.bot");
+    const lastBot = bubbles?.[bubbles.length - 1];
+    lastBot?.querySelectorAll(":scope > .options.choice-options").forEach((n) =>
+      n.remove(),
+    );
+    lastBot?.classList.remove("streaming");
+  } else {
+    addBubble("bot", msg);
+  }
+  if (Array.isArray(bag) && bag.length) {
+    const last = bag[bag.length - 1];
+    if (last?.role === "assistant") last.content = msg;
+  }
+  afterChatBubbleUi({ forceRight: true });
 }
 
 function confirmArchitecture() {

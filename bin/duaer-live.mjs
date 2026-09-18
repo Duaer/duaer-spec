@@ -457,7 +457,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需求已确认。通过多轮对话设计系统架构图（Archify architecture JSON），供数字员工按图开发。
+const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
 
 规则：
 1. 未 ready 前：每次回复必须提出 1 个具体问题，并在 JSON 的 options 给出 2～5 个短选项。禁止只复述需求/主路径而不提问。
@@ -465,11 +465,11 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需�
 3. 控制在 4～12 个组件；一条主路径；可用 boundaries 与 cards。label/sublabel/连线 label 尽量短（sublabel ≤12 字，连线 label ≤8 字）。
 4. 不要写业务代码。不要派工。
 5. 输出格式（严格）：
-   - 先写对用户说的纯文本（含那一个问题）
+   - 先写对用户说的纯文本
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）。未成型时必须：
 {"ready":false,"options":["选项A","选项B"],"title":"可选标题"}
-   - 架构已可确认时必须 ready=true，并带完整 Archify IR：
+   - 架构已可确认时必须 ready=true，并带完整 architecture IR。对用户说的纯文本只能类似：「架构图已生成，请在右侧计划托管区域查看，满意后点确认架构。」禁止说「JSON / 可渲染 / 请确认 JSON」等字样。
 {"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"…","quality_profile":"standard"},"components":[{"id":"users","type":"external","label":"Users","sublabel":"Browser"}],"boundaries":[],"connections":[{"id":"c1","from":"users","to":"app","label":"HTTPS","variant":"emphasis"}],"cards":[{"dot":"cyan","title":"Overview","items":["…"]}],"options":[]}
 6. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
 7. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
@@ -4498,7 +4498,7 @@ async function handleApi(req, res) {
           ? REVISE_CHAT_PROMPT
           : SYSTEM_PROMPT;
       const followUp = architectureMode
-        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并给出完整 diagram_type=architecture 的 JSON。`
+        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去右侧「计划托管」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
           : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`;
