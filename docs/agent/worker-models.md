@@ -65,6 +65,9 @@ Docs: <https://code.claude.com/docs/en/installation>
 
 FED dispatch launches Claude with `--permission-mode bypassPermissions` so the
 employee can edit and run commands in the worktree without stepwise confirms.
+It also stamps `hasTrustDialogAccepted` for that worktree (and product root)
+in `~/.claude.json`, matching Cursor `--trust`, so the folder-trust dialog
+does not block Terminal.
 
 ## Worker: Claude Code + DeepSeek models (official)
 

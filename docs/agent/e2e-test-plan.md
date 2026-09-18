@@ -78,7 +78,7 @@ the table for their app.
 | E2E-096 | Progress/运行 column long status and task lines wrap inside the panel (no horizontal spill) | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
-| E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
+| E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
 | E2E-075 | DeepSeek Terminal launch uses `deepseek -w <worktree> --yolo` (not `--workspace`); job exits 0 when CLI present | `npm test` + manual |

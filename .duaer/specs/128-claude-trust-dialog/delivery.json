@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "128-claude-trust-dialog",
+  "summary": "FED Claude launch stamps hasTrustDialogAccepted for worktree",
+  "verification": {
+    "L0": "node --check live-claude-trust + duaer-live",
+    "L1": "node --test test/live-claude-trust.test.mjs test/deepseek-cli.test.mjs — pass"
+  }
+}

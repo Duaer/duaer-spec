@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Claude FED launch: pre-accept folder trust
+
+- Before Claude Terminal start, set `hasTrustDialogAccepted` for the worktree
+  (and product root) in `~/.claude.json`
+
 ### Progress column text containment
 
 - Long 运行 status / paths / tasks wrap inside the panel (no spill)

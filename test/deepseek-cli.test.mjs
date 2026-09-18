@@ -15,6 +15,7 @@ test("live workers are Cursor Agent and Claude Code only", () => {
   assert.match(live, /id:\s*"cursor-agent"/);
   assert.match(live, /id:\s*"claude"/);
   assert.match(live, /--permission-mode bypassPermissions/);
+  assert.match(live, /markClaudeWorkspacesTrusted|hasTrustDialogAccepted/);
   assert.doesNotMatch(live, /function deepseekTerminalCommand/);
   assert.doesNotMatch(live, /deepseek-tui/);
   // Desk LLM provider preset remains
