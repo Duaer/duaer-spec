@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Result bar: horizontal buttons + follow latest version
+
+- Fix confirm `width:100%` squeezing action buttons into vertical glyphs
+- Heading and current version chip track the latest revision
+
 ### Result panel one-line bar
 
 - Heading + open / folder / revise on one row; no stacked meta or history label

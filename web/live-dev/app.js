@@ -76,6 +76,9 @@ const state = {
   dispatchPhase: null,
   lastDispatch: null,
   lastPreviewUrl: null,
+  /** Follow latest result version unless user picks an older chip. */
+  previewFollowLatest: true,
+  previewFocusRevision: null,
   lastCfg: null,
   lastUpdate: null,
   historyJobs: [],
@@ -1251,6 +1254,8 @@ function clearDeskWorkspace() {
   state.dispatchPhase = null;
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
+  state.previewFollowLatest = true;
+  state.previewFocusRevision = null;
   state.lastDispatch = null;
   state.lastStatus = null;
   state.lastChatBlockMsg = "";
@@ -3977,17 +3982,26 @@ function renderPreview(data) {
     versions.length > 0;
   const latest =
     versions.length > 0 ? versions[versions.length - 1] : null;
-  const openUrl = preview?.url || latest?.url || "";
+  const latestRev = latest
+    ? Number(latest.revision) || 0
+    : Number(data?.revision) || 0;
+  // New revision arrived — snap focus to latest (follow the work).
+  if (
+    state.previewFocusRevision == null ||
+    state.previewFollowLatest ||
+    latestRev > Number(state.previewFocusRevision)
+  ) {
+    state.previewFocusRevision = latestRev;
+    state.previewFollowLatest = true;
+  }
+  const focusRev = Number(state.previewFocusRevision) || 0;
+  const focused =
+    versions.find((v) => Number(v.revision) === focusRev) || latest;
+  const openUrl = focused?.url || preview?.url || latest?.url || "";
   if (openUrl) state.lastPreviewUrl = openUrl;
   const folder = resultFolderPath(data);
-  const headingRev =
-    Number(data?.revision) > 0
-      ? Number(data.revision)
-      : latest
-        ? Number(latest.revision) || 0
-        : 0;
   if (el.previewHeading) {
-    el.previewHeading.textContent = resultHeadingText(headingRev);
+    el.previewHeading.textContent = resultHeadingText(focusRev);
   }
   if (!productReady) {
     el.previewPanel.hidden = true;
@@ -4022,7 +4036,7 @@ function renderPreview(data) {
       stopPreviewStatusPoll();
     }
   }
-  renderPreviewVersions(versions, openUrl);
+  renderPreviewVersions(versions, focusRev);
   renderRevisePanel(data);
   // Only when the result panel first appears — not on every status poll.
   if (!el.previewPanel.hidden && wasHidden) {
@@ -4035,7 +4049,7 @@ function renderPreview(data) {
   }
 }
 
-function renderPreviewVersions(versions, activeUrl) {
+function renderPreviewVersions(versions, focusRev) {
   if (!el.previewVersions) return;
   el.previewVersions.replaceChildren();
   const list = Array.isArray(versions)
@@ -4047,16 +4061,35 @@ function renderPreviewVersions(versions, activeUrl) {
     return;
   }
   el.previewVersions.hidden = false;
+  const current = Number(focusRev) || 0;
   for (const entry of list) {
+    const rev = Number(entry.revision) || 0;
     const li = document.createElement("li");
-    const a = document.createElement("a");
-    a.href = entry.url;
-    a.target = "_blank";
-    a.rel = "noopener";
-    a.className = "preview-version-link";
-    if (entry.url === activeUrl) a.classList.add("is-current");
-    a.textContent = versionChipLabel(entry.revision);
-    li.appendChild(a);
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "preview-version-link";
+    if (rev === current) btn.classList.add("is-current");
+    btn.textContent = versionChipLabel(rev);
+    btn.title = entry.url || "";
+    btn.addEventListener("click", () => {
+      state.previewFocusRevision = rev;
+      state.previewFollowLatest = rev === (Number(list[list.length - 1]?.revision) || 0);
+      if (entry.url) {
+        state.lastPreviewUrl = entry.url;
+        if (el.previewHeading) {
+          el.previewHeading.textContent = resultHeadingText(rev);
+        }
+        renderPreviewVersions(list, rev);
+        if (el.previewLink) {
+          el.previewLink.hidden = false;
+        }
+        const abs = /^https?:\/\//i.test(entry.url)
+          ? entry.url
+          : new URL(entry.url, window.location.origin).href;
+        window.open(abs, "_blank", "noopener");
+      }
+    });
+    li.appendChild(btn);
     el.previewVersions.appendChild(li);
   }
 }

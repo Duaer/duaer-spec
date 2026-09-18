@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "feature": "130-result-bar-layout",
+  "summary": "Fix vertical result buttons; follow latest version in heading",
+  "verification": {
+    "L3": "npm run test:live — pass"
+  }
+}
