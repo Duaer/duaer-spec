@@ -43,6 +43,8 @@ const state = {
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
   deployDispatching: false,
+  /** Selected host inside the Deploy picker dialog. */
+  deployPickerTarget: "github-pages",
   mode: "specify", // specify | revise | architecture
   /** After a successful revise: right card stays locked 改进卡. */
   reviseLocked: false,
@@ -239,6 +241,12 @@ const el = {
   previewStartService: document.getElementById("previewStartService"),
   previewLink: document.getElementById("previewLink"),
   previewDeploy: document.getElementById("previewDeploy"),
+  deployPicker: document.getElementById("deployPicker"),
+  deployPickerTitle: document.getElementById("deployPickerTitle"),
+  deployPickerList: document.getElementById("deployPickerList"),
+  deployPickerBackdrop: document.getElementById("deployPickerBackdrop"),
+  deployPickerCancel: document.getElementById("deployPickerCancel"),
+  deployPickerConfirm: document.getElementById("deployPickerConfirm"),
   previewOpenFolder: document.getElementById("previewOpenFolder"),
   previewMissing: document.getElementById("previewMissing"),
   previewMeta: document.getElementById("previewMeta"),
@@ -5534,24 +5542,81 @@ el.previewLink?.addEventListener("click", () => {
   void ensureAndOpenPreview({ open: true });
 });
 el.previewDeploy?.addEventListener("click", () => {
-  void triggerPreviewDeploy();
+  openDeployPicker();
 });
 el.previewStartService?.addEventListener("click", () => {
   void ensureAndOpenPreview({ open: false });
 });
 
-async function triggerPreviewDeploy() {
-  if (!state.jobId || state.deployDispatching || state.busy) return;
-  let target = state.deployTarget || "none";
-  let defaulted = false;
-  if (target === "none") {
-    target = "github-pages";
-    defaulted = true;
-    state.deployTarget = target;
-    renderDeployTargetList();
-    void persistProjectChat();
-    addBubble("bot", t("bot.deployDefaultPages"));
+const DEPLOY_HOST_IDS = ["cloudflare", "aliyun", "aws", "github-pages"];
+
+function closeDeployPicker() {
+  if (el.deployPicker) el.deployPicker.hidden = true;
+}
+
+function renderDeployPickerList() {
+  if (!el.deployPickerList) return;
+  el.deployPickerList.replaceChildren();
+  for (const id of DEPLOY_HOST_IDS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "deploy-target-chip";
+    b.setAttribute(
+      "aria-pressed",
+      id === state.deployPickerTarget ? "true" : "false",
+    );
+    b.textContent = t(`dispatch.deploy.${id}`);
+    b.addEventListener("click", () => {
+      state.deployPickerTarget = id;
+      renderDeployPickerList();
+    });
+    el.deployPickerList.appendChild(b);
   }
+}
+
+function openDeployPicker() {
+  if (!state.jobId || state.deployDispatching || state.busy) return;
+  const current = state.deployTarget || "none";
+  state.deployPickerTarget = DEPLOY_HOST_IDS.includes(current)
+    ? current
+    : "github-pages";
+  renderDeployPickerList();
+  if (el.deployPickerTitle) {
+    el.deployPickerTitle.textContent = t("preview.deployWhere");
+  }
+  if (el.deployPickerCancel) {
+    el.deployPickerCancel.textContent = t("preview.deployCancel");
+  }
+  if (el.deployPickerConfirm) {
+    el.deployPickerConfirm.textContent = t("preview.deployConfirm");
+    el.deployPickerConfirm.disabled = false;
+  }
+  if (el.deployPicker) el.deployPicker.hidden = false;
+}
+
+el.deployPickerBackdrop?.addEventListener("click", () => closeDeployPicker());
+el.deployPickerCancel?.addEventListener("click", () => closeDeployPicker());
+el.deployPickerConfirm?.addEventListener("click", () => {
+  const target = state.deployPickerTarget || "github-pages";
+  closeDeployPicker();
+  void startPreviewDeploy(target);
+});
+document.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Escape") return;
+  if (el.deployPicker && !el.deployPicker.hidden) {
+    closeDeployPicker();
+  }
+});
+
+async function startPreviewDeploy(targetRaw) {
+  if (!state.jobId || state.deployDispatching || state.busy) return;
+  const target = DEPLOY_HOST_IDS.includes(targetRaw)
+    ? targetRaw
+    : "github-pages";
+  state.deployTarget = target;
+  renderDeployTargetList();
+  void persistProjectChat();
+
   state.deployDispatching = true;
   if (el.previewDeploy) {
     el.previewDeploy.disabled = true;

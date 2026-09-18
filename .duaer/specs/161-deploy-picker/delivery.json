@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "feature": "161-deploy-picker",
+  "acceptedAt": "2026-09-18T15:40:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3-live"],
+    "commands": [
+      "node --test test/live-smoke.test.mjs test/live-archify.test.mjs"
+    ],
+    "notes": "Deploy button opens host picker; confirm calls /api/deploy"
+  }
+}

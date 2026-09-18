@@ -405,6 +405,18 @@
       </div>
     </aside>
 
-    <script type="module" src="/app.js?v=preview-deploy-1"></script>
+    <div id="deployPicker" class="deploy-picker" hidden role="dialog" aria-modal="true" aria-labelledby="deployPickerTitle">
+      <div class="deploy-picker-backdrop" id="deployPickerBackdrop"></div>
+      <div class="deploy-picker-card">
+        <p class="deploy-picker-title" id="deployPickerTitle" data-i18n="preview.deployWhere">要部署到哪里？</p>
+        <div id="deployPickerList" class="deploy-picker-list" role="radiogroup" aria-label="deploy target"></div>
+        <div class="deploy-picker-actions">
+          <button type="button" class="btn" id="deployPickerCancel" data-i18n="preview.deployCancel">取消</button>
+          <button type="button" class="btn confirm" id="deployPickerConfirm" data-i18n="preview.deployConfirm">开始部署</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/app.js?v=deploy-picker-1"></script>
   </body>
 </html>

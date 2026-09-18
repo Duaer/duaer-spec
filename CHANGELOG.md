@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: deploy target picker
+
+- Clicking「部署」opens「要部署到哪里？」(Cloudflare / 阿里云 / AWS / GitHub Pages)
+- Confirm starts `/api/deploy` with the chosen host
+
 ### Feat: result-bar Deploy button
 
 - 「打开看看」旁增加「部署」；暂不部署时默认 GitHub Pages

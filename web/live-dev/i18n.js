@@ -214,6 +214,9 @@ const zhCN = {
   "preview.view": "打开看看",
   "preview.deploy": "部署",
   "preview.deploying": "部署中…",
+  "preview.deployWhere": "要部署到哪里？",
+  "preview.deployCancel": "取消",
+  "preview.deployConfirm": "开始部署",
   "preview.openFolder": "打开目录",
   "preview.noPage": "还没有可打开的地址。可以先打开目录看看。",
   "preview.folderHint": "代码在：{path}",
@@ -299,8 +302,6 @@ const zhCN = {
     "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看结果。",
   "bot.deployDispatched":
     "已派出部署（{target}）· Revision {revision}（{launch}）。完成后结果栏会更新公网地址。",
-  "bot.deployDefaultPages":
-    "计划托管仍是「暂不部署」，本次按 GitHub Pages 部署。",
   "bot.reviseLaunchReuse": "已送入原 Terminal",
   "bot.reviseLaunchQueued":
     "已排入原 Terminal，当前任务结束后自动跑",
@@ -629,6 +630,9 @@ const en = {
   "preview.view": "Open it",
   "preview.deploy": "Deploy",
   "preview.deploying": "Deploying…",
+  "preview.deployWhere": "Where should we deploy?",
+  "preview.deployCancel": "Cancel",
+  "preview.deployConfirm": "Start deploy",
   "preview.openFolder": "Open folder",
   "preview.noPage": "Nothing to open yet. You can open the folder first.",
   "preview.folderHint": "Code is at: {path}",
@@ -719,8 +723,6 @@ const en = {
     "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View result.",
   "bot.deployDispatched":
     "Deploy started ({target}) · Revision {revision} ({launch}). The result bar will show the public URL when ready.",
-  "bot.deployDefaultPages":
-    "Planned host was still “No deploy yet”; this run uses GitHub Pages.",
   "bot.reviseLaunchReuse": "enqueued in existing Terminal",
   "bot.reviseLaunchQueued":
     "Queued in the same Terminal; runs after the current task finishes",
