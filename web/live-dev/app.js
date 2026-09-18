@@ -304,7 +304,9 @@ function syncChatPlaceholder() {
   el.input.placeholder =
     state.mode === "revise"
       ? t("chat.revisePlaceholder")
-      : t("chat.placeholder");
+      : state.mode === "architecture"
+        ? t("chat.archPlaceholder")
+        : t("chat.placeholder");
 }
 
 /** Soft busy timeout — hung streams should not block Send forever. */
@@ -1154,7 +1156,10 @@ async function loadProjectChatIntoUi(projectPath) {
     state.rawAsk = data.rawAsk || "";
     state.jobId = data.jobId || null;
     state.locked = Boolean(data.locked);
-    state.mode = data.mode === "revise" ? "revise" : "specify";
+    state.mode =
+      data.mode === "revise" || data.mode === "architecture"
+        ? data.mode
+        : "specify";
     state.reviseLocked = Boolean(data.reviseLocked);
     state.originalCard = data.originalCard || null;
     state.lastRevision = data.lastRevision || null;
@@ -1178,6 +1183,12 @@ async function loadProjectChatIntoUi(projectPath) {
     applyConfirmCardChrome();
     applyCardChrome();
     renderMessagesToLog(state.messages);
+    if (
+      state.mode === "architecture" ||
+      (state.locked && !state.architecture.confirmed)
+    ) {
+      appendArchitectureMessagesToLog();
+    }
     restoreValidateGate(data.validate);
     syncArchitecturePanel(
       state.locked && !state.architecture.confirmed ? "stale" : undefined,
@@ -1199,7 +1210,9 @@ async function loadProjectChatIntoUi(projectPath) {
       !state.architecture.confirmed &&
       state.mode !== "revise"
     ) {
-      beginArchitectureDesign({ kickoff: !state.architectureMessages.length });
+      beginArchitectureDesign({
+        kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
+      });
     }
     return state.messages.length;
   } catch {
@@ -1803,15 +1816,130 @@ function syncArchitecturePanel(kind) {
   syncDispatchButton();
 }
 
+function isArchitectureSystemKick(m) {
+  const c = String(m?.content || "");
+  return (
+    m?.role === "user" &&
+    (c.startsWith("（系统）") ||
+      c.startsWith("(system)") ||
+      c.includes("请根据需求卡设计系统架构") ||
+      c.includes("Design the system architecture"))
+  );
+}
+
+function appendArchitectureMessagesToLog() {
+  for (const m of state.architectureMessages || []) {
+    if (isArchitectureSystemKick(m)) continue;
+    const role = m.role === "user" ? "user" : "bot";
+    addBubble(role, m.content || "");
+  }
+}
+
 function beginArchitectureDesign({ kickoff = false } = {}) {
   state.architecture.confirmed = false;
   state.architecture.status = "designing";
   state.mode = "architecture";
   syncArchitecturePanel();
   syncChatPlaceholder();
+  syncComposerEnabled();
+  schedulePersistProjectDesk();
   if (kickoff) {
-    const target = t(`dispatch.deploy.${state.deployTarget || "none"}`);
-    void sendChat(t("arch.kickoff", { target }));
+    void kickoffArchitectureDialogue();
+  }
+}
+
+async function kickoffArchitectureDialogue() {
+  if (!state.projectPath) {
+    explainChatBlocked();
+    return;
+  }
+  if (state.mode !== "architecture") return;
+  if (state.architectureMessages.some((m) => m.role === "assistant")) return;
+  if (state.busy) {
+    setTimeout(() => {
+      void kickoffArchitectureDialogue();
+    }, 50);
+    return;
+  }
+  // Drop orphan system kicks from an aborted prior attempt
+  state.architectureMessages = state.architectureMessages.filter(
+    (m) => !isArchitectureSystemKick(m),
+  );
+  const target = t(`dispatch.deploy.${state.deployTarget || "none"}`);
+  addBubble("bot", t("arch.enterDesign"));
+  scrollChatToLatest();
+  el.input?.focus();
+  setBusy(true);
+  const streamBubble = startStreamingBubble();
+  const kick = t("arch.kickoffInternal", { target });
+  state.architectureMessages.push({ role: "user", content: kick });
+  void persistProjectChat();
+  try {
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        messages: state.architectureMessages.slice(-16),
+        card: cardValues(),
+        mode: "architecture",
+        deployTarget: state.deployTarget || "none",
+        stream: true,
+      }),
+    });
+    const ctype = res.headers.get("content-type") || "";
+    if (!res.ok && !ctype.includes("text/event-stream")) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.error || t("err.chat"));
+    }
+    if (ctype.includes("text/event-stream") && res.body) {
+      let final = null;
+      let streamError = null;
+      await readChatStream(res, (evt) => {
+        if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
+        else if (evt.type === "done") final = evt;
+        else if (evt.type === "error") {
+          streamError = new Error(evt.error || t("err.chat"));
+        }
+      });
+      if (streamError) throw streamError;
+      if (!final) throw new Error(t("err.streamIncomplete"));
+      if (final.reply) streamBubble.set(final.reply);
+      streamBubble.finish(final.options);
+      state.architectureMessages.push({
+        role: "assistant",
+        content: final.reply,
+      });
+      void persistProjectChat();
+      await maybeRenderArchitectureFromReply(
+        `${final.reply || ""}\n${JSON.stringify(final)}`,
+      );
+    } else {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("err.chat"));
+      streamBubble.set(data.reply || "");
+      streamBubble.finish(data.options);
+      state.architectureMessages.push({
+        role: "assistant",
+        content: data.reply,
+      });
+      void persistProjectChat();
+      await maybeRenderArchitectureFromReply(
+        `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
+      );
+    }
+  } catch (err) {
+    state.architectureMessages.pop();
+    streamBubble.set(
+      t("bot.chatError", {
+        msg: err instanceof Error ? err.message : err,
+      }),
+    );
+    streamBubble.finish();
+  } finally {
+    setBusy(false);
+    syncConfirmEnabled();
+    syncComposerEnabled();
+    el.input?.focus();
   }
 }
 

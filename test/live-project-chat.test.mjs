@@ -75,6 +75,33 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test("architecture mode and messages round-trip", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    locked: true,
+    mode: "architecture",
+    architecture: {
+      status: "designing",
+      ir: null,
+      url: null,
+      summary: "",
+      confirmed: false,
+    },
+    architectureMessages: [
+      { role: "user", content: "（系统）kick" },
+      { role: "assistant", content: "先问前端还是后端？" },
+    ],
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.mode, "architecture");
+  assert.equal(loaded.architecture.status, "designing");
+  assert.equal(loaded.architectureMessages.length, 2);
+  assert.equal(loaded.architectureMessages[1].content, "先问前端还是后端？");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("checking validate status is not restored (stored as idle)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
   const projectPath = path.join(root, "app");

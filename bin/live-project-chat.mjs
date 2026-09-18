@@ -70,6 +70,12 @@ function clipValidate(v) {
   };
 }
 
+function clipDeskMode(mode) {
+  const m = String(mode || "").trim();
+  if (m === "revise" || m === "architecture") return m;
+  return "specify";
+}
+
 function emptySession(projectPath = "") {
   return {
     projectPath: String(projectPath || "").trim(),
@@ -119,13 +125,13 @@ export function readProjectChat(liveRoot, projectPath) {
       originalCard: raw.originalCard ? clipCard(raw.originalCard) : null,
       jobId: raw.jobId ? String(raw.jobId).slice(0, 200) : null,
       locked: Boolean(raw.locked),
-      mode: raw.mode === "revise" ? "revise" : "specify",
+      mode: clipDeskMode(raw.mode),
       reviseLocked: Boolean(raw.reviseLocked),
       lastRevision:
         raw.lastRevision && typeof raw.lastRevision === "object"
           ? raw.lastRevision
           : null,
-    deployTarget: String(raw.deployTarget || "none").slice(0, 40),
+      deployTarget: String(raw.deployTarget || "none").slice(0, 40),
       agentId: String(raw.agentId || "").slice(0, 80),
       validate: clipValidate(raw.validate),
       architecture:
@@ -173,7 +179,7 @@ export function writeProjectChat(liveRoot, payload) {
     originalCard: payload.originalCard ? clipCard(payload.originalCard) : null,
     jobId: payload.jobId ? String(payload.jobId).slice(0, 200) : null,
     locked: Boolean(payload.locked),
-    mode: payload.mode === "revise" ? "revise" : "specify",
+    mode: clipDeskMode(payload.mode),
     reviseLocked: Boolean(payload.reviseLocked),
     lastRevision:
       payload.lastRevision && typeof payload.lastRevision === "object"
