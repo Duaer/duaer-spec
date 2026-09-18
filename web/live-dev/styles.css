@@ -1386,6 +1386,14 @@ a.btn[hidden] {
   border-top: 1px solid var(--line);
 }
 
+.architecture-slot:empty {
+  display: none;
+}
+
+.revise-panel > .architecture-slot .architecture-panel {
+  margin-top: 0.75rem;
+}
+
 .architecture-previous {
   margin-bottom: 0.85rem;
   padding-bottom: 0.75rem;

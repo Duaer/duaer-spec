@@ -100,6 +100,7 @@ the table for their app.
 | E2E-118 | Desk drops deep architecture IR after render (viewBox/fingerprint only); dispatch loads IR from disk; revise SSE omits jsonBlock | `npm run test:live` + manual |
 | E2E-119 | 再改一版 kickoff skips heavy chrome; no false「架构图序列化爆栈」; chrome after success only | `npm run test:live` + manual |
 | E2E-120 | reviseCardValues must not recurse via stashReviseDraftFromFields (kickoff-stringify stack) | `npm run test:live` + manual |
+| E2E-121 | After 改进方案确认, architecture panel sits below「请先确认架构」CTA | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -251,3 +252,4 @@ the table for their app.
 | E2E-118 | `151-revise-ir-stack` | drop deep IR after render; resolve from disk |
 | E2E-119 | `152-revise-kickoff-lite` | lite kickoff; chrome after success |
 | E2E-120 | `153-kickoff-stringify` | break reviseCardValues↔stash recursion |
+| E2E-121 | `154-revise-arch-order` | arch panel after 请先确认架构 CTA |

@@ -199,6 +199,8 @@ const el = {
   agentList: document.getElementById("agentList"),
   deployTargetList: document.getElementById("deployTargetList"),
   architecturePanel: document.getElementById("architecturePanel"),
+  architectureSlotDeploy: document.getElementById("architectureSlotDeploy"),
+  architectureSlotRevise: document.getElementById("architectureSlotRevise"),
   architecturePreviousBlock: document.getElementById("architecturePreviousBlock"),
   architecturePreviousSummary: document.getElementById("architecturePreviousSummary"),
   architecturePreviousFrame: document.getElementById("architecturePreviousFrame"),
@@ -1288,6 +1290,12 @@ function syncReviseDispatchButton(ready) {
       : state.reviseDispatching
         ? t("revise.dispatching")
         : t("revise.dispatch");
+  }
+  // After「请先确认架构」cue: diagram sits immediately below this button.
+  if (state.revisePlanConfirmed && !state.architecture?.confirmed) {
+    placeArchitecturePanelForFlow();
+  } else if (el.architecturePanel?.parentElement === el.architectureSlotRevise) {
+    placeArchitecturePanelForFlow();
   }
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
@@ -2817,8 +2825,42 @@ function ensureArchitectureFrameObserver() {
   architectureFrameResizeObserver.observe(el.architectureFrame);
 }
 
+/**
+ * UX order after 改进方案确认:
+ *   改进卡 → CTA「请先确认架构，再派这一版」→ architecture panel
+ * Otherwise keep the panel under 计划托管 (first-dispatch flow).
+ */
+function architectureBelongsAfterReviseCta() {
+  return Boolean(
+    state.revisePlanConfirmed &&
+      !state.architecture?.confirmed &&
+      el.revisePanel &&
+      !el.revisePanel.hidden &&
+      el.architectureSlotRevise &&
+      (state.mode === "revise" ||
+        state.mode === "architecture" ||
+        state.reviseDialogueOpen),
+  );
+}
+
+function placeArchitecturePanelForFlow() {
+  const panel = el.architecturePanel;
+  if (!panel) return;
+  const wantRevise = architectureBelongsAfterReviseCta();
+  const slot = wantRevise ? el.architectureSlotRevise : el.architectureSlotDeploy;
+  if (!slot) return;
+  if (panel.parentElement !== slot) {
+    slot.appendChild(panel);
+  }
+  if (wantRevise && el.doReviseDispatch) {
+    // Keep CTA visible above the diagram (disabled cue).
+    el.doReviseDispatch.hidden = false;
+  }
+}
+
 function syncArchitecturePanel(kind) {
   if (!el.architecturePanel) return;
+  placeArchitecturePanelForFlow();
   el.architecturePanel.hidden = false;
   const a = state.architecture;
   const showPrev = showArchitecturePreviousBlock();
@@ -5247,12 +5289,19 @@ function openReviseArchitectureGate() {
     state.architecture.status = "preview";
     state.architecture.ir = null;
     state.mode = "architecture";
+    // Place diagram under「请先确认架构」CTA before scrolling.
+    placeArchitecturePanelForFlow();
     syncArchitecturePanel();
     syncChatPlaceholder();
     syncComposerEnabled();
     schedulePersistProjectDesk();
     focusRightPanel({ force: true });
     try {
+      // Prefer CTA then panel — user reads the cue, then confirms below.
+      el.doReviseDispatch?.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
       el.architecturePanel?.scrollIntoView({
         block: "nearest",
         behavior: "smooth",

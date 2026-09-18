@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T14:25:00.000Z",
+  "verification": {
+    "levels": ["L3-live-smoke"],
+    "commands": ["npm run test:live"]
+  },
+  "notes": "After 改进方案确认, architecture panel moves under「请先确认架构」CTA."
+}
