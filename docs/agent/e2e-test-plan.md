@@ -292,3 +292,4 @@ the table for their app.
 | E2E-141 | `176-deliverables-page` | stage deliverables HTML page |
 | E2E-142 | `178-arch-panel-visible` | architecture panel visibility + server render |
 | E2E-143 | `179-arch-layout-hang` | cyclic IR layout must not freeze desk |
+| E2E-144 | `180-deliverables-structure` | structured TOC + card fields |
