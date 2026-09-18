@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Remove beginner slogan
+
+- Drop 「小白也能做FED」 / 「Beginners can do FED too」 from top nav and leftover i18n
+
 ### Fix: Archify IR sanitize before render
 
 - Strip chat/Brief extras (`goal`, `reply`, `type`, …) so Archify schema accepts IR

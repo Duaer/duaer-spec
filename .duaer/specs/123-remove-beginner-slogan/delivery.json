@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "123-remove-beginner-slogan",
+  "summary": "Removed beginner slogan from FED header and i18n",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js + i18n.js",
+    "L3": "npm run test:live — pass"
+  }
+}
