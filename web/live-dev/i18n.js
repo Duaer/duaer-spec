@@ -212,6 +212,8 @@ const zhCN = {
   "preview.headingInitial": "结果 · 初版",
   "preview.headingRev": "结果 · 第 {revision} 版",
   "preview.view": "打开看看",
+  "preview.deploy": "部署",
+  "preview.deploying": "部署中…",
   "preview.openFolder": "打开目录",
   "preview.noPage": "还没有可打开的地址。可以先打开目录看看。",
   "preview.folderHint": "代码在：{path}",
@@ -295,6 +297,10 @@ const zhCN = {
     "{duaer}{who}。进度看下方清单与日志；完成后可「查看结果」。\n{path}",
   "bot.reviseDispatched":
     "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看结果。",
+  "bot.deployDispatched":
+    "已派出部署（{target}）· Revision {revision}（{launch}）。完成后结果栏会更新公网地址。",
+  "bot.deployDefaultPages":
+    "计划托管仍是「暂不部署」，本次按 GitHub Pages 部署。",
   "bot.reviseLaunchReuse": "已送入原 Terminal",
   "bot.reviseLaunchQueued":
     "已排入原 Terminal，当前任务结束后自动跑",
@@ -381,6 +387,7 @@ const zhCN = {
   "err.dispatchTimeout":
     "派工超时（60s）。请刷新重试；若 worktree 已存在需换分支名或删掉旧 worktree。",
   "err.revise": "继续改进失败",
+  "err.deploy": "部署启动失败",
   "err.reviseKickoff": "改进对话启动失败",
   "err.reviseKickoffStack":
     "改进对话启动失败：内部数据过大（架构图序列化爆栈）。请刷新后再点「再改一版」。",
@@ -620,6 +627,8 @@ const en = {
   "preview.headingInitial": "Result · Initial",
   "preview.headingRev": "Result · v{revision}",
   "preview.view": "Open it",
+  "preview.deploy": "Deploy",
+  "preview.deploying": "Deploying…",
   "preview.openFolder": "Open folder",
   "preview.noPage": "Nothing to open yet. You can open the folder first.",
   "preview.folderHint": "Code is at: {path}",
@@ -708,6 +717,10 @@ const en = {
     "{duaer}{who}. Watch the checklist and log below; then View result.\n{path}",
   "bot.reviseDispatched":
     "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View result.",
+  "bot.deployDispatched":
+    "Deploy started ({target}) · Revision {revision} ({launch}). The result bar will show the public URL when ready.",
+  "bot.deployDefaultPages":
+    "Planned host was still “No deploy yet”; this run uses GitHub Pages.",
   "bot.reviseLaunchReuse": "enqueued in existing Terminal",
   "bot.reviseLaunchQueued":
     "Queued in the same Terminal; runs after the current task finishes",
@@ -794,6 +807,7 @@ const en = {
   "err.dispatchTimeout":
     "Dispatch timed out (60s). Refresh and retry; if the worktree exists, rename the branch or remove the old worktree.",
   "err.revise": "Revise failed",
+  "err.deploy": "Could not start deploy",
   "err.reviseKickoff": "Could not start revise chat",
   "err.reviseKickoffStack":
     "Could not start revise chat: internal data overflow. Refresh and try 再改一版 again.",

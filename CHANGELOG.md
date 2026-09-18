@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: result-bar Deploy button
+
+- 「打开看看」旁增加「部署」；暂不部署时默认 GitHub Pages
+- `POST /api/deploy` 派出数字员工按计划托管上线并写回公网 preview.url
+
 ### Fix: architecture mount auto height
 
 - Override Archify reader `100vh` / `100dvh` locks so the desk host grows with

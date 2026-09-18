@@ -41,6 +41,8 @@ const state = {
   busy: false,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
+  /** True while POST /api/deploy is in flight. */
+  deployDispatching: false,
   mode: "specify", // specify | revise | architecture
   /** After a successful revise: right card stays locked 改进卡. */
   reviseLocked: false,
@@ -236,6 +238,7 @@ const el = {
   previewServiceStatus: document.getElementById("previewServiceStatus"),
   previewStartService: document.getElementById("previewStartService"),
   previewLink: document.getElementById("previewLink"),
+  previewDeploy: document.getElementById("previewDeploy"),
   previewOpenFolder: document.getElementById("previewOpenFolder"),
   previewMissing: document.getElementById("previewMissing"),
   previewMeta: document.getElementById("previewMeta"),
@@ -1842,6 +1845,10 @@ function clearDeskWorkspace() {
   }
   if (el.reviseTitle) el.reviseTitle.textContent = t("revise.title");
   if (el.previewLink) el.previewLink.hidden = true;
+  if (el.previewDeploy) {
+    el.previewDeploy.hidden = true;
+    el.previewDeploy.disabled = false;
+  }
   if (el.previewOpenFolder) el.previewOpenFolder.hidden = true;
   if (el.startReviseChat) el.startReviseChat.hidden = true;
   if (el.revisePanel) el.revisePanel.hidden = true;
@@ -4694,6 +4701,15 @@ function renderPreview(data) {
       el.previewLink.textContent = label;
       el.previewLink.disabled = false;
     }
+    if (el.previewDeploy) {
+      el.previewDeploy.hidden = false;
+      el.previewDeploy.disabled = Boolean(
+        state.deployDispatching || state.busy || state.reviseDispatching,
+      );
+      el.previewDeploy.textContent = state.deployDispatching
+        ? t("preview.deploying")
+        : t("preview.deploy");
+    }
     const canOpenFolder = Boolean(folder && state.jobId);
     if (el.previewOpenFolder) {
       el.previewOpenFolder.hidden = !canOpenFolder;
@@ -5517,9 +5533,93 @@ el.previewOpenFolder?.addEventListener("click", () => {
 el.previewLink?.addEventListener("click", () => {
   void ensureAndOpenPreview({ open: true });
 });
+el.previewDeploy?.addEventListener("click", () => {
+  void triggerPreviewDeploy();
+});
 el.previewStartService?.addEventListener("click", () => {
   void ensureAndOpenPreview({ open: false });
 });
+
+async function triggerPreviewDeploy() {
+  if (!state.jobId || state.deployDispatching || state.busy) return;
+  let target = state.deployTarget || "none";
+  let defaulted = false;
+  if (target === "none") {
+    target = "github-pages";
+    defaulted = true;
+    state.deployTarget = target;
+    renderDeployTargetList();
+    void persistProjectChat();
+    addBubble("bot", t("bot.deployDefaultPages"));
+  }
+  state.deployDispatching = true;
+  if (el.previewDeploy) {
+    el.previewDeploy.disabled = true;
+    el.previewDeploy.textContent = t("preview.deploying");
+  }
+  try {
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 180000);
+    const res = await fetch("/api/deploy", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        jobId: state.jobId,
+        agentId: state.agentId,
+        deployTarget: target,
+      }),
+      signal: ac.signal,
+    });
+    clearTimeout(timer);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || t("err.deploy"));
+    }
+    if (data.deployTarget) {
+      state.deployTarget = data.deployTarget;
+      renderDeployTargetList();
+    }
+    const launchLabel = data.launch?.preempted
+      ? t("bot.reviseLaunchPreempt")
+      : data.launch?.busy &&
+          (data.launch?.reused || data.launch?.mode === "terminal-reuse")
+        ? t("bot.reviseLaunchQueued")
+        : data.launch?.reused || data.launch?.mode === "terminal-reuse"
+          ? t("bot.reviseLaunchReuse")
+          : data.continueSession
+            ? t("bot.reviseLaunchContinue")
+            : t("bot.reviseLaunchNew");
+    addBubble(
+      "bot",
+      t("bot.deployDispatched", {
+        target: t(`dispatch.deploy.${data.deployTarget || target}`),
+        revision: data.revision || "—",
+        launch: launchLabel,
+      }),
+    );
+    if (el.dispatchStatus) {
+      el.dispatchStatus.hidden = false;
+      el.dispatchStatus.textContent = t("status.revisingLine", {
+        revision: data.revision || "—",
+      });
+    }
+    startStatusPoll();
+  } catch (err) {
+    const timedOut = err?.name === "AbortError";
+    const msg = timedOut
+      ? t("err.reviseTimeout")
+      : err instanceof Error
+        ? err.message
+        : t("err.deploy");
+    addBubble("bot", msg);
+  } finally {
+    state.deployDispatching = false;
+    if (el.previewDeploy && el.previewPanel && !el.previewPanel.hidden) {
+      el.previewDeploy.disabled = Boolean(state.busy || state.reviseDispatching);
+      el.previewDeploy.textContent = t("preview.deploy");
+    }
+  }
+}
 
 if (el.doReviseDispatch) {
   el.doReviseDispatch.addEventListener("click", () => {

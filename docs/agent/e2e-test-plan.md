@@ -106,6 +106,7 @@ the table for their app.
 | E2E-124 | Inline mount keeps full Archify FX (theme CSS, motion, focus-chip, zoom) | `npm test` + manual |
 | E2E-125 | Node click boots Archify viewer (full body mount) → focus-chip + zoom | `npm test` + manual |
 | E2E-126 | Architecture mount height follows SVG canvas (not 100vh black box) | `npm test` + manual |
+| E2E-127 | Result bar Deploy next to 打开看看; none → GitHub Pages; POST /api/deploy | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -263,3 +264,4 @@ the table for their app.
 | E2E-124 | `157-arch-mount-fx` | full Archify styles + viewer FX |
 | E2E-125 | `158-arch-click-fx` | full body mount; click passport + zoom |
 | E2E-126 | `159-arch-auto-height` | content-driven height; kill 100vh lock |
+| E2E-127 | `160-preview-deploy-btn` | result-bar Deploy; default Pages |

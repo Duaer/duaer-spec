@@ -3861,6 +3861,236 @@ ${restated.keep}
   };
 }
 
+/**
+ * Result-bar「部署」: publish the accepted product to the planned host.
+ * If target is still「暂不部署」, default to GitHub Pages.
+ */
+async function deployDispatchedJob({ jobId, agentId, deployTarget: deployTargetRaw }) {
+  const live = readLiveJob(jobId);
+  let dispatch = live.job.dispatch;
+  if (!dispatch?.repoPath && !dispatch?.worktreePath) {
+    throw new Error("尚未派工，无法部署");
+  }
+
+  let deployTarget = normalizeDeployTarget(
+    deployTargetRaw || dispatch.deployTarget || live.job.deployTarget,
+  );
+  const defaultedFromNone = deployTarget === "none";
+  if (defaultedFromNone) deployTarget = "github-pages";
+  const deployPlan = deployPromptForTarget(deployTarget);
+
+  const revN = Number(live.job.revisionCount || 0) + 1;
+  const now = new Date().toISOString();
+  let recreated = false;
+
+  if (!dispatch.worktreePath || !fs.existsSync(dispatch.worktreePath)) {
+    dispatch = recreateWorktreeForRevise(live, dispatch, revN);
+    recreated = true;
+  }
+
+  const featureDir = dispatch.featureDir;
+  if (!featureDir || !fs.existsSync(featureDir)) {
+    throw new Error("找不到 Brief，无法部署");
+  }
+
+  const specPath = path.join(featureDir, "spec.md");
+  const tasksPath = path.join(featureDir, "tasks.md");
+  const deliveryPath = path.join(featureDir, "delivery.json");
+  const snapSpec = snapshotTextFile(specPath);
+  const snapTasks = snapshotTextFile(tasksPath);
+  const snapDelivery = snapshotTextFile(deliveryPath);
+
+  let prevDelivery = null;
+  if (snapDelivery.exists) {
+    try {
+      prevDelivery = JSON.parse(snapDelivery.content);
+    } catch {
+      prevDelivery = null;
+    }
+  }
+
+  const targetLabel =
+    deployTarget === "github-pages"
+      ? "GitHub Pages"
+      : deployTarget === "cloudflare"
+        ? "Cloudflare"
+        : deployTarget === "aliyun"
+          ? "阿里云"
+          : deployTarget === "aws"
+            ? "AWS"
+            : deployTarget;
+
+  if (fs.existsSync(specPath)) {
+    const specMd = fs.readFileSync(specPath, "utf8");
+    const note = `\n\n## Deploy ${revN} (${now.slice(0, 10)})\n\nPlanned host: **${targetLabel}**. Publish and write the public URL to delivery.preview.url.\n`;
+    if (!/## Deploy \d+/.test(specMd)) {
+      fs.writeFileSync(specPath, `${specMd.trimEnd()}${note}`, "utf8");
+    } else {
+      fs.writeFileSync(specPath, `${specMd.trimEnd()}${note}`, "utf8");
+    }
+  }
+
+  const tasksMd = fs.existsSync(tasksPath)
+    ? fs.readFileSync(tasksPath, "utf8")
+    : "";
+  const deployTask =
+    deployPlan.deployTaskText ||
+    `Deploy to ${targetLabel}; write public URL to delivery.preview.url`;
+  fs.writeFileSync(
+    tasksPath,
+    `${tasksMd.trim()}\n\n## Deploy ${revN} tasks\n- [ ] D${revN}-1 ${deployTask}\n- [ ] D${revN}-2 Stamp delivery.json accepted with public preview.url\n`,
+    "utf8",
+  );
+
+  fs.writeFileSync(
+    deliveryPath,
+    `${JSON.stringify(
+      {
+        status: "open",
+        deployAt: now,
+        revision: revN,
+        kind: "deploy",
+        deployTarget,
+        previousStatus: prevDelivery?.status || null,
+        previousAcceptedAt: prevDelivery?.acceptedAt || null,
+        previousPreview: prevDelivery?.preview || null,
+      },
+      null,
+      2,
+    )}\n`,
+    "utf8",
+  );
+
+  const detected = detectAgents();
+  let chosen = String(agentId || "").trim() || detected.preferredAgentId || "";
+  if (!chosen || !detected.agents.some((a) => a.id === chosen)) {
+    chosen = detected.agents[0]?.id || "";
+  }
+  if (!chosen) {
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code）", {
+      code: "NO_AGENT",
+      retryable: true,
+    });
+  }
+  const ok = detected.agents.some((a) => a.id === chosen && a.available);
+  if (!ok) {
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    throw new LaunchGateError(`未安装启动器：${chosen}`, {
+      code: "AGENT_MISSING",
+      retryable: true,
+    });
+  }
+
+  const priorAccepted = prevDelivery?.status === "accepted";
+  const continueSession = !recreated && !priorAccepted;
+
+  const agentPrompt = `Duaer
+
+用户在结果栏点了「部署」。请在同一 worktree 把成品发布到计划托管平台（Deploy ${revN}）。
+${
+  recreated
+    ? "上一轮 worktree 已清理；已从 develop 重建并带上 Brief。"
+    : continueSession
+      ? "请续上一次会话上下文（CLI 已带 --continue）。"
+      : "请开新一轮会话执行部署（不要依赖已结束的 --continue）。"
+}
+${defaultedFromNone ? "\n原计划托管为「暂不部署」；本次按默认 GitHub Pages 执行。\n" : ""}
+
+工作目录: ${dispatch.worktreePath}
+Brief: ${dispatch.featureDir}
+分支: ${dispatch.branch || live.job.branch || ""}
+计划托管: ${deployTarget}（${targetLabel}）
+
+要求：
+0. 这是部署任务，不是功能改版；不要改产品需求范围，除非部署所必需的最小改动（如 Pages workflow）
+1. 立刻把 tasks.md 里 D${revN}-* 勾成 - [x]
+2. 按 docs/agent/deploy-targets.md / deploy-github.md（若 GitHub Pages）完成发布
+${deployPlan.promptBlock}
+3. 部署成功后 stamp delivery.json accepted，preview.url 必须是公网可打开地址（不要只用 localhost）
+4. 用户点了「部署」即授权本次发布所需的 push / gh / 平台 CLI（仍禁止 force-push 与无关分支）
+`;
+
+  const logPath = path.join(featureDir, "agent-launch.log");
+  appendLaunchLog(
+    logPath,
+    `\n—— deploy r${revN} ${now} target=${deployTarget} continue=${continueSession} recreated=${recreated} ——\n`,
+  );
+
+  let launch;
+  try {
+    launch = launchAgent({
+      agentId: chosen,
+      worktreePath: dispatch.worktreePath,
+      agentPrompt,
+      logPath,
+      featureDir,
+      continueSession,
+      reviseLaunch: true,
+    });
+  } catch (err) {
+    restoreTextFile(specPath, snapSpec);
+    restoreTextFile(tasksPath, snapTasks);
+    restoreTextFile(deliveryPath, snapDelivery);
+    if (err?.code === "PREEMPT_FAILED" || err?.name === "LaunchGateError") {
+      throw err;
+    }
+    throw new LaunchGateError(
+      err instanceof Error ? err.message : "部署启动失败",
+      {
+        code: err?.code === "CHILD_TIMEOUT" ? "CHILD_TIMEOUT" : "LAUNCH_FAILED",
+        retryable: true,
+        detail: { cause: err?.code || err?.name || null },
+      },
+    );
+  }
+  rememberPreferredAgent(chosen);
+
+  const nextDispatch = {
+    ...dispatch,
+    deployTarget,
+    launch,
+    deployedAt: now,
+    revision: revN,
+  };
+  const history = Array.isArray(live.job.revisions) ? live.job.revisions : [];
+  history.push({
+    n: revN,
+    at: now,
+    kind: "deploy",
+    deployTarget,
+  });
+  const nextJob = {
+    ...live.job,
+    status: "revising",
+    revisionCount: revN,
+    revisions: history,
+    deployTarget,
+    agentPrompt,
+    dispatch: nextDispatch,
+  };
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+
+  return {
+    ok: true,
+    jobId: live.id,
+    revision: revN,
+    deployTarget,
+    defaultedFromNone,
+    continueSession,
+    recreated,
+    priorAccepted,
+    dispatch: nextDispatch,
+    launch,
+    agentPrompt,
+    agents: detectAgents(),
+  };
+}
+
 function extractSection(md, title) {
   const re = new RegExp(
     `## ${title}\\s*\\n([\\s\\S]*?)(?=\\n## |$)`,
@@ -5315,6 +5545,43 @@ async function handleApi(req, res) {
         code,
         retryable: err?.retryable !== false,
         error: err instanceof Error ? err.message : "revise failed",
+        detail: err?.detail || undefined,
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/deploy") {
+    try {
+      const body = await readJson(req);
+      const result = await deployDispatchedJob({
+        jobId: body.jobId,
+        agentId: body.agentId,
+        deployTarget: body.deployTarget,
+      });
+      send(res, 200, result);
+    } catch (err) {
+      const code =
+        err?.code === "PREEMPT_FAILED"
+          ? "PREEMPT_FAILED"
+          : err?.code === "CHILD_TIMEOUT"
+            ? "CHILD_TIMEOUT"
+            : err?.code === "NO_AGENT" || err?.code === "AGENT_MISSING"
+              ? err.code
+              : err?.name === "LaunchGateError"
+                ? err.code || "LAUNCH_FAILED"
+                : err?.code || "DEPLOY_FAILED";
+      const status =
+        code === "CHILD_TIMEOUT"
+          ? 504
+          : code === "PREEMPT_FAILED"
+            ? 409
+            : 400;
+      send(res, status, {
+        ok: false,
+        code,
+        retryable: err?.retryable !== false,
+        error: err instanceof Error ? err.message : "deploy failed",
         detail: err?.detail || undefined,
       });
     }

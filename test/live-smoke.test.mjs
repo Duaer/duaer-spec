@@ -278,6 +278,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /markDispatchDone|applyDispatchStateFromStatus|tryRecoverDispatchDone/);
   assert.match(js, /openResultFolder|\/api\/reveal/);
   assert.match(html, /id="previewOpenFolder"/);
+  assert.match(html, /id="previewDeploy"/);
+  assert.match(js, /triggerPreviewDeploy|\/api\/deploy/);
+  assert.match(liveBin, /\/api\/deploy|deployDispatchedJob/);
   assert.match(css, /\.preview-actions\s+\.btn\.confirm[^{]*\{[^}]*width:\s*auto/s);
   assert.match(css, /\.architecture-actions\s+\.btn\.confirm[^{]*\{[^}]*width:\s*auto/s);
   assert.match(css, /\.btn\[hidden\][^{]*\{[^}]*display:\s*none\s*!important/s);
