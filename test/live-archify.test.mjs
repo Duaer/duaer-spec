@@ -10,12 +10,15 @@ import {
   extractArchitectureIr,
   injectDuaerEmbedFitCss,
   injectDuaerEmbedNodeZoom,
+  injectDuaerEmbedPassportExpand,
   injectDuaerEmbedPatches,
   layoutArchitectureIr,
   renderArchitectureHtml,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
   DUAER_EMBED_ZOOM_SCRIPT_ID,
+  DUAER_EMBED_EXPAND_SCRIPT_ID,
+  DUAER_ARCH_EMBED_MESSAGE_SOURCE,
 } from "../bin/live-archify.mjs";
 import {
   extractArchitectureIr as extractBrowser,
@@ -183,8 +186,10 @@ test("renderArchitectureHtml produces HTML via Archify", () => {
   const html = fs.readFileSync(out.htmlPath, "utf8");
   assert.match(html, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
   assert.match(html, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.match(html, new RegExp(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`));
   assert.match(html, /\.diagram-container\s*\{[^}]*max-height:\s*none/s);
   assert.match(html, /__duaerEmbedZoom|includeNeighbors:\s*false/);
+  assert.match(html, new RegExp(DUAER_ARCH_EMBED_MESSAGE_SOURCE));
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -215,6 +220,18 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
   assert.match(
     once,
     /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*z-index:\s*10000\s*!important/s,
+  );
+  assert.match(
+    once,
+    /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*overflow:\s*visible\s*!important/s,
+  );
+  assert.match(
+    once,
+    /html\[data-embed="true"\] \.focus-chip \.relationship-lens-list\s*\{[^}]*max-height:\s*none\s*!important/s,
+  );
+  assert.match(
+    once,
+    /html\[data-embed="true"\] \.focus-chip \.relationship-lens-list\s*\{[^}]*overflow:\s*visible\s*!important/s,
   );
   assert.match(
     once,
@@ -251,9 +268,17 @@ test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
   const patched = injectDuaerEmbedPatches(raw);
   assert.match(patched, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
   assert.match(patched, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.match(patched, new RegExp(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`));
+  assert.match(patched, new RegExp(DUAER_ARCH_EMBED_MESSAGE_SOURCE));
   assert.equal(
     injectDuaerEmbedPatches(patched).split(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`)
       .length - 1,
+    1,
+  );
+  const expandOnce = injectDuaerEmbedPassportExpand(raw);
+  const expandTwice = injectDuaerEmbedPassportExpand(expandOnce);
+  assert.equal(
+    expandTwice.split(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`).length - 1,
     1,
   );
 });
@@ -270,6 +295,7 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
   assert.match(js, /architectureEmbedUrl|embed=1/);
   assert.match(js, /architectureFrameHeightPx|syncArchitectureFrameSize|ResizeObserver/);
+  assert.match(js, /duaer-arch-embed|onArchitectureEmbedMessage|embedHeight/);
   assert.match(js, /announceArchitectureRendered|arch\.renderedReady/);
   assert.match(
     js,

@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "147-arch-expand-noscroll",
+  "acceptedAt": "2026-09-18T10:00:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"],
+    "results": "pass"
+  }
+}

@@ -94,6 +94,7 @@ the table for their app.
 | E2E-112 | Architecture embed passport sits 100px left and 100px up from prior inset | `npm test` + manual |
 | E2E-113 | Architecture embed passport stays in-view (left flush, top 100px, high z-index) | `npm test` + manual |
 | E2E-114 | Architecture passport offset 100px via gutter padding without iframe clip | `npm test` + manual |
+| E2E-115 | Architecture passport expands fully with no inner scroll; iframe grows | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -239,3 +240,4 @@ the table for their app.
 | E2E-112 | `144-arch-popup-offset` | passport left/top −100px |
 | E2E-113 | `145-arch-popup-visible` | passport in-view top 100px |
 | E2E-114 | `146-arch-popup-gutter` | 100px gutter offset without clip |
+| E2E-115 | `147-arch-expand-noscroll` | passport expand, no inner scroll |

@@ -515,6 +515,10 @@ export function architectureSummary(ir) {
 export const DUAER_EMBED_FIT_STYLE_ID = "duaer-embed-fit";
 /** Script id: force single-node zoom on click inside the desk iframe. */
 export const DUAER_EMBED_ZOOM_SCRIPT_ID = "duaer-embed-node-zoom";
+/** Script id: expand passport fully + report embed height to the desk. */
+export const DUAER_EMBED_EXPAND_SCRIPT_ID = "duaer-embed-passport-expand";
+/** postMessage source for embed → desk height sync. */
+export const DUAER_ARCH_EMBED_MESSAGE_SOURCE = "duaer-arch-embed";
 
 /**
  * Archify's .diagram-container uses overflow:hidden (one-screen reader).
@@ -565,7 +569,15 @@ html[data-embed="true"] .focus-chip {
   z-index: 10000 !important;
   width: min(22rem, calc(100% - 1.5rem - 100px)) !important;
   max-width: calc(100% - 1.5rem - 100px) !important;
+  max-height: none !important;
+  overflow: visible !important;
   pointer-events: auto !important;
+}
+/* Expand passport body fully — no inner scroll in the desk embed. */
+html[data-embed="true"] .focus-chip .relationship-lens-list {
+  display: block !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 html[data-embed="true"] .focus-chip[hidden] {
   display: none !important;
@@ -641,9 +653,92 @@ export function injectDuaerEmbedNodeZoom(html) {
   return `${src}\n${script}`;
 }
 
+/**
+ * Expand the node passport fully in embed (no inner scroll) and tell the desk
+ * iframe how tall the document needs to be so the chip is not clipped.
+ * Replaces any prior expand script so upgrades apply to cached HTML.
+ */
+export function injectDuaerEmbedPassportExpand(html) {
+  const src = String(html || "");
+  const script = `<script id="${DUAER_EMBED_EXPAND_SCRIPT_ID}">
+(function () {
+  if (!document.documentElement || document.documentElement.getAttribute("data-embed") !== "true") return;
+  var SOURCE = ${JSON.stringify(DUAER_ARCH_EMBED_MESSAGE_SOURCE)};
+  function chipEl() { return document.getElementById("focus-chip"); }
+  function expandChip() {
+    var chip = chipEl();
+    if (!chip || chip.hasAttribute("hidden")) return;
+    chip.setAttribute("data-relations-expanded", "true");
+  }
+  function reportHeight() {
+    expandChip();
+    var base = Math.max(
+      document.documentElement ? document.documentElement.scrollHeight : 0,
+      document.body ? document.body.scrollHeight : 0
+    );
+    var need = base;
+    var chip = chipEl();
+    if (chip && !chip.hasAttribute("hidden")) {
+      var r = chip.getBoundingClientRect();
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      need = Math.max(need, Math.ceil(y + r.bottom + 24));
+    }
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ source: SOURCE, type: "height", height: need }, "*");
+    }
+  }
+  var scheduled = false;
+  function schedule() {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(function () {
+      scheduled = false;
+      reportHeight();
+    });
+  }
+  function watch() {
+    expandChip();
+    schedule();
+    var chip = chipEl();
+    if (chip && !chip.__duaerExpandObserved) {
+      chip.__duaerExpandObserved = true;
+      new MutationObserver(schedule).observe(chip, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", watch);
+  } else {
+    watch();
+  }
+  window.addEventListener("resize", schedule);
+  window.addEventListener("load", schedule);
+  setTimeout(schedule, 120);
+  setTimeout(schedule, 600);
+})();
+</script>`;
+  const re = new RegExp(
+    `<script\\s+id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
+    "i",
+  );
+  if (re.test(src)) {
+    return src.replace(re, script);
+  }
+  if (/<\/body>/i.test(src)) {
+    return src.replace(/<\/body>/i, `${script}\n</body>`);
+  }
+  return `${src}\n${script}`;
+}
+
 /** Apply all Duaer desk patches to Archify HTML (idempotent). */
 export function injectDuaerEmbedPatches(html) {
-  return injectDuaerEmbedNodeZoom(injectDuaerEmbedFitCss(html));
+  return injectDuaerEmbedNodeZoom(
+    injectDuaerEmbedPassportExpand(injectDuaerEmbedFitCss(html)),
+  );
 }
 
 /**

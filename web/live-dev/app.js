@@ -2671,11 +2671,42 @@ function syncArchitectureFrameSize() {
   const frame = el.architectureFrame;
   const a = state.architecture;
   if (!frame || !a?.url) return;
-  frame.style.height = `${architectureFrameHeightPx(a.ir, frame)}px`;
+  const fromIr = architectureFrameHeightPx(a.ir, frame);
+  const fromEmbed = Number(frame.dataset.embedHeight || 0);
+  frame.style.height = `${Math.max(fromIr, fromEmbed || 0)}px`;
+}
+
+function onArchitectureEmbedMessage(ev) {
+  const data = ev?.data;
+  if (!data || data.source !== "duaer-arch-embed" || data.type !== "height") {
+    return;
+  }
+  const height = Number(data.height);
+  if (!Number.isFinite(height) || height < 120) return;
+  const frames = [el.architectureFrame, el.architecturePreviousFrame].filter(
+    (f) => f && !f.hidden && f.contentWindow === ev.source,
+  );
+  for (const frame of frames) {
+    frame.dataset.embedHeight = String(Math.ceil(height));
+    const ir =
+      frame === el.architectureFrame
+        ? state.architecture?.ir
+        : state.architecturePrevious?.ir;
+    const fromIr = architectureFrameHeightPx(ir, frame);
+    frame.style.height = `${Math.max(fromIr, Math.ceil(height))}px`;
+  }
+}
+
+let architectureEmbedMessageBound = false;
+function ensureArchitectureEmbedMessageListener() {
+  if (architectureEmbedMessageBound) return;
+  architectureEmbedMessageBound = true;
+  window.addEventListener("message", onArchitectureEmbedMessage);
 }
 
 function ensureArchitectureFrameObserver() {
   if (!el.architectureFrame || typeof ResizeObserver === "undefined") return;
+  ensureArchitectureEmbedMessageListener();
   if (architectureFrameResizeObserver) return;
   architectureFrameResizeObserver = new ResizeObserver(() => {
     syncArchitectureFrameSize();
