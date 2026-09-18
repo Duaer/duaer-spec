@@ -22,7 +22,8 @@ npx duaer-spec init --here
 **Global CLI** (when `duaer` is installed globally):
 
 ```bash
-duaer self-update
+npm i -g duaer-spec@latest   # works on any build (incl. older CLIs without self-update)
+duaer self-update            # same as above once CLI ≥ 0.13
 ```
 
 The CLI also prints a one-line hint when a newer npm release exists
@@ -86,7 +87,11 @@ mock LLM — no paid API).
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View result** (versioned; `preview.url` or auto-detected `index.html`)  
 6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches on the same worktree (preempt leftover Agents before enqueueing revise). Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  
-7. If the job needs hosting / a public URL, deploy with **GitHub CLI (`gh`) + Actions** (Pages template under `.duaer/templates/deploy-github-pages.yml`; see [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
+7. If the job needs hosting / a public URL, pick a **planned host** on the desk
+   (Cloudflare / Alibaba Cloud / AWS / GitHub Pages) so code matches that
+   platform ([`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md)).
+   Default when unspecified: **GitHub CLI (`gh`) + Actions**
+   ([`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
 Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
 

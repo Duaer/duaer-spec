@@ -26,6 +26,11 @@ import {
   buildDetailedRevisionTasksMd,
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
+import {
+  deployPromptForTarget,
+  isDeployPlanned,
+  normalizeDeployTarget,
+} from "./deploy-targets.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
@@ -2712,7 +2717,13 @@ function needsGithubDeploy(text) {
   );
 }
 
-function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
+function dispatchToRepo({
+  jobId,
+  repoPath,
+  agentId,
+  startCommand,
+  deployTarget: deployTargetRaw,
+}) {
   const live = readLiveJob(jobId);
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
   const probe = probeRepo(repoPath, {
@@ -2756,9 +2767,18 @@ function dispatchToRepo({ jobId, repoPath, agentId, startCommand }) {
   const goalBody = extractSection(live.spec, "Goal") || goal;
   const acceptBody = extractSection(live.spec, "Acceptance") || "";
   const assumeBody = extractSection(live.spec, "Assumptions") || "- (none)";
-  const deployNeeded = needsGithubDeploy(
-    [live.spec, goalBody, acceptBody, assumeBody].join("\n"),
-  );
+  let deployTarget = normalizeDeployTarget(deployTargetRaw);
+  if (
+    deployTarget === "none" &&
+    needsGithubDeploy(
+      [live.spec, goalBody, acceptBody, assumeBody].join("\n"),
+    )
+  ) {
+    // Brief implies hosting but desk left「暂不部署」→ default GitHub Pages.
+    deployTarget = "github-pages";
+  }
+  const deployPlan = deployPromptForTarget(deployTarget);
+  const deployNeeded = deployPlan.needed || isDeployPlanned(deployTarget);
   const productSpec = `# Feature Specification: ${goal}
 
 **Feature Branch**: \`${branch}\`
@@ -2784,13 +2804,14 @@ ${assumeBody}
 ## Notes
 
 Dispatched from Duaer-spec FED into product worktree \`${worktreePath}\`.
-${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `docs/agent/deploy-github.md`).\n" : ""}
+${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
   const productTasks = buildDetailedProductTasksMd({
     goal: goalBody || goal,
     acceptance: acceptBody,
     deployNeeded,
+    deployTaskText: deployPlan.deployTaskText,
   });
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -2804,7 +2825,8 @@ ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `doc
         startedAt: new Date().toISOString(),
         source: "live-dispatch",
         liveJobId: live.id,
-        deployViaGithubCli: deployNeeded,
+        deployTarget,
+        deployViaGithubCli: deployTarget === "github-pages",
       },
       null,
       2,
@@ -2812,17 +2834,7 @@ ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `doc
     "utf8",
   );
 
-  const deployPrompt = deployNeeded
-    ? `
-9. 本需求需要部署：默认走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
-10. 静态站：复制本 worktree 的 .duaer/templates/deploy-github-pages.yml → .github/workflows/deploy.yml（按构建产物改 path）；不要去其它仓找模板
-11. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
-12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看结果」）
-13. 用户要部署即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）
-`
-    : `
-9. 不要推远程除非用户明确要求
-`;
+  const deployPrompt = deployPlan.promptBlock;
 
   const defaultPrompt = `Duaer
 
@@ -2832,6 +2844,7 @@ ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `doc
 Brief: ${featureDir}
 分支: ${branch}
 产品仓: ${probe.path}
+计划托管: ${deployTarget}
 
 要求：
 0. 本 Brief 已在 Duaer-spec FED 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
@@ -2839,9 +2852,9 @@ Brief: ${featureDir}
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
-4b. 若 tasks.md 仍偏粗：开工后先扩成 8–15 条可勾选步骤（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
+4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-6. 若有可打开成品（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的成品
+6. 若有可打开结果（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的结果
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 ${deployPrompt}`;
@@ -2904,6 +2917,7 @@ Brief: ${featureDir}
     specDir: `.duaer/specs/${specDirName}`,
     featureDir,
     dispatchedAt: new Date().toISOString(),
+    deployTarget,
     openedWith: launch.kind === "open" ? launch.agentId : null,
     launch,
     startCommand: agentPrompt,
@@ -2917,6 +2931,7 @@ Brief: ${featureDir}
     ...live.job,
     branch,
     status: "dispatched",
+    deployTarget,
     dispatch,
     agentPrompt,
   };
@@ -2927,7 +2942,8 @@ Brief: ${featureDir}
     ok: true,
     jobId: live.id,
     ...dispatch,
-    deployViaGithubCli: deployNeeded,
+    deployTarget,
+    deployViaGithubCli: deployTarget === "github-pages",
     agentPrompt,
     agents: detectAgents(),
   };
@@ -3374,8 +3390,8 @@ ${restated.keep}
 0. 本轮 Revision 已在 Duaer-spec FED 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
-2b. 若本轮 R${revN}-* 仍偏粗：先扩成 6–12 条可勾选步骤（仍用 R${revN}-*），保存后再做；小步勾选
-3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开成品是默认证据）
+2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
+3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开结果是默认证据）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
 `;
@@ -4597,6 +4613,7 @@ async function handleApi(req, res) {
         repoPath: body.repoPath,
         agentId: body.agentId,
         startCommand: body.startCommand,
+        deployTarget: body.deployTarget,
       });
       send(res, 200, result);
     } catch (err) {

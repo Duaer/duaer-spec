@@ -156,7 +156,7 @@ export async function checkForUpdate({ force = false } = {}) {
 
 export function formatUpdateHint(info) {
   if (!info?.outdated || !info.latest) return null;
-  return `duaer-spec ${info.current} → ${info.latest} available. Upgrade CLI: duaer self-update   ·  refresh a product repo: npx duaer-spec@latest update`;
+  return `duaer-spec ${info.current} → ${info.latest} available. Upgrade CLI: npm i -g duaer-spec@latest   (or: duaer self-update)   ·  refresh a product repo: npx duaer-spec@latest update`;
 }
 
 /** Fire-and-forget console hint (non-blocking for callers that await briefly). */

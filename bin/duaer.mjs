@@ -36,7 +36,8 @@ const USAGE = `duaer — digital-employee delivery (duaer-spec ${PKG.version})
 
 Install:  npx duaer-spec init --here
 Update:   npx duaer-spec update          # product-repo adapters
-          duaer self-update              # upgrade global CLI from npm
+          npm i -g duaer-spec@latest     # bootstrap / upgrade global CLI
+          duaer self-update              # same as npm i -g (0.13+)
 
 Then talk to the agent in plain language.
 
@@ -46,7 +47,7 @@ Also:
   duaer live config --base-url … --api-key … --model …
   duaer live repo add [path]         Remember a product repo for dispatch (default: cwd)
   duaer handoff [--run]   Restart services on develop after worktree remove
-  duaer status | check | policy | version | self-update | help
+  duaer status | check | policy | version | self-update | upgrade | help
 
 Init options: --all | --method | --ops | --force | --branch <n> | --here
 `
@@ -1049,6 +1050,7 @@ function main() {
         break
       case 'self-update':
       case 'selfupdate':
+      case 'upgrade':
         runSelfUpdate()
         break
       case 'live':
@@ -1085,6 +1087,15 @@ function main() {
         break
       default:
         console.error(`Unknown command: ${opts.cmd}\n`)
+        if (/self[-_]?update|upgrade/i.test(String(opts.cmd || ""))) {
+          console.error(
+            "This CLI build is too old for self-update. Bootstrap once:\n  npm i -g duaer-spec@latest\nThen: duaer self-update\n",
+          )
+        } else {
+          console.error(
+            "Tip: upgrade the global CLI with:\n  npm i -g duaer-spec@latest\n",
+          )
+        }
         console.log(USAGE)
         process.exit(1)
     }

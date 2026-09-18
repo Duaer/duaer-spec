@@ -36,7 +36,7 @@ test("buildDetailedProductTasksMd yields ≥6 checkboxes", () => {
   const boxes = md.match(/^\s*[-*]\s+\[[ xX]\]/gm) || [];
   assert.ok(boxes.length >= 6, `expected ≥6, got ${boxes.length}`);
   assert.match(md, /T001/);
-  assert.match(md, /Satisfy acceptance: Hero with brand/);
+  assert.match(md, /Satisfy acceptance \(alone\): Hero with brand/);
   assert.match(md, /Stamp delivery\.json accepted/);
 });
 
@@ -47,6 +47,16 @@ test("buildDetailedProductTasksMd includes deploy task when needed", () => {
     deployNeeded: true,
   });
   assert.match(md, /Deploy with GitHub CLI/);
+});
+
+test("buildDetailedProductTasksMd uses custom deployTaskText", () => {
+  const md = buildDetailedProductTasksMd({
+    goal: "Edge app",
+    acceptance: "Works on Workers",
+    deployNeeded: true,
+    deployTaskText: "Prepare Cloudflare Pages/Workers layout",
+  });
+  assert.match(md, /Prepare Cloudflare Pages\/Workers layout/);
 });
 
 test("buildDetailedRevisionTasksMd yields ≥5 R{n}-* boxes", () => {
@@ -79,7 +89,9 @@ test("live sources wire detailed progress + activity UI", () => {
   assert.match(live, /buildDetailedRevisionTasksMd/);
   assert.match(live, /worktreeActivity/);
   assert.match(live, /activity,/);
-  assert.match(live, /扩成 8–15 条/);
+  assert.match(live, /不要人为限制条数/);
+  assert.doesNotMatch(live, /扩成 8–15 条/);
+  assert.doesNotMatch(live, /扩成 6–12 条/);
 
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /progress-activity/);

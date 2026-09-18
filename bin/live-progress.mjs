@@ -42,15 +42,17 @@ export function splitAcceptanceLines(acceptance) {
 }
 
 /**
- * Default product dispatch checklist (≥6 boxes).
- * Agents may expand further; live desk polls these checkboxes for progress.
+ * Product dispatch checklist: one checkbox per atomic function / acceptance
+ * line. No upper count — split finely; each task must be independently
+ * acceptable (do not couple unrelated acceptance into one mega-task).
  */
 export function buildDetailedProductTasksMd({
   goal = "",
   acceptance = "",
   deployNeeded = false,
+  deployTaskText = null,
 } = {}) {
-  const acceptLines = splitAcceptanceLines(acceptance).slice(0, 6);
+  const acceptLines = splitAcceptanceLines(acceptance);
   const items = [];
   let n = 1;
   const push = (text) => {
@@ -60,26 +62,28 @@ export function buildDetailedProductTasksMd({
 
   const goalShort = truncateText(goal, 80) || "Brief Goal";
   push(`Locate / scaffold entry points for: ${goalShort}`);
-  push("Implement core behavior from Goal");
+  push("Implement core behavior from Goal (single cohesive slice)");
   if (acceptLines.length) {
     for (const a of acceptLines) {
-      push(`Satisfy acceptance: ${truncateText(a, 100)}`);
+      push(`Satisfy acceptance (alone): ${truncateText(a, 120)}`);
     }
   } else {
-    push("Wire UI / API / data needed for Acceptance");
-    push("Cover edge cases from Assumptions / Acceptance");
+    push("Wire UI / API / data needed for Acceptance (one slice)");
+    push("Cover one edge case from Assumptions / Acceptance");
   }
   push("Risk-based verification per testing.md");
   push(
-    "Stamp delivery.json accepted（若有可打开成品，写入 preview.url）",
+    "Stamp delivery.json accepted（若有可打开结果，写入 preview.url）",
   );
   if (deployNeeded) {
     push(
-      "Deploy with GitHub CLI (`gh`) + Actions；公网 URL 写入 preview.url",
+      deployTaskText ||
+        "Deploy with GitHub CLI (`gh`) + Actions；公网 URL 写入 preview.url",
     );
   }
+  // Soft floor so the progress column is useful on tiny briefs — not a cap.
   while (items.length < 6) {
-    push(`Complete remaining Brief scope (step ${n})`);
+    push(`Complete remaining Brief scope (atomic step ${n})`);
   }
 
   return `# Tasks
@@ -87,24 +91,28 @@ export function buildDetailedProductTasksMd({
 ${items.join("\n")}
 
 做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FED 显示进度。
-若清单仍偏粗，开工后先扩成 8–15 条可勾选步骤（仍用 T00x），保存后再做。
+
+**拆任务规则（无条数上限）：**
+- 每个任务只做一个可独立验收的功能点；不要把多个验收项揉进同一条
+- 若清单仍偏粗：开工后先按 Acceptance / Goal 扩成「一条功能一勾选」（仍用 T00x），保存后再做
+- 不要为了凑数合并无关步骤；也不要人为卡在 12 条以内
 
 若交付物是页面/静态文件，在 delivery.json 增加：
 \`\`\`json
 "preview": { "url": "index.html", "label": "查看结果" }
 \`\`\`
-（也可用 http(s) 地址；相对路径相对 worktree 根目录；若已 GitHub Pages 部署，优先写公网 URL）
+（也可用 http(s) 地址；相对路径相对 worktree 根目录；若已公网部署，优先写公网 URL）
 `;
 }
 
-/** Revision-scoped checklist (≥5 R{n}-* boxes). */
+/** Revision-scoped checklist: one R{n}-* box per atomic change / acceptance. */
 export function buildDetailedRevisionTasksMd({
   revN,
   change = "",
   acceptance = "",
 } = {}) {
   const n = Number(revN) || 1;
-  const acceptLines = splitAcceptanceLines(acceptance).slice(0, 4);
+  const acceptLines = splitAcceptanceLines(acceptance);
   const items = [];
   let i = 1;
   const push = (text) => {
@@ -116,15 +124,15 @@ export function buildDetailedRevisionTasksMd({
   );
   if (acceptLines.length) {
     for (const a of acceptLines) {
-      push(`Satisfy revision acceptance: ${truncateText(a, 100)}`);
+      push(`Satisfy revision acceptance (alone): ${truncateText(a, 120)}`);
     }
   } else {
-    push("Wire changes needed for revision acceptance");
+    push("Wire one change needed for revision acceptance");
   }
   push("Verify against revision acceptance");
   push("Stamp delivery.json accepted（更新 preview.url）");
   while (items.length < 5) {
-    push(`Complete remaining revision scope (step ${i})`);
+    push(`Complete remaining revision scope (atomic step ${i})`);
   }
   return items.join("\n");
 }

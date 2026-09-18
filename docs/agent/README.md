@@ -9,6 +9,7 @@ Wins over Duaer and `examples/` when they conflict.
 | [worker-models.zh-CN.md](worker-models.zh-CN.md) | 数字员工 CLI 与其它模型（中文） |
 | [workflow.md](workflow.md) | Rules R1–R6, development loop, spec guidance |
 | [branching-and-release.md](branching-and-release.md) | **Required** `main`/`develop`/`feat`/`fix` + go-live by issue type |
+| [deploy-targets.md](deploy-targets.md) | Planned host: Cloudflare / Alibaba Cloud / AWS / GitHub Pages |
 | [deploy-github.md](deploy-github.md) | Default product hosting via `gh` + GitHub Actions |
 | [change-checklist.md](change-checklist.md) | Finish checklist |
 | [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |

@@ -43,7 +43,8 @@ the table for their app.
 | E2E-027 | After preview, feedback revise relaunches agent on same worktree | manual / curl |
 | E2E-028 | Revise uses left-chat dialogue then confirm; Terminal uses --continue | manual / curl |
 | E2E-029 | Accept failure shows Auto-fix; fix then re-accept | manual / curl |
-| E2E-030 | CLI/live notify when npm has newer `duaer-spec`; `duaer self-update` upgrades global CLI | manual / curl |
+| E2E-030 | CLI/live notify when npm has newer `duaer-spec`; `npm i -g duaer-spec@latest` / `duaer self-update` upgrades global CLI | manual / curl |
+| E2E-080 | Dispatch picks planned host (Cloudflare/阿里云/AWS/GitHub Pages); Cloudflare constrains code; tasks split finely with no max-12 cap | `npm test` + manual |
 | E2E-031 | After revise confirm, right card stays locked 改进卡; chat busy ≠「续派中」 | manual |
 | E2E-032 | Dispatch/browse installs Duaer in the chosen directory (no silent redirect) | manual |
 | E2E-033 | Revise: original brief visible; preview kept; Terminal queue reuse | manual |
