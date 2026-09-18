@@ -84,7 +84,7 @@ the table for their app.
 | E2E-071 | Choice chips use muted (non-orange) styling; still clickable | `npm run test:live` + manual |
 | E2E-070 | Dispatch into a product repo when `.worktree/feat-<slug>` already exists allocates a new branch/worktree (e.g. feat/html-043) instead of failing `worktree 已存在` | `npm test` + manual |
 | E2E-069 | Choice questions show clickable chips (tap sends); ready bubble has starter chips; `.mjs` option enrich when JSON omits options | `npm test` + `npm run test:live` + manual |
-| E2E-068 | Header center shows beginner line (`header.beginner`); chat empty has steps only (no emptyTitle flash) | `npm run test:live` + manual |
+| E2E-068 | Header has no beginner slogan; chat empty has steps only (no emptyTitle flash) | `npm run test:live` + manual |
 | E2E-067 | Live serves `.mjs` as `text/javascript`; desk module graph loads; send shows chat bubbles | `npm run test:live` |
 | E2E-066 | Chat empty state shows three structured steps (plain words → confirm/dispatch → acceptance delivery); locale switch updates step copy | `npm run test:live` + manual |
 | E2E-065 | Chat send: after Confirm / History restore, Send/Enter still posts chat; locked specify card fields are not overwritten; busy/not-ready shows a bot notice (not silent) | `npm run test:live` + manual |
