@@ -41,6 +41,10 @@ import {
   ensureProductDir,
   resolveProductRepoPath,
 } from "./live-repo-path.mjs";
+import {
+  buildProjectList,
+  normalizeProjectKey,
+} from "./live-projects.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -202,6 +206,7 @@ function readConfig() {
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
       preferredAgentId: "",
       projectsRoot: "",
+      activeProjectPath: "",
     };
   }
   try {
@@ -212,6 +217,7 @@ function readConfig() {
       model: String(raw.model || process.env.DUAER_LIVE_MODEL || "").trim(),
       preferredAgentId: String(raw.preferredAgentId || "").trim(),
       projectsRoot: String(raw.projectsRoot || "").trim(),
+      activeProjectPath: String(raw.activeProjectPath || "").trim(),
     };
   } catch {
     return {
@@ -220,6 +226,7 @@ function readConfig() {
       model: "",
       preferredAgentId: "",
       projectsRoot: "",
+      activeProjectPath: "",
     };
   }
 }
@@ -239,6 +246,10 @@ function writeConfig(partial) {
       partial.projectsRoot !== undefined
         ? String(partial.projectsRoot).trim().replace(/[\\/]+$/, "")
         : cur.projectsRoot,
+    activeProjectPath:
+      partial.activeProjectPath !== undefined
+        ? String(partial.activeProjectPath).trim().replace(/[\\/]+$/, "")
+        : cur.activeProjectPath,
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return next;
@@ -277,6 +288,7 @@ function publicConfig(cfg = readConfig()) {
     provider: inferProviderId(cfg),
     preferredAgentId: cfg.preferredAgentId || "",
     projectsRoot: cfg.projectsRoot || "",
+    activeProjectPath: cfg.activeProjectPath || "",
     liveRoot: liveRoot(),
     jobsRoot: jobsRoot(),
     providers: listProviders(),
@@ -835,6 +847,9 @@ function writeBrief(payload) {
   const assumptions = String(payload.assumptions || "").trim();
   const rawAsk = String(payload.rawAsk || "").trim();
   const review = payload.review && typeof payload.review === "object" ? payload.review : null;
+  const projectPath = normalizeProjectKey(
+    payload.projectPath || payload.repoPath || "",
+  );
   if (!goal || !acceptance) throw new Error("goal and acceptance are required");
 
   const { root, nextNum } = nextJobDir();
@@ -896,13 +911,15 @@ Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product re
   fs.writeFileSync(path.join(featureDir, "tasks.md"), tasks, "utf8");
   fs.writeFileSync(
     path.join(featureDir, "job.json"),
-    `${JSON.stringify(
+        `${JSON.stringify(
       {
         id: dirName,
         branch: branchHint,
         confirmedAt: new Date().toISOString(),
         source: "live-dev",
         status: "confirmed",
+        projectPath: projectPath || null,
+        repoPath: projectPath || null,
         autoAccept: review
           ? {
               passed: true,
@@ -921,7 +938,7 @@ Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product re
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
-`;
+${projectPath ? `产品项目: ${projectPath}\n` : ""}`;
 
   return {
     ok: true,
@@ -929,6 +946,7 @@ Brief: ${featureDir}
     featureDir,
     relativeDir: `~/.duaer/live/jobs/${dirName}`,
     branch: branchHint,
+    projectPath: projectPath || null,
     agentPrompt,
     review: review
       ? { passed: true, summary: review.summary || "" }
@@ -1539,6 +1557,54 @@ function jobTitleFromSpec(specMd) {
   return m ? m[1].trim() : "";
 }
 
+function listProjectsPayload() {
+  const cfg = readConfig();
+  const jobs = listLiveJobs({ limit: 100 });
+  const bag = buildProjectList({
+    repos: readRepos(),
+    jobs,
+    activeProjectPath: cfg.activeProjectPath,
+  });
+  return {
+    ...bag,
+    projectsRoot: cfg.projectsRoot || "",
+    activeProjectPath: cfg.activeProjectPath || null,
+  };
+}
+
+/**
+ * Select or create a product project and set it active.
+ * @param {{ path?: string, name?: string, create?: boolean }} body
+ */
+function activateProject(body = {}) {
+  const cfg = readConfig();
+  let raw = String(body.path || body.name || "").trim();
+  if (!raw) {
+    const e = new Error("请填写项目路径或项目名");
+    e.code = "EMPTY_PATH";
+    throw e;
+  }
+  const abs = resolveProductRepoPath(raw, {
+    projectsRoot: cfg.projectsRoot,
+  });
+  const ensured = ensureProductDir(abs);
+  const probe = probeRepo(ensured.path, {
+    bootstrap: true,
+    exact: true,
+    ensureDuaer: false,
+  });
+  rememberRepo(probe.path, { name: path.basename(probe.path) });
+  const next = writeConfig({ activeProjectPath: probe.path });
+  return {
+    ok: true,
+    path: probe.path,
+    name: path.basename(probe.path),
+    created: Boolean(ensured.created),
+    ...publicConfig(next),
+    ...listProjectsPayload(),
+  };
+}
+
 /** Newest-first list of live jobs for history UI. */
 function listLiveJobs({ limit = 40 } = {}) {
   ensureLiveDirs();
@@ -1593,7 +1659,8 @@ function listLiveJobs({ limit = 40 } = {}) {
       revisedAt: job.dispatch?.revisedAt || job.revisedAt || null,
       at,
       revisionCount: Number(job.revisionCount || 0),
-      repoPath: job.dispatch?.repoPath || null,
+      repoPath:
+        job.dispatch?.repoPath || job.projectPath || job.repoPath || null,
       worktreePath: job.dispatch?.worktreePath || null,
       branch: job.dispatch?.branch || job.branch || null,
     });
@@ -1631,6 +1698,12 @@ function liveJobDetail(jobId) {
     assumptions,
     revisionCount: Number(live.job.revisionCount || 0),
     revisions: Array.isArray(live.job.revisions) ? live.job.revisions : [],
+    projectPath: live.job.projectPath || live.job.repoPath || null,
+    repoPath:
+      live.job.dispatch?.repoPath ||
+      live.job.projectPath ||
+      live.job.repoPath ||
+      null,
     dispatch: live.job.dispatch || null,
     card: {
       goal: goal.split(/\n\n/)[0]?.trim() || goal || live.id,
@@ -4218,7 +4291,15 @@ async function handleApi(req, res) {
         body.baseUrl === undefined &&
         body.apiKey === undefined &&
         body.model === undefined &&
-        body.preferredAgentId === undefined;
+        body.preferredAgentId === undefined &&
+        body.activeProjectPath === undefined;
+      const onlyActiveProject =
+        body.activeProjectPath !== undefined &&
+        body.baseUrl === undefined &&
+        body.apiKey === undefined &&
+        body.model === undefined &&
+        body.preferredAgentId === undefined &&
+        body.projectsRoot === undefined;
       let projectsRoot = body.projectsRoot;
       if (projectsRoot !== undefined) {
         const raw = String(projectsRoot || "").trim();
@@ -4230,15 +4311,21 @@ async function handleApi(req, res) {
           projectsRoot = "";
         }
       }
+      let activeProjectPath = body.activeProjectPath;
+      if (activeProjectPath !== undefined) {
+        const raw = String(activeProjectPath || "").trim();
+        activeProjectPath = raw ? path.resolve(raw).replace(/[\\/]+$/, "") : "";
+      }
       const next = writeConfig({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
         model: body.model,
         preferredAgentId: body.preferredAgentId,
         projectsRoot,
+        activeProjectPath,
       });
-      if (onlyProjectsRoot) {
-        // Allow saving parent folder without re-submitting model credentials
+      if (onlyProjectsRoot || onlyActiveProject) {
+        // Allow saving parent / active project without re-submitting model credentials
         send(res, 200, publicConfig(next));
         return;
       }
@@ -4263,6 +4350,14 @@ async function handleApi(req, res) {
     if (!configReady(cfg)) {
       send(res, 400, {
         error: "请先配置模型（baseUrl / apiKey / model）",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
+    if (!String(cfg.activeProjectPath || "").trim()) {
+      send(res, 400, {
+        error: "请先选择或新建项目（右上角「项目」）后再对话",
+        code: "NEED_PROJECT",
         ...publicConfig(cfg),
       });
       return;
@@ -4431,6 +4526,8 @@ async function handleApi(req, res) {
         acceptance: review.acceptance,
         assumptions: review.assumptions,
         rawAsk: body.rawAsk,
+        projectPath:
+          body.projectPath || body.repoPath || readConfig().activeProjectPath,
         review: { summary: review.summary || "自动验收通过" },
       });
       send(res, 200, {
@@ -4708,6 +4805,30 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "jobs list failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/projects") {
+    try {
+      send(res, 200, listProjectsPayload());
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "projects list failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/projects/activate") {
+    try {
+      const body = await readJson(req);
+      send(res, 200, activateProject(body));
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "activate project failed",
+        code: err?.code || undefined,
       });
     }
     return;

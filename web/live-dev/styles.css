@@ -332,6 +332,42 @@ body {
   font-size: 0.8rem;
 }
 
+.project-create {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+  flex-shrink: 0;
+}
+
+.project-section-label {
+  margin: 0.55rem 0 0.3rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 26vh;
+  overflow: auto;
+  margin-bottom: 0.55rem;
+  flex-shrink: 0;
+}
+
+.project-item[aria-pressed="true"] {
+  border-color: var(--lock);
+}
+
+.dispatch-project-line {
+  margin: 0 0 0.6rem;
+}
+
 .history-list {
   display: flex;
   flex-direction: column;

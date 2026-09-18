@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Project-first desk
+
+- Top bar「历史」→「项目」; must select/create a product project before chat
+- Drawer: create/open project (parent folder + name), list projects, chats under
+  the current project (file store — no SQLite)
+- Confirm stamps `projectPath`; dispatch defaults to the active project
+- `activeProjectPath` persisted in `~/.duaer/live/config.json`
+
 ### Deploy target choice + fine tasks + self-update bootstrap
 
 - Live dispatch: pick planned host (Cloudflare / Alibaba Cloud / AWS /

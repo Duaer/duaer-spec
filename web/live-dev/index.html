@@ -29,8 +29,8 @@
           </div>
           <p class="top-beginner" data-i18n="header.beginner">小白也能做FED</p>
           <div class="top-actions">
-            <button type="button" class="history-btn" id="historyToggle" data-i18n="history.toggle">
-              历史
+            <button type="button" class="history-btn" id="historyToggle" data-i18n="project.toggle">
+              项目
             </button>
             <label class="lang-switch">
               <span class="sr-only" data-i18n="lang.label">语言</span>
@@ -74,10 +74,11 @@
           <div id="log" class="log">
             <div id="chatEmpty" class="chat-empty">
               <ol class="chat-empty-steps" data-i18n-aria="chat.emptyStepsAria" aria-label="怎么用">
-                <li data-i18n="chat.emptyStep1">用大白话说想要什么，不用学术语</li>
-                <li data-i18n="chat.emptyStep2">确认后派工</li>
-                <li data-i18n="chat.emptyStep3">数字员工按验收去做</li>
+                <li data-i18n="chat.emptyStep1">先点「项目」选择或新建产品目录</li>
+                <li data-i18n="chat.emptyStep2">用大白话说想要什么</li>
+                <li data-i18n="chat.emptyStep3">确认后派工，数字员工按验收去做</li>
               </ol>
+              <p class="chat-empty-hint" id="projectGateHint" data-i18n="project.gateHint">尚未选择项目 — 点右上角「项目」</p>
             </div>
           </div>
           <form id="composer" class="composer">
@@ -130,28 +131,22 @@
 
           <section id="dispatch" class="dispatch" hidden>
             <p class="mark" data-i18n="dispatch.mark">Dispatch · product repo</p>
-            <h3 class="dispatch-title" data-i18n="dispatch.title">派工到产品仓库</h3>
-            <div class="repo-actions">
+            <h3 class="dispatch-title" data-i18n="dispatch.title">派工到当前项目</h3>
+            <p id="dispatchProjectLine" class="hint dispatch-project-line" hidden></p>
+            <div class="repo-actions" id="repoPickActions">
               <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>
               <button type="button" class="btn" id="repoScan" data-i18n="dispatch.scan">扫描本机</button>
             </div>
-            <label class="field">
+            <label class="field" id="repoFilterField">
               <span data-i18n="dispatch.filter">筛选</span>
               <input id="repoFilter" type="text" data-i18n-placeholder="dispatch.filterPh" placeholder="按名称过滤…" autocomplete="off" />
             </label>
             <div id="repoList" class="repo-list"></div>
             <label class="field">
-              <span data-i18n="dispatch.projectsRoot">产品父目录</span>
-              <input id="projectsRoot" type="text" data-i18n-placeholder="dispatch.projectsRootPh" placeholder="/Users/…/Projects" autocomplete="off" />
+              <span data-i18n="dispatch.path">项目路径</span>
+              <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product" readonly />
             </label>
-            <div class="repo-actions repo-root-actions">
-              <button type="button" class="btn" id="saveProjectsRoot" data-i18n="dispatch.saveProjectsRoot">保存父目录</button>
-            </div>
-            <label class="field">
-              <span data-i18n="dispatch.path">或粘贴路径 / 项目名</span>
-              <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product 或 my-app" />
-            </label>
-            <p class="hint" data-i18n="dispatch.pathHint">路径不存在会自动创建；填项目名时在父目录下新建</p>
+            <p class="hint" data-i18n="dispatch.pathHint">默认使用当前项目；要换项目请打开右上角「项目」</p>
             <div class="field deploy-target-field">
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
@@ -251,18 +246,43 @@
     <aside id="historyPanel" class="history-drawer panel" hidden>
       <div class="history-head">
         <div>
-          <p class="mark" data-i18n="history.mark">History</p>
-          <h2 class="history-title" data-i18n="history.title">历史任务</h2>
+          <p class="mark" data-i18n="project.mark">Project</p>
+          <h2 class="history-title" data-i18n="project.title">项目与对话</h2>
         </div>
-        <button type="button" class="btn history-close" id="historyClose" data-i18n="history.close">关闭</button>
+        <button type="button" class="btn history-close" id="historyClose" data-i18n="project.close">关闭</button>
       </div>
       <p id="historyErr" class="hint" hidden></p>
+
+      <section class="project-create" id="projectCreate">
+        <p class="project-section-label" data-i18n="project.createTitle">新建 / 打开项目</p>
+        <label class="field">
+          <span data-i18n="dispatch.projectsRoot">产品父目录</span>
+          <input id="projectsRoot" type="text" data-i18n-placeholder="dispatch.projectsRootPh" placeholder="/Users/…/Projects" autocomplete="off" />
+        </label>
+        <div class="repo-actions repo-root-actions">
+          <button type="button" class="btn" id="saveProjectsRoot" data-i18n="dispatch.saveProjectsRoot">保存父目录</button>
+        </div>
+        <label class="field">
+          <span data-i18n="project.nameLabel">项目名或绝对路径</span>
+          <input id="projectName" type="text" data-i18n-placeholder="project.namePh" placeholder="my-app 或 /Users/…/my-app" autocomplete="off" />
+        </label>
+        <div class="repo-actions">
+          <button type="button" class="btn primary" id="projectActivate" data-i18n="project.activate">选为当前项目</button>
+          <button type="button" class="btn" id="projectBrowse" data-i18n="project.browse">浏览…</button>
+        </div>
+        <p class="hint" data-i18n="project.createHint">短名在父目录下创建；绝对路径直接打开。未选项目前不能对话。</p>
+      </section>
+
+      <p class="project-section-label" data-i18n="project.listTitle">已有项目</p>
+      <div id="projectList" class="project-list"></div>
+
+      <p class="project-section-label" data-i18n="project.convTitle">当前项目的对话</p>
       <div id="historyList" class="history-list"></div>
       <div id="historyDetail" class="history-detail" hidden>
         <p class="history-detail-goal" id="historyDetailGoal"></p>
         <p class="meta" id="historyDetailMeta"></p>
         <pre id="historyDetailBody" class="history-detail-body"></pre>
-        <button type="button" class="btn confirm" id="historyRestore" data-i18n="history.restore">
+        <button type="button" class="btn confirm" id="historyRestore" data-i18n="project.restore">
           恢复到当前桌面
         </button>
       </div>

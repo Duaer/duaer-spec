@@ -64,6 +64,11 @@ const state = {
   historyJobs: [],
   selectedHistoryId: null,
   selectedHistoryDetail: null,
+  /** Absolute path of the active product project (required before chat). */
+  projectPath: null,
+  projectName: null,
+  projects: [],
+  unassignedJobs: [],
   /** Active run-block for progress polling ({ revision, root, summary, tasks, log }). */
   activeRun: null,
   /**
@@ -120,6 +125,14 @@ const el = {
   repoPath: document.getElementById("repoPath"),
   projectsRoot: document.getElementById("projectsRoot"),
   saveProjectsRoot: document.getElementById("saveProjectsRoot"),
+  projectName: document.getElementById("projectName"),
+  projectActivate: document.getElementById("projectActivate"),
+  projectBrowse: document.getElementById("projectBrowse"),
+  projectList: document.getElementById("projectList"),
+  projectGateHint: document.getElementById("projectGateHint"),
+  dispatchProjectLine: document.getElementById("dispatchProjectLine"),
+  repoPickActions: document.getElementById("repoPickActions"),
+  repoFilterField: document.getElementById("repoFilterField"),
   repoFilter: document.getElementById("repoFilter"),
   repoBrowse: document.getElementById("repoBrowse"),
   repoScan: document.getElementById("repoScan"),
@@ -289,11 +302,17 @@ function maybeClearStaleBusy() {
  */
 function chatAllowed() {
   maybeClearStaleBusy();
-  return Boolean(state.ready && !state.busy && !state.reviseDispatching);
+  return Boolean(
+    state.ready &&
+      state.projectPath &&
+      !state.busy &&
+      !state.reviseDispatching,
+  );
 }
 
 function chatBlockReason() {
   if (!state.ready) return t("bot.chatNotReady");
+  if (!state.projectPath) return t("bot.needProject");
   if (state.reviseDispatching) return t("bot.chatReviseBusy");
   if (state.busy) return t("bot.chatBusy");
   return "";
@@ -302,8 +321,42 @@ function chatBlockReason() {
 function syncComposerEnabled() {
   const ok = chatAllowed();
   if (el.send) el.send.disabled = !ok;
-  if (el.input) el.input.disabled = !state.ready;
+  if (el.input) el.input.disabled = !state.ready || !state.projectPath;
   syncChatPlaceholder();
+  syncProjectGateHint();
+}
+
+function syncProjectGateHint() {
+  if (!el.projectGateHint) return;
+  el.projectGateHint.hidden = Boolean(state.projectPath);
+  el.projectGateHint.textContent = t("project.gateHint");
+}
+
+function setActiveProject(path, name) {
+  const abs = String(path || "").trim();
+  state.projectPath = abs || null;
+  state.projectName = name || (abs ? abs.split(/[\\/]/).pop() : null);
+  if (el.repoPath && abs) el.repoPath.value = abs;
+  syncDispatchProjectLine();
+  syncComposerEnabled();
+}
+
+function syncDispatchProjectLine() {
+  if (el.dispatchProjectLine) {
+    if (state.projectPath) {
+      el.dispatchProjectLine.hidden = false;
+      el.dispatchProjectLine.textContent = t("project.active", {
+        name: state.projectName || state.projectPath,
+      });
+    } else {
+      el.dispatchProjectLine.hidden = true;
+      el.dispatchProjectLine.textContent = "";
+    }
+  }
+  const has = Boolean(state.projectPath);
+  if (el.repoPickActions) el.repoPickActions.hidden = has;
+  if (el.repoFilterField) el.repoFilterField.hidden = has;
+  if (el.repoList) el.repoList.hidden = has;
 }
 
 function explainChatBlocked() {
@@ -1063,22 +1116,34 @@ function showDesk(cfg) {
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
+  if (cfg.activeProjectPath) {
+    setActiveProject(cfg.activeProjectPath);
+  } else {
+    setActiveProject(null);
+  }
   el.meta.textContent = t("meta.model", {
     model: cfg.model,
     jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
   });
   if (!state.messages.length) {
-    addBubble("bot", t("bot.ready"), {
-      options: [
-        t("chat.optFeature"),
-        t("chat.optChange"),
-        t("chat.optBug"),
-        t("chat.optScript"),
-      ],
-    });
+    if (state.projectPath) {
+      addBubble("bot", t("bot.ready"), {
+        options: [
+          t("chat.optFeature"),
+          t("chat.optChange"),
+          t("chat.optBug"),
+          t("chat.optScript"),
+        ],
+      });
+    } else {
+      addBubble("bot", t("bot.needProject"));
+    }
   }
   syncConfirmEnabled();
   syncComposerEnabled();
+  if (!state.projectPath) {
+    setHistoryOpen(true);
+  }
 }
 
 async function loadConfig() {
@@ -1163,6 +1228,8 @@ el.confirm.addEventListener("click", async () => {
       body: JSON.stringify({
         ...v,
         rawAsk: state.rawAsk || v.goal,
+        projectPath: state.projectPath || undefined,
+        repoPath: state.projectPath || undefined,
       }),
     });
     const data = await res.json();
@@ -1415,6 +1482,10 @@ async function showDispatchPanel() {
   el.dispatchStatus.hidden = true;
   state.dispatchPhase = null;
   el.doDispatch.disabled = false;
+  if (state.projectPath && el.repoPath) {
+    el.repoPath.value = state.projectPath;
+  }
+  syncDispatchProjectLine();
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
   } else {
@@ -1425,7 +1496,6 @@ async function showDispatchPanel() {
   state.repoCatalog = { recent: [], discovered: [] };
   focusRightPanel({ force: true });
   await Promise.all([loadRepoCatalog(false), loadAgents()]);
-  focusRightPanel({ force: true });
 }
 
 async function loadAgents() {
@@ -1877,7 +1947,8 @@ el.repoScan?.addEventListener("click", () => {
 });
 
 el.saveProjectsRoot?.addEventListener("click", async () => {
-  el.dispatchErr.hidden = true;
+  if (el.historyErr) el.historyErr.hidden = true;
+  if (el.dispatchErr) el.dispatchErr.hidden = true;
   try {
     const res = await fetch("/api/config", {
       method: "POST",
@@ -1890,12 +1961,22 @@ el.saveProjectsRoot?.addEventListener("click", async () => {
     if (!res.ok) throw new Error(data.error || t("dispatch.projectsRootFail"));
     if (el.projectsRoot) el.projectsRoot.value = data.projectsRoot || "";
     state.lastCfg = { ...(state.lastCfg || {}), ...data };
-    el.dispatchStatus.hidden = false;
-    el.dispatchStatus.textContent = t("dispatch.projectsRootSaved");
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent = t("dispatch.projectsRootSaved");
+    } else if (el.dispatchStatus) {
+      el.dispatchStatus.hidden = false;
+      el.dispatchStatus.textContent = t("dispatch.projectsRootSaved");
+    }
   } catch (err) {
-    el.dispatchErr.hidden = false;
-    el.dispatchErr.textContent =
-      err instanceof Error ? err.message : String(err);
+    const msg = err instanceof Error ? err.message : String(err);
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent = msg;
+    } else if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = msg;
+    }
   }
 });
 
@@ -1903,12 +1984,15 @@ el.repoFilter?.addEventListener("input", () => renderRepoList());
 
 el.doDispatch.addEventListener("click", async () => {
   if (!state.jobId || state.busy) return;
-  const repoPath = el.repoPath.value.trim();
+  const repoPath =
+    (state.projectPath || "").trim() || el.repoPath.value.trim();
   if (!repoPath) {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent = t("err.noRepo");
+    setHistoryOpen(true);
     return;
   }
+  if (el.repoPath) el.repoPath.value = repoPath;
   const missingSelected = (state.missingAgents || []).some(
     (m) => m.id === state.agentId,
   );
@@ -2784,60 +2868,171 @@ function setHistoryOpen(open) {
   if (el.historyToggle) {
     el.historyToggle.setAttribute("aria-expanded", open ? "true" : "false");
   }
-  if (open) void loadHistoryList();
+  if (open) void loadProjectsPanel();
 }
 
-async function loadHistoryList() {
-  if (!el.historyList) return;
+function normalizePathKey(p) {
+  return String(p || "")
+    .trim()
+    .replace(/[\\/]+$/, "");
+}
+
+async function loadProjectsPanel() {
   if (el.historyErr) el.historyErr.hidden = true;
-  el.historyList.replaceChildren();
   if (el.historyDetail) el.historyDetail.hidden = true;
   state.selectedHistoryId = null;
   try {
-    const res = await fetch("/api/jobs?limit=40");
+    const res = await fetch("/api/projects");
     const data = await res.json();
-    if (!res.ok) throw new Error(data.error || t("history.loadFail"));
-    state.historyJobs = data.jobs || [];
-    if (!state.historyJobs.length) {
-      const p = document.createElement("p");
-      p.className = "hint";
-      p.textContent = t("history.empty");
-      el.historyList.appendChild(p);
-      return;
+    if (!res.ok) throw new Error(data.error || t("project.fail"));
+    state.projects = data.projects || [];
+    state.unassignedJobs = data.unassigned || [];
+    if (el.projectsRoot && data.projectsRoot != null) {
+      el.projectsRoot.value = data.projectsRoot || el.projectsRoot.value || "";
     }
-    for (const job of state.historyJobs) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "history-item";
-      btn.dataset.id = job.id;
-      btn.setAttribute("aria-pressed", "false");
-      const goal = document.createElement("span");
-      goal.className = "history-item-goal";
-      goal.textContent = job.goal || job.id;
-      const st = document.createElement("span");
-      st.className = "history-item-status";
-      st.textContent = job.status || "—";
-      const meta = document.createElement("span");
-      meta.className = "history-item-meta";
-      meta.textContent = t("history.meta", {
-        status: job.status || "—",
-        time: formatHistoryTime(job.at || job.confirmedAt),
-      });
-      btn.appendChild(goal);
-      btn.appendChild(st);
-      btn.appendChild(meta);
-      btn.addEventListener("click", () => {
-        void selectHistoryJob(job.id);
-      });
-      el.historyList.appendChild(btn);
+    if (data.activeProjectPath) {
+      setActiveProject(data.activeProjectPath);
     }
+    renderProjectList();
+    renderProjectConversations();
   } catch (err) {
     if (el.historyErr) {
       el.historyErr.hidden = false;
       el.historyErr.textContent =
-        err instanceof Error ? err.message : t("history.loadFail");
+        err instanceof Error ? err.message : t("project.fail");
     }
   }
+}
+
+function renderProjectList() {
+  if (!el.projectList) return;
+  el.projectList.replaceChildren();
+  if (!state.projects.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = t("project.emptyList");
+    el.projectList.appendChild(p);
+    return;
+  }
+  const active = normalizePathKey(state.projectPath);
+  for (const proj of state.projects) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "history-item project-item";
+    btn.dataset.path = proj.path;
+    const pressed = normalizePathKey(proj.path) === active;
+    btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+    const goal = document.createElement("span");
+    goal.className = "history-item-goal";
+    goal.textContent = proj.name || proj.path;
+    const st = document.createElement("span");
+    st.className = "history-item-status";
+    st.textContent = t("project.jobCount", {
+      n: String((proj.jobs || []).length),
+    });
+    const meta = document.createElement("span");
+    meta.className = "history-item-meta";
+    meta.textContent = proj.path;
+    btn.appendChild(goal);
+    btn.appendChild(st);
+    btn.appendChild(meta);
+    btn.addEventListener("click", () => {
+      void activateProjectPath(proj.path);
+    });
+    el.projectList.appendChild(btn);
+  }
+}
+
+function renderProjectConversations() {
+  if (!el.historyList) return;
+  el.historyList.replaceChildren();
+  const active = normalizePathKey(state.projectPath);
+  const proj = state.projects.find(
+    (p) => normalizePathKey(p.path) === active,
+  );
+  const jobs = proj?.jobs || [];
+  state.historyJobs = jobs;
+  if (!active) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = t("project.gateHint");
+    el.historyList.appendChild(p);
+    return;
+  }
+  if (!jobs.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = t("history.empty");
+    el.historyList.appendChild(p);
+    return;
+  }
+  for (const job of jobs) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "history-item";
+    btn.dataset.id = job.id;
+    btn.setAttribute("aria-pressed", "false");
+    const goal = document.createElement("span");
+    goal.className = "history-item-goal";
+    goal.textContent = job.goal || job.id;
+    const st = document.createElement("span");
+    st.className = "history-item-status";
+    st.textContent = job.status || "—";
+    const meta = document.createElement("span");
+    meta.className = "history-item-meta";
+    meta.textContent = t("history.meta", {
+      status: job.status || "—",
+      time: formatHistoryTime(job.at || job.confirmedAt),
+    });
+    btn.appendChild(goal);
+    btn.appendChild(st);
+    btn.appendChild(meta);
+    btn.addEventListener("click", () => {
+      void selectHistoryJob(job.id);
+    });
+    el.historyList.appendChild(btn);
+  }
+}
+
+async function activateProjectPath(pathOrName) {
+  const raw = String(pathOrName || "").trim();
+  if (!raw) {
+    addBubble("bot", t("project.needName"));
+    return;
+  }
+  try {
+    const res = await fetch("/api/projects/activate", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ path: raw }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("project.fail"));
+    state.projects = data.projects || [];
+    state.unassignedJobs = data.unassigned || [];
+    setActiveProject(data.path || data.activeProjectPath, data.name);
+    if (el.projectsRoot && data.projectsRoot != null) {
+      el.projectsRoot.value = data.projectsRoot || "";
+    }
+    renderProjectList();
+    renderProjectConversations();
+    addBubble("bot", t("project.activated", { name: data.name || data.path }));
+    setHistoryOpen(false);
+  } catch (err) {
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent =
+        err instanceof Error ? err.message : t("project.fail");
+    }
+    addBubble(
+      "bot",
+      err instanceof Error ? err.message : t("project.fail"),
+    );
+  }
+}
+
+async function loadHistoryList() {
+  return loadProjectsPanel();
 }
 
 async function selectHistoryJob(jobId) {
@@ -2910,13 +3105,17 @@ async function restoreHistoryJob() {
   state.locked = Boolean(st && st !== "unknown");
   syncReqSections();
   syncConfirmEnabled();
-  if (data.dispatch?.repoPath || data.dispatch?.worktreePath) {
+  if (data.dispatch?.repoPath || data.dispatch?.worktreePath || data.projectPath || data.repoPath) {
+    const proj =
+      data.dispatch?.repoPath || data.projectPath || data.repoPath || "";
+    if (proj) setActiveProject(proj);
     el.dispatch.hidden = false;
+    syncDispatchProjectLine();
     if (data.dispatch?.deployTarget) {
       state.deployTarget = data.dispatch.deployTarget;
     }
     renderDeployTargetList();
-    if (el.repoPath) el.repoPath.value = data.dispatch.repoPath || "";
+    if (el.repoPath) el.repoPath.value = proj || data.dispatch?.repoPath || "";
     el.dispatchStatus.hidden = false;
     el.dispatchStatus.textContent = t("status.poll", {
       st: st || "dispatched",
@@ -2959,6 +3158,38 @@ if (el.historyRestore) {
     void restoreHistoryJob();
   });
 }
+
+el.projectActivate?.addEventListener("click", () => {
+  const raw = (el.projectName?.value || "").trim();
+  void activateProjectPath(raw);
+});
+
+el.projectBrowse?.addEventListener("click", async () => {
+  if (el.historyErr) el.historyErr.hidden = true;
+  el.projectBrowse.disabled = true;
+  el.projectBrowse.textContent = t("dispatch.browsing");
+  try {
+    const res = await fetch("/api/repos/pick", { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) {
+      if (data.cancelled) return;
+      throw new Error(data.error || t("err.pick"));
+    }
+    if (data.path) {
+      if (el.projectName) el.projectName.value = data.path;
+      await activateProjectPath(data.path);
+    }
+  } catch (err) {
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent =
+        err instanceof Error ? err.message : t("project.fail");
+    }
+  } finally {
+    el.projectBrowse.disabled = false;
+    el.projectBrowse.textContent = t("project.browse");
+  }
+});
 
 onLocaleChange(() => {
   syncDynamicI18n();
