@@ -226,6 +226,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /progress-meter-fill|meterFill/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
+  assert.match(js, /USER_SCROLL_HOLD_MS|wirePanelScrollHold|progressFocusKey/);
+  assert.match(js, /wasHidden/);
   assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");

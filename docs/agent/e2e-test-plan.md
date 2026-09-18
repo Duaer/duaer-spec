@@ -54,7 +54,7 @@ the table for their app.
 | E2E-037 | Preview/revise CTAs hidden until delivery accepted | manual |
 | E2E-038 | Live desk language switch (zh-CN / en) updates copy; reload keeps locale | manual |
 | E2E-039 | After accept, revise confirm starts agent (fresh session if needed); stale runner opens new Terminal; revise card uses dark plate style | manual |
-| E2E-040 | Live desk: left chat + right card stay viewport-aligned; right auto-scrolls to active stage (dispatch/progress/preview/revise) | manual |
+| E2E-040 | Live desk: left chat + right card stay viewport-aligned; right auto-scrolls to active stage on real stage changes — not on every status poll; manual scroll in 需求/运行 is held ~12s | manual |
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt) while job is still in progress; after accept, see E2E-047 | manual |
 | E2E-042 | Wide desk layout; FIFO jobs/ queue auto-runs next task after running.cmd finishes | manual |
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |

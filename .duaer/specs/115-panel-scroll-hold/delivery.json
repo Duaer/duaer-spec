@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "115-panel-scroll-hold",
+  "summary": "Stop status-poll auto-scroll from yanking 需求/运行 columns after manual scroll.",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js — pass",
+    "L1": "npm test — 80 pass",
+    "L3": "npm run test:live — pass"
+  }
+}

@@ -85,6 +85,8 @@ const state = {
   unassignedJobs: [],
   /** Active run-block for progress polling ({ revision, root, summary, tasks, log }). */
   activeRun: null,
+  /** Last progress focus key — skip auto-scroll when poll is unchanged. */
+  progressFocusKey: "",
   /**
    * Pre-send validation gate.
    * status: idle | checking | passed | failed
@@ -259,9 +261,48 @@ function activeProgressFocusEl() {
 }
 
 let rightFocusTimer = 0;
+/** After the user scrolls a desk column, skip auto-focus until this time. */
+const USER_SCROLL_HOLD_MS = 12_000;
+const panelScrollHoldUntil = new WeakMap();
+const panelProgramScroll = new WeakMap();
+
+function markPanelUserScroll(panel) {
+  if (!panel) return;
+  panelScrollHoldUntil.set(panel, Date.now() + USER_SCROLL_HOLD_MS);
+}
+
+function clearPanelUserScroll(panel) {
+  if (!panel) return;
+  panelScrollHoldUntil.delete(panel);
+}
+
+function panelHasRecentUserScroll(panel) {
+  return Date.now() < (panelScrollHoldUntil.get(panel) || 0);
+}
+
+function wirePanelScrollHold(panel) {
+  if (!panel || panel.dataset.scrollHoldBound === "1") return;
+  panel.dataset.scrollHoldBound = "1";
+  const noteUser = () => {
+    if (panelProgramScroll.get(panel)) return;
+    markPanelUserScroll(panel);
+  };
+  panel.addEventListener("wheel", noteUser, { passive: true });
+  panel.addEventListener("touchstart", noteUser, { passive: true });
+  panel.addEventListener(
+    "scroll",
+    () => {
+      if (panelProgramScroll.get(panel)) return;
+      markPanelUserScroll(panel);
+    },
+    { passive: true },
+  );
+}
 
 function scrollPanelToTarget(panel, target, { smooth = true, force = false } = {}) {
   if (!panel || !target || panel.hidden || !target.isConnected) return;
+  wirePanelScrollHold(panel);
+  if (!force && panelHasRecentUserScroll(panel)) return;
   try {
     const panelRect = panel.getBoundingClientRect();
     const targetRect = target.getBoundingClientRect();
@@ -270,10 +311,15 @@ function scrollPanelToTarget(panel, target, { smooth = true, force = false } = {
     const below = targetRect.bottom > panelRect.bottom - pad;
     if (!force && !above && !below) return;
     const nextTop = panel.scrollTop + (targetRect.top - panelRect.top) - pad;
+    panelProgramScroll.set(panel, true);
     panel.scrollTo({
       top: Math.max(0, nextTop),
       behavior: smooth ? "smooth" : "auto",
     });
+    window.setTimeout(
+      () => panelProgramScroll.delete(panel),
+      smooth ? 450 : 80,
+    );
   } catch {
     target.scrollIntoView({
       block: "nearest",
@@ -284,6 +330,10 @@ function scrollPanelToTarget(panel, target, { smooth = true, force = false } = {
 
 /** Scroll requirements and/or progress columns to the active stage. */
 function focusRightPanel({ smooth = true, force = false } = {}) {
+  if (force) {
+    clearPanelUserScroll(el.cardPanel);
+    clearPanelUserScroll(el.progressCol);
+  }
   const cardTarget = activeRightFocusEl();
   const progressTarget = activeProgressFocusEl();
   const run = () => {
@@ -3289,13 +3339,21 @@ function renderProgress(data) {
     return;
   }
   const rev = Number(data.revision || 0);
+  const prevRun = state.activeRun;
   const block = beginRunBlock({ revision: rev });
+  const focusKey = `${rev}:${Number(progress.done) || 0}/${Number(progress.total) || 0}:${data.status || ""}`;
+  const isNewBlock = Boolean(block && block !== prevRun);
+  const changed = focusKey !== state.progressFocusKey;
   fillRunProgress(block, data);
-  focusRightPanel();
+  if (!isNewBlock && !changed) return;
+  state.progressFocusKey = focusKey;
+  // New run block: force into view. Progress ticks: soft focus (honors user scroll).
+  focusRightPanel({ force: isNewBlock });
 }
 
 function renderPreview(data) {
   if (!el.previewPanel || !el.previewLink) return;
+  const wasHidden = el.previewPanel.hidden;
   state.lastStatus = data?.status || state.lastStatus;
   state.lastDeliveryAccepted =
     data?.delivery?.status === "accepted" || data?.status === "accepted";
@@ -3342,7 +3400,10 @@ function renderPreview(data) {
   }
   renderPreviewVersions(versions, openUrl);
   renderRevisePanel(data);
-  if (!el.previewPanel.hidden) focusRightPanel();
+  // Only when the result panel first appears — not on every status poll.
+  if (!el.previewPanel.hidden && wasHidden) {
+    focusRightPanel({ force: true });
+  }
 }
 
 function renderPreviewVersions(versions, activeUrl) {
@@ -4261,6 +4322,8 @@ applyDomI18n();
 syncChatPlaceholder();
 wireReqSections();
 syncComposerEnabled();
+wirePanelScrollHold(el.cardPanel);
+wirePanelScrollHold(el.progressCol);
 
 if (el.autoFixCard) {
   el.autoFixCard.addEventListener("click", () => {
