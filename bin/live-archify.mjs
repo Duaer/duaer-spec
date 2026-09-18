@@ -537,6 +537,7 @@ html[data-embed="true"] .diagram-container {
   height: auto !important;
   max-height: none !important;
   overflow: visible !important;
+  position: relative !important;
 }
 html[data-embed="true"] .diagram-container svg {
   width: 100% !important;
@@ -545,7 +546,21 @@ html[data-embed="true"] .diagram-container svg {
   max-height: none !important;
 }
 html[data-embed="true"] .diagram-container svg [data-node-id] {
-  cursor: zoom-in;
+  cursor: pointer;
+}
+/* Archify embed mode hides the node passport; restore it for the desk. */
+html[data-embed="true"] .focus-chip {
+  display: block !important;
+  position: absolute !important;
+  left: 0.75rem !important;
+  top: 0.75rem !important;
+  z-index: 40 !important;
+  width: min(22rem, calc(100% - 1.5rem)) !important;
+  max-width: calc(100% - 1.5rem) !important;
+  pointer-events: auto !important;
+}
+html[data-embed="true"] .focus-chip[hidden] {
+  display: none !important;
 }
 </style>`;
   if (/<\/head>/i.test(src)) {
