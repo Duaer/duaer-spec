@@ -1416,6 +1416,30 @@ a.btn[hidden] {
   color: #5f7386;
 }
 
+.req-structured .req-mod {
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.55rem 0.5rem;
+  border: 1px solid rgba(63, 86, 108, 0.55);
+  background: rgba(8, 14, 20, 0.35);
+}
+
+.req-structured .req-mod:last-child {
+  margin-bottom: 0;
+}
+
+.req-structured .req-mod-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--lock);
+}
+
+.req-structured .req-mod .req-list,
+.req-structured .req-mod .req-para {
+  margin-bottom: 0;
+}
+
 .req-edit {
   display: none;
   width: 100%;
@@ -2615,6 +2639,15 @@ a.btn[hidden] {
 .revise-version-fields dd.req-structured .req-empty {
   margin: 0;
   color: var(--mute);
+}
+
+.revise-version-fields dd.req-structured .req-mod {
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.45rem 0.45rem;
+}
+
+.revise-version-fields dd.req-structured .req-mod-title {
+  font-size: 0.74rem;
 }
 
 .revise-arch-block {
