@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "feature": "168-rename-fde",
+  "acceptedAt": "2026-09-18T19:40:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --test test/duaer-fde-brand.test.mjs test/live-smoke.test.mjs"
+    ]
+  },
+  "preview": {
+    "url": "https://fujiezee.github.io/duaer-spec/",
+    "label": "View result"
+  }
+}

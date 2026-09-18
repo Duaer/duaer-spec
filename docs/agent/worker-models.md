@@ -1,22 +1,22 @@
 # Worker CLIs and other models
 
-FED launches **digital employees** with Terminal CLIs. That is separate from the
+FDE launches **digital employees** with Terminal CLIs. That is separate from the
 **desk LLM** used for chat / confirm validation.
 
 | Layer | What | Examples |
 |---|---|---|
-| Desk LLM | OpenAI-compatible HTTP API for the FED UI | DeepSeek API, OpenAI, custom gateway |
+| Desk LLM | OpenAI-compatible HTTP API for the FDE UI | DeepSeek API, OpenAI, custom gateway |
 | Worker CLI | Coding agent that edits the product worktree | **Cursor Agent**, **Claude Code** |
 
 Third-party packages named `deepseek` / `deepseek-tui` (now Codewhale) are
 **not** supported as worker CLIs. To use DeepSeek **models** for coding, point
 Claude Code (or another supported agent) at DeepSeek’s official API.
 
-The FED **Configure model** screen includes the same guide below the form.
+The FDE **Configure model** screen includes the same guide below the form.
 
-## Desk LLM (FED chat)
+## Desk LLM (FDE chat)
 
-On the FED setup page:
+On the FDE setup page:
 
 - Pick **DeepSeek** / **OpenAI**, or  
 - **Custom** with any OpenAI-compatible Base URL + API Key + Model
@@ -39,7 +39,7 @@ curl https://cursor.com/install -fsS | bash
 ```
 
 You should then have `agent` or `cursor agent` on PATH. Model / billing is
-configured in **Cursor account settings**; FED only launches the CLI against
+configured in **Cursor account settings**; FDE only launches the CLI against
 the product worktree.
 
 ## Install Claude Code
@@ -63,7 +63,7 @@ claude -p "Reply with exactly: pong"
 Upgrade (npm): `npm install -g @anthropic-ai/claude-code@latest`  
 Docs: <https://code.claude.com/docs/en/installation>
 
-FED dispatch launches Claude with `--permission-mode bypassPermissions` so the
+FDE dispatch launches Claude with `--permission-mode bypassPermissions` so the
 employee can edit and run commands in the worktree without stepwise confirms.
 It also stamps `hasTrustDialogAccepted` for that worktree (and product root)
 in `~/.claude.json`, matching Cursor `--trust`, so the folder-trust dialog
@@ -72,7 +72,7 @@ does not block Terminal.
 ## Worker: Claude Code + DeepSeek models (official)
 
 DeepSeek documents an Anthropic-compatible endpoint. Configure Claude Code,
-then choose **Claude Code** on the FED dispatch card.
+then choose **Claude Code** on the FDE dispatch card.
 
 Write `~/.claude/settings.json` (merge into existing `env` if present):
 
@@ -90,7 +90,7 @@ Write `~/.claude/settings.json` (merge into existing `env` if present):
 }
 ```
 
-Or export the same variables in the shell before launching FED / Terminal.
+Or export the same variables in the shell before launching FDE / Terminal.
 
 **Important:** use `https://api.deepseek.com/anthropic` (not `.../v1`).
 
@@ -102,7 +102,7 @@ Official guide:
 DeepSeek also documents integrations for Codex and other tools:
 [Agent integrations](https://api-docs.deepseek.com/quick_start/agent_integrations/).
 
-FED still only **auto-launches** Cursor Agent and Claude Code. Other hosts can
+FDE still only **auto-launches** Cursor Agent and Claude Code. Other hosts can
 run Duaer Briefs via their own adapters after `npx duaer-spec init --here`.
 
 Chinese version: [worker-models.zh-CN.md](worker-models.zh-CN.md).

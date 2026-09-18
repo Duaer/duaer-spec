@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/duaer-spec-fed.svg" alt="Duaer-spec FED" width="420" />
+  <img src="docs/assets/duaer-spec-fde.svg" alt="Duaer-spec FDE" width="420" />
 </p>
 
 # duaer-spec
@@ -55,10 +55,10 @@ Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
-## Duaer-spec FED (live desk)
+## Duaer-spec FDE (live desk)
 
 Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
-**Duaer-spec FED** = Field Engineering Desk.
+**Duaer-spec FDE** = Field Development Environment.
 
 ```bash
 # DeepSeek (recommended)
@@ -74,7 +74,7 @@ Open the printed URL (default `http://127.0.0.1:8787`). The desk is **full-width
 with three columns: **chat** | **requirements / confirm / dispatch / revise** |
 **task progress**.
 
-**Verify (maintainers / agents):** after Duaer-spec FED UI or validate-gate changes,
+**Verify (maintainers / agents):** after Duaer-spec FDE UI or validate-gate changes,
 run `npm run test:live` (L3 smoke: desk shell markers + `/api/validate` with a
 mock LLM — no paid API).
 
@@ -90,7 +90,7 @@ mock LLM — no paid API).
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code**  
    - Cursor: `curl https://cursor.com/install -fsS | bash`  
    - Claude Code: `npm install -g @anthropic-ai/claude-code` (or `curl -fsSL https://claude.ai/install.sh | bash`)  
-   - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FED setup page guide covers the same.  
+   - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FDE setup page guide covers the same.  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **Results** (**View result** when a page exists, otherwise **Open project folder**)  
 6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches on the same worktree (preempt leftover Agents before enqueueing revise). Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  

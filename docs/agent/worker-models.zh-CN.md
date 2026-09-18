@@ -1,19 +1,19 @@
 # 数字员工 CLI 与其他模型
 
-FED 派工用的是 **Terminal 里的数字员工 CLI**，和台面聊天用的 **Desk 模型 API** 不是一回事。
+FDE 派工用的是 **Terminal 里的数字员工 CLI**，和台面聊天用的 **Desk 模型 API** 不是一回事。
 
 | 层级 | 作用 | 例子 |
 |---|---|---|
-| Desk 模型 | FED 对话 / 确认卡校验（HTTP） | DeepSeek API、OpenAI、自建网关 |
+| Desk 模型 | FDE 对话 / 确认卡校验（HTTP） | DeepSeek API、OpenAI、自建网关 |
 | 数字员工 CLI | 真正改产品仓库的 coding agent | **Cursor Agent**、**Claude Code** |
 
-第三方包 `deepseek` / `deepseek-tui`（现已改名 Codewhale）**不是** DeepSeek 官方 CLI，FED **不再**把它当作数字员工。要用 DeepSeek **模型**写代码：把 Claude Code（或其它支持的工具）接到 DeepSeek 官方接口。
+第三方包 `deepseek` / `deepseek-tui`（现已改名 Codewhale）**不是** DeepSeek 官方 CLI，FDE **不再**把它当作数字员工。要用 DeepSeek **模型**写代码：把 Claude Code（或其它支持的工具）接到 DeepSeek 官方接口。
 
-FED 首次打开的「配置模型」页下方也有同样说明。
+FDE 首次打开的「配置模型」页下方也有同样说明。
 
-## Desk 模型（FED 聊天）
+## Desk 模型（FDE 聊天）
 
-在 FED「配置模型」页选择：
+在 FDE「配置模型」页选择：
 
 - **DeepSeek** / **OpenAI** 预设，或  
 - **Custom**：任意 OpenAI 兼容的 Base URL + API Key + Model
@@ -35,7 +35,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key <key> --model g
 curl https://cursor.com/install -fsS | bash
 ```
 
-装好后应能在终端执行 `agent` 或 `cursor agent`。模型与额度在 **Cursor 账号 / 设置**里选；FED 只负责在产品 worktree 上启动 CLI。
+装好后应能在终端执行 `agent` 或 `cursor agent`。模型与额度在 **Cursor 账号 / 设置**里选；FDE 只负责在产品 worktree 上启动 CLI。
 
 ## 安装 Claude Code
 
@@ -58,13 +58,13 @@ claude -p "Reply with exactly: pong"
 升级（npm）：`npm install -g @anthropic-ai/claude-code@latest`  
 文档：<https://code.claude.com/docs/en/installation>
 
-FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令；
+FDE 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令；
 并会为该 worktree（及产品根目录）写入 `~/.claude.json` 的 `hasTrustDialogAccepted`
 （对齐 Cursor `--trust`），避免卡在「信任此文件夹」提示。
 
 ## 数字员工：Claude Code + DeepSeek 模型（官方）
 
-DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FED 派工卡选 **Claude Code**。
+DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FDE 派工卡选 **Claude Code**。
 
 写入 `~/.claude/settings.json`（若已有 `env`，合并进去）：
 
@@ -82,7 +82,7 @@ DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FED 派工
 }
 ```
 
-也可在启动 FED / Terminal 前用同样的环境变量 `export`。
+也可在启动 FDE / Terminal 前用同样的环境变量 `export`。
 
 注意：base 必须是 `https://api.deepseek.com/anthropic`，不要写成 `/v1`。
 
@@ -94,6 +94,6 @@ DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FED 派工
 DeepSeek 还写了 Codex 等工具的接入说明：
 [Agent integrations](https://api-docs.deepseek.com/quick_start/agent_integrations/)。
 
-FED **自动派工**目前只支持 Cursor Agent 与 Claude Code。其它宿主可在 `npx duaer-spec init --here` 之后，用各自适配器跑 Duaer Brief。
+FDE **自动派工**目前只支持 Cursor Agent 与 Claude Code。其它宿主可在 `npx duaer-spec init --here` 之后，用各自适配器跑 Duaer Brief。
 
 English: [worker-models.md](worker-models.md).
