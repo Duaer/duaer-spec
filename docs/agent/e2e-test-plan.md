@@ -82,6 +82,7 @@ the table for their app.
 | E2E-100 | Revise: confirm 改进方案 first, then re-confirm architecture (keep or redesign), then dispatch | `npm test` + `npm run test:live` + manual |
 | E2E-101 | Desk buttons: no undefined --muted; architecture confirm/redesign row aligned; revise CTA not offset | `npm run test:live` + manual |
 | E2E-102 | Requirement versions accordion: 初版 + 第N版 expand with fields; architecture shown when changed | `npm test` + `npm run test:live` + manual |
+| E2E-103 | 再改一版 switches chat to revise thread so user-sent revise messages are visible | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -215,3 +216,4 @@ the table for their app.
 | E2E-100 | `132-revise-arch-after-plan` | architecture confirm after revise plan |
 | E2E-101 | `133-button-styles` | fix missing/misaligned button styles |
 | E2E-102 | `134-revise-version-expand` | expandable requirement versions + arch |
+| E2E-103 | `135-revise-chat-visible` | revise chat shows user messages |

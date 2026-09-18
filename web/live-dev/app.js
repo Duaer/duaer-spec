@@ -1755,12 +1755,16 @@ async function loadProjectChatIntoUi(projectPath) {
     applyConfirmCardChrome();
     applyCardChrome();
     syncReviseCardChrome();
-    renderMessagesToLog(state.messages);
-    if (
-      state.mode === "architecture" ||
-      (state.locked && !state.architecture.confirmed)
-    ) {
-      appendArchitectureMessagesToLog();
+    // Render the dialogue that matches desk mode (revise shows user turns).
+    if (state.mode === "revise") {
+      switchChatLogForMode("revise");
+    } else if (state.mode === "architecture") {
+      switchChatLogForMode("architecture");
+    } else {
+      renderMessagesToLog(state.messages);
+      if (state.locked && !state.architecture.confirmed) {
+        appendArchitectureMessagesToLog();
+      }
     }
     restoreReviseDeskUi();
     restoreValidateGate(data.validate);
@@ -2700,6 +2704,22 @@ function appendReviseMessagesToLog() {
   }
 }
 
+/**
+ * Swap the left chat log to the active dialogue bag for the desk mode.
+ * Revise must show user-sent revise turns (not the frozen specify thread).
+ */
+function switchChatLogForMode(mode = state.mode) {
+  clearChatLog();
+  if (mode === "revise") {
+    appendReviseMessagesToLog();
+  } else if (mode === "architecture") {
+    appendArchitectureMessagesToLog();
+  } else {
+    renderMessagesToLog(state.messages);
+  }
+  syncChatEmpty();
+}
+
 function restoreReviseDeskUi() {
   const hasRevise =
     state.mode === "revise" ||
@@ -2709,7 +2729,16 @@ function restoreReviseDeskUi() {
       (el.revGoal?.value || "").trim() || (el.revAccept?.value || "").trim(),
     );
   if (!hasRevise) return;
-  appendReviseMessagesToLog();
+  if (state.mode === "revise") {
+    switchChatLogForMode("revise");
+  } else if (
+    Array.isArray(state.reviseMessages) &&
+    state.reviseMessages.length > 0 &&
+    state.mode !== "architecture"
+  ) {
+    // After lock / accepted revise: keep revise thread visible so user turns remain.
+    switchChatLogForMode("revise");
+  }
   renderRevisePanel({
     canRevise: true,
     status: state.reviseLocked ? "revising" : "accepted",
@@ -2752,6 +2781,7 @@ function beginArchitectureDesign({ kickoff = false } = {}) {
     confirmed: false,
   };
   state.mode = "architecture";
+  switchChatLogForMode("architecture");
   syncArchitecturePanel();
   syncChatPlaceholder();
   syncComposerEnabled();
@@ -2971,6 +3001,11 @@ function confirmArchitecture() {
       (el.revAccept?.value || "").trim(),
   );
   state.mode = revisePending && !state.reviseLocked ? "revise" : "specify";
+  if (state.mode === "revise") {
+    switchChatLogForMode("revise");
+  } else {
+    switchChatLogForMode("specify");
+  }
   syncArchitecturePanel();
   syncChatPlaceholder();
   syncReviseCardChrome();
@@ -4546,8 +4581,9 @@ function enterReviseMode() {
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
 
-  // Already revising: just focus chat, do not wipe progress
+  // Already revising: show revise thread (with user turns) and focus chat
   if (state.mode === "revise") {
+    switchChatLogForMode("revise");
     el.input.focus();
     focusRightPanel({ force: true });
     addBubble("bot", t("bot.continueRevise"));
@@ -4584,6 +4620,8 @@ function enterReviseMode() {
   syncReqSections();
   applyCardChrome();
   syncReviseCardChrome();
+  // Switch left chat to revise thread so user-sent revise content is visible.
+  switchChatLogForMode("revise");
   syncChatPlaceholder();
   syncConfirmEnabled();
   el.input.focus();
