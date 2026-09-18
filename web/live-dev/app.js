@@ -618,16 +618,20 @@ function cardValues() {
 }
 
 function reviseCardValues() {
-  const fromFields = () => ({
-    goal: (el.revGoal?.value || "").trim(),
-    outOfScope: (el.revOut?.value || "").trim(),
-    acceptance: (el.revAccept?.value || "").trim(),
-    assumptions: (el.revAssume?.value || "").trim(),
-  });
-  // Dispatch / validate always target the active draft, even when browsing
-  // a prior version chip.
+  // When revising an active draft, prefer live field values. Do NOT call
+  // stashReviseDraftFromFields here — that function spreads reviseCardValues()
+  // and would recurse until Maximum call stack.
   if (state.mode === "revise" && !state.reviseLocked && state.reviseDraft) {
-    stashReviseDraftFromFields();
+    const focus = Number(state.reviseCardFocus) || 0;
+    const draftRev = Number(state.reviseDraft.revision) || 0;
+    if (focus === draftRev) {
+      return {
+        goal: (el.revGoal?.value || "").trim(),
+        outOfScope: (el.revOut?.value || "").trim(),
+        acceptance: (el.revAccept?.value || "").trim(),
+        assumptions: (el.revAssume?.value || "").trim(),
+      };
+    }
     return {
       goal: String(state.reviseDraft.goal || "").trim(),
       outOfScope: String(state.reviseDraft.outOfScope || "").trim(),
@@ -635,7 +639,12 @@ function reviseCardValues() {
       assumptions: String(state.reviseDraft.assumptions || "").trim(),
     };
   }
-  return fromFields();
+  return {
+    goal: (el.revGoal?.value || "").trim(),
+    outOfScope: (el.revOut?.value || "").trim(),
+    acceptance: (el.revAccept?.value || "").trim(),
+    assumptions: (el.revAssume?.value || "").trim(),
+  };
 }
 
 function nextReviseRevisionNumber() {
@@ -871,9 +880,13 @@ function stashReviseDraftFromFields() {
   const focus = Number(state.reviseCardFocus) || 0;
   const draftRev = Number(state.reviseDraft.revision) || 0;
   if (focus !== draftRev) return;
+  // Read DOM directly — never call reviseCardValues() here (recursion).
   state.reviseDraft = {
     revision: draftRev,
-    ...reviseCardValues(),
+    goal: (el.revGoal?.value || "").trim(),
+    outOfScope: (el.revOut?.value || "").trim(),
+    acceptance: (el.revAccept?.value || "").trim(),
+    assumptions: (el.revAssume?.value || "").trim(),
   };
 }
 

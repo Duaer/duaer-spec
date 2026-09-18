@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T14:05:00.000Z",
+  "verification": {
+    "levels": ["L3-live-smoke"],
+    "commands": ["npm run test:live"]
+  },
+  "notes": "Break reviseCardValues ↔ stashReviseDraftFromFields infinite recursion that surfaced as kickoff-stringify stack overflow."
+}
