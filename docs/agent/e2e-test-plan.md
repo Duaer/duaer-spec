@@ -58,6 +58,7 @@ the table for their app.
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
 | E2E-044 | Duaer-spec FED history: header row has Duaer-spec FED + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
 | E2E-075 | DeepSeek Terminal launch uses `deepseek -w <worktree> --yolo` (not `--workspace`); job exits 0 when CLI present | `npm test` + manual |
 | E2E-074 | Missing git: auto-install then init; worker CLIs versioned; 10-day auto-upgrade stamp under `~/.duaer/cli-tools-check.json` (opt-out `DUAER_NO_CLI_UPGRADE=1`) | `npm test` + manual |
 | E2E-073 | Progress column: run cards + meter + checklist styling; empty state title/hint | `npm run test:live` + manual |
@@ -85,7 +86,7 @@ the table for their app.
 | E2E-057 | After Confirm revise, progress tracks this revision’s `R{n}-*` tasks (not prior T* / frozen accepted); busy Terminal + lagging revisionCount still scopes correctly | `npm test` + manual |
 | E2E-058 | priorAccepted revise: preempt clears leftovers then enqueue; false `PREEMPT_FAILED` must not appear while that revise Agent is already running; hard fail leaves nothing queued | `npm test` + manual |
 | E2E-059 | Satisfactory delivery gate: vague acceptance fails `/api/validate`; checkable acceptance can pass; README leads with norms → satisfactory delivery | `npm test` + manual |
-| E2E-060 | DeepSeek CLI: desk lists DeepSeek when `deepseek` on PATH; dispatch/revise use `deepseek -w … --yolo`; missing shows `npm install -g deepseek-tui` | `npm test` + manual |
+| E2E-060 | ~~DeepSeek TUI worker~~ superseded by E2E-076 (desk LLM only; workers = Cursor / Claude) | — |
 | E2E-061 | Missing CLI chips show install command + copy panel; Redetect refreshes `/api/agents` | `npm test` + manual |
 | E2E-062 | Detailed coding progress: dispatch `tasks.md` has ≥6 boxes; status `activity` lists worktree file changes; progress column shows activity under summary | `npm test` + manual |
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
@@ -159,3 +160,4 @@ the table for their app.
 | E2E-063 | `066-duaer-fed` | Duaer-spec FED brand |
 | E2E-074 | `082-git-cli-ensure` | git auto-install + 10d CLI upgrade |
 | E2E-075 | `083-deepseek-w-flag` | DeepSeek `-w` not `--workspace` |
+| E2E-076 | `084-drop-deepseek-cli` | drop deepseek worker; model tutorial |

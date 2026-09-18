@@ -79,7 +79,7 @@ mock LLM — no paid API).
    acceptance / assumptions). Vague acceptance fails the gate; auto-validate must
    pass before **Confirm** is enabled; auto-fix stays available on failure  
 2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
-3. Choose a **CLI** digital employee: **Cursor Agent**, **Claude Code**, or **DeepSeek** (`npm install -g deepseek-tui`; Cursor: `curl https://cursor.com/install -fsS | bash`)  
+3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (Cursor: `curl https://cursor.com/install -fsS | bash`). To run **DeepSeek models** inside Claude Code, see [`docs/agent/worker-models.md`](docs/agent/worker-models.md)  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)  
 6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches on the same worktree (preempt leftover Agents before enqueueing revise). Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  

@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/083-deepseek-w-flag",
-  "slug": "083-deepseek-w-flag",
-  "branch": "fix/deepseek-w-flag",
-  "worktree": ".worktree/fix-deepseek-w-flag"
+  "featureDir": ".duaer/specs/084-drop-deepseek-cli",
+  "slug": "084-drop-deepseek-cli",
+  "branch": "feat/drop-deepseek-cli",
+  "worktree": ".worktree/feat-drop-deepseek-cli"
 }

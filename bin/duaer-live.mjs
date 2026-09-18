@@ -31,7 +31,6 @@ import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
-  DEEPSEEK_INSTALL_CMD as TOOLING_DEEPSEEK_INSTALL,
 } from "./live-tooling.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1656,7 +1655,6 @@ function whichCmd(cmd) {
 
 /** CLI-only digital-employee launchers (Terminal). */
 const CURSOR_INSTALL_CMD = TOOLING_CURSOR_INSTALL;
-const DEEPSEEK_INSTALL_CMD = TOOLING_DEEPSEEK_INSTALL;
 
 const AGENT_CATALOG = [
   {
@@ -1674,13 +1672,6 @@ const AGENT_CATALOG = [
     installCommand:
       "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI；已安装可执行 claude update",
   },
-  {
-    id: "deepseek",
-    label: "DeepSeek",
-    kind: "worker",
-    hint: "Terminal 执行 deepseek（DeepSeek TUI）",
-    installCommand: DEEPSEEK_INSTALL_CMD,
-  },
 ];
 
 function cursorCliVersion() {
@@ -1694,25 +1685,6 @@ function cursorCliVersion() {
       whichCmd("agent") ? ["--version"] : ["agent", "--version"],
       { encoding: "utf8", timeout: 5000 },
     );
-  } catch {
-    return null;
-  }
-  if (r.status !== 0) return null;
-  return String(r.stdout || r.stderr || "")
-    .trim()
-    .split("\n")[0]
-    .slice(0, 120);
-}
-
-function deepseekCliVersion() {
-  const bin = whichCmd("deepseek");
-  if (!bin) return null;
-  let r;
-  try {
-    r = runChildSync("读取 DeepSeek CLI 版本", bin, ["--version"], {
-      encoding: "utf8",
-      timeout: 5000,
-    });
   } catch {
     return null;
   }
@@ -1768,9 +1740,7 @@ function detectAgents() {
   const agentBin = whichCmd("agent");
   const cursorBin = whichCmd("cursor");
   const claudeBin = whichCmd("claude");
-  const deepseekBin = whichCmd("deepseek");
   const version = cursorCliVersion();
-  const deepseekVersion = deepseekCliVersion();
   const claudeVersion = claudeCliVersion();
 
   const installed = [];
@@ -1792,15 +1762,6 @@ function detectAgents() {
       version: claudeVersion,
     });
   }
-  if (deepseekBin) {
-    installed.push({
-      ...AGENT_CATALOG.find((a) => a.id === "deepseek"),
-      available: true,
-      command: "deepseek",
-      path: deepseekBin,
-      version: deepseekVersion,
-    });
-  }
 
   const ids = new Set(installed.map((a) => a.id));
   const missing = AGENT_CATALOG.filter((a) => !ids.has(a.id)).map((a) => ({
@@ -1819,9 +1780,7 @@ function detectAgents() {
       cursor: cursorBin,
       agent: agentBin,
       claude: claudeBin,
-      deepseek: deepseekBin,
       version,
-      deepseekVersion,
       claudeVersion,
     },
   };
@@ -1940,10 +1899,7 @@ function isWorktreeAgentCmdLine(cmd, worktreePath) {
     /(^|[\s/])claude([\s]|$)/.test(cmd) ||
     /(^|[\s/])agent([\s]|$)/.test(cmd) ||
     cmd.includes("/bin/agent") ||
-    cmd.includes(".local/bin/agent") ||
-    cmd.includes("deepseek-tui") ||
-    /(^|[\s/])deepseek([\s]|$)/.test(cmd) ||
-    cmd.includes("/bin/deepseek")
+    cmd.includes(".local/bin/agent")
   );
 }
 
@@ -2552,18 +2508,6 @@ function cursorAgentTerminalCommand(worktreePath, promptFile, { continueSession 
   return `${bin} ${sub}${cont}--workspace ${ws} --trust --sandbox disabled --force "$(cat ${pf})"`;
 }
 
-/** Shell one-liner: DeepSeek TUI with workspace + YOLO tools + prompt from file. */
-function deepseekTerminalCommand(worktreePath, promptFile, { continueSession = false } = {}) {
-  const binPath = whichCmd("deepseek");
-  if (!binPath) return null;
-  const bin = shellSingleQuote(binPath);
-  const ws = shellSingleQuote(worktreePath);
-  const pf = shellSingleQuote(promptFile);
-  const cont = continueSession ? "--continue " : "";
-  // DeepSeek CLI uses -w (not Cursor's --workspace). --yolo auto-approves tools.
-  return `${bin} -w ${ws} --yolo --skip-onboarding ${cont}-p "$(cat ${pf})"`;
-}
-
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
   fs.mkdirSync(path.dirname(logPath), { recursive: true });
   const logFd = fs.openSync(logPath, "a");
@@ -2637,7 +2581,7 @@ function launchAgent({
   };
 
   if (id === "none") {
-    throw new Error("只支持 CLI 启动：请选择 Cursor Agent、Claude Code 或 DeepSeek");
+    throw new Error("只支持 CLI 启动：请选择 Cursor Agent 或 Claude Code");
   }
 
   if (!worktreePath || !fs.existsSync(worktreePath)) {
@@ -2725,36 +2669,8 @@ function launchAgent({
           ? "Terminal reuse"
           : "Terminal";
     launch.command = `claude${continueSession ? " --continue" : ""} (${queueNote})`;
-  } else if (id === "deepseek") {
-    const line = deepseekTerminalCommand(worktreePath, promptFile, {
-      continueSession,
-    });
-    if (!line) throw new Error("未找到 deepseek CLI（npm install -g deepseek-tui）");
-    const term = launchInTerminal({
-      cwd: worktreePath,
-      commandLine: line,
-      logPath: outLog,
-      reuseKey: worktreePath,
-      preemptBusy,
-    });
-    launch.pid = term.pid;
-    launch.mode = term.mode || "terminal";
-    launch.reused = Boolean(term.reused);
-    launch.queued = Boolean(term.queued);
-    launch.busy = Boolean(term.busy);
-    launch.preempted = Boolean(term.preempted);
-    launch.openedWorktree = false;
-    launch.commandFile = term.commandFile || null;
-    const queueNote = term.preempted
-      ? "preempt+queue"
-      : term.busy
-        ? "queued wait"
-        : term.reused
-          ? "Terminal reuse"
-          : "Terminal";
-    launch.command = `deepseek${continueSession ? " --continue" : ""} -w --yolo (${queueNote})`;
   } else {
-    throw new Error("只支持 CLI 启动：Cursor Agent、Claude Code 或 DeepSeek");
+    throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
 
   appendLaunchLog(
@@ -2931,7 +2847,7 @@ Brief: ${featureDir}
       .filter(Boolean)
       .join("\n");
     throw new Error(
-      `未检测到可用 CLI（Cursor Agent / Claude Code / DeepSeek）。请先安装：\n${hint || CURSOR_INSTALL_CMD}`,
+      `未检测到可用 CLI（Cursor Agent / Claude Code）。请先安装：\n${hint || CURSOR_INSTALL_CMD}`,
     );
   }
 
@@ -3380,7 +3296,7 @@ ${reasonLine || text}
     restoreTextFile(specPath, snapSpec);
     restoreTextFile(tasksPath, snapTasks);
     restoreTextFile(deliveryPath, snapDelivery);
-    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code / DeepSeek）", {
+    throw new LaunchGateError("未检测到可用 CLI（Cursor Agent / Claude Code）", {
       code: "NO_AGENT",
       retryable: true,
     });
@@ -4649,7 +4565,7 @@ function serve(port) {
     }
     scheduleUpdateHint();
     void refreshUpdateInfo({ force: false });
-    // Background: every 10 days check/upgrade Cursor Agent / Claude / DeepSeek CLIs
+    // Background: every 10 days check/upgrade Cursor Agent / Claude Code CLIs
     setTimeout(() => {
       console.log("Worker CLI 10d check: scheduled (background)");
       scheduleWorkerCliRefresh({ force: false });

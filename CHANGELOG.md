@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Drop third-party DeepSeek worker CLI
+
+- Live desk workers are **Cursor Agent** and **Claude Code** only
+- DeepSeek remains the recommended **desk LLM** provider (chat / validate)
+- Guide: [`docs/agent/worker-models.md`](docs/agent/worker-models.md) /
+  [`docs/agent/worker-models.zh-CN.md`](docs/agent/worker-models.zh-CN.md)
+
 ### DeepSeek launch flag
 
 - Terminal DeepSeek worker uses `-w <worktree>` (not Cursor `--workspace`),

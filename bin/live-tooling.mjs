@@ -16,7 +16,6 @@ import { fileURLToPath } from "node:url";
 export const CLI_UPGRADE_TTL_MS = 10 * 24 * 60 * 60 * 1000;
 
 export const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
-export const DEEPSEEK_INSTALL_CMD = "npm install -g deepseek-tui@latest";
 export const CLAUDE_UPDATE_CMD = "claude update";
 
 function duaerHome() {
@@ -162,19 +161,6 @@ export function upgradeWorkerCli(id, whichCmd, runChild) {
       detail: String(r.stderr || r.stdout || "").trim().slice(0, 240),
     };
   }
-  if (id === "deepseek") {
-    const npm = whichCmd("npm") || "npm";
-    const r = runChild("升级 DeepSeek CLI", npm, ["install", "-g", "deepseek-tui@latest"], {
-      encoding: "utf8",
-      timeout: 180000,
-      env: process.env,
-    });
-    return {
-      id,
-      ok: r.status === 0,
-      detail: String(r.stderr || r.stdout || "").trim().slice(0, 240),
-    };
-  }
   if (id === "claude") {
     const bin = whichCmd("claude");
     if (!bin) {
@@ -226,7 +212,6 @@ export function ensureWorkerClisFresh(whichCmd, runChild, { force = false } = {}
   const installed = [];
   if (whichCmd("agent") || whichCmd("cursor")) installed.push("cursor-agent");
   if (whichCmd("claude")) installed.push("claude");
-  if (whichCmd("deepseek")) installed.push("deepseek");
 
   const results = [];
   for (const id of installed) {
@@ -253,11 +238,6 @@ export function ensureWorkerClisFresh(whichCmd, runChild, { force = false } = {}
             bin,
             whichCmd("agent") ? ["--version"] : ["agent", "--version"],
           )
-        : null;
-    } else if (id === "deepseek") {
-      const bin = whichCmd("deepseek");
-      version = bin
-        ? readVersionLine(runChild, "version", bin, ["--version"])
         : null;
     } else if (id === "claude") {
       const bin = whichCmd("claude");
