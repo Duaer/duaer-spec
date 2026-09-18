@@ -292,17 +292,38 @@ function ensureLiveDirs() {
   fs.mkdirSync(jobsRoot(), { recursive: true });
 }
 
+function emptyLiveConfig() {
+  return {
+    baseUrl: "",
+    apiKey: "",
+    model: "",
+    preferredAgentId: "",
+    projectsRoot: "",
+    activeProjectPath: "",
+    aliyunAccessKeyId: "",
+    aliyunAccessKeySecret: "",
+  };
+}
+
 function readConfig() {
   ensureLiveDirs();
   const p = configPath();
   if (!fs.existsSync(p)) {
     return {
+      ...emptyLiveConfig(),
       baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
-      preferredAgentId: "",
-      projectsRoot: "",
-      activeProjectPath: "",
+      aliyunAccessKeyId: String(
+        process.env.ALIBABA_CLOUD_ACCESS_KEY_ID ||
+          process.env.ALIYUN_ACCESS_KEY_ID ||
+          "",
+      ).trim(),
+      aliyunAccessKeySecret: String(
+        process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET ||
+          process.env.ALIYUN_ACCESS_KEY_SECRET ||
+          "",
+      ).trim(),
     };
   }
   try {
@@ -314,16 +335,21 @@ function readConfig() {
       preferredAgentId: String(raw.preferredAgentId || "").trim(),
       projectsRoot: String(raw.projectsRoot || "").trim(),
       activeProjectPath: String(raw.activeProjectPath || "").trim(),
+      aliyunAccessKeyId: String(
+        raw.aliyunAccessKeyId ||
+          process.env.ALIBABA_CLOUD_ACCESS_KEY_ID ||
+          process.env.ALIYUN_ACCESS_KEY_ID ||
+          "",
+      ).trim(),
+      aliyunAccessKeySecret: String(
+        raw.aliyunAccessKeySecret ||
+          process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET ||
+          process.env.ALIYUN_ACCESS_KEY_SECRET ||
+          "",
+      ).trim(),
     };
   } catch {
-    return {
-      baseUrl: "",
-      apiKey: "",
-      model: "",
-      preferredAgentId: "",
-      projectsRoot: "",
-      activeProjectPath: "",
-    };
+    return emptyLiveConfig();
   }
 }
 
@@ -346,13 +372,47 @@ function writeConfig(partial) {
       partial.activeProjectPath !== undefined
         ? String(partial.activeProjectPath).trim().replace(/[\\/]+$/, "")
         : cur.activeProjectPath,
+    aliyunAccessKeyId:
+      partial.aliyunAccessKeyId !== undefined
+        ? String(partial.aliyunAccessKeyId).trim()
+        : cur.aliyunAccessKeyId,
+    aliyunAccessKeySecret:
+      partial.aliyunAccessKeySecret !== undefined
+        ? String(partial.aliyunAccessKeySecret).trim()
+        : cur.aliyunAccessKeySecret,
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  try {
+    fs.chmodSync(configPath(), 0o600);
+  } catch {
+    // best-effort; Windows may ignore
+  }
   return next;
 }
 
 function configReady(cfg = readConfig()) {
   return Boolean(cfg.baseUrl && cfg.apiKey && cfg.model);
+}
+
+/** Both AccessKey ID and Secret present → 阿里云 may appear in deploy UI. */
+function hasAliyunCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.aliyunAccessKeyId || "").trim() &&
+      String(cfg.aliyunAccessKeySecret || "").trim(),
+  );
+}
+
+/** Env map for Alibaba Cloud CLIs / SDKs (never log values). */
+function aliyunDeployEnv(cfg = readConfig()) {
+  if (!hasAliyunCredentials(cfg)) return null;
+  const id = String(cfg.aliyunAccessKeyId).trim();
+  const secret = String(cfg.aliyunAccessKeySecret).trim();
+  return {
+    ALIBABA_CLOUD_ACCESS_KEY_ID: id,
+    ALIBABA_CLOUD_ACCESS_KEY_SECRET: secret,
+    ALIYUN_ACCESS_KEY_ID: id,
+    ALIYUN_ACCESS_KEY_SECRET: secret,
+  };
 }
 
 function publicUpdate() {
@@ -381,6 +441,7 @@ function publicConfig(cfg = readConfig()) {
     baseUrl: cfg.baseUrl || "",
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
+    hasAliyunCredentials: hasAliyunCredentials(cfg),
     provider: inferProviderId(cfg),
     preferredAgentId: cfg.preferredAgentId || "",
     projectsRoot: cfg.projectsRoot || "",
@@ -2487,13 +2548,29 @@ function countQueuedJobs(queueDir) {
   }
 }
 
+/** Prefix shell exports for Terminal jobs (secrets must use shellSingleQuote). */
+function withShellEnvExports(commandLine, envExtra) {
+  if (!envExtra || typeof envExtra !== "object") return commandLine;
+  const lines = [];
+  for (const [k, v] of Object.entries(envExtra)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) continue;
+    const val = String(v ?? "").trim();
+    if (!val) continue;
+    lines.push(`export ${k}=${shellSingleQuote(val)}`);
+  }
+  if (!lines.length) return commandLine;
+  return `${lines.join("\n")}\n${commandLine}`;
+}
+
 function launchInTerminal({
   cwd,
   commandLine,
   logPath,
   reuseKey = null,
   preemptBusy = false,
+  envExtra = null,
 }) {
+  const line = withShellEnvExports(commandLine, envExtra);
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
   appendLaunchLog(logPath, stamped);
 
@@ -2549,7 +2626,7 @@ function launchInTerminal({
         }
       }
 
-      const jobPath = enqueueTerminalJob(qdir, commandLine);
+      const jobPath = enqueueTerminalJob(qdir, line);
       const queuedCount = countQueuedJobs(qdir);
       busy = isTerminalRunnerBusy(qdir);
       try {
@@ -2579,7 +2656,7 @@ function launchInTerminal({
     }
 
     // Stale/dead PID or pre-heartbeat runner: do not claim reuse
-    const jobPath = enqueueTerminalJob(qdir, commandLine);
+    const jobPath = enqueueTerminalJob(qdir, line);
     const queuedCount = countQueuedJobs(qdir);
     const stalePid = readRunnerPid(qdir);
     if (stalePid != null) {
@@ -2722,7 +2799,7 @@ clear
 echo "[duaer] running Cursor CLI in Terminal"
 echo "[duaer] cwd: $(pwd)"
 echo
-${commandLine}
+${line}
 status=$?
 echo
 echo "[duaer] exit=$status — press Enter to close"
@@ -2753,9 +2830,9 @@ read _
 
   // Linux / other — also non-blocking
   for (const [cmd, args] of [
-    ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
-    ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
-    ["konsole", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
+    ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
+    ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
+    ["konsole", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
   ]) {
     if (!whichCmd(cmd)) continue;
     const child = spawn(cmd, args, {
@@ -2767,7 +2844,7 @@ read _
     return { pid: child.pid ?? null, mode: "terminal", reused: false };
   }
 
-  const child = spawn("bash", ["-lc", commandLine], {
+  const child = spawn("bash", ["-lc", line], {
     detached: true,
     cwd,
     stdio: "ignore",
@@ -2902,6 +2979,8 @@ function launchAgent({
   continueSession = false,
   /** When true (revise after accept / recreate): use revise prompt file + preempt leftover busy agent. */
   reviseLaunch = false,
+  /** Optional env exports injected into the Terminal shell (e.g. Alibaba Cloud keys). */
+  envExtra = null,
 }) {
   const id = String(agentId || "none").trim() || "none";
   // Kick 10-day worker CLI check/upgrade without blocking dispatch
@@ -2970,6 +3049,7 @@ function launchAgent({
       logPath: outLog,
       reuseKey: worktreePath,
       preemptBusy,
+      envExtra,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
@@ -3013,6 +3093,7 @@ function launchAgent({
       logPath: outLog,
       reuseKey: worktreePath,
       preemptBusy,
+      envExtra,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
@@ -3877,6 +3958,11 @@ async function deployDispatchedJob({ jobId, agentId, deployTarget: deployTargetR
   );
   const defaultedFromNone = deployTarget === "none";
   if (defaultedFromNone) deployTarget = "github-pages";
+  if (deployTarget === "aliyun" && !hasAliyunCredentials()) {
+    throw new Error(
+      "未配置阿里云 AccessKey。请在设置中填写 AccessKey ID 与 AccessKey Secret。",
+    );
+  }
   const deployPlan = deployPromptForTarget(deployTarget);
 
   const revN = Number(live.job.revisionCount || 0) + 1;
@@ -4013,6 +4099,11 @@ Brief: ${dispatch.featureDir}
 ${deployPlan.promptBlock}
 3. 部署成功后 stamp delivery.json accepted，preview.url 必须是公网可打开地址（不要只用 localhost）
 4. 用户点了「部署」即授权本次发布所需的 push / gh / 平台 CLI（仍禁止 force-push 与无关分支）
+${
+  deployTarget === "aliyun"
+    ? "5. 阿里云凭证已注入环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET（及 ALIYUN_* 别名）；禁止打印密钥、禁止写入产品仓"
+    : ""
+}
 `;
 
   const logPath = path.join(featureDir, "agent-launch.log");
@@ -4031,6 +4122,7 @@ ${deployPlan.promptBlock}
       featureDir,
       continueSession,
       reviseLaunch: true,
+      envExtra: deployTarget === "aliyun" ? aliyunDeployEnv() : null,
     });
   } catch (err) {
     restoreTextFile(specPath, snapSpec);
@@ -4774,14 +4866,30 @@ async function handleApi(req, res) {
         body.apiKey === undefined &&
         body.model === undefined &&
         body.preferredAgentId === undefined &&
-        body.activeProjectPath === undefined;
+        body.activeProjectPath === undefined &&
+        body.aliyunAccessKeyId === undefined &&
+        body.aliyunAccessKeySecret === undefined &&
+        body.clearAliyunCredentials === undefined;
       const onlyActiveProject =
         body.activeProjectPath !== undefined &&
         body.baseUrl === undefined &&
         body.apiKey === undefined &&
         body.model === undefined &&
         body.preferredAgentId === undefined &&
-        body.projectsRoot === undefined;
+        body.projectsRoot === undefined &&
+        body.aliyunAccessKeyId === undefined &&
+        body.aliyunAccessKeySecret === undefined &&
+        body.clearAliyunCredentials === undefined;
+      const onlyAliyun =
+        (body.aliyunAccessKeyId !== undefined ||
+          body.aliyunAccessKeySecret !== undefined ||
+          body.clearAliyunCredentials) &&
+        body.baseUrl === undefined &&
+        body.apiKey === undefined &&
+        body.model === undefined &&
+        body.preferredAgentId === undefined &&
+        body.projectsRoot === undefined &&
+        body.activeProjectPath === undefined;
       let projectsRoot = body.projectsRoot;
       if (projectsRoot !== undefined) {
         const raw = String(projectsRoot || "").trim();
@@ -4798,6 +4906,20 @@ async function handleApi(req, res) {
         const raw = String(activeProjectPath || "").trim();
         activeProjectPath = raw ? path.resolve(raw).replace(/[\\/]+$/, "") : "";
       }
+      const aliyunPartial = {};
+      if (body.clearAliyunCredentials) {
+        aliyunPartial.aliyunAccessKeyId = "";
+        aliyunPartial.aliyunAccessKeySecret = "";
+      } else {
+        if (body.aliyunAccessKeyId !== undefined) {
+          aliyunPartial.aliyunAccessKeyId = body.aliyunAccessKeyId;
+        }
+        if (body.aliyunAccessKeySecret !== undefined) {
+          const secret = String(body.aliyunAccessKeySecret || "").trim();
+          // Empty secret field keeps the previous secret (same as API Key).
+          if (secret) aliyunPartial.aliyunAccessKeySecret = secret;
+        }
+      }
       const next = writeConfig({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
@@ -4805,9 +4927,10 @@ async function handleApi(req, res) {
         preferredAgentId: body.preferredAgentId,
         projectsRoot,
         activeProjectPath,
+        ...aliyunPartial,
       });
-      if (onlyProjectsRoot || onlyActiveProject) {
-        // Allow saving parent / active project without re-submitting model credentials
+      if (onlyProjectsRoot || onlyActiveProject || onlyAliyun) {
+        // Allow saving parent / active project / aliyun without re-submitting model credentials
         send(res, 200, publicConfig(next));
         return;
       }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: Alibaba Cloud keys in FED settings
+
+- Settings: AccessKey ID + Secret (local config only)
+- 「阿里云」仅在凭证齐全时出现在计划托管 / 部署选择
+
 ### Fix: intro Pages layout
 
 - Shared wrap column, text brand, 2x2 flow; drop ch-based Chinese max-width

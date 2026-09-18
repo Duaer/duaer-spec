@@ -178,6 +178,11 @@ const el = {
   cfgBase: document.getElementById("cfgBase"),
   cfgKey: document.getElementById("cfgKey"),
   cfgModel: document.getElementById("cfgModel"),
+  cfgAliyunId: document.getElementById("cfgAliyunId"),
+  cfgAliyunSecret: document.getElementById("cfgAliyunSecret"),
+  saveAliyunCfg: document.getElementById("saveAliyunCfg"),
+  clearAliyunCfg: document.getElementById("clearAliyunCfg"),
+  aliyunCfgMsg: document.getElementById("aliyunCfgMsg"),
   saveCfg: document.getElementById("saveCfg"),
   cfgOpen: document.getElementById("cfgOpen"),
   githubStars: document.getElementById("githubStars"),
@@ -2304,6 +2309,22 @@ function setSettingsOpen(open) {
   syncDrawerBackdrop();
 }
 
+function fillAliyunFields(cfg) {
+  if (el.cfgAliyunId) {
+    el.cfgAliyunId.value = "";
+    el.cfgAliyunId.placeholder = cfg?.hasAliyunCredentials
+      ? t("setup.aliyunIdSaved")
+      : "LTAI…";
+  }
+  if (el.cfgAliyunSecret) {
+    el.cfgAliyunSecret.value = "";
+    el.cfgAliyunSecret.placeholder = cfg?.hasAliyunCredentials
+      ? t("setup.keySaved")
+      : "";
+  }
+  if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
+}
+
 function showSetup(cfg) {
   state.lastCfg = { ...(cfg || {}), ready: Boolean(cfg?.ready) };
   if (Array.isArray(cfg?.providers) && cfg.providers.length) {
@@ -2314,6 +2335,7 @@ function showSetup(cfg) {
   el.cfgModel.value = cfg?.model || "";
   el.cfgKey.value = "";
   el.cfgKey.placeholder = cfg?.hasApiKey ? t("setup.keySaved") : "sk-…";
+  fillAliyunFields(cfg);
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
   if (!state.ready) {
@@ -2327,6 +2349,10 @@ function showDesk(cfg) {
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
   setSettingsOpen(false);
+  if (state.deployTarget === "aliyun" && !cfg?.hasAliyunCredentials) {
+    state.deployTarget = "none";
+  }
+  renderDeployTargetList();
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
@@ -2462,6 +2488,63 @@ el.saveCfg.addEventListener("click", async () => {
     el.cfgErr.hidden = false;
     el.cfgErr.textContent = err instanceof Error ? err.message : String(err);
   }
+});
+
+async function saveAliyunCredentials({ clear = false } = {}) {
+  if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
+  const body = clear
+    ? { clearAliyunCredentials: true }
+    : {
+        aliyunAccessKeyId: el.cfgAliyunId?.value.trim() || "",
+        aliyunAccessKeySecret: el.cfgAliyunSecret?.value.trim() || "",
+      };
+  if (!clear) {
+    const id = body.aliyunAccessKeyId;
+    const secret = body.aliyunAccessKeySecret;
+    const had = Boolean(state.lastCfg?.hasAliyunCredentials);
+    if (!id || (!secret && !had)) {
+      if (el.aliyunCfgMsg) {
+        el.aliyunCfgMsg.hidden = false;
+        el.aliyunCfgMsg.textContent = t("setup.aliyunNeedBoth");
+      }
+      return;
+    }
+    if (!secret) delete body.aliyunAccessKeySecret;
+  }
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillAliyunFields(data);
+    if (state.deployTarget === "aliyun" && !data.hasAliyunCredentials) {
+      state.deployTarget = "none";
+    }
+    renderDeployTargetList();
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = clear
+        ? t("setup.aliyunCleared")
+        : t("setup.aliyunSaved");
+    }
+  } catch (err) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveAliyunCfg?.addEventListener("click", () => {
+  void saveAliyunCredentials({ clear: false });
+});
+el.clearAliyunCfg?.addEventListener("click", () => {
+  void saveAliyunCredentials({ clear: true });
 });
 
 el.cfgOpen?.addEventListener("click", () => {
@@ -3520,10 +3603,21 @@ const DEPLOY_TARGET_IDS = [
   "github-pages",
 ];
 
+function visibleDeployTargetIds() {
+  return DEPLOY_TARGET_IDS.filter((id) => {
+    if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    return true;
+  });
+}
+
 function renderDeployTargetList() {
   if (!el.deployTargetList) return;
   el.deployTargetList.replaceChildren();
-  for (const id of DEPLOY_TARGET_IDS) {
+  const ids = visibleDeployTargetIds();
+  if (state.deployTarget === "aliyun" && !ids.includes("aliyun")) {
+    state.deployTarget = "none";
+  }
+  for (const id of ids) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "deploy-target-chip";
@@ -5550,6 +5644,13 @@ el.previewStartService?.addEventListener("click", () => {
 
 const DEPLOY_HOST_IDS = ["cloudflare", "aliyun", "aws", "github-pages"];
 
+function visibleDeployHostIds() {
+  return DEPLOY_HOST_IDS.filter((id) => {
+    if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    return true;
+  });
+}
+
 function closeDeployPicker() {
   if (el.deployPicker) el.deployPicker.hidden = true;
 }
@@ -5557,7 +5658,13 @@ function closeDeployPicker() {
 function renderDeployPickerList() {
   if (!el.deployPickerList) return;
   el.deployPickerList.replaceChildren();
-  for (const id of DEPLOY_HOST_IDS) {
+  const ids = visibleDeployHostIds();
+  if (!ids.includes(state.deployPickerTarget)) {
+    state.deployPickerTarget = ids.includes("github-pages")
+      ? "github-pages"
+      : ids[0] || "github-pages";
+  }
+  for (const id of ids) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "deploy-target-chip";
@@ -5576,10 +5683,13 @@ function renderDeployPickerList() {
 
 function openDeployPicker() {
   if (!state.jobId || state.deployDispatching || state.busy) return;
+  const hosts = visibleDeployHostIds();
   const current = state.deployTarget || "none";
-  state.deployPickerTarget = DEPLOY_HOST_IDS.includes(current)
+  state.deployPickerTarget = hosts.includes(current)
     ? current
-    : "github-pages";
+    : hosts.includes("github-pages")
+      ? "github-pages"
+      : hosts[0] || "github-pages";
   renderDeployPickerList();
   if (el.deployPickerTitle) {
     el.deployPickerTitle.textContent = t("preview.deployWhere");
@@ -5610,9 +5720,8 @@ document.addEventListener("keydown", (ev) => {
 
 async function startPreviewDeploy(targetRaw) {
   if (!state.jobId || state.deployDispatching || state.busy) return;
-  const target = DEPLOY_HOST_IDS.includes(targetRaw)
-    ? targetRaw
-    : "github-pages";
+  const hosts = visibleDeployHostIds();
+  const target = hosts.includes(targetRaw) ? targetRaw : "github-pages";
   state.deployTarget = target;
   renderDeployTargetList();
   void persistProjectChat();
