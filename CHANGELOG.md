@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Create missing product dirs + projects root
+
+- Missing product path is created automatically before git init / dispatch
+- Saved `projectsRoot` (desk「产品父目录」): relative names resolve and create
+  under that parent
+
 ### Drop third-party DeepSeek worker CLI
 
 - Live desk workers are **Cursor Agent** and **Claude Code** only

@@ -78,7 +78,10 @@ mock LLM — no paid API).
 1. Dialogue → fill the confirm card (structured goal / out-of-scope / **checkable**
    acceptance / assumptions). Vague acceptance fails the gate; auto-validate must
    pass before **Confirm** is enabled; auto-fix stays available on failure  
-2. Pick a product repo (browse / scan / recent). Non-git folders get `git init -b develop`; missing develop/main/master creates local `develop`  
+2. Pick a product repo (browse / scan / recent), or paste a path / project name.
+   Missing paths are created; set **Projects parent folder** so short names
+   resolve under it. Non-git folders get `git init -b develop`; missing
+   develop/main/master creates local `develop`  
 3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code** (Cursor: `curl https://cursor.com/install -fsS | bash`). To run **DeepSeek models** inside Claude Code, see [`docs/agent/worker-models.md`](docs/agent/worker-models.md)  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
 5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View product** (`preview.url` or auto-detected `index.html`)  

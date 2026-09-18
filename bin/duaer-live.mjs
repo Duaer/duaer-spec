@@ -32,6 +32,10 @@ import {
   ensureGitInstalled,
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
 } from "./live-tooling.mjs";
+import {
+  ensureProductDir,
+  resolveProductRepoPath,
+} from "./live-repo-path.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -192,6 +196,7 @@ function readConfig() {
       apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
       preferredAgentId: "",
+      projectsRoot: "",
     };
   }
   try {
@@ -201,9 +206,16 @@ function readConfig() {
       apiKey: String(raw.apiKey || process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(raw.model || process.env.DUAER_LIVE_MODEL || "").trim(),
       preferredAgentId: String(raw.preferredAgentId || "").trim(),
+      projectsRoot: String(raw.projectsRoot || "").trim(),
     };
   } catch {
-    return { baseUrl: "", apiKey: "", model: "", preferredAgentId: "" };
+    return {
+      baseUrl: "",
+      apiKey: "",
+      model: "",
+      preferredAgentId: "",
+      projectsRoot: "",
+    };
   }
 }
 
@@ -218,6 +230,10 @@ function writeConfig(partial) {
       partial.preferredAgentId !== undefined
         ? String(partial.preferredAgentId).trim()
         : cur.preferredAgentId,
+    projectsRoot:
+      partial.projectsRoot !== undefined
+        ? String(partial.projectsRoot).trim().replace(/[\\/]+$/, "")
+        : cur.projectsRoot,
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
   return next;
@@ -255,6 +271,7 @@ function publicConfig(cfg = readConfig()) {
     hasApiKey: Boolean(cfg.apiKey),
     provider: inferProviderId(cfg),
     preferredAgentId: cfg.preferredAgentId || "",
+    projectsRoot: cfg.projectsRoot || "",
     liveRoot: liveRoot(),
     jobsRoot: jobsRoot(),
     providers: listProviders(),
@@ -970,6 +987,8 @@ function discoverRoots() {
     path.join(home, "work"),
     home,
   ]);
+  const projectsRoot = String(readConfig().projectsRoot || "").trim();
+  if (projectsRoot) roots.add(path.resolve(projectsRoot));
   for (const r of readRepos()) {
     if (r?.path) roots.add(path.dirname(r.path));
   }
@@ -1395,10 +1414,14 @@ function probeRepo(
   { bootstrap = false, exact = false, ensureDuaer = false } = {},
 ) {
   ensureGitInstalled(whichCmd, runChildSync);
-  let bootstrapped = false;
+  const abs = resolveProductRepoPath(repoPath, {
+    projectsRoot: readConfig().projectsRoot,
+  });
+  const ensured = ensureProductDir(abs);
+  let bootstrapped = Boolean(ensured.created);
   let top;
   try {
-    top = resolveGitTop(repoPath, { exact });
+    top = resolveGitTop(abs, { exact });
   } catch (err) {
     if (!bootstrap || err?.code !== "NOT_GIT" || !err.path) throw err;
     // Do not bootstrap home / obvious parent folders with many children.
@@ -1423,6 +1446,7 @@ function probeRepo(
     baseBranch: base.baseBranch,
     hasDuaer: hasDuaerInstall(top),
     bootstrapped,
+    dirCreated: Boolean(ensured.created),
     baseBranchCreated: base.created,
     duaer,
   };
@@ -3959,12 +3983,35 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/config") {
     try {
       const body = await readJson(req);
+      const onlyProjectsRoot =
+        body.projectsRoot !== undefined &&
+        body.baseUrl === undefined &&
+        body.apiKey === undefined &&
+        body.model === undefined &&
+        body.preferredAgentId === undefined;
+      let projectsRoot = body.projectsRoot;
+      if (projectsRoot !== undefined) {
+        const raw = String(projectsRoot || "").trim();
+        if (raw) {
+          const abs = path.resolve(raw);
+          ensureProductDir(abs);
+          projectsRoot = abs;
+        } else {
+          projectsRoot = "";
+        }
+      }
       const next = writeConfig({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
         model: body.model,
         preferredAgentId: body.preferredAgentId,
+        projectsRoot,
       });
+      if (onlyProjectsRoot) {
+        // Allow saving parent folder without re-submitting model credentials
+        send(res, 200, publicConfig(next));
+        return;
+      }
       if (!configReady(next)) {
         send(res, 400, {
           error: "需要 baseUrl、apiKey、model 三项",

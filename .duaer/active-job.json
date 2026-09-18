@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/084-drop-deepseek-cli",
-  "slug": "084-drop-deepseek-cli",
-  "branch": "feat/drop-deepseek-cli",
-  "worktree": ".worktree/feat-drop-deepseek-cli"
+  "featureDir": ".duaer/specs/085-repo-mkdir",
+  "slug": "085-repo-mkdir",
+  "branch": "feat/repo-mkdir",
+  "worktree": ".worktree/feat-repo-mkdir"
 }

@@ -116,6 +116,8 @@ const el = {
   dispatch: document.getElementById("dispatch"),
   repoList: document.getElementById("repoList"),
   repoPath: document.getElementById("repoPath"),
+  projectsRoot: document.getElementById("projectsRoot"),
+  saveProjectsRoot: document.getElementById("saveProjectsRoot"),
   repoFilter: document.getElementById("repoFilter"),
   repoBrowse: document.getElementById("repoBrowse"),
   repoScan: document.getElementById("repoScan"),
@@ -1053,6 +1055,9 @@ function showDesk(cfg) {
   el.desk.hidden = false;
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
+  if (el.projectsRoot) {
+    el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
+  }
   el.meta.textContent = t("meta.model", {
     model: cfg.model,
     jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
@@ -1833,6 +1838,29 @@ el.repoBrowse?.addEventListener("click", async () => {
 
 el.repoScan?.addEventListener("click", () => {
   void loadRepoCatalog(true);
+});
+
+el.saveProjectsRoot?.addEventListener("click", async () => {
+  el.dispatchErr.hidden = true;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        projectsRoot: (el.projectsRoot?.value || "").trim(),
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("dispatch.projectsRootFail"));
+    if (el.projectsRoot) el.projectsRoot.value = data.projectsRoot || "";
+    state.lastCfg = { ...(state.lastCfg || {}), ...data };
+    el.dispatchStatus.hidden = false;
+    el.dispatchStatus.textContent = t("dispatch.projectsRootSaved");
+  } catch (err) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent =
+      err instanceof Error ? err.message : String(err);
+  }
 });
 
 el.repoFilter?.addEventListener("input", () => renderRepoList());
