@@ -55,7 +55,7 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
-import { resolvePreviewPayload, ensureLocalPreviewService } from "./live-preview.mjs";
+import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -4937,6 +4937,62 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "launch failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/preview/status") {
+    try {
+      const jobId = String(url.searchParams.get("jobId") || "").trim();
+      const live = readLiveJob(jobId);
+      const dispatch = live.job.dispatch || {};
+      const roots = resolveDispatchRoots(dispatch);
+      const featureDir = roots.featureDir;
+      const deliveryPath = featureDir
+        ? path.join(featureDir, "delivery.json")
+        : null;
+      let delivery = null;
+      if (deliveryPath && fs.existsSync(deliveryPath)) {
+        try {
+          delivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+        } catch {
+          delivery = null;
+        }
+      }
+      const preview = resolvePreview({
+        delivery: delivery || { status: "open" },
+        worktreePath: roots.root,
+        jobId: live.id,
+      });
+      const previewUrl =
+        preview?.url ||
+        live.job.preview?.url ||
+        (Array.isArray(live.job.results) &&
+          live.job.results[live.job.results.length - 1]?.url) ||
+        "";
+      const worktreePath =
+        roots.root ||
+        dispatch.worktreePath ||
+        dispatch.repoPath ||
+        live.job.repoPath ||
+        live.job.projectPath ||
+        "";
+      const status = await probeLocalPreviewStatus({
+        previewUrl,
+        worktreePath,
+      });
+      send(res, 200, {
+        ok: true,
+        preview: preview || (previewUrl ? { url: previewUrl } : null),
+        ...status,
+        url: status.url || previewUrl || null,
+      });
+    } catch (err) {
+      const code = err?.code === "NOT_FOUND" ? 404 : 400;
+      send(res, code, {
+        error: err instanceof Error ? err.message : "preview status failed",
+        code: err?.code,
       });
     }
     return;

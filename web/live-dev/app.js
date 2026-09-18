@@ -194,6 +194,11 @@ const el = {
   progressEmpty: document.getElementById("progressEmpty"),
   runTimeline: document.getElementById("runTimeline"),
   previewPanel: document.getElementById("previewPanel"),
+  previewHeading: document.getElementById("previewHeading"),
+  previewService: document.getElementById("previewService"),
+  previewServiceDot: document.getElementById("previewServiceDot"),
+  previewServiceStatus: document.getElementById("previewServiceStatus"),
+  previewStartService: document.getElementById("previewStartService"),
   previewLink: document.getElementById("previewLink"),
   previewOpenFolder: document.getElementById("previewOpenFolder"),
   previewMissing: document.getElementById("previewMissing"),
@@ -272,7 +277,6 @@ function activeRightFocusEl() {
 }
 
 function activeProgressFocusEl() {
-  if (el.progressResult && !el.progressResult.hidden) return el.progressResult;
   if (state.activeRun?.root?.isConnected) return state.activeRun.root;
   if (el.runTimeline && !el.runTimeline.hidden) return el.runTimeline;
   return el.progressCol;
@@ -3674,28 +3678,143 @@ async function openResultFolder(data) {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || "reveal failed");
-    if (el.previewMeta) {
-      el.previewMeta.textContent = t("preview.opened");
-    }
-    if (el.progressResultMeta) {
-      el.progressResultMeta.textContent = t("preview.opened");
-    }
+    paintServiceStatusLine(t("preview.opened"));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     addBubble("bot", t("preview.openFail", { msg }));
   }
 }
 
-function setPreviewMeta(text) {
-  if (el.previewMeta) el.previewMeta.textContent = text || "";
-  if (el.progressResultMeta) el.progressResultMeta.textContent = text || "";
+function paintServiceStatusLine(text) {
+  if (el.previewServiceStatus && text) {
+    el.previewServiceStatus.textContent = text;
+  }
 }
 
 function setPreviewOpenBusy(busy) {
-  for (const btn of [el.previewLink, el.progressPreviewLink]) {
+  for (const btn of [el.previewLink, el.previewStartService]) {
     if (!btn) continue;
     btn.disabled = Boolean(busy);
   }
+}
+
+function resultHeadingText(revision) {
+  const rev = Number(revision) || 0;
+  return rev > 0
+    ? t("preview.headingRev", { revision: rev })
+    : t("preview.headingInitial");
+}
+
+function versionChipLabel(revision) {
+  const rev = Number(revision) || 0;
+  return rev > 0
+    ? t("preview.versionRev", { revision: rev })
+    : t("preview.versionInitial");
+}
+
+function setServiceDot(kind) {
+  if (!el.previewServiceDot) return;
+  el.previewServiceDot.classList.remove("is-up", "is-down", "is-busy", "is-unknown");
+  el.previewServiceDot.classList.add(
+    kind === "up"
+      ? "is-up"
+      : kind === "down"
+        ? "is-down"
+        : kind === "busy"
+          ? "is-busy"
+          : "is-unknown",
+  );
+}
+
+function paintPreviewServiceUi(status) {
+  if (!el.previewService) return;
+  const url = String(status?.url || state.lastPreviewUrl || "").trim();
+  const local = Boolean(status?.local);
+  if (!url || !local) {
+    if (url && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)) {
+      el.previewService.hidden = false;
+      setServiceDot("unknown");
+      if (el.previewServiceStatus) {
+        el.previewServiceStatus.textContent = t("preview.serviceStatic");
+      }
+      if (el.previewStartService) el.previewStartService.hidden = true;
+      return;
+    }
+    el.previewService.hidden = true;
+    return;
+  }
+  el.previewService.hidden = false;
+  if (status?.listening === true) {
+    setServiceDot("up");
+    if (el.previewServiceStatus) {
+      el.previewServiceStatus.textContent = t("preview.serviceListening", {
+        url,
+      });
+    }
+    if (el.previewStartService) el.previewStartService.hidden = true;
+  } else if (status?.listening === false) {
+    setServiceDot("down");
+    if (el.previewServiceStatus) {
+      el.previewServiceStatus.textContent = t("preview.serviceDown", { url });
+    }
+    if (el.previewStartService) {
+      el.previewStartService.hidden = false;
+      el.previewStartService.disabled = false;
+    }
+  } else {
+    setServiceDot("busy");
+    if (el.previewServiceStatus) {
+      el.previewServiceStatus.textContent = t("preview.serviceChecking");
+    }
+    if (el.previewStartService) el.previewStartService.hidden = true;
+  }
+}
+
+let previewStatusTimer = 0;
+function stopPreviewStatusPoll() {
+  if (previewStatusTimer) {
+    clearInterval(previewStatusTimer);
+    previewStatusTimer = 0;
+  }
+}
+
+async function refreshPreviewServiceStatus() {
+  if (!state.jobId || !el.previewPanel || el.previewPanel.hidden) {
+    stopPreviewStatusPoll();
+    return null;
+  }
+  const url = String(state.lastPreviewUrl || "").trim();
+  if (!url || !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)) {
+    paintPreviewServiceUi({ url, local: false, listening: null });
+    stopPreviewStatusPoll();
+    return null;
+  }
+  try {
+    const res = await fetch(
+      `/api/preview/status?jobId=${encodeURIComponent(state.jobId)}`,
+    );
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "status failed");
+    if (body.url) state.lastPreviewUrl = body.url;
+    paintPreviewServiceUi(body);
+    return body;
+  } catch {
+    paintPreviewServiceUi({
+      url,
+      local: true,
+      listening: false,
+      canStart: true,
+    });
+    return null;
+  }
+}
+
+function startPreviewStatusPoll() {
+  void refreshPreviewServiceStatus();
+  stopPreviewStatusPoll();
+  previewStatusTimer = setInterval(() => {
+    void refreshPreviewServiceStatus();
+  }, 4000);
 }
 
 async function ensureAndOpenPreview({ open = true } = {}) {
@@ -3704,7 +3823,9 @@ async function ensureAndOpenPreview({ open = true } = {}) {
     return null;
   }
   setPreviewOpenBusy(true);
-  setPreviewMeta(t("preview.starting"));
+  setServiceDot("busy");
+  paintServiceStatusLine(t("preview.starting"));
+  if (el.previewStartService) el.previewStartService.hidden = false;
   try {
     const res = await fetch("/api/preview/ensure", {
       method: "POST",
@@ -3715,21 +3836,32 @@ async function ensureAndOpenPreview({ open = true } = {}) {
     if (!res.ok) throw new Error(body.error || "ensure failed");
     const url = body.preview?.url || state.lastPreviewUrl || "";
     if (url) state.lastPreviewUrl = url;
-    setPreviewMeta(
-      body.started || body.alreadyRunning
-        ? t("preview.ready")
-        : url || "",
-    );
+    paintPreviewServiceUi({
+      url,
+      local: /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url),
+      listening: Boolean(body.alreadyRunning || body.started || body.ok),
+      canStart: false,
+    });
+    if (body.started || body.alreadyRunning) {
+      paintServiceStatusLine(t("preview.ready"));
+      setServiceDot("up");
+    }
     if (open && url) {
       const abs = /^https?:\/\//i.test(url)
         ? url
         : new URL(url, window.location.origin).href;
       window.open(abs, "_blank", "noopener");
     }
+    void refreshPreviewServiceStatus();
     return body;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    setPreviewMeta("");
+    paintPreviewServiceUi({
+      url: state.lastPreviewUrl,
+      local: true,
+      listening: false,
+      canStart: true,
+    });
     addBubble("bot", t("preview.startFail", { msg }));
     return null;
   } finally {
@@ -3766,55 +3898,47 @@ function renderPreview(data) {
   const openUrl = preview?.url || latest?.url || "";
   if (openUrl) state.lastPreviewUrl = openUrl;
   const folder = resultFolderPath(data);
+  const headingRev =
+    Number(data?.revision) > 0
+      ? Number(data.revision)
+      : latest
+        ? Number(latest.revision) || 0
+        : 0;
+  if (el.previewHeading) {
+    el.previewHeading.textContent = resultHeadingText(headingRev);
+  }
   if (!productReady) {
     el.previewPanel.hidden = true;
-    if (el.progressResult) el.progressResult.hidden = true;
+    stopPreviewStatusPoll();
   } else {
     el.previewPanel.hidden = false;
-    if (el.progressResult) el.progressResult.hidden = false;
     const label = t("preview.view");
     if (el.previewLink) {
       el.previewLink.hidden = !openUrl;
       el.previewLink.textContent = label;
       el.previewLink.disabled = false;
     }
-    if (el.progressPreviewLink) {
-      el.progressPreviewLink.hidden = !openUrl;
-      el.progressPreviewLink.textContent = label;
-      el.progressPreviewLink.disabled = false;
-    }
     const canOpenFolder = Boolean(folder && state.jobId);
     if (el.previewOpenFolder) {
       el.previewOpenFolder.hidden = !canOpenFolder;
     }
-    if (el.progressOpenFolder) {
-      el.progressOpenFolder.hidden = !canOpenFolder;
-    }
     if (el.previewMissing) {
       el.previewMissing.hidden = Boolean(openUrl);
     }
-    const bits = [];
-    if (openUrl) {
-      if (preview?.path || latest?.path)
-        bits.push(preview?.path || latest?.path);
-      if (preview?.source)
-        bits.push(
-          preview.source === "auto"
-            ? t("preview.auto")
-            : preview.source === "auto-service"
-              ? t("preview.autoService")
-              : openUrl,
-        );
-      else if (/^https?:\/\//i.test(openUrl)) bits.push(openUrl);
-      if (data?.revision > 0) bits.push(`r${data.revision}`);
-      else if (latest && Number(latest.revision) > 0)
-        bits.push(`r${latest.revision}`);
-    } else if (folder) {
-      bits.push(t("preview.folderHint", { path: folder }));
+    if (openUrl && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(openUrl)) {
+      if (el.previewService) {
+        el.previewService.hidden = false;
+        setServiceDot("busy");
+        paintServiceStatusLine(t("preview.serviceChecking"));
+      }
+      startPreviewStatusPoll();
+    } else if (openUrl) {
+      paintPreviewServiceUi({ url: openUrl, local: false, listening: null });
+      stopPreviewStatusPoll();
+    } else {
+      if (el.previewService) el.previewService.hidden = true;
+      stopPreviewStatusPoll();
     }
-    const metaText = bits.join(" · ");
-    if (el.previewMeta) el.previewMeta.textContent = metaText;
-    if (el.progressResultMeta) el.progressResultMeta.textContent = metaText;
   }
   renderPreviewVersions(versions, openUrl);
   renderRevisePanel(data);
@@ -3826,17 +3950,17 @@ function renderPreview(data) {
     } catch {
       /* ignore */
     }
-    // Warm up localhost services so「打开看看」is ready.
-    if (openUrl && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(openUrl)) {
-      void ensureAndOpenPreview({ open: false });
-    }
   }
 }
 
 function renderPreviewVersions(versions, activeUrl) {
   if (!el.previewVersions) return;
   el.previewVersions.replaceChildren();
-  if (!Array.isArray(versions) || versions.length === 0) {
+  const list = Array.isArray(versions)
+    ? versions.filter((entry) => entry?.url)
+    : [];
+  // One version is already the heading — only list history when there are more.
+  if (list.length <= 1) {
     el.previewVersions.hidden = true;
     return;
   }
@@ -3845,8 +3969,7 @@ function renderPreviewVersions(versions, activeUrl) {
   title.className = "preview-versions-label";
   title.textContent = t("preview.versions");
   el.previewVersions.appendChild(title);
-  for (const entry of versions) {
-    if (!entry?.url) continue;
+  for (const entry of list) {
     const li = document.createElement("li");
     const a = document.createElement("a");
     a.href = entry.url;
@@ -3854,12 +3977,7 @@ function renderPreviewVersions(versions, activeUrl) {
     a.rel = "noopener";
     a.className = "preview-version-link";
     if (entry.url === activeUrl) a.classList.add("is-current");
-    const rev = Number(entry.revision) || 0;
-    a.textContent =
-      entry.label ||
-      (rev > 0
-        ? t("preview.versionRev", { revision: rev })
-        : t("preview.versionInitial"));
+    a.textContent = versionChipLabel(entry.revision);
     li.appendChild(a);
     el.previewVersions.appendChild(li);
   }
@@ -4307,14 +4425,11 @@ async function onOpenResultFolder() {
 el.previewOpenFolder?.addEventListener("click", () => {
   void onOpenResultFolder();
 });
-el.progressOpenFolder?.addEventListener("click", () => {
-  void onOpenResultFolder();
-});
 el.previewLink?.addEventListener("click", () => {
   void ensureAndOpenPreview({ open: true });
 });
-el.progressPreviewLink?.addEventListener("click", () => {
-  void ensureAndOpenPreview({ open: true });
+el.previewStartService?.addEventListener("click", () => {
+  void ensureAndOpenPreview({ open: false });
 });
 
 if (el.doReviseDispatch) {
@@ -4759,6 +4874,11 @@ el.projectBrowse?.addEventListener("click", async () => {
 
 onLocaleChange(() => {
   syncDynamicI18n();
+  if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
+    renderPreview(state.lastStatus);
+  } else {
+    void refreshPreviewServiceStatus();
+  }
   if (el.historyPanel && !el.historyPanel.hidden) void loadHistoryList();
 });
 

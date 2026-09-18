@@ -10,6 +10,7 @@ import {
   inferLocalServiceUrl,
   parseLocalPreviewPort,
   pickStartCommand,
+  probeLocalPreviewStatus,
   resolvePreviewPayload,
 } from "../bin/live-preview.mjs";
 import { fileURLToPath } from "node:url";
@@ -114,5 +115,30 @@ test("parseLocalPreviewPort and pickStartCommand", () => {
     args: ["start"],
     script: "start",
   });
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("probeLocalPreviewStatus for static vs local URLs", async () => {
+  const staticStatus = await probeLocalPreviewStatus({
+    previewUrl: "/api/artifact/job/index.html",
+  });
+  assert.equal(staticStatus.local, false);
+  assert.equal(staticStatus.listening, null);
+  assert.equal(staticStatus.canStart, false);
+
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ scripts: { start: "node server.mjs" } }),
+    "utf8",
+  );
+  const down = await probeLocalPreviewStatus({
+    previewUrl: "http://127.0.0.1:59999",
+    worktreePath: root,
+  });
+  assert.equal(down.local, true);
+  assert.equal(down.listening, false);
+  assert.equal(down.port, 59999);
+  assert.equal(down.canStart, true);
   fs.rmSync(root, { recursive: true, force: true });
 });

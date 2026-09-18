@@ -328,4 +328,35 @@ export async function ensureLocalPreviewService({
   };
 }
 
+/**
+ * Probe whether a localhost preview URL is currently listening.
+ * @returns {Promise<{ url: string, local: boolean, listening: boolean|null, port: number|null, canStart: boolean }>}
+ */
+export async function probeLocalPreviewStatus({
+  previewUrl,
+  worktreePath = "",
+} = {}) {
+  const url = String(previewUrl || "").trim();
+  const port = parseLocalPreviewPort(url);
+  if (!port) {
+    return {
+      url,
+      local: false,
+      listening: null,
+      port: null,
+      canStart: false,
+    };
+  }
+  const listening = await probePortOpen(port);
+  const canStart =
+    !listening && Boolean(pickStartCommand(String(worktreePath || "").trim()));
+  return {
+    url,
+    local: true,
+    listening,
+    port,
+    canStart,
+  };
+}
+
 export { PREVIEW_CANDIDATES };
