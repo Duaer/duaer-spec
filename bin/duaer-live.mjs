@@ -55,6 +55,7 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
+import { resolvePreviewPayload } from "./live-preview.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -3039,7 +3040,7 @@ Brief: ${featureDir}
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
-6. 若有可打开结果（页面/静态文件/本地服务），在 delivery.json 写入 preview.url（相对 worktree 的路径如 index.html，或 http://localhost:…）——满意交付的默认证据是可打开的结果
+6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 ${deployPrompt}${architecturePrompt}`;
@@ -3576,7 +3577,7 @@ ${restated.keep}
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
 2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
-3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并更新 preview.url（可打开结果是默认证据）
+3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
 `;
@@ -3833,78 +3834,8 @@ function worktreeActivity(worktreePath, { limit = 10 } = {}) {
   return parseWorktreeActivityFromGit({ porcelain, diffNames, limit });
 }
 
-const PREVIEW_CANDIDATES = [
-  "index.html",
-  "public/index.html",
-  "dist/index.html",
-  "build/index.html",
-  "docs/index.html",
-  "preview.html",
-  "demo.html",
-];
-
 function resolvePreview({ delivery, worktreePath, jobId }) {
-  const d = delivery && typeof delivery === "object" ? delivery : {};
-  const raw =
-    d.preview?.url ||
-    d.previewUrl ||
-    d.demoUrl ||
-    d.artifact?.url ||
-    null;
-  const label =
-    d.preview?.label ||
-    d.previewLabel ||
-    d.artifact?.label ||
-    "查看结果";
-
-  if (raw && /^https?:\/\//i.test(String(raw).trim())) {
-    return {
-      url: String(raw).trim(),
-      label,
-      source: "delivery",
-      kind: "external",
-    };
-  }
-
-  let rel = null;
-  if (raw) {
-    const s = String(raw).trim().replace(/^\.\//, "");
-    if (path.isAbsolute(s) && worktreePath) {
-      const abs = path.resolve(s);
-      const root = path.resolve(worktreePath);
-      if (abs.startsWith(root + path.sep) || abs === root) {
-        rel = path.relative(root, abs).split(path.sep).join("/");
-      }
-    } else if (!s.includes("..")) {
-      rel = s.replace(/^\/+/, "");
-    }
-  }
-
-  if (!rel && worktreePath && fs.existsSync(worktreePath)) {
-    for (const cand of PREVIEW_CANDIDATES) {
-      const full = path.join(worktreePath, cand);
-      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
-        rel = cand;
-        break;
-      }
-    }
-  }
-
-  if (rel && jobId) {
-    const safeJob = encodeURIComponent(jobId);
-    const safeRel = rel
-      .split("/")
-      .map((p) => encodeURIComponent(p))
-      .join("/");
-    return {
-      url: `/api/artifact/${safeJob}/${safeRel}`,
-      label,
-      source: raw ? "delivery" : "auto",
-      kind: "artifact",
-      path: rel,
-    };
-  }
-  return null;
+  return resolvePreviewPayload({ delivery, worktreePath, jobId });
 }
 
 function resultVersionLabel(revision) {

@@ -209,7 +209,8 @@ const zhCN = {
   "preview.auto": "自动发现",
   "preview.link": "\n结果：{url}",
   "preview.missing":
-    "\n没有可打开的页面。右侧「结果」可打开项目目录；也可让数字员工写入 delivery.preview.url。",
+    "\n（仍无 preview.url；请让数字员工写入页面路径或 http://localhost:… 服务地址）",
+  "preview.autoService": "本地服务",
   "preview.versions": "历史版本",
   "preview.versionInitial": "初版",
   "preview.versionRev": "r{revision}",
@@ -342,7 +343,7 @@ const zhCN = {
     "Revision {revision} 已续派\n要改：{goal}\n怎么算好：{acceptance}",
   "startCmd.goalFallback": "（在此写清要做什么）",
   "startCmd.body":
-    "按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted（有页面时写入 preview.url，如 index.html）；不要推远程除非明确要求。",
+    "按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后 stamp delivery.json 为 accepted，并必须写入 preview.url（页面如 index.html，或服务如 http://localhost:8788）；不要推远程除非明确要求。",
   "err.noRepo": "先点选仓库，或浏览 / 扫描",
   "err.noJob": "没有可改进的工单",
   "err.reviseFields": "先在下方改进卡补全「要改什么」和「怎么算改好」",
@@ -588,7 +589,8 @@ const en = {
   "preview.auto": "auto-detected",
   "preview.link": "\nResult: {url}",
   "preview.missing":
-    "\nNo openable page. Use Results → Open project folder, or ask the employee to set delivery.preview.url.",
+    "\n(Still no preview.url; ask the employee to set a page path or http://localhost:… service URL)",
+  "preview.autoService": "local service",
   "preview.versions": "Versions",
   "preview.versionInitial": "Initial",
   "preview.versionRev": "r{revision}",
@@ -726,7 +728,7 @@ const en = {
     "Revision {revision} enqueued\nChange: {goal}\nDone when: {acceptance}",
   "startCmd.goalFallback": "(describe the goal here)",
   "startCmd.body":
-    "Follow the Duaer digital-employee flow: stay in Brief scope; check off tasks.md as you go; stamp delivery.json accepted when done (set preview.url for pages, e.g. index.html); do not push remote unless asked.",
+    "Follow the Duaer digital-employee flow: stay in Brief scope; check off tasks.md as you go; stamp delivery.json accepted when done and always set preview.url (page path like index.html, or service URL like http://localhost:8788); do not push remote unless asked.",
   "err.noRepo": "Pick a repo via browse / scan first",
   "err.noJob": "No job to revise",
   "err.reviseFields": "Fill What to change and Done when on the revise card below",
