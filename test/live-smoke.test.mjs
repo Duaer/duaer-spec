@@ -298,6 +298,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /reviseAccordionFp|rebuildAccordion/);
   assert.match(js, /postReviseAgainUserMessage|user\.reviseAgain/);
   assert.match(js, /reviseDialogueOpen|reviseKickoffInFlight/);
+  assert.match(js, /syncReviseChromeAfterKickoff|err\.reviseKickoffStack/);
   assert.match(js, /getText\(|gotReply/);
   assert.match(js, /ir:\s*null/);
   assert.match(liveBin, /chatDoneSsePayload/);

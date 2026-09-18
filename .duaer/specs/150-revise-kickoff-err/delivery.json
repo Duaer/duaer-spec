@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "150-revise-kickoff-err",
+  "acceptedAt": "2026-09-18T13:30:00.000Z",
+  "summary": "Revise kickoff shows real errors; defer chrome; stop focus race.",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --check web/live-dev/app.js", "npm run test:live"],
+    "results": "pass"
+  }
+}

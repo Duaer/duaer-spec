@@ -382,6 +382,8 @@ const zhCN = {
     "派工超时（60s）。请刷新重试；若 worktree 已存在需换分支名或删掉旧 worktree。",
   "err.revise": "继续改进失败",
   "err.reviseKickoff": "改进对话启动失败",
+  "err.reviseKickoffStack":
+    "改进对话启动失败：内部数据过大（架构图序列化爆栈）。请刷新后再点「再改一版」。",
   "err.confirm": "确认失败",
   "err.timeout": "超时。请刷新重试；若 Agent 已打开可在 Terminal 里继续。",
   "err.reviseTimeout":
@@ -793,6 +795,8 @@ const en = {
     "Dispatch timed out (60s). Refresh and retry; if the worktree exists, rename the branch or remove the old worktree.",
   "err.revise": "Revise failed",
   "err.reviseKickoff": "Could not start revise chat",
+  "err.reviseKickoffStack":
+    "Could not start revise chat: internal data overflow. Refresh and try 再改一版 again.",
   "err.confirm": "Confirm failed",
   "err.timeout": "Timed out. Refresh; if the Agent is open, continue in Terminal.",
   "err.reviseTimeout":

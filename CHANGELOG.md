@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: revise kickoff error visibility + focus race
+
+- 「再改一版」shows the real failure reason (not only generic 启动失败)
+- Defer right-panel chrome until after kickoff; stop status-poll focus steal
+
 ### Docs: Duaer-spec FED brand mark
 
 - README (EN/ZH) open with the desk top-left brand SVG (`docs/assets/duaer-spec-fed.svg`)

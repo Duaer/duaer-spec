@@ -417,10 +417,18 @@ function setBusy(on) {
   state.busy = Boolean(on);
   state.busySince = state.busy ? Date.now() : 0;
   syncComposerEnabled();
-  // Confirm enablement depends on busy; never let panel sync crash chat.
+  // Keep confirm / arch buttons in sync with busy — avoid full panel rebuild
+  // (iframe reloads / focus races) on every busy flip during chat streams.
+  try {
+    syncConfirmEnabled();
+  } catch {
+    /* ignore */
+  }
   if (el.architectureConfirm) {
     try {
-      syncArchitecturePanel();
+      const a = state.architecture;
+      const canConfirm = a.status === "preview" && a.url && !a.confirmed;
+      el.architectureConfirm.disabled = !canConfirm || state.busy;
     } catch {
       /* ignore */
     }
@@ -1429,11 +1437,23 @@ function startStreamingBubble() {
       return textNode.textContent || "";
     },
     finish(options) {
-      div.classList.remove("streaming");
+      try {
+        div.classList.remove("streaming");
+      } catch {
+        /* ignore */
+      }
       const reply = textNode.textContent || "";
-      const opts = enrichChatOptions(reply, options);
-      appendOptionChips(div, opts);
-      afterChatBubbleUi();
+      try {
+        const opts = enrichChatOptions(reply, options);
+        appendOptionChips(div, opts);
+      } catch {
+        /* ignore chip failures */
+      }
+      try {
+        afterChatBubbleUi();
+      } catch {
+        /* ignore */
+      }
     },
   };
 }
@@ -4711,7 +4731,15 @@ function renderRevisePanel(data) {
     !state.busy &&
     !state.reviseDispatching;
   syncReviseDispatchButton(ready);
-  if (show) focusRightPanel();
+  // Never steal focus from an in-progress revise / architecture chat.
+  if (
+    show &&
+    !state.reviseDialogueOpen &&
+    state.mode !== "architecture" &&
+    !state.reviseKickoffInFlight
+  ) {
+    focusRightPanel();
+  }
 }
 
 /**
@@ -4742,7 +4770,8 @@ function reviseDialogueHasAssistantReply() {
 
 /**
  * Enter / resume revise dialogue from「再改一版」.
- * Order matters: switch chat → visible user message → kickoff → then chrome.
+ * Order: switch chat → visible user message → kickoff → then chrome
+ * (chrome must not race the streaming bubble).
  */
 function enterReviseMode() {
   maybeClearStaleBusy();
@@ -4769,7 +4798,9 @@ function enterReviseMode() {
       !reviseDialogueHasAssistantReply()
     ) {
       postReviseAgainUserMessage();
-      void kickoffReviseDialogue();
+      void kickoffReviseDialogue().then(() => {
+        syncReviseChromeAfterKickoff();
+      });
     } else {
       addBubble("bot", t("bot.continueRevise"));
       scrollChatToLatest();
@@ -4799,32 +4830,40 @@ function enterReviseMode() {
   };
   state.reviseCardFocus = nextRev;
 
-  // 1) Show revise thread + visible user turn immediately (first-click feedback)
+  // 1) Show revise thread + visible user turn immediately
   switchChatLogForMode("revise");
   postReviseAgainUserMessage();
   syncChatPlaceholder();
   el.input?.focus();
   scrollChatToLatest();
 
-  // 2) Kick off employee reply before heavy chrome work
-  void kickoffReviseDialogue();
-
-  // 3) Card chrome / accordion (must not flip lastDeliveryAccepted)
-  syncArchitecturePanel();
-  resetValidateGate();
-  restoreConfirmCardFromOriginal();
-  applyReviseFieldsFromCard(state.reviseDraft);
-  setReviseFieldsReadonly(false);
-  syncReqSections();
-  applyCardChrome();
-  syncReviseCardChrome({ rebuildAccordion: true });
-  syncConfirmEnabled();
-  void persistProjectChat();
-  renderRevisePanel({
-    canRevise: true,
-    status: "revising",
+  // 2) Kick off employee reply first; chrome after (avoids focus/DOM races)
+  void kickoffReviseDialogue().then(() => {
+    syncReviseChromeAfterKickoff();
   });
-  // Stay on chat — do not steal focus to the right column on first click.
+}
+
+/** Card chrome after revise kickoff — must not flip lastDeliveryAccepted. */
+function syncReviseChromeAfterKickoff() {
+  if (state.mode !== "revise") return;
+  try {
+    syncArchitecturePanel();
+    resetValidateGate();
+    restoreConfirmCardFromOriginal();
+    applyReviseFieldsFromCard(state.reviseDraft);
+    setReviseFieldsReadonly(false);
+    syncReqSections();
+    applyCardChrome();
+    syncReviseCardChrome({ rebuildAccordion: true });
+    syncConfirmEnabled();
+    void persistProjectChat();
+    renderRevisePanel({
+      canRevise: true,
+      status: "revising",
+    });
+  } catch {
+    /* keep chat usable even if chrome sync fails */
+  }
   el.input?.focus();
   scrollChatToLatest();
 }
@@ -4942,16 +4981,31 @@ async function kickoffReviseDialogue() {
   } catch (err) {
     if (pushedKick) state.reviseMessages.pop();
     const streamed = String(streamBubble?.getText?.() || "").trim();
+    const rawMsg = String(err?.message || err || "").trim();
+    const friendly = isStackOverflow(err)
+      ? t("err.reviseKickoffStack")
+      : rawMsg && rawMsg !== t("err.reviseKickoff")
+        ? `${t("err.reviseKickoff")}: ${rawMsg.slice(0, 240)}`
+        : t("err.reviseKickoff");
     if (gotReply || streamed) {
-      streamBubble?.set(streamed);
-      streamBubble?.finish();
+      try {
+        streamBubble?.set(streamed);
+        streamBubble?.finish();
+      } catch {
+        /* ignore */
+      }
       state.reviseMessages.push({ role: "assistant", content: streamed });
     } else if (streamBubble) {
-      // Never paint raw "Maximum call stack size exceeded" into the chat.
-      streamBubble.set(
-        isStackOverflow(err) ? t("err.reviseKickoff") : t("err.reviseKickoff"),
-      );
-      streamBubble.finish();
+      try {
+        streamBubble.set(friendly);
+        streamBubble.finish();
+      } catch {
+        addBubble("bot", friendly);
+      }
+      state.reviseMessages.push({ role: "assistant", content: friendly });
+    } else {
+      addBubble("bot", friendly);
+      state.reviseMessages.push({ role: "assistant", content: friendly });
     }
   } finally {
     state.reviseKickoffInFlight = false;
