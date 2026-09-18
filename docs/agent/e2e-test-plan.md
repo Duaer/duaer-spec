@@ -86,6 +86,7 @@ the table for their app.
 | E2E-104 | 再改一版 / version accordion clicks respond (no busy-disable swallow; accordion not rebuilt every poll) | `npm run test:live` + manual |
 | E2E-105 | Desk `.btn` chrome complete: flex center, `[hidden]` stays hidden, preview/revise/arch actions styled | `npm run test:live` + manual |
 | E2E-106 | 再改一版 posts visible user message into revise dialogue then kicks off employee | `npm run test:live` + manual |
+| E2E-107 | 再改一版 reacts on first click (chat focus + kickoff before chrome; no accepted flip) | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -223,3 +224,4 @@ the table for their app.
 | E2E-104 | `136-revise-click` | fix dead 再改一版 / accordion clicks |
 | E2E-105 | `137-btn-chrome` | complete button chrome + hidden display |
 | E2E-106 | `138-revise-send-msg` | 再改一版 visible user chat message |
+| E2E-107 | `139-revise-first-click` | 再改一版 first-click kickoff + chat focus |
