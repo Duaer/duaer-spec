@@ -32,42 +32,221 @@ function fmtAt(iso, lang) {
   }
 }
 
-function structuredBody(text) {
+/**
+ * Split free text into list items when it looks numbered / bulleted / delimited.
+ * Handles inline forms like `1) …；2) …` common in Chinese acceptance.
+ */
+export function splitContentItems(text) {
   const raw = String(text || "").trim();
-  if (!raw) return "";
-  const lines = raw
+  if (!raw) return [];
+
+  // Explicit newlines first
+  let lines = raw
     .split(/\n+/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const bullets = lines.every((l) => /^[-*•·]|\d+[\.、)]/.test(l));
-  if (bullets && lines.length > 1) {
-    const items = lines
-      .map((l) => l.replace(/^[-*•·]\s*/, "").replace(/^\d+[\.、)]\s*/, ""))
-      .map((l) => `<li>${esc(l)}</li>`)
-      .join("");
-    return `<ul class="struct-list">${items}</ul>`;
+
+  // Inline numbered: 1) / 1. / 1、 / （1）
+  if (lines.length === 1) {
+    const one = lines[0];
+    const normalized = one.replace(
+      /[；;]\s*(?=\d+[\.\)、]|[（(]\d+[）)])/g,
+      "\n",
+    );
+    const numbered = normalized
+      .split(/\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (
+      numbered.length > 1 &&
+      numbered.every((p) => /^(?:\d+[\.\)、]|[（(]\d+[）)])/.test(p))
+    ) {
+      lines = numbered;
+    } else if (/(?:→|->|=>|➜)/.test(one) && one.split(/\s*(?:→|->|=>|➜)\s*/).length > 2) {
+      return one
+        .split(/\s*(?:→|->|=>|➜)\s*/)
+        .map((p) => p.trim())
+        .filter(Boolean)
+        .map((p) => ({ kind: "step", text: p }));
+    } else {
+      // Short comma / 、 / ； list (out of scope style)
+      const parts = one
+        .split(/[、,，；;]/)
+        .map((p) => p.trim())
+        .filter(Boolean);
+      if (
+        parts.length >= 3 &&
+        parts.every((p) => p.length <= 40) &&
+        one.length <= 280
+      ) {
+        return parts.map((p) => ({ kind: "chip", text: p }));
+      }
+    }
   }
-  if (lines.length > 1) {
-    return lines.map((l) => `<p class="struct-p">${esc(l)}</p>`).join("");
+
+  return lines.map((l) => {
+    const cleaned = l
+      .replace(/^[-*•·]\s+/, "")
+      .replace(/^\d+[\.\)、]\s*/, "")
+      .replace(/^[（(]\d+[）)]\s*/, "")
+      .trim();
+    const numbered = /^(?:\d+[\.\)、]|[（(]\d+[）)]|[-*•·])/.test(l);
+    return { kind: numbered || lines.length > 1 ? "item" : "para", text: cleaned || l };
+  });
+}
+
+/**
+ * @param {string} text
+ * @param {{ as?: "auto"|"list"|"chips"|"flow"|"prose" }} [opts]
+ */
+export function structuredBody(text, opts = {}) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  const items = splitContentItems(raw);
+  if (!items.length) return "";
+
+  const force = opts.as || "auto";
+  if (force === "prose") {
+    if (items.length > 1 && !items.every((i) => i.kind === "chip" || i.kind === "step")) {
+      // Still split numbered acceptance even in goal/prose fields when clearly numbered
+      const numbered = items.length > 1 && /(?:^|\n)\s*\d+[\.\)、]/.test(
+        raw.replace(/[；;]\s*(?=\d+)/g, "\n"),
+      );
+      if (numbered) {
+        return `<ol class="struct-ol">${items
+          .map((i) => `<li>${esc(i.text)}</li>`)
+          .join("")}</ol>`;
+      }
+    }
+    return items.map((i) => `<p class="struct-p">${esc(i.text)}</p>`).join("");
   }
-  return `<p class="struct-p">${esc(raw)}</p>`;
+  const allChips = items.every((i) => i.kind === "chip");
+  const allSteps = items.every((i) => i.kind === "step");
+  const asList =
+    force === "list" ||
+    (force === "auto" &&
+      items.length > 1 &&
+      items.every((i) => i.kind === "item" || i.kind === "para") &&
+      (items.some((i) => i.kind === "item") || items.length >= 2));
+
+  if (force === "chips" || (force === "auto" && allChips)) {
+    return `<ul class="chip-list">${items
+      .map((i) => `<li class="chip">${esc(i.text)}</li>`)
+      .join("")}</ul>`;
+  }
+  if (force === "flow" || (force === "auto" && allSteps)) {
+    return `<ol class="flow-steps">${items
+      .map((i) => `<li><span class="flow-node">${esc(i.text)}</span></li>`)
+      .join("")}</ol>`;
+  }
+  if (asList || force === "list") {
+    const numbered = /(?:^|\n)\s*(?:\d+[\.\)、]|[（(]\d+[）)])/.test(
+      raw.replace(/[；;]\s*(?=\d+)/g, "\n"),
+    );
+    const tag = numbered ? "ol" : "ul";
+    const cls = numbered ? "struct-ol" : "struct-list";
+    return `<${tag} class="${cls}">${items
+      .map((i) => `<li>${esc(i.text)}</li>`)
+      .join("")}</${tag}>`;
+  }
+  if (items.length > 1) {
+    return items.map((i) => `<p class="struct-p">${esc(i.text)}</p>`).join("");
+  }
+  return `<p class="struct-p">${esc(items[0].text)}</p>`;
 }
 
 function cardBlock(card, labels) {
   const c = card || {};
   const rows = [
-    [labels.goal, c.goal],
-    [labels.out, c.outOfScope],
-    [labels.accept, c.acceptance],
-    [labels.assume, c.assumptions],
+    [labels.goal, c.goal, "prose"],
+    [labels.out, c.outOfScope, "chips"],
+    [labels.accept, c.acceptance, "list"],
+    [labels.assume, c.assumptions, "list"],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
   return `<dl class="card-dl">${rows
-    .map(
-      ([k, v]) =>
-        `<div class="card-row"><dt>${esc(k)}</dt><dd>${structuredBody(v)}</dd></div>`,
-    )
+    .map(([k, v, as]) => {
+      let body;
+      if (as === "chips") {
+        body = structuredBody(v, { as: "chips" });
+        // Fallback to prose/list if chip split did not apply
+        if (!body.includes("chip-list")) {
+          body = structuredBody(v, { as: "list" });
+        }
+      } else if (as === "list") {
+        body = structuredBody(v, { as: "list" });
+      } else {
+        body = structuredBody(v, { as: "prose" });
+      }
+      return `<div class="card-row"><dt>${esc(k)}</dt><dd>${body}</dd></div>`;
+    })
     .join("")}</dl>`;
+}
+
+function moduleCard(m, L, { index = null, confirmed = false } = {}) {
+  const idx =
+    index != null
+      ? `<span class="mod-index">${esc(String(index).padStart(2, "0"))}</span>`
+      : "";
+  const badge = confirmed
+    ? `<span class="badge ok">${esc(L.confirmed)}</span>`
+    : "";
+  const id = m.id || m.moduleId || m.title || "mod";
+  return `<section class="mod-card" id="mod-${esc(id)}">
+  <header class="mod-head">${idx}<div class="mod-titles"><h5>${esc(m.title)}</h5>${badge}</div></header>
+  ${cardBlock(m.card || {}, L)}
+</section>`;
+}
+
+function renderTaskPoolHtml(body, L) {
+  const raw = String(body || "");
+  const lines = raw.split(/\r?\n/);
+  const tasks = [];
+  for (const line of lines) {
+    const m = line.match(/^\s*[-*]\s+\[([ xX])\]\s+(.+?)\s*$/);
+    if (!m) continue;
+    const done = m[1].toLowerCase() === "x";
+    let rest = m[2].trim();
+    const idMatch = rest.match(/^(T\d+|R\d+[-\w]*)\b/i);
+    const id = idMatch ? idMatch[1].toUpperCase() : "";
+    if (id) rest = rest.slice(idMatch[0].length).trim();
+    const modMatch = rest.match(/^\[([^\]]+)\]\s*/);
+    const moduleId = modMatch ? modMatch[1] : "";
+    if (modMatch) rest = rest.slice(modMatch[0].length).trim();
+    const depMatch = rest.match(/\s*\(depends:\s*([^)]+)\)\s*$/i);
+    const depends = depMatch
+      ? depMatch[1]
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+    if (depMatch) rest = rest.slice(0, depMatch.index).trim();
+    tasks.push({ id, moduleId, title: rest, depends, done });
+  }
+  if (!tasks.length) {
+    return `<div class="summary">${structuredBody(raw)}</div>`;
+  }
+  const rows = tasks
+    .map((t) => {
+      const deps = t.depends.length
+        ? `<span class="task-deps">${esc(L.depends)}: ${esc(t.depends.join(", "))}</span>`
+        : "";
+      const mod = t.moduleId
+        ? `<span class="task-mod">${esc(t.moduleId)}</span>`
+        : "";
+      return `<tr data-done="${t.done ? "true" : "false"}">
+  <td class="task-check">${t.done ? "✓" : "·"}</td>
+  <td class="task-id">${esc(t.id || "—")}</td>
+  <td class="task-body">${mod}<span class="task-title">${esc(t.title)}</span>${deps}</td>
+</tr>`;
+    })
+    .join("\n");
+  return `<div class="task-pool-wrap">
+  <table class="task-table">
+    <thead><tr><th></th><th>${esc(L.taskId)}</th><th>${esc(L.taskTitle)}</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>`;
 }
 
 /**
@@ -189,7 +368,7 @@ export function buildDeliverablesModel(session, opts = {}) {
         {
           id: "task-pool",
           title: lang === "en" ? "Task pool" : "任务池",
-          kind: "pre",
+          kind: "taskpool",
           ready: Boolean(s.taskPool),
           body: s.taskPool
             ? taskPoolToMarkdown(s.taskPool) || JSON.stringify(s.taskPool, null, 2)
@@ -302,6 +481,11 @@ function labelsFor(lang) {
       confirmed: "Confirmed",
       draft: "Draft",
       module: "Module",
+      depends: "Depends",
+      taskId: "ID",
+      taskTitle: "Task",
+      confirmRegistry: "Confirmation registry",
+      jump: "View in requirements",
     };
   }
   return {
@@ -327,6 +511,11 @@ function labelsFor(lang) {
     confirmed: "已确认",
     draft: "草稿",
     module: "模块",
+    depends: "依赖",
+    taskId: "编号",
+    taskTitle: "任务",
+    confirmRegistry: "确认登记",
+    jump: "查看需求正文",
   };
 }
 
@@ -347,12 +536,9 @@ function renderArtifact(art, L, lang) {
       .map((v) => {
         let body = "";
         if (Array.isArray(v.modules) && v.modules.length) {
-          body = v.modules
-            .map(
-              (m) =>
-                `<div class="mod"><h5>${esc(L.module)} · ${esc(m.title)}</h5>${cardBlock(m.card, L)}</div>`,
-            )
-            .join("");
+          body = `<div class="mod-grid">${v.modules
+            .map((m, i) => moduleCard(m, L, { index: i + 1 }))
+            .join("")}</div>`;
         } else if (v.revise) {
           body = cardBlock(v.revise, L);
         }
@@ -362,20 +548,35 @@ function renderArtifact(art, L, lang) {
     return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><p class="eyebrow">${esc(L.timeline)}</p><ol class="timeline">${items}</ol></article>`;
   }
   if (art.kind === "confirmations") {
-    const list = (art.confirmations || [])
+    const list = art.confirmations || [];
+    const rows = list
       .map(
-        (c) =>
-          `<div class="mod" id="confirm-${esc(c.moduleId || c.title)}"><h5>${esc(c.title)} · ${esc(L.confirmed)}</h5>${cardBlock(c.card, L)}</div>`,
+        (c, i) => {
+          const mid = c.moduleId || c.title || `m${i + 1}`;
+          return `<tr>
+  <td class="reg-num">${esc(String(i + 1).padStart(2, "0"))}</td>
+  <td class="reg-name"><a href="#mod-${esc(mid)}">${esc(c.title)}</a></td>
+  <td class="reg-status"><span class="badge ok">${esc(L.confirmed)}</span></td>
+  <td class="reg-jump"><a href="#mod-${esc(mid)}">${esc(L.jump)}</a></td>
+</tr>`;
+        },
       )
       .join("");
-    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${list}</article>`;
+    return `<article class="artifact" id="${artId}">
+  <h3>${esc(art.title)}</h3>
+  <p class="eyebrow">${esc(L.confirmRegistry)}</p>
+  <table class="confirm-table">
+    <thead><tr><th>#</th><th>${esc(L.module)}</th><th></th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+</article>`;
   }
   if (art.kind === "architecture") {
     const link = art.url
       ? `<p><a class="btn" href="${esc(art.url)}" target="_blank" rel="noopener">${esc(L.openArch)}</a></p>`
       : "";
     const sum = art.summary
-      ? `<div class="summary">${structuredBody(art.summary)}</div>`
+      ? `<div class="summary flow-summary">${structuredBody(art.summary, { as: "auto" })}</div>`
       : "";
     const conf = art.confirmed
       ? `<p class="badge ok">${esc(L.confirmed)}</p>`
@@ -385,9 +586,13 @@ function renderArtifact(art, L, lang) {
   if (art.kind === "link") {
     return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><p><a class="btn" href="${esc(art.url)}" target="_blank" rel="noopener">${esc(L.openLink)}</a></p><p class="path">${esc(art.url)}</p></article>`;
   }
+  if (art.kind === "taskpool") {
+    const meta = art.meta ? `<p class="meta">${esc(art.meta)}</p>` : "";
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${meta}${renderTaskPoolHtml(art.body, L)}</article>`;
+  }
   if (art.kind === "pre") {
     const meta = art.meta ? `<p class="meta">${esc(art.meta)}</p>` : "";
-    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${meta}<div class="summary">${structuredBody(art.body)}</div></article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${meta}${renderTaskPoolHtml(art.body, L)}</article>`;
   }
   if (art.kind === "card") {
     const time = art.at
@@ -479,7 +684,7 @@ html, body {
   -webkit-font-smoothing: antialiased;
 }
 .wrap {
-  max-width: 44rem;
+  max-width: 52rem;
   margin: 0 auto;
   padding: 4.5rem 1.75rem 5.5rem;
 }
@@ -699,11 +904,18 @@ h1.page-title {
   margin: 0 0 0.35rem;
 }
 .card-row dd { margin: 0; }
-.struct-list {
+.struct-list,
+.struct-ol {
   margin: 0;
-  padding: 0 0 0 1.15rem;
+  padding: 0 0 0 1.25rem;
 }
-.struct-list li { margin: 0.2rem 0; color: var(--ink-soft); }
+.struct-list li,
+.struct-ol li {
+  margin: 0.35rem 0;
+  color: var(--ink-soft);
+  padding-left: 0.15rem;
+}
+.struct-ol { list-style: decimal; }
 .struct-p {
   margin: 0 0 0.45rem;
   color: var(--ink-soft);
@@ -711,8 +923,156 @@ h1.page-title {
   word-break: break-word;
 }
 .struct-p:last-child { margin-bottom: 0; }
+.chip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.chip {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  background: var(--paper-soft);
+  border: 1px solid var(--line);
+  padding: 0.28rem 0.55rem;
+}
+.flow-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.35rem;
+}
+.flow-steps li {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.flow-steps li:not(:last-child)::after {
+  content: "→";
+  color: var(--mute);
+  font-size: 0.85rem;
+}
+.flow-node {
+  display: inline-block;
+  font-size: 0.88rem;
+  color: var(--ink);
+  background: var(--paper-soft);
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.65rem;
+  max-width: 14rem;
+}
+.mod-grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.mod-card {
+  margin: 0;
+  padding: 1.1rem 1.15rem 1.2rem;
+  border: 1px solid var(--line);
+  background: var(--paper-soft);
+}
+.mod-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 1rem;
+  align-items: baseline;
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--line);
+}
+.mod-index {
+  font-family: var(--font-d);
+  font-size: 1.45rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+}
+.mod-titles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.4rem 0.75rem;
+  min-width: 0;
+}
+.mod-card h5 {
+  font-family: var(--font-d);
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+.mod-card .card-dl {
+  background: var(--paper);
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+}
+.confirm-table,
+.task-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+.confirm-table th,
+.task-table th {
+  text-align: left;
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--mute);
+  font-weight: 600;
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--line);
+}
+.confirm-table td,
+.task-table td {
+  padding: 0.7rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  vertical-align: top;
+  color: var(--ink-soft);
+}
+.confirm-table a,
+.task-table a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.confirm-table a:hover { text-decoration: underline; }
+.reg-num, .task-id {
+  font-variant-numeric: tabular-nums;
+  color: var(--mute);
+  width: 3.5rem;
+  white-space: nowrap;
+}
+.task-check { width: 1.5rem; color: var(--mute); }
+.task-mod {
+  display: inline-block;
+  font-size: 0.72rem;
+  color: var(--mute);
+  border: 1px solid var(--line);
+  padding: 0.08rem 0.35rem;
+  margin-right: 0.45rem;
+}
+.task-title { color: var(--ink); }
+.task-deps {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--mute);
+}
+.task-table tr[data-done="true"] .task-title {
+  color: var(--mute);
+  text-decoration: line-through;
+}
 .summary .struct-p,
-.summary .struct-list { font-size: 0.95rem; }
+.summary .struct-list,
+.summary .struct-ol,
+.summary .flow-steps { font-size: 0.95rem; }
 .field { margin: 0.55rem 0 0.95rem; }
 .field h4 {
   font-family: var(--font-b);
@@ -736,6 +1096,11 @@ pre, .summary {
   padding: 1rem 1.1rem;
 }
 .summary { white-space: normal; }
+.flow-summary {
+  background: transparent;
+  border: none;
+  padding: 0.35rem 0 0.75rem;
+}
 .timeline { list-style: none; margin: 0; padding: 0; }
 .tl-item {
   position: relative;

@@ -98,13 +98,89 @@ test("renderDeliverablesHtml escapes XSS and includes stages", () => {
   assert.match(html, /Deliverables dossier|hero-project/);
   assert.match(html, /Requirements/);
   assert.match(html, /class="toc"|目录|Contents/);
-  assert.match(html, /card-dl|struct-p|struct-list/);
+  assert.match(html, /card-dl|struct-ol|struct-list|chip-list|mod-card|task-table|confirm-table/);
   assert.match(html, /--paper:\s*#ffffff/);
   assert.doesNotMatch(html, /fonts\.googleapis|Cormorant Garamond|DM Sans/);
   assert.doesNotMatch(html, /--register:\s*#e05a2b|--steel:\s*#0f1820/);
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;img/);
   assert.match(html, /Version timeline|Initial/);
+});
+
+test("structuredBody splits inline numbered acceptance and chips", async () => {
+  const { structuredBody, splitContentItems } = await import(
+    "../bin/live-deliverables.mjs"
+  );
+  const items = splitContentItems(
+    "1) 打开登录页；2) 输入账号并保存；3) 列表显示成功状态",
+  );
+  assert.equal(items.length, 3);
+  const html = structuredBody(
+    "1) 打开登录页；2) 输入账号并保存；3) 列表显示成功状态",
+    { as: "list" },
+  );
+  assert.match(html, /struct-ol/);
+  assert.match(html, /<li>打开登录页<\/li>/);
+  const chips = structuredBody("收样登记、审核复核、报告签发、财务计费", {
+    as: "chips",
+  });
+  assert.match(chips, /chip-list/);
+  assert.match(chips, /收样登记/);
+  const flow = structuredBody("浏览器 → 报告服务 → PDF 生成器 → 文件存储");
+  assert.match(flow, /flow-steps|flow-node/);
+});
+
+test("task pool and confirmation registry render structured", () => {
+  const model = buildDeliverablesModel(
+    {
+      projectPath: "/tmp/lab",
+      modules: [
+        {
+          id: "main",
+          title: "录入",
+          status: "confirmed",
+          card: {
+            goal: "录入结果",
+            outOfScope: "收样、审核、签发、导出",
+            acceptance:
+              "1) 打开样品；2) 保存结果值；3) 判定显示合格",
+            assumptions: "样品已登记",
+          },
+        },
+      ],
+      taskPool: {
+        tasks: [
+          {
+            id: "T001",
+            moduleId: "main",
+            title: "Implement module",
+            dependsOn: [],
+          },
+          {
+            id: "T002",
+            moduleId: "main",
+            title: "Verify",
+            dependsOn: ["T001"],
+          },
+        ],
+      },
+      workerCount: 2,
+      architecture: {
+        url: "/api/architecture/x.html",
+        summary: "浏览器 → API → 数据库",
+        confirmed: true,
+      },
+    },
+    { lang: "zh" },
+  );
+  const html = renderDeliverablesHtml(model);
+  assert.match(html, /struct-ol/);
+  assert.match(html, /chip-list|chip/);
+  assert.match(html, /task-table/);
+  assert.match(html, /T001/);
+  assert.match(html, /confirm-table/);
+  assert.match(html, /mod-card/);
+  assert.match(html, /flow-steps|flow-node/);
 });
 
 test("writeDeliverablesHtmlFile writes beside project chat key", () => {
