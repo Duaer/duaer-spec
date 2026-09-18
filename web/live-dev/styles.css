@@ -2151,9 +2151,21 @@ a.btn[hidden] {
   border-color: color-mix(in srgb, var(--register) 45%, var(--line));
 }
 
+.worker-lane[data-state="waiting_deps"] .worker-lane-badge {
+  color: var(--mute);
+  border-color: color-mix(in srgb, var(--mute) 55%, var(--line));
+}
+
 .worker-lane[data-state="done"] .worker-lane-badge {
   color: var(--lock);
   border-color: color-mix(in srgb, var(--lock) 45%, var(--line));
+}
+
+.orch-summary {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--mute);
+  overflow-wrap: anywhere;
 }
 
 .worker-lane-meta {

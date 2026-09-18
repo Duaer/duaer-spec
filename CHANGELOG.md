@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: reliable multi-worker task orchestration
+
+- Kickoff / status poll only release ready waves (`dependsOn` satisfied via `[x]`)
+- Idle lanes get `--continue` for the next wave; blocked lanes show 等依赖
+- Assignment inherits first-dependency worker when possible
+
 ### Feat: multi-worker lanes in 派工进度
 
 - When workerCount > 1, Progress shows one lane per digital employee

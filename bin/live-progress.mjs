@@ -3,6 +3,8 @@
  * Pure functions (no fs/git) so unit tests can import without the live server.
  */
 
+import { workerOrchestrationState } from "./live-orchestrate.mjs";
+
 export function truncateText(s, max = 100) {
   const t = String(s || "")
     .replace(/\s+/g, " ")
@@ -240,12 +242,15 @@ export function buildWorkersProgress(input = {}) {
   );
   if (resolvedCount <= 1) return [];
 
+  const doneSet = new Set();
   const progressById = new Map();
   for (const t of progressTasks) {
     const id = String(t.id || "")
       .trim()
       .toUpperCase();
-    if (id) progressById.set(id, t);
+    if (!id) continue;
+    progressById.set(id, t);
+    if (t.done) doneSet.add(id);
   }
 
   const workers = [];
@@ -255,14 +260,15 @@ export function buildWorkersProgress(input = {}) {
       launches.find((l) => String(l.workerId || "") === workerId) ||
       launches[w - 1] ||
       null;
-    const fromLaunch = Array.isArray(launch?.taskIds)
-      ? launch.taskIds.map((id) => String(id).trim()).filter(Boolean)
-      : [];
     const fromPool = poolTasks
       .filter((t) => String(t.workerId || "") === workerId)
       .map((t) => String(t.id || "").trim())
       .filter(Boolean);
-    const assigned = fromLaunch.length ? fromLaunch : fromPool;
+    const fromLaunch = Array.isArray(launch?.taskIds)
+      ? launch.taskIds.map((id) => String(id).trim()).filter(Boolean)
+      : [];
+    // Prefer full pool ownership so lanes show blocked tasks too.
+    const assigned = fromPool.length ? fromPool : fromLaunch;
     const seen = new Set();
     const tasks = [];
     for (const rawId of assigned) {
@@ -278,13 +284,13 @@ export function buildWorkersProgress(input = {}) {
         });
         continue;
       }
-      const pool = poolTasks.find(
+      const poolTask = poolTasks.find(
         (t) => String(t.id || "").toUpperCase() === id,
       );
       tasks.push({
         id,
-        text: pool
-          ? `${pool.id}${pool.title ? ` ${pool.title}` : ""}`.trim()
+        text: poolTask
+          ? `${poolTask.id}${poolTask.title ? ` ${poolTask.title}` : ""}`.trim()
           : id,
         done: false,
       });
@@ -298,11 +304,45 @@ export function buildWorkersProgress(input = {}) {
       queueDepth: 0,
       runnerHealthy: false,
     };
-    let state = "idle";
-    if (total > 0 && done >= total) state = "done";
-    else if (term.busy) state = "running";
-    else if (Number(term.queueDepth) > 0) state = "queued";
-    else if (next) state = "waiting";
+    const readyOwned = (poolTasks || []).filter((t) => {
+      if (String(t.workerId || "") !== workerId) return false;
+      const id = String(t.id || "")
+        .trim()
+        .toUpperCase();
+      if (!id || doneSet.has(id)) return false;
+      const deps = Array.isArray(t.dependsOn) ? t.dependsOn : [];
+      return deps.every((d) =>
+        doneSet.has(
+          String(d || "")
+            .trim()
+            .toUpperCase(),
+        ),
+      );
+    });
+    const blockedOwned = (poolTasks || []).filter((t) => {
+      if (String(t.workerId || "") !== workerId) return false;
+      const id = String(t.id || "")
+        .trim()
+        .toUpperCase();
+      if (!id || doneSet.has(id)) return false;
+      const deps = Array.isArray(t.dependsOn) ? t.dependsOn : [];
+      if (!deps.length) return false;
+      return !deps.every((d) =>
+        doneSet.has(
+          String(d || "")
+            .trim()
+            .toUpperCase(),
+        ),
+      );
+    }).length;
+
+    const state = workerOrchestrationState({
+      ownedTotal: total,
+      ownedDone: done,
+      readyCount: readyOwned.length,
+      blockedOwned,
+      terminal: term,
+    });
 
     workers.push({
       id: workerId,

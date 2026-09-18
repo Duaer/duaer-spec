@@ -55,6 +55,27 @@ test("buildWorkersProgress falls back to taskPool workerId", () => {
     taskPool: {
       tasks: [
         { id: "T001", title: "mod a", workerId: "w1" },
+        { id: "T002", title: "mod b", workerId: "w2", dependsOn: ["T001"] },
+      ],
+    },
+    progress: {
+      tasks: [
+        { id: "T001", text: "T001 mod a", done: false },
+        { id: "T002", text: "T002 mod b", done: false },
+      ],
+    },
+  });
+  assert.equal(workers[0].state, "waiting");
+  assert.equal(workers[1].state, "waiting_deps");
+});
+
+test("buildWorkersProgress marks done when all owned tasks complete", () => {
+  const workers = buildWorkersProgress({
+    workerCount: 2,
+    launches: [{ workerId: "w1" }, { workerId: "w2" }],
+    taskPool: {
+      tasks: [
+        { id: "T001", title: "mod a", workerId: "w1" },
         { id: "T002", title: "mod b", workerId: "w2" },
       ],
     },

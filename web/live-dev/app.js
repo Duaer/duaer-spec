@@ -5219,6 +5219,9 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   const workers = document.createElement("div");
   workers.className = "worker-lanes";
   workers.hidden = true;
+  const orchLine = document.createElement("p");
+  orchLine.className = "orch-summary";
+  orchLine.hidden = true;
   const tasks = document.createElement("ul");
   tasks.className = "progress-tasks";
   const log = document.createElement("pre");
@@ -5227,6 +5230,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   panel.appendChild(meter);
   panel.appendChild(summary);
   panel.appendChild(activity);
+  panel.appendChild(orchLine);
   panel.appendChild(workers);
   panel.appendChild(tasks);
   panel.appendChild(log);
@@ -5247,6 +5251,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
     meterFill,
     summary,
     activity,
+    orchLine,
     workers,
     tasks,
     log,
@@ -5261,6 +5266,7 @@ function workerStateLabel(stateKey) {
     running: "run.workerRunning",
     queued: "run.workerQueued",
     waiting: "run.workerWaiting",
+    waiting_deps: "run.workerWaitingDeps",
     done: "run.workerDone",
     idle: "run.workerIdle",
   };
@@ -5427,6 +5433,21 @@ function fillRunProgress(block, data) {
     } else {
       block.activity.hidden = true;
       block.activity.textContent = "";
+    }
+  }
+  if (block.orchLine) {
+    const orch = data?.orchestration || data?.dispatch?.orchestration;
+    const sum = orch?.summary;
+    if (sum && (Number(sum.releasedWaveCount) > 0 || Number(sum.blockedCount) > 0 || Number(sum.readyCount) > 0)) {
+      block.orchLine.hidden = false;
+      block.orchLine.textContent = t("run.orchSummary", {
+        released: Number(sum.releasedWaveCount) || 0,
+        ready: Number(sum.readyCount) || 0,
+        blocked: Number(sum.blockedCount) || 0,
+      });
+    } else {
+      block.orchLine.hidden = true;
+      block.orchLine.textContent = "";
     }
   }
   fillWorkerLanes(block, workers);

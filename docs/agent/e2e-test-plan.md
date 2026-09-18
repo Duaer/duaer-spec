@@ -125,6 +125,7 @@ the table for their app.
 | E2E-143 | Cyclic architecture IR does not freeze live desk; deliverables page opens without Google Fonts | `npm test` + manual |
 | E2E-144 | Deliverables HTML has Contents TOC + structured card fields (dl/dt/dd) | `npm test` + manual |
 | E2E-145 | Multi-worker dispatch shows per-employee lanes under 派工进度 | `npm test` + `npm run test:live` + manual |
+| E2E-146 | Wave orchestration: only ready tasks in first prompt; status poll continues next wave when lane idle | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -295,3 +296,4 @@ the table for their app.
 | E2E-143 | `179-arch-layout-hang` | cyclic IR layout must not freeze desk |
 | E2E-144 | `180-deliverables-structure` | structured TOC + card fields |
 | E2E-145 | `181-multi-worker-progress` | per-worker lanes in 派工进度 |
+| E2E-146 | `182-task-orchestrate` | wave orchestration / dependsOn gating |
