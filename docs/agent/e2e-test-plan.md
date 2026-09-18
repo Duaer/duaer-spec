@@ -80,6 +80,8 @@ the table for their app.
 | E2E-098 | Result bar buttons stay horizontal; heading/current chip follow latest revision | `npm run test:live` + manual |
 | E2E-099 | 改进卡 is versioned: each dispatched revision keeps its card; 再改一版 opens next empty card; chips browse history without overwrite | `npm test` + `npm run test:live` + manual |
 | E2E-100 | Revise: confirm 改进方案 first, then re-confirm architecture (keep or redesign), then dispatch | `npm test` + `npm run test:live` + manual |
+| E2E-101 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
+| E2E-102 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
 | E2E-101 | Desk buttons: no undefined --muted; architecture confirm/redesign row aligned; revise CTA not offset | `npm run test:live` + manual |
 | E2E-102 | Requirement versions accordion: 初版 + 第N版 expand with fields; architecture shown when changed | `npm test` + `npm run test:live` + manual |
 | E2E-103 | 再改一版 switches chat to revise thread so user-sent revise messages are visible | `npm run test:live` + manual |

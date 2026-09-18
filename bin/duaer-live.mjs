@@ -54,6 +54,17 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
+import {
+  clipModules,
+  clipActiveModuleId,
+  modulesAllConfirmed,
+  confirmModuleInList,
+  aggregateModulesCard,
+  buildTaskPoolFromModules,
+  taskPoolToMarkdown,
+  assignTasksToWorkers,
+  clipWorkerCount,
+} from "./live-modules.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
@@ -665,16 +676,18 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
 
 规则：
 1. 缺关键可执行信息时，每次只问 1 个卡点问题；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
-2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
-3. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
-4. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
-5. 不要写代码。不要假设用户仓库路径。
-6. 只要问题是让用户做选择（A/B、平台、是否、静态/带后端等），必须在 JSON 的 options 填 2～5 个短选项（每个≤20字）。用户界面会显示可点击按钮，一点即发。禁止只在正文用「1. 2. 3.」或「请回复数字/请输入」却把 options 留空。
-7. 输出格式（严格）：
+2. 系统可能很大：边聊边发现模块清单 modules（id/title/status）。对话可以乱跳模块；把内容写进对应模块的四块，不要强迫用户按顺序说完。
+3. 每个模块维护四块：goal、outOfScope、acceptance、assumptions。小项目可只有一个模块（id=main）。
+4. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
+5. ready=true 只表示**当前 active 模块**可确认，不是整系统开工。不要催用户立刻派工。
+6. 不要写代码。不要假设用户仓库路径。
+7. 只要问题是让用户做选择，必须在 JSON 的 options 填 2～5 个短选项（每个≤20字）。禁止只在正文列选项却把 options 留空。
+8. 输出格式（严格）：
    - 先写对用户说的纯文本（可多行，不要 JSON；正文里不要再列一遍选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
-{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}
+说明：顶层 goal/outOfScope/acceptance/assumptions/ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
@@ -713,7 +726,7 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需�
 6. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
 7. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
 
-const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
+const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将锁定**某一个模块**的确认卡（尚未整系统开工）。目标是：规范该模块需求，使数字员工日后能交付可核对成品。
 
 检查：
 1. goal 是否单一、可执行（一件事，不要堆多个无关功能）
@@ -725,7 +738,7 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将�
 规则：
 - 若小改即可通过：修订四块（尤其把 acceptance 改成可检查句子），passed=true
 - 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
-- 不要写代码。不要假设仓库路径。
+- 不要写代码。不要假设仓库路径。不要催派工。
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
@@ -901,6 +914,31 @@ function parseChatResult(content) {
       if (typeof v === "number" || typeof v === "boolean") return String(v);
       return "";
     };
+    const modulesRaw = Array.isArray(obj.modules) ? obj.modules : undefined;
+    const modules = modulesRaw
+      ? modulesRaw
+          .map((m) => {
+            if (!m || typeof m !== "object") return null;
+            const id = flat(m.id) || flat(m.title);
+            if (!id) return null;
+            return {
+              id: id.slice(0, 80),
+              title: (flat(m.title) || id).slice(0, 120),
+              status: ["draft", "ready", "confirmed"].includes(m.status)
+                ? m.status
+                : "draft",
+              goal: flat(m.goal ?? m.card?.goal),
+              outOfScope: flat(m.outOfScope ?? m.card?.outOfScope),
+              acceptance: flat(m.acceptance ?? m.card?.acceptance),
+              assumptions: flat(m.assumptions ?? m.card?.assumptions),
+              dependsOn: Array.isArray(m.dependsOn)
+                ? m.dependsOn.map((x) => flat(x)).filter(Boolean).slice(0, 20)
+                : [],
+            };
+          })
+          .filter(Boolean)
+          .slice(0, 40)
+      : undefined;
     return {
       reply: reply || "请继续补充。",
       goal: flat(obj.goal),
@@ -908,6 +946,8 @@ function parseChatResult(content) {
       acceptance: flat(obj.acceptance),
       assumptions: flat(obj.assumptions),
       ready: Boolean(obj.ready),
+      activeModuleId: flat(obj.activeModuleId) || undefined,
+      modules,
       options: enrichChatOptions(
         reply || flat(obj.reply),
         Array.isArray(obj.options) ? obj.options : [],
@@ -939,6 +979,23 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
     acceptance: String(parsed?.acceptance || ""),
     assumptions: String(parsed?.assumptions || ""),
     ready: Boolean(parsed?.ready),
+    activeModuleId: parsed?.activeModuleId
+      ? String(parsed.activeModuleId).slice(0, 80)
+      : undefined,
+    modules: Array.isArray(parsed?.modules)
+      ? parsed.modules.slice(0, 40).map((m) => ({
+          id: String(m.id || "").slice(0, 80),
+          title: String(m.title || m.id || "").slice(0, 120),
+          status: String(m.status || "draft").slice(0, 20),
+          goal: String(m.goal || "").slice(0, 4000),
+          outOfScope: String(m.outOfScope || "").slice(0, 4000),
+          acceptance: String(m.acceptance || "").slice(0, 4000),
+          assumptions: String(m.assumptions || "").slice(0, 4000),
+          dependsOn: Array.isArray(m.dependsOn)
+            ? m.dependsOn.map(String).slice(0, 20)
+            : [],
+        }))
+      : undefined,
     options: Array.isArray(parsed?.options)
       ? parsed.options.slice(0, 6).map(String)
       : [],
@@ -3250,8 +3307,44 @@ function dispatchToRepo({
   architectureSummary: architectureSummaryRaw,
   architectureUrl: architectureUrlRaw,
   architectureIr: architectureIrRaw,
+  modules: modulesRaw,
+  workerCount: workerCountRaw,
+  rawAsk,
 }) {
-  const live = readLiveJob(jobId);
+  let liveJobId = String(jobId || "").trim();
+  const modules = clipModules(modulesRaw);
+  const workerCount = clipWorkerCount(workerCountRaw);
+
+  // Kickoff owns Brief write: create live job from confirmed modules when needed.
+  if (!liveJobId) {
+    if (!modulesAllConfirmed(modules)) {
+      throw new Error("请先确认全部模块需求后再开工");
+    }
+    const agg = aggregateModulesCard(modules);
+    const brief = writeBrief({
+      goal: agg.goal,
+      outOfScope: agg.outOfScope,
+      acceptance: agg.acceptance,
+      assumptions: agg.assumptions,
+      rawAsk: rawAsk || agg.goal,
+      projectPath: repoPath || readConfig().activeProjectPath,
+      review: { summary: `Modular kickoff (${modules.length} modules)` },
+    });
+    liveJobId = brief.jobId;
+    try {
+      const live = readLiveJob(liveJobId);
+      const next = {
+        ...live.job,
+        modules,
+        modular: true,
+      };
+      fs.writeFileSync(live.jobPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const live = readLiveJob(liveJobId);
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
   const probe = probeRepo(repoPath, {
     bootstrap: true,
@@ -3306,6 +3399,44 @@ function dispatchToRepo({
   }
   const deployPlan = deployPromptForTarget(deployTarget);
   const deployNeeded = deployPlan.needed || isDeployPlanned(deployTarget);
+  const moduleList =
+    modules.length > 0
+      ? modules
+      : clipModules(live.job.modules, {
+          goal: goalBody,
+          outOfScope: extractSection(live.spec, "Out of scope") || "",
+          acceptance: acceptBody,
+          assumptions: assumeBody,
+        });
+  const confirmedModules = moduleList.map((m) =>
+    m.status === "confirmed" ? m : { ...m, status: "confirmed" },
+  );
+  const poolBase = buildTaskPoolFromModules(confirmedModules, {
+    deployNeeded,
+    deployTaskText: deployPlan.deployTaskText,
+  });
+  const assigned = assignTasksToWorkers(poolBase, workerCount);
+  const taskPool = {
+    ...poolBase,
+    tasks: assigned.tasks,
+    workerCount: assigned.workerCount,
+  };
+  const productTasks = taskPoolToMarkdown(taskPool);
+
+  const modulesBlock =
+    confirmedModules.length > 1
+      ? `
+
+## Modules
+
+${confirmedModules
+  .map(
+    (m) =>
+      `### ${m.title} (\`${m.id}\`)\n\n**Goal:** ${m.card.goal}\n\n**Out of scope:** ${m.card.outOfScope || "(none)"}\n\n**Acceptance:** ${m.card.acceptance}\n\n**Assumptions:** ${m.card.assumptions || "(none)"}\n`,
+  )
+  .join("\n")}`
+      : "";
+
   const productSpec = `# Feature Specification: ${goal}
 
 **Feature Branch**: \`${branch}\`
@@ -3327,22 +3458,21 @@ ${acceptBody}
 
 ## Assumptions
 ${assumeBody}
-
+${modulesBlock}
 ## Notes
 
 Dispatched from Duaer-spec FDE into product worktree \`${worktreePath}\`.
+Task pool workers: ${assigned.workerCount} (same CLI family).
 ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
-  const productTasks = buildDetailedProductTasksMd({
-    goal: goalBody || goal,
-    acceptance: acceptBody,
-    deployNeeded,
-    deployTaskText: deployPlan.deployTaskText,
-  });
-
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
   fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
+  fs.writeFileSync(
+    path.join(featureDir, "task-pool.json"),
+    `${JSON.stringify(taskPool, null, 2)}\n`,
+    "utf8",
+  );
   const archSummary = String(architectureSummaryRaw || "").trim();
   const archUrl = String(architectureUrlRaw || "").trim();
   const architectureIr = resolveArchitectureIr(architectureIrRaw, archUrl);
@@ -3372,6 +3502,7 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
         deployTarget,
         deployViaGithubCli: deployTarget === "github-pages",
         architectureSummary: archSummary || undefined,
+        workerCount: assigned.workerCount,
       },
       null,
       2,
@@ -3398,13 +3529,14 @@ Brief: ${featureDir}
 分支: ${branch}
 产品仓: ${probe.path}
 计划托管: ${deployTarget}
+任务池: ${path.join(featureDir, "task-pool.json")}（含 dependsOn；可并行的先做）
 
 要求：
 0. 本 Brief 已在 Duaer-spec FDE 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）；尊重 dependsOn，未满足依赖的任务不要提前勾完
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
@@ -3454,13 +3586,35 @@ Brief: ${featureDir}
   }
 
   const logPath = path.join(featureDir, "agent-launch.log");
-  const launch = launchAgent({
-    agentId: chosen,
-    worktreePath,
-    agentPrompt,
-    logPath,
-    featureDir,
-  });
+  const launches = [];
+  for (let w = 1; w <= assigned.workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const workerTasks = assigned.tasks.filter((t) => t.workerId === workerId);
+    const taskIds = workerTasks.map((t) => t.id).join(", ");
+    const workerPrompt =
+      assigned.workerCount === 1
+        ? agentPrompt
+        : `${agentPrompt}
+
+——
+你是并行数字员工 ${workerId}/${assigned.workerCount}（同一 CLI：${chosen}）。
+你主要负责任务：${taskIds || "(shared)"}。
+其他任务由同事负责；有 dependsOn 的请等待依赖完成后在同一 worktree 继续。不要改 Brief 范围外的东西。
+`;
+    const wLog =
+      assigned.workerCount === 1
+        ? logPath
+        : path.join(featureDir, `agent-launch-${workerId}.log`);
+    const launch = launchAgent({
+      agentId: chosen,
+      worktreePath,
+      agentPrompt: workerPrompt,
+      logPath: wLog,
+      featureDir,
+    });
+    launches.push({ workerId, ...launch, taskIds: workerTasks.map((t) => t.id) });
+  }
+  const launch = launches[0] || null;
   rememberPreferredAgent(chosen);
 
   const dispatch = {
@@ -3472,8 +3626,11 @@ Brief: ${featureDir}
     featureDir,
     dispatchedAt: new Date().toISOString(),
     deployTarget,
-    openedWith: launch.kind === "open" ? launch.agentId : null,
+    openedWith: launch?.kind === "open" ? launch.agentId : null,
     launch,
+    launches,
+    workerCount: assigned.workerCount,
+    taskPool,
     startCommand: agentPrompt,
     duaerInstall: {
       repo: probe.duaer || { action: "already", path: probe.path },
@@ -3488,6 +3645,8 @@ Brief: ${featureDir}
     deployTarget,
     dispatch,
     agentPrompt,
+    modules: confirmedModules,
+    taskPool,
   };
   fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
@@ -5106,6 +5265,10 @@ async function handleApi(req, res) {
         return;
       }
       const card = body.card && typeof body.card === "object" ? body.card : {};
+      const modules = Array.isArray(body.modules) ? body.modules : undefined;
+      const activeModuleId = body.activeModuleId
+        ? String(body.activeModuleId).trim()
+        : "";
       const mode = String(body.mode || "specify").trim();
       const reviseMode = mode === "revise";
       const architectureMode = mode === "architecture";
@@ -5119,7 +5282,11 @@ async function handleApi(req, res) {
         ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去右侧「计划托管」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
-          : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`;
+          : `当前模块清单与确认卡草稿：\n${JSON.stringify({
+              modules: modules || [],
+              activeModuleId: activeModuleId || null,
+              card,
+            })}\n对话可乱跳模块。更新 modules 清单与 activeModuleId；顶层四块对应当前模块。ready=true 仅表示当前模块可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`;
       messages.push({
         role: "user",
         content: followUp,
@@ -5272,26 +5439,45 @@ async function handleApi(req, res) {
         });
         return;
       }
-      const result = writeBrief({
+      const acceptedCard = {
         goal: review.goal,
         outOfScope: review.outOfScope,
         acceptance: review.acceptance,
         assumptions: review.assumptions,
-        rawAsk: body.rawAsk,
-        projectPath:
-          body.projectPath || body.repoPath || readConfig().activeProjectPath,
-        review: { summary: review.summary || "自动验收通过" },
-      });
+      };
+      const incomingModules = Array.isArray(body.modules) ? body.modules : [];
+      const moduleId =
+        String(body.moduleId || body.activeModuleId || "").trim() ||
+        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+        "main";
+      let modules = clipModules(incomingModules, acceptedCard);
+      if (!modules.length) {
+        modules = [
+          {
+            id: moduleId,
+            title: moduleId === "main" ? "Main" : moduleId,
+            status: "draft",
+            card: acceptedCard,
+            dependsOn: [],
+          },
+        ];
+      }
+      modules = confirmModuleInList(modules, moduleId, acceptedCard);
+      const allConfirmed = modulesAllConfirmed(modules);
+      // Per-module confirm never writes Brief / launches agents — kickoff owns that.
       send(res, 200, {
-        ...result,
+        ok: true,
         passed: true,
-        needDispatch: true,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
-        },
+        moduleId,
+        modules,
+        activeModuleId: moduleId,
+        modulesAllConfirmed: allConfirmed,
+        needArchitecture: allConfirmed,
+        needDispatch: false,
+        writeBrief: false,
+        jobId: null,
+        card: acceptedCard,
+        review: { summary: review.summary || "自动验收通过" },
       });
     } catch (err) {
       send(res, 400, {
@@ -5343,27 +5529,47 @@ async function handleApi(req, res) {
         });
         return;
       }
-      const result = writeBrief({
+      const acceptedCard = {
         goal: review.goal,
         outOfScope: review.outOfScope,
         acceptance: review.acceptance,
         assumptions: review.assumptions,
-        rawAsk: body.rawAsk,
-        review: {
-          summary: `${fixed.summary || "已自动修正"}；${review.summary || "验收通过"}`,
-        },
-      });
+      };
+      const incomingModules = Array.isArray(body.modules) ? body.modules : [];
+      const moduleId =
+        String(body.moduleId || body.activeModuleId || "").trim() ||
+        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+        "main";
+      let modules = clipModules(incomingModules, acceptedCard);
+      if (!modules.length) {
+        modules = [
+          {
+            id: moduleId,
+            title: moduleId === "main" ? "Main" : moduleId,
+            status: "draft",
+            card: acceptedCard,
+            dependsOn: [],
+          },
+        ];
+      }
+      modules = confirmModuleInList(modules, moduleId, acceptedCard);
+      const allConfirmed = modulesAllConfirmed(modules);
       send(res, 200, {
-        ...result,
+        ok: true,
         passed: true,
         fixed: true,
-        needDispatch: true,
+        moduleId,
+        modules,
+        activeModuleId: moduleId,
+        modulesAllConfirmed: allConfirmed,
+        needArchitecture: allConfirmed,
+        needDispatch: false,
+        writeBrief: false,
+        jobId: null,
         fixSummary: fixed.summary,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
+        card: acceptedCard,
+        review: {
+          summary: `${fixed.summary || "已自动修正"}；${review.summary || "验收通过"}`,
         },
       });
     } catch (err) {
@@ -5519,6 +5725,9 @@ async function handleApi(req, res) {
         architectureSummary: body.architectureSummary,
         architectureUrl: body.architectureUrl,
         architectureIr: body.architectureIr,
+        modules: body.modules,
+        workerCount: body.workerCount,
+        rawAsk: body.rawAsk,
       });
       send(res, 200, result);
     } catch (err) {
@@ -5901,6 +6110,10 @@ async function handleApi(req, res) {
         reviseMessages: body.reviseMessages,
         rawAsk: body.rawAsk,
         card: body.card,
+        modules: body.modules,
+        activeModuleId: body.activeModuleId,
+        taskPool: body.taskPool,
+        workerCount: body.workerCount,
         reviseCard: body.reviseCard,
         reviseCards: body.reviseCards,
         reviseDraft: body.reviseDraft,

@@ -92,6 +92,8 @@
         <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="需求">
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
           <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
+          <div id="moduleTabs" class="module-tabs" hidden role="tablist" aria-label="Modules"></div>
+          <p id="moduleMeta" class="meta module-meta" hidden></p>
           <p id="meta" class="meta"></p>
           <div class="req-section field" data-req="goal">
             <span id="lblGoal" data-i18n="card.goal">要做什么</span>
@@ -120,7 +122,7 @@
             自动处理
           </button>
           <button type="button" class="btn confirm" id="confirm" disabled data-i18n="card.confirm">
-            需求无误，开始干活
+            确认本模块
           </button>
           <pre id="result" class="result" hidden></pre>
 
@@ -130,6 +132,20 @@
             <div id="dispatchProjectSummary" class="dispatch-project-summary" hidden>
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
+            </div>
+            <div id="taskPoolPreview" class="task-pool-preview" hidden>
+              <p class="agent-pick-label" data-i18n="dispatch.taskPool">任务池（依赖 / 并行）</p>
+              <pre id="taskPoolList" class="task-pool-list"></pre>
+            </div>
+            <div class="field worker-count-field">
+              <span data-i18n="dispatch.workerCount">数字员工数量</span>
+              <p class="hint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <select id="workerCount" aria-label="worker count">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
             </div>
             <div id="repoPickBlock" class="repo-pick-block">
               <div class="repo-actions" id="repoPickActions">

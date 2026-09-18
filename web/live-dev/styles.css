@@ -1076,6 +1076,62 @@ a.btn[hidden] {
   scroll-behavior: smooth;
 }
 
+.module-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.65rem;
+}
+
+.module-tab {
+  appearance: none;
+  border: 1px solid var(--border, #c9c4b8);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.module-tab.is-active {
+  border-color: var(--fg, #1a1a1a);
+  font-weight: 600;
+}
+
+.module-tab.is-confirmed {
+  opacity: 0.85;
+}
+
+.module-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.task-pool-preview {
+  margin: 0.75rem 0;
+}
+
+.task-pool-list {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  max-height: 10rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--border, #c9c4b8);
+  border-radius: 4px;
+  background: transparent;
+}
+
+.worker-count-field select {
+  margin-top: 0.35rem;
+  max-width: 6rem;
+}
+
 .progress-col {
   padding: 1.05rem 0.95rem 1.15rem;
   align-self: stretch;

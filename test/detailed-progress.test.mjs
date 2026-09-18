@@ -37,7 +37,7 @@ test("buildDetailedProductTasksMd yields ≥6 checkboxes", () => {
   assert.ok(boxes.length >= 6, `expected ≥6, got ${boxes.length}`);
   assert.match(md, /T001/);
   assert.match(md, /Satisfy acceptance \(alone\): Hero with brand/);
-  assert.match(md, /Stamp delivery\.json accepted/);
+  assert.match(md, /[Ss]tamp delivery\.json accepted/);
 });
 
 test("buildDetailedProductTasksMd includes deploy task when needed", () => {

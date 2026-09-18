@@ -180,6 +180,7 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /reviseCards|reviseDraft|upsertReviseCardEntry/);
   assert.match(js, /revisePlanConfirmed|confirmRevisePlan|dispatchReviseAgent/);
   assert.match(js, /renderReviseVersionAccordion|initialArchitecture/);
+  assert.match(js, /modules|activeModuleId|renderModuleTabs|workerCount/);
 });
 
 test("reviseCards architecture snapshot round-trips", () => {

@@ -39,6 +39,12 @@ const state = {
   ready: false,
   locked: false,
   busy: false,
+  /** Modular requirements: [{ id, title, status, card, dependsOn }] */
+  modules: [],
+  activeModuleId: null,
+  /** Kickoff: how many same-CLI digital employees (1..N). */
+  workerCount: 1,
+  taskPool: null,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -291,6 +297,11 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
+  moduleTabs: document.getElementById("moduleTabs"),
+  moduleMeta: document.getElementById("moduleMeta"),
+  workerCount: document.getElementById("workerCount"),
+  taskPoolPreview: document.getElementById("taskPoolPreview"),
+  taskPoolList: document.getElementById("taskPoolList"),
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
@@ -644,11 +655,197 @@ function showUpdateNotice(update) {
 
 function cardValues() {
   return {
-    goal: el.goal.value.trim(),
-    outOfScope: el.outOfScope.value.trim(),
-    acceptance: el.acceptance.value.trim(),
-    assumptions: el.assumptions.value.trim(),
+    goal: (el.goal?.value || "").trim(),
+    outOfScope: (el.outOfScope?.value || "").trim(),
+    acceptance: (el.acceptance?.value || "").trim(),
+    assumptions: (el.assumptions?.value || "").trim(),
   };
+}
+
+function ensureModulesSeed() {
+  if (Array.isArray(state.modules) && state.modules.length) return;
+  const c = cardValues();
+  state.modules = [
+    {
+      id: "main",
+      title: "Main",
+      status: "draft",
+      card: { ...c },
+      dependsOn: [],
+    },
+  ];
+  state.activeModuleId = "main";
+}
+
+function activeModule() {
+  ensureModulesSeed();
+  const id = state.activeModuleId || state.modules[0]?.id;
+  return state.modules.find((m) => m.id === id) || state.modules[0] || null;
+}
+
+function modulesAllConfirmedLocal() {
+  return (
+    Array.isArray(state.modules) &&
+    state.modules.length > 0 &&
+    state.modules.every((m) => m.status === "confirmed")
+  );
+}
+
+function syncActiveModuleCardFromFields() {
+  const m = activeModule();
+  if (!m || m.status === "confirmed") return;
+  m.card = cardValues();
+}
+
+function applyActiveModuleToFields() {
+  const m = activeModule();
+  const c = m?.card || {};
+  if (el.goal) el.goal.value = c.goal || "";
+  if (el.outOfScope) el.outOfScope.value = c.outOfScope || "";
+  if (el.acceptance) el.acceptance.value = c.acceptance || "";
+  if (el.assumptions) el.assumptions.value = c.assumptions || "";
+  syncReqSections();
+}
+
+function statusLabel(status) {
+  if (status === "confirmed") return t("card.moduleConfirmed");
+  if (status === "ready") return t("card.moduleReady");
+  return t("card.moduleDraft");
+}
+
+function renderModuleTabs() {
+  if (!el.moduleTabs) return;
+  ensureModulesSeed();
+  const list = state.modules;
+  el.moduleTabs.hidden = list.length < 1;
+  el.moduleTabs.replaceChildren();
+  for (const m of list) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "module-tab";
+    btn.setAttribute("role", "tab");
+    btn.dataset.moduleId = m.id;
+    const active = m.id === (state.activeModuleId || list[0]?.id);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+    if (active) btn.classList.add("is-active");
+    if (m.status === "confirmed") btn.classList.add("is-confirmed");
+    btn.textContent = `${m.title} · ${statusLabel(m.status)}`;
+    btn.addEventListener("click", () => {
+      if (m.id === state.activeModuleId) return;
+      syncActiveModuleCardFromFields();
+      state.activeModuleId = m.id;
+      applyActiveModuleToFields();
+      setConfirmFieldsReadonly(m.status === "confirmed" || state.locked);
+      renderModuleTabs();
+      syncConfirmEnabled();
+      schedulePersistProjectDesk();
+    });
+    el.moduleTabs.appendChild(btn);
+  }
+  if (el.moduleMeta) {
+    const done = list.filter((m) => m.status === "confirmed").length;
+    el.moduleMeta.hidden = list.length < 1;
+    el.moduleMeta.textContent = t("card.modulesProgress", {
+      done: String(done),
+      total: String(list.length),
+    });
+  }
+}
+
+function mergeModulesFromChatPayload(data) {
+  ensureModulesSeed();
+  const incoming = Array.isArray(data.modules) ? data.modules : null;
+  if (incoming && incoming.length) {
+    const byId = new Map(state.modules.map((m) => [m.id, m]));
+    for (const raw of incoming) {
+      const id = String(raw.id || raw.title || "").trim().slice(0, 80);
+      if (!id) continue;
+      const old = byId.get(id);
+      const card = {
+        goal: String(raw.goal || raw.card?.goal || old?.card?.goal || ""),
+        outOfScope: String(
+          raw.outOfScope || raw.card?.outOfScope || old?.card?.outOfScope || "",
+        ),
+        acceptance: String(
+          raw.acceptance || raw.card?.acceptance || old?.card?.acceptance || "",
+        ),
+        assumptions: String(
+          raw.assumptions ||
+            raw.card?.assumptions ||
+            old?.card?.assumptions ||
+            "",
+        ),
+      };
+      if (old?.status === "confirmed") {
+        byId.set(id, {
+          ...old,
+          title: String(raw.title || old.title || id).slice(0, 120),
+        });
+      } else {
+        byId.set(id, {
+          id,
+          title: String(raw.title || id).slice(0, 120),
+          status: old?.status === "confirmed" ? "confirmed" : "draft",
+          card,
+          dependsOn: Array.isArray(raw.dependsOn)
+            ? raw.dependsOn.map(String)
+            : old?.dependsOn || [],
+        });
+      }
+    }
+    state.modules = [...byId.values()];
+  }
+  if (data.activeModuleId) {
+    const want = String(data.activeModuleId).trim();
+    if (state.modules.some((m) => m.id === want)) {
+      state.activeModuleId = want;
+    }
+  }
+  if (!state.activeModuleId) {
+    state.activeModuleId = state.modules[0]?.id || "main";
+  }
+  // Patch active module fields from top-level card keys
+  const m = activeModule();
+  if (m && m.status !== "confirmed") {
+    if (data.goal) m.card.goal = data.goal;
+    if (data.outOfScope) m.card.outOfScope = data.outOfScope;
+    if (data.acceptance) m.card.acceptance = data.acceptance;
+    if (data.assumptions) m.card.assumptions = data.assumptions;
+    if (data.ready) m.status = "ready";
+  }
+  applyActiveModuleToFields();
+  renderModuleTabs();
+}
+
+function previewTaskPoolLines() {
+  ensureModulesSeed();
+  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (!confirmed.length) return [];
+  const lines = [];
+  let n = 1;
+  let prevVerify = null;
+  for (const m of confirmed) {
+    const impl = `T${String(n++).padStart(3, "0")}`;
+    const acc = `T${String(n++).padStart(3, "0")}`;
+    const ver = `T${String(n++).padStart(3, "0")}`;
+    const dep = prevVerify ? ` ← ${prevVerify}` : "";
+    lines.push(`${impl} [${m.id}] Implement «${m.title}»${dep}`);
+    lines.push(`${acc} [${m.id}] Acceptance «${m.title}» ← ${impl}`);
+    lines.push(`${ver} [${m.id}] Verify «${m.title}» ← ${acc}`);
+    prevVerify = ver;
+  }
+  return lines;
+}
+
+function syncTaskPoolPreview() {
+  if (!el.taskPoolPreview || !el.taskPoolList) return;
+  const lines = previewTaskPoolLines();
+  if (!lines.length || !state.locked) {
+    el.taskPoolPreview.hidden = true;
+    return;
+  }
+  el.taskPoolPreview.hidden = false;
+  el.taskPoolList.textContent = lines.join("\n");
 }
 
 function reviseCardValues() {
@@ -1303,11 +1500,21 @@ function syncConfirmEnabled() {
   const v = cardValues();
   const fieldsOk = Boolean(v.goal && v.acceptance);
   const validated = validationAllowsSend("confirm");
+  const active = activeModule();
+  const moduleLocked = active?.status === "confirmed";
+  const allDone = modulesAllConfirmedLocal();
   const ok =
-    fieldsOk && !state.locked && state.ready && validated && !state.busy;
+    fieldsOk &&
+    !moduleLocked &&
+    !allDone &&
+    state.ready &&
+    validated &&
+    !state.busy;
   el.confirm.disabled = !ok;
-  if (state.locked) {
+  if (allDone) {
     el.lockHint.textContent = t("card.lockHintLocked");
+  } else if (moduleLocked) {
+    el.lockHint.textContent = t("card.confirmed");
   } else if (!fieldsOk) {
     el.lockHint.textContent = t("card.lockHintNeed");
   } else if (state.validate.status === "checking") {
@@ -1319,16 +1526,21 @@ function syncConfirmEnabled() {
   } else {
     el.lockHint.textContent = t("card.lockHintNeedValidate");
   }
-  if (!state.locked) {
+  if (!moduleLocked && !allDone) {
     el.confirm.textContent =
       state.validate.status === "checking"
         ? t("card.validating")
         : t("card.confirm");
+  } else if (allDone) {
+    el.confirm.textContent = t("card.allModulesConfirmed");
+    el.confirm.disabled = true;
   } else {
     el.confirm.textContent = t("card.confirmed");
     el.confirm.disabled = true;
   }
-  setConfirmFieldsReadonly(state.locked);
+  setConfirmFieldsReadonly(moduleLocked || allDone);
+  renderModuleTabs();
+  syncTaskPoolPreview();
   syncReviseDispatchButton(false);
   syncAutoHandleButtons();
 }
@@ -1670,6 +1882,10 @@ async function persistProjectChat() {
         reviseMessages: state.reviseMessages,
         rawAsk: state.rawAsk || "",
         card: cardValues(),
+        modules: state.modules,
+        activeModuleId: state.activeModuleId,
+        taskPool: state.taskPool,
+        workerCount: state.workerCount || 1,
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
         reviseDraft: (() => {
@@ -1791,7 +2007,22 @@ function clearDeskWorkspace() {
   state.rawAsk = "";
   state.jobId = null;
   state.locked = false;
+  state.modules = [];
+  state.activeModuleId = null;
+  state.workerCount = 1;
+  state.taskPool = null;
   state.mode = "specify";
+  if (el.moduleTabs) {
+    el.moduleTabs.replaceChildren();
+    el.moduleTabs.hidden = true;
+  }
+  if (el.moduleMeta) {
+    el.moduleMeta.hidden = true;
+    el.moduleMeta.textContent = "";
+  }
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
+  if (el.taskPoolList) el.taskPoolList.textContent = "";
+  if (el.workerCount) el.workerCount.value = "1";
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseStuckHint = false;
@@ -1986,7 +2217,48 @@ async function loadProjectChatIntoUi(projectPath) {
       ? data.architectureMessages
       : [];
     state.dispatchPhase = data.dispatchPhase === "done" ? "done" : null;
+    if (Array.isArray(data.modules) && data.modules.length) {
+      state.modules = data.modules.map((m) => ({
+        id: String(m.id),
+        title: String(m.title || m.id),
+        status: String(m.status || "draft"),
+        card: {
+          goal: String(m.card?.goal || ""),
+          outOfScope: String(m.card?.outOfScope || ""),
+          acceptance: String(m.card?.acceptance || ""),
+          assumptions: String(m.card?.assumptions || ""),
+        },
+        dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
+      }));
+      state.activeModuleId =
+        data.activeModuleId || state.modules[0]?.id || null;
+    } else if (data.card) {
+      state.modules = [
+        {
+          id: "main",
+          title: "Main",
+          status: data.locked ? "confirmed" : "draft",
+          card: {
+            goal: data.card.goal || "",
+            outOfScope: data.card.outOfScope || "",
+            acceptance: data.card.acceptance || "",
+            assumptions: data.card.assumptions || "",
+          },
+          dependsOn: [],
+        },
+      ];
+      state.activeModuleId = "main";
+    } else {
+      state.modules = [];
+      state.activeModuleId = null;
+    }
+    state.taskPool = data.taskPool || null;
+    state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
+    if (el.workerCount) el.workerCount.value = String(state.workerCount);
     applySavedCardFields(data.card, data.reviseCard);
+    applyActiveModuleToFields();
+    renderModuleTabs();
+    syncTaskPoolPreview();
     // Prefer focused version card over flat reviseCard when history exists
     if (state.reviseCardFocus) {
       focusReviseCardVersion(state.reviseCardFocus);
@@ -2039,18 +2311,21 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     syncConfirmEnabled();
     syncComposerEnabled();
-    if (state.jobId) {
+    if (state.jobId || state.locked) {
       if (el.dispatch) el.dispatch.hidden = false;
       syncDispatchProjectLine();
       if (state.locked && el.confirm) {
-        el.confirm.textContent = t("card.confirmed");
+        el.confirm.textContent = modulesAllConfirmedLocal()
+          ? t("card.allModulesConfirmed")
+          : t("card.confirmed");
         el.confirm.disabled = true;
       }
       if (state.dispatchPhase === "done") {
         syncDispatchButton();
       }
-      startStatusPoll();
+      if (state.jobId) startStatusPoll();
       void loadAgents();
+      syncTaskPoolPreview();
     }
     if (
       state.locked &&
@@ -2103,6 +2378,14 @@ async function sendChat(userText) {
       body: JSON.stringify({
         messages: history,
         card: state.mode === "revise" ? reviseCardValues() : cardValues(),
+        modules:
+          state.mode === "revise" || state.mode === "architecture"
+            ? undefined
+            : state.modules,
+        activeModuleId:
+          state.mode === "revise" || state.mode === "architecture"
+            ? undefined
+            : state.activeModuleId,
         mode:
           state.mode === "revise"
             ? "revise"
@@ -2238,15 +2521,12 @@ function applyCard(data, { skipValidate = false } = {}) {
       applyReviseFieldsFromCard(state.reviseDraft);
     }
     syncReviseCardChrome({ rebuildAccordion: false });
-  } else if (state.locked) {
-    // Confirmed Brief stays frozen; chat remains conversational only.
+  } else if (state.locked && modulesAllConfirmedLocal()) {
+    // All modules confirmed — specify chat is conversational only.
     syncConfirmEnabled();
     return;
   } else {
-    if (data.goal) el.goal.value = data.goal;
-    if (data.outOfScope) el.outOfScope.value = data.outOfScope;
-    if (data.acceptance) el.acceptance.value = data.acceptance;
-    if (data.assumptions) el.assumptions.value = data.assumptions;
+    mergeModulesFromChatPayload(data);
   }
   syncReqSections();
   syncConfirmEnabled();
@@ -2851,7 +3131,17 @@ el.confirm.addEventListener("click", async () => {
     return;
   }
   const v = cardValues();
-  if (!v.goal || !v.acceptance || state.locked || state.busy) return;
+  syncActiveModuleCardFromFields();
+  const active = activeModule();
+  if (
+    !v.goal ||
+    !v.acceptance ||
+    active?.status === "confirmed" ||
+    modulesAllConfirmedLocal() ||
+    state.busy
+  ) {
+    return;
+  }
   if (!validationAllowsSend("confirm")) {
     scheduleValidate("confirm");
     addBubble("bot", t("bot.needValidate"));
@@ -2866,6 +3156,9 @@ el.confirm.addEventListener("click", async () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         ...v,
+        moduleId: state.activeModuleId || active?.id || "main",
+        activeModuleId: state.activeModuleId || active?.id || "main",
+        modules: state.modules,
         rawAsk: state.rawAsk || v.goal,
         projectPath: state.projectPath || undefined,
         repoPath: state.projectPath || undefined,
@@ -2992,11 +3285,65 @@ async function autoHandleFromGate(kind, btn) {
 }
 
 async function applyConfirmSuccess(data) {
-  state.locked = true;
-  state.jobId = data.jobId || null;
-  state.originalCard = cardValues();
+  if (Array.isArray(data.modules) && data.modules.length) {
+    state.modules = data.modules.map((m) => ({
+      id: String(m.id),
+      title: String(m.title || m.id),
+      status: m.status === "confirmed" ? "confirmed" : String(m.status || "draft"),
+      card: {
+        goal: String(m.card?.goal || m.goal || ""),
+        outOfScope: String(m.card?.outOfScope || m.outOfScope || ""),
+        acceptance: String(m.card?.acceptance || m.acceptance || ""),
+        assumptions: String(m.card?.assumptions || m.assumptions || ""),
+      },
+      dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
+    }));
+  }
+  if (data.activeModuleId || data.moduleId) {
+    state.activeModuleId = String(data.activeModuleId || data.moduleId);
+  }
+  if (data.card) {
+    const m = activeModule();
+    if (m) {
+      m.status = "confirmed";
+      m.card = {
+        goal: data.card.goal || "",
+        outOfScope: data.card.outOfScope || "",
+        acceptance: data.card.acceptance || "",
+        assumptions: data.card.assumptions || "",
+      };
+    }
+    applyActiveModuleToFields();
+  }
+  const allDone = Boolean(data.modulesAllConfirmed) || modulesAllConfirmedLocal();
+  state.locked = allDone;
+  // Brief is written at kickoff — do not set jobId from module confirm.
+  if (data.jobId) state.jobId = data.jobId;
+  state.originalCard = allDone
+    ? {
+        goal: state.modules.map((m) => `[${m.title}] ${m.card.goal}`).join("\n"),
+        outOfScope: state.modules
+          .map((m) => m.card.outOfScope)
+          .filter(Boolean)
+          .join("\n"),
+        acceptance: state.modules
+          .map((m) => `[${m.title}] ${m.card.acceptance}`)
+          .join("\n"),
+        assumptions: state.modules
+          .map((m) => m.card.assumptions)
+          .filter(Boolean)
+          .join("\n"),
+      }
+    : cardValues();
   clearRunTimeline();
-  el.confirm.textContent = t("card.confirmed");
+  const done = state.modules.filter((m) => m.status === "confirmed").length;
+  const total = state.modules.length;
+  const extra = allDone
+    ? t("result.allModulesExtra")
+    : t("result.moduleExtra", { done: String(done), total: String(total) });
+  el.confirm.textContent = allDone
+    ? t("card.allModulesConfirmed")
+    : t("card.confirmed");
   syncReviseCardChrome();
   el.result.hidden = false;
   const reviewLine = data.review?.summary
@@ -3006,17 +3353,26 @@ async function applyConfirmSuccess(data) {
       : "";
   el.result.textContent = t("result.confirmOk", {
     review: reviewLine,
-    dir: data.relativeDir || data.featureDir,
-    branch: data.branch,
+    extra,
+    dir: data.relativeDir || "",
+    branch: data.branch || "",
   });
   addBubble(
     "bot",
-    data.fixed ? t("bot.confirmFixed") : t("bot.confirmOk"),
+    allDone
+      ? t("bot.allModulesOk")
+      : data.fixed
+        ? t("bot.confirmFixed")
+        : t("bot.confirmOk"),
   );
+  renderModuleTabs();
   syncConfirmEnabled();
   void persistProjectChat();
-  await showDispatchPanel();
-  beginArchitectureDesign({ kickoff: true });
+  if (allDone) {
+    await showDispatchPanel();
+    syncTaskPoolPreview();
+    beginArchitectureDesign({ kickoff: true });
+  }
 }
 
 function resetArchitecture({ stale = false } = {}) {
@@ -3650,6 +4006,9 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
       body: JSON.stringify({
         ...v,
         issues,
+        moduleId: state.activeModuleId || "main",
+        activeModuleId: state.activeModuleId || "main",
+        modules: state.modules,
         rawAsk: state.rawAsk || v.goal,
       }),
     });
@@ -3746,7 +4105,9 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
+  if (el.workerCount) el.workerCount.value = String(state.workerCount || 1);
   syncDispatchProjectLine();
+  syncTaskPoolPreview();
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
   } else {
@@ -4419,7 +4780,12 @@ el.saveProjectsRoot?.addEventListener("click", async () => {
 el.repoFilter?.addEventListener("input", () => renderRepoList());
 
 el.doDispatch.addEventListener("click", async () => {
-  if (!state.jobId || state.busy) return;
+  if (state.busy) return;
+  if (!state.jobId && !modulesAllConfirmedLocal()) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.needModules");
+    return;
+  }
   const repoPath =
     (state.projectPath || "").trim() || el.repoPath.value.trim();
   if (!repoPath) {
@@ -4449,6 +4815,8 @@ el.doDispatch.addEventListener("click", async () => {
   }
   ensureStartCommandPrefix();
   const startCommand = el.startCommand?.value?.trim() || "";
+  const workerCount = Number(el.workerCount?.value || state.workerCount || 1);
+  state.workerCount = workerCount;
   el.dispatchErr.hidden = true;
   el.doDispatch.disabled = true;
   state.dispatchPhase = "working";
@@ -4462,7 +4830,7 @@ el.doDispatch.addEventListener("click", async () => {
       headers: { "content-type": "application/json" },
       signal: ac.signal,
       body: JSON.stringify({
-        jobId: state.jobId,
+        jobId: state.jobId || undefined,
         repoPath,
         agentId: state.agentId || "cursor-agent",
         startCommand,
@@ -4471,10 +4839,15 @@ el.doDispatch.addEventListener("click", async () => {
         architectureUrl: state.architecture.url || "",
         // Never send deep IR — server loads from architecture/<key>.json.
         architectureIr: null,
+        modules: state.modules,
+        workerCount,
+        rawAsk: state.rawAsk || "",
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t("err.dispatch"));
+    if (data.jobId) state.jobId = data.jobId;
+    if (data.taskPool) state.taskPool = data.taskPool;
     const launch = data.launch || {};
     const launchLine = launch.agentId
       ? t("launch.line", {

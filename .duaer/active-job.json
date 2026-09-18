@@ -1,1 +1,6 @@
-{"slug":"168-rename-fde","spec":".duaer/specs/168-rename-fde/spec.md"}
+{
+  "specDir": ".duaer/specs/169-modular-fde-confirm",
+  "branch": "feat/modular-fde-confirm",
+  "startedAt": "2026-09-18T20:02:00.000Z",
+  "source": "agent"
+}

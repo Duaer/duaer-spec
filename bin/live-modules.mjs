@@ -1,0 +1,378 @@
+/**
+ * Modular requirements + dependency-aware task pool for live desk FDE.
+ */
+
+function clipCard(card) {
+  if (!card || typeof card !== "object") {
+    return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+  }
+  return {
+    goal: String(card.goal || "").slice(0, 8000),
+    outOfScope: String(card.outOfScope || "").slice(0, 8000),
+    acceptance: String(card.acceptance || "").slice(0, 8000),
+    assumptions: String(card.assumptions || "").slice(0, 8000),
+  };
+}
+
+function slugId(title, fallback = "module") {
+  const raw = String(title || fallback)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fff]+/gi, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  return raw || fallback;
+}
+
+const MODULE_STATUSES = new Set(["draft", "ready", "confirmed"]);
+
+/**
+ * @param {unknown} raw
+ * @returns {{ id: string, title: string, status: string, card: ReturnType<typeof clipCard>, dependsOn: string[] } | null}
+ */
+export function clipModule(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const id = String(raw.id || "").trim().slice(0, 80);
+  if (!id) return null;
+  const status = MODULE_STATUSES.has(raw.status) ? raw.status : "draft";
+  const dependsOn = Array.isArray(raw.dependsOn)
+    ? raw.dependsOn.map((x) => String(x).slice(0, 80)).filter(Boolean).slice(0, 20)
+    : [];
+  return {
+    id,
+    title: String(raw.title || id).trim().slice(0, 120) || id,
+    status,
+    card: clipCard(raw.card || raw),
+    dependsOn,
+  };
+}
+
+/**
+ * @param {unknown} list
+ * @param {object|null} legacyCard
+ */
+export function clipModules(list, legacyCard = null) {
+  if (Array.isArray(list) && list.length) {
+    const byId = new Map();
+    for (const raw of list) {
+      const m = clipModule(raw);
+      if (m) byId.set(m.id, m);
+    }
+    const out = [...byId.values()].slice(0, 40);
+    if (out.length) return out;
+  }
+  const card = clipCard(legacyCard);
+  if (card.goal || card.acceptance) {
+    return [
+      {
+        id: "main",
+        title: "Main",
+        status: "draft",
+        card,
+        dependsOn: [],
+      },
+    ];
+  }
+  return [];
+}
+
+export function clipActiveModuleId(id, modules) {
+  const want = String(id || "").trim().slice(0, 80);
+  if (want && modules.some((m) => m.id === want)) return want;
+  return modules[0]?.id || null;
+}
+
+export function modulesAllConfirmed(modules) {
+  return Array.isArray(modules) && modules.length > 0 && modules.every((m) => m.status === "confirmed");
+}
+
+export function findModule(modules, moduleId) {
+  const id = String(moduleId || "").trim();
+  if (!id) return null;
+  return (modules || []).find((m) => m.id === id) || null;
+}
+
+/**
+ * Merge model-returned module inventory into existing modules.
+ * Preserves confirmed cards unless the model sends a fuller card for a draft/ready module.
+ */
+export function mergeModulesFromChat(existing, incoming, activeModuleId, cardPatch) {
+  const prev = clipModules(existing);
+  const nextList = Array.isArray(incoming) ? incoming : null;
+  let modules;
+  if (nextList && nextList.length) {
+    const byId = new Map(prev.map((m) => [m.id, { ...m, card: { ...m.card } }]));
+    for (const raw of nextList) {
+      const clipped = clipModule({
+        ...raw,
+        card: raw.card || {
+          goal: raw.goal,
+          outOfScope: raw.outOfScope,
+          acceptance: raw.acceptance,
+          assumptions: raw.assumptions,
+        },
+      });
+      if (!clipped) continue;
+      const old = byId.get(clipped.id);
+      if (old?.status === "confirmed") {
+        byId.set(clipped.id, {
+          ...old,
+          title: clipped.title || old.title,
+          dependsOn: clipped.dependsOn.length ? clipped.dependsOn : old.dependsOn,
+        });
+      } else {
+        byId.set(clipped.id, {
+          ...clipped,
+          status: old?.status === "confirmed" ? "confirmed" : clipped.status === "confirmed" ? "ready" : clipped.status,
+          card: {
+            goal: clipped.card.goal || old?.card.goal || "",
+            outOfScope: clipped.card.outOfScope || old?.card.outOfScope || "",
+            acceptance: clipped.card.acceptance || old?.card.acceptance || "",
+            assumptions: clipped.card.assumptions || old?.card.assumptions || "",
+          },
+        });
+      }
+    }
+    modules = [...byId.values()].slice(0, 40);
+  } else {
+    modules = prev.length
+      ? prev
+      : [
+          {
+            id: "main",
+            title: "Main",
+            status: "draft",
+            card: clipCard(null),
+            dependsOn: [],
+          },
+        ];
+  }
+
+  let activeId = clipActiveModuleId(activeModuleId, modules);
+  if (!activeId) {
+    activeId = modules[0]?.id || "main";
+    if (!modules.length) {
+      modules = [
+        {
+          id: "main",
+          title: "Main",
+          status: "draft",
+          card: clipCard(null),
+          dependsOn: [],
+        },
+      ];
+      activeId = "main";
+    }
+  }
+
+  const patch = clipCard(cardPatch);
+  const hasPatch = patch.goal || patch.outOfScope || patch.acceptance || patch.assumptions;
+  if (hasPatch) {
+    modules = modules.map((m) => {
+      if (m.id !== activeId || m.status === "confirmed") return m;
+      return {
+        ...m,
+        status: m.status === "confirmed" ? "confirmed" : "draft",
+        card: {
+          goal: patch.goal || m.card.goal,
+          outOfScope: patch.outOfScope || m.card.outOfScope,
+          acceptance: patch.acceptance || m.card.acceptance,
+          assumptions: patch.assumptions || m.card.assumptions,
+        },
+      };
+    });
+  }
+
+  return { modules, activeModuleId: activeId };
+}
+
+/** Mark one module confirmed; returns updated list. */
+export function confirmModuleInList(modules, moduleId, card) {
+  const id = String(moduleId || "").trim();
+  const c = clipCard(card);
+  return clipModules(modules).map((m) =>
+    m.id === id
+      ? { ...m, status: "confirmed", card: c.goal || c.acceptance ? c : m.card }
+      : m,
+  );
+}
+
+/** Aggregate confirmed modules into one Brief-shaped card. */
+export function aggregateModulesCard(modules) {
+  const list = clipModules(modules).filter((m) => m.status === "confirmed");
+  if (!list.length) {
+    return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+  }
+  if (list.length === 1) {
+    return { ...list[0].card };
+  }
+  const goal = list.map((m) => `[${m.title}] ${m.card.goal}`).join("\n");
+  const outOfScope = list
+    .map((m) => (m.card.outOfScope ? `[${m.title}] ${m.card.outOfScope}` : ""))
+    .filter(Boolean)
+    .join("\n");
+  const acceptance = list
+    .map((m) => `[${m.title}] ${m.card.acceptance}`)
+    .join("\n");
+  const assumptions = list
+    .map((m) => (m.card.assumptions ? `[${m.title}] ${m.card.assumptions}` : ""))
+    .filter(Boolean)
+    .join("\n");
+  return { goal, outOfScope, acceptance, assumptions };
+}
+
+/**
+ * Build a dependency-aware task pool from confirmed modules.
+ * Default: later modules depend on the previous module's verify task (serial chain),
+ * unless module.dependsOn lists other module ids (then depend on those modules' verify tasks).
+ */
+export function buildTaskPoolFromModules(modules, { deployNeeded = false, deployTaskText = null } = {}) {
+  const list = clipModules(modules).filter((m) => m.status === "confirmed");
+  const tasks = [];
+  const moduleVerifyId = new Map();
+  let n = 1;
+  const push = (partial) => {
+    const id = `T${String(n).padStart(3, "0")}`;
+    n += 1;
+    const task = {
+      id,
+      moduleId: partial.moduleId || null,
+      title: String(partial.title || "").slice(0, 200),
+      dependsOn: Array.isArray(partial.dependsOn) ? partial.dependsOn.filter(Boolean) : [],
+      status: "queued",
+      workerId: null,
+    };
+    tasks.push(task);
+    return task;
+  };
+
+  for (let i = 0; i < list.length; i += 1) {
+    const m = list[i];
+    const impl = push({
+      moduleId: m.id,
+      title: `Implement module «${m.title}»: ${truncate(m.card.goal, 100)}`,
+      dependsOn: [],
+    });
+    const accept = push({
+      moduleId: m.id,
+      title: `Satisfy acceptance for «${m.title}»: ${truncate(m.card.acceptance, 100)}`,
+      dependsOn: [impl.id],
+    });
+    const verify = push({
+      moduleId: m.id,
+      title: `Verify «${m.title}» against acceptance`,
+      dependsOn: [accept.id],
+    });
+    moduleVerifyId.set(m.id, verify.id);
+
+    // Cross-module deps
+    const depMods =
+      m.dependsOn.length > 0
+        ? m.dependsOn
+        : i > 0
+          ? [list[i - 1].id]
+          : [];
+    for (const depMod of depMods) {
+      const depVerify = moduleVerifyId.get(depMod);
+      if (depVerify && !impl.dependsOn.includes(depVerify)) {
+        impl.dependsOn.push(depVerify);
+      }
+    }
+  }
+
+  const verifyAll = push({
+    moduleId: null,
+    title: "Risk-based verification per testing.md",
+    dependsOn: [...moduleVerifyId.values()],
+  });
+  push({
+    moduleId: null,
+    title:
+      "Start preview service; stamp delivery.json accepted with preview.url",
+    dependsOn: [verifyAll.id],
+  });
+  if (deployNeeded) {
+    push({
+      moduleId: null,
+      title:
+        deployTaskText ||
+        "Deploy with GitHub CLI (`gh`) + Actions; write public URL to preview.url",
+      dependsOn: [tasks[tasks.length - 1].id],
+    });
+  }
+
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    tasks,
+  };
+}
+
+export function taskPoolToMarkdown(pool) {
+  const tasks = Array.isArray(pool?.tasks) ? pool.tasks : [];
+  const lines = tasks.map((t) => {
+    const deps =
+      t.dependsOn?.length > 0 ? ` (depends: ${t.dependsOn.join(", ")})` : "";
+    const mod = t.moduleId ? ` [${t.moduleId}]` : "";
+    return `- [ ] ${t.id}${mod} ${t.title}${deps}`;
+  });
+  return `# Tasks\n\n${lines.join("\n")}\n`;
+}
+
+/**
+ * Assign tasks to 1..N workers (same CLI family). Ready roots fan out;
+ * dependent tasks inherit the worker of their first dependency when possible.
+ */
+export function assignTasksToWorkers(pool, workerCount = 1) {
+  const count = Math.max(1, Math.min(8, Number(workerCount) || 1));
+  const tasks = (pool?.tasks || []).map((t) => ({ ...t, workerId: null }));
+  if (count === 1) {
+    for (const t of tasks) t.workerId = "w1";
+    return { workerCount: 1, tasks };
+  }
+
+  // Partition by moduleId for parallel modules; shared tasks go to w1.
+  const moduleIds = [
+    ...new Set(tasks.map((t) => t.moduleId).filter(Boolean)),
+  ];
+  const modWorker = new Map();
+  moduleIds.forEach((mid, i) => {
+    modWorker.set(mid, `w${(i % count) + 1}`);
+  });
+  for (const t of tasks) {
+    t.workerId = t.moduleId ? modWorker.get(t.moduleId) || "w1" : "w1";
+  }
+  return { workerCount: count, tasks };
+}
+
+export function clipTaskPool(raw) {
+  if (!raw || typeof raw !== "object" || !Array.isArray(raw.tasks)) return null;
+  return {
+    version: 1,
+    createdAt: String(raw.createdAt || "").slice(0, 40) || null,
+    tasks: raw.tasks.slice(0, 200).map((t) => ({
+      id: String(t.id || "").slice(0, 20),
+      moduleId: t.moduleId ? String(t.moduleId).slice(0, 80) : null,
+      title: String(t.title || "").slice(0, 200),
+      dependsOn: Array.isArray(t.dependsOn)
+        ? t.dependsOn.map((x) => String(x).slice(0, 20)).slice(0, 20)
+        : [],
+      status: String(t.status || "queued").slice(0, 20),
+      workerId: t.workerId ? String(t.workerId).slice(0, 20) : null,
+    })),
+  };
+}
+
+export function clipWorkerCount(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v) || v < 1) return 1;
+  return Math.min(8, Math.floor(v));
+}
+
+function truncate(s, n) {
+  const t = String(s || "").trim();
+  if (t.length <= n) return t;
+  return `${t.slice(0, Math.max(0, n - 1))}…`;
+}
+
+export { clipCard, slugId };
