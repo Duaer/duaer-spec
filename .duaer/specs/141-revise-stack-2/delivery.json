@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "141-revise-stack-2",
+  "acceptedAt": "2026-09-18T08:30:00.000Z",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "Omit deep architecture.ir from persist/SSE; never paint Maximum call stack into chat; cache v=revise-stack-2"
+}

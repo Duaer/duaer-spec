@@ -55,7 +55,7 @@ function clipArchitectureSnapshot(arch) {
   if (!arch || typeof arch !== "object" || !arch.url) return null;
   return {
     url: String(arch.url).slice(0, 300),
-    ir: arch.ir || null,
+    ir: null,
     summary: String(arch.summary || "").slice(0, 2000),
     changed: Boolean(arch.changed),
     fingerprint: String(arch.fingerprint || "").slice(0, 200),
@@ -173,7 +173,8 @@ function clipArchitecture(arch) {
   }
   return {
     status: String(arch.status || "idle").slice(0, 20),
-    ir: arch.ir || null,
+    // Never persist deep IR graphs — they blow JSON.stringify call stack.
+    ir: null,
     url: arch.url ? String(arch.url).slice(0, 300) : null,
     summary: String(arch.summary || "").slice(0, 2000),
     confirmed: Boolean(arch.confirmed),
@@ -183,7 +184,7 @@ function clipArchitecture(arch) {
 function clipArchitecturePrevious(prev) {
   if (!prev || typeof prev !== "object" || !prev.url) return null;
   return {
-    ir: prev.ir || null,
+    ir: null,
     url: String(prev.url).slice(0, 300),
     summary: String(prev.summary || "").slice(0, 2000),
   };
