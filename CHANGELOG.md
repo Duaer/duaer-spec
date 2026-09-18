@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-### Feat: modular FDE desk (messy chat → late kickoff)
+### Fix: confirm button state for modular modules
+
+- Stop rebuilding module tabs on every validate/input tick
+- Tab switch re-validates the active module card
+- After confirming one module, focus the next draft and refresh the button
+- Clearing busy recomputes Confirm enablement (no permanent latch)
+
 
 - Session holds `modules[]` + `activeModuleId`; chat can jump topics
 - Per-module confirm locks one card; Brief / workers wait until kickoff

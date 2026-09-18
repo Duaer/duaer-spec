@@ -232,6 +232,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
   assert.match(js, /validationAllowsSend/);
+  assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
+  assert.match(js, /card\.lockHintModuleDone/);
+  assert.match(js, /Do not renderModuleTabs here/);
   assert.match(js, /progress-meter-fill|meterFill/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
   assert.match(js, /USER_SCROLL_HOLD_MS|wirePanelScrollHold|progressFocusKey/);
@@ -244,6 +247,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
+  assert.match(i18nSrc, /lockHintModuleDone/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);

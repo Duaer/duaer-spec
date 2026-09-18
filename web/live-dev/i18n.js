@@ -171,6 +171,7 @@ const zhCN = {
   "card.lockHintNeedValidate": "填好后会自动校验；通过后才能确认。",
   "card.lockHintChecking": "正在校验需求是否可执行、验收是否可检查…",
   "card.lockHintFailed": "校验未通过；请改卡或点「自动处理」。",
+  "card.lockHintModuleDone": "本模块已确认 — 切换其它模块页签继续确认",
   "card.autoHandle": "自动处理",
   "card.autoHandling": "自动处理中…",
   "card.lockHintRevise": "改进卡同样需可检查验收，校验通过后才能续派。",
@@ -636,7 +637,7 @@ const en = {
   "card.placeholder": "Pending",
   "card.reqAdd": "Add item",
   "card.reqRemove": "Remove item",
-  "card.lockHint": "Validated before confirm; only then can you send",
+  "card.lockHint": "Validated before confirm; locks this module only (no kickoff yet)",
   "card.lockHintLocked":
     "Confirmed. Pick a product repo so the Brief enters that worktree.",
   "card.lockHintReady": "Validation passed — you can confirm and send.",
@@ -644,6 +645,8 @@ const en = {
   "card.lockHintNeedValidate": "Card auto-validates when filled; confirm unlocks after pass.",
   "card.lockHintChecking": "Checking executable goal and checkable acceptance…",
   "card.lockHintFailed": "Validation failed — edit the card or tap Auto-handle.",
+  "card.lockHintModuleDone":
+    "This module is confirmed — switch tabs to confirm the rest",
   "card.autoHandle": "Auto-handle",
   "card.autoHandling": "Auto-handling…",
   "card.lockHintRevise": "Revise card needs checkable acceptance before dispatch.",
@@ -655,7 +658,6 @@ const en = {
   "card.moduleReady": "Ready",
   "card.moduleConfirmed": "Confirmed",
   "card.modulesProgress": "Modules {done}/{total} confirmed",
-  "card.lockHint": "Validated before confirm; locks this module only (no kickoff yet)",
   "bot.allModulesOk":
     "All modules confirmed. Design architecture next; kickoff after architecture confirm.",
   "result.moduleExtra": "Progress: {done}/{total}.",

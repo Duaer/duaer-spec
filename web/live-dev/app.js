@@ -471,13 +471,23 @@ function setBusy(on) {
   // Only flip disabled flags — never rebuild accordion / architecture panel
   // here (that raced revise kickoff and could re-enter heavy IR work).
   try {
-    if (el.confirm) el.confirm.disabled = state.busy || el.confirm.disabled;
+    if (el.confirm) {
+      if (state.busy) {
+        el.confirm.disabled = true;
+      } else {
+        // Recompute from rules — do not latch busy||previousDisabled forever.
+        refreshConfirmButtonOnly();
+      }
+    }
     if (el.doReviseDispatch && state.mode === "revise") {
-      el.doReviseDispatch.disabled =
-        state.busy ||
-        state.reviseDispatching ||
-        state.revisePlanConfirmed ||
-        el.doReviseDispatch.disabled;
+      if (state.busy) {
+        el.doReviseDispatch.disabled = true;
+      } else {
+        el.doReviseDispatch.disabled =
+          state.reviseDispatching ||
+          state.revisePlanConfirmed ||
+          el.doReviseDispatch.disabled;
+      }
     }
     if (el.architectureConfirm) {
       const a = state.architecture;
@@ -507,6 +517,7 @@ function maybeClearStaleBusy() {
   if (!state.busy || !state.busySince) return false;
   if (Date.now() - state.busySince < BUSY_STALE_MS) return false;
   setBusy(false);
+  syncConfirmEnabled();
   return true;
 }
 
@@ -736,9 +747,19 @@ function renderModuleTabs() {
       syncActiveModuleCardFromFields();
       state.activeModuleId = m.id;
       applyActiveModuleToFields();
-      setConfirmFieldsReadonly(m.status === "confirmed" || state.locked);
+      resetValidateGate();
+      setConfirmFieldsReadonly(
+        m.status === "confirmed" || modulesAllConfirmedLocal(),
+      );
       renderModuleTabs();
       syncConfirmEnabled();
+      if (
+        m.status !== "confirmed" &&
+        !modulesAllConfirmedLocal() &&
+        state.mode !== "revise"
+      ) {
+        scheduleValidate("confirm");
+      }
       schedulePersistProjectDesk();
     });
     el.moduleTabs.appendChild(btn);
@@ -1370,7 +1391,7 @@ function validationAllowsSend(kind) {
 }
 
 function scheduleValidate(kind = currentValidateKind()) {
-  if (state.locked && kind === "confirm") return;
+  if (modulesAllConfirmedLocal() && kind === "confirm") return;
   if (state.reviseLocked && kind === "revise") return;
   const v = kind === "revise" ? reviseCardValues() : cardValues();
   if (!v.goal || !v.acceptance || !state.ready) {
@@ -1470,6 +1491,42 @@ async function runValidate(kind, expectedFp) {
   }
 }
 
+/** Confirm enablement without rebuilding module tabs (tabs flicker if rebuilt every tick). */
+function refreshConfirmButtonOnly() {
+  if (!el.confirm) return;
+  if (state.mode === "revise" || state.reviseLocked) {
+    el.confirm.disabled = true;
+    el.confirm.textContent = t("card.confirmed");
+    return;
+  }
+  const v = cardValues();
+  const fieldsOk = Boolean(v.goal && v.acceptance);
+  const validated = validationAllowsSend("confirm");
+  const active = activeModule();
+  const moduleLocked = active?.status === "confirmed";
+  const allDone = modulesAllConfirmedLocal();
+  const ok =
+    fieldsOk &&
+    !moduleLocked &&
+    !allDone &&
+    state.ready &&
+    validated &&
+    !state.busy;
+  if (!moduleLocked && !allDone) {
+    el.confirm.textContent =
+      state.validate.status === "checking"
+        ? t("card.validating")
+        : t("card.confirm");
+    el.confirm.disabled = !ok;
+  } else if (allDone) {
+    el.confirm.textContent = t("card.allModulesConfirmed");
+    el.confirm.disabled = true;
+  } else {
+    el.confirm.textContent = t("card.confirmed");
+    el.confirm.disabled = true;
+  }
+}
+
 function syncConfirmEnabled() {
   applyConfirmCardChrome();
   syncComposerEnabled();
@@ -1504,18 +1561,10 @@ function syncConfirmEnabled() {
   const active = activeModule();
   const moduleLocked = active?.status === "confirmed";
   const allDone = modulesAllConfirmedLocal();
-  const ok =
-    fieldsOk &&
-    !moduleLocked &&
-    !allDone &&
-    state.ready &&
-    validated &&
-    !state.busy;
-  el.confirm.disabled = !ok;
   if (allDone) {
     el.lockHint.textContent = t("card.lockHintLocked");
   } else if (moduleLocked) {
-    el.lockHint.textContent = t("card.confirmed");
+    el.lockHint.textContent = t("card.lockHintModuleDone");
   } else if (!fieldsOk) {
     el.lockHint.textContent = t("card.lockHintNeed");
   } else if (state.validate.status === "checking") {
@@ -1527,23 +1576,24 @@ function syncConfirmEnabled() {
   } else {
     el.lockHint.textContent = t("card.lockHintNeedValidate");
   }
-  if (!moduleLocked && !allDone) {
-    el.confirm.textContent =
-      state.validate.status === "checking"
-        ? t("card.validating")
-        : t("card.confirm");
-  } else if (allDone) {
-    el.confirm.textContent = t("card.allModulesConfirmed");
-    el.confirm.disabled = true;
-  } else {
-    el.confirm.textContent = t("card.confirmed");
-    el.confirm.disabled = true;
-  }
+  refreshConfirmButtonOnly();
   setConfirmFieldsReadonly(moduleLocked || allDone);
-  renderModuleTabs();
+  // Do not renderModuleTabs here — every validate/input tick rebuilt tabs.
   syncTaskPoolPreview();
   syncReviseDispatchButton(false);
   syncAutoHandleButtons();
+}
+
+function focusNextUnconfirmedModule() {
+  ensureModulesSeed();
+  const next = state.modules.find((m) => m.status !== "confirmed");
+  if (!next) return false;
+  state.activeModuleId = next.id;
+  applyActiveModuleToFields();
+  resetValidateGate();
+  setConfirmFieldsReadonly(false);
+  renderModuleTabs();
+  return true;
 }
 
 function syncReviseDispatchButton(ready) {
@@ -2244,6 +2294,8 @@ async function loadProjectChatIntoUi(projectPath) {
       }));
       state.activeModuleId =
         data.activeModuleId || state.modules[0]?.id || null;
+      // Prefer module statuses over stale single-card locked flag
+      state.locked = modulesAllConfirmedLocal();
     } else if (data.card) {
       state.modules = [
         {
@@ -2260,6 +2312,7 @@ async function loadProjectChatIntoUi(projectPath) {
         },
       ];
       state.activeModuleId = "main";
+      state.locked = Boolean(data.locked);
     } else {
       state.modules = [];
       state.activeModuleId = null;
@@ -2283,7 +2336,9 @@ async function loadProjectChatIntoUi(projectPath) {
       const stored = getStoredReviseCard(state.reviseCardFocus);
       if (stored) applyReviseFieldsFromCard(stored);
     }
-    setConfirmFieldsReadonly(state.locked);
+    setConfirmFieldsReadonly(
+      activeModule()?.status === "confirmed" || modulesAllConfirmedLocal(),
+    );
     setReviseFieldsReadonly(
       state.reviseLocked ||
         state.revisePlanConfirmed ||
@@ -2323,13 +2378,11 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     syncConfirmEnabled();
     syncComposerEnabled();
-    if (state.jobId || state.locked) {
+    if (state.jobId || state.locked || modulesAllConfirmedLocal()) {
       if (el.dispatch) el.dispatch.hidden = false;
       syncDispatchProjectLine();
-      if (state.locked && el.confirm) {
-        el.confirm.textContent = modulesAllConfirmedLocal()
-          ? t("card.allModulesConfirmed")
-          : t("card.confirmed");
+      if (modulesAllConfirmedLocal() && el.confirm) {
+        el.confirm.textContent = t("card.allModulesConfirmed");
         el.confirm.disabled = true;
       }
       if (state.dispatchPhase === "done") {
@@ -2338,6 +2391,13 @@ async function loadProjectChatIntoUi(projectPath) {
       if (state.jobId) startStatusPoll();
       void loadAgents();
       syncTaskPoolPreview();
+    }
+    if (
+      !modulesAllConfirmedLocal() &&
+      activeModule()?.status !== "confirmed" &&
+      state.mode === "specify"
+    ) {
+      scheduleValidate("confirm");
     }
     if (
       state.locked &&
@@ -3353,9 +3413,12 @@ async function applyConfirmSuccess(data) {
   const extra = allDone
     ? t("result.allModulesExtra")
     : t("result.moduleExtra", { done: String(done), total: String(total) });
+  if (!allDone) {
+    focusNextUnconfirmedModule();
+  }
   el.confirm.textContent = allDone
     ? t("card.allModulesConfirmed")
-    : t("card.confirmed");
+    : t("card.confirm");
   syncReviseCardChrome();
   el.result.hidden = false;
   const reviewLine = data.review?.summary
@@ -3379,6 +3442,9 @@ async function applyConfirmSuccess(data) {
   );
   renderModuleTabs();
   syncConfirmEnabled();
+  if (!allDone) {
+    scheduleValidate("confirm");
+  }
   void persistProjectChat();
   if (allDone) {
     await showDispatchPanel();
