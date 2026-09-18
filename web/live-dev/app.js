@@ -4656,8 +4656,15 @@ function commitReqEditorToTextarea(pair) {
   const ta = el[pair.ta];
   const view = el[pair.view];
   if (!ta || !view) return;
+  // After exit, syncReqSection replaces the editor DOM. Never serialize an
+  // empty input list back into the textarea or the field is wiped.
+  const inputs = view.querySelectorAll(".req-item-input");
+  if (!inputs.length) return;
   const mode = view.dataset.editMode || "ul";
-  ta.value = serializeReqEdit(mode, readReqEditorItems(view));
+  ta.value = serializeReqEdit(
+    mode,
+    [...inputs].map((n) => n.value),
+  );
 }
 
 function paintReqEditor(pair, focusIndex = 0, override = null) {

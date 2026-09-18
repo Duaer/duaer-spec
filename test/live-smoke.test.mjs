@@ -269,6 +269,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   );
   assert.match(js, /structuredHtml/);
   assert.match(js, /paintReqEditor|reqEditModel|serializeReqEdit|req-item-input/);
+  assert.match(js, /!inputs\.length\)\s*return/);
   assert.match(js, /card\.reqAdd/);
   assert.match(css, /req-item-edit|req-add-item/);
   assert.match(js, /\/api\/validate/);

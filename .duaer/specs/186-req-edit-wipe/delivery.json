@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "186-req-edit-wipe",
+  "acceptedAt": "2026-09-19T00:00:00.000Z",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js",
+    "L3": "npm run test:live (pass)"
+  }
+}
