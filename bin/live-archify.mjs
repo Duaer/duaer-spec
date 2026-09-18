@@ -258,6 +258,106 @@ function hasFiniteSize(c) {
   );
 }
 
+/** Rough mirror of Archify textUnits (CJK ≈ 2 units). */
+function approxTextUnits(text) {
+  let units = 0;
+  for (const ch of String(text || "")) {
+    const cp = ch.codePointAt(0);
+    if (cp == null) continue;
+    units += cp > 0xff ? 2 : 1;
+  }
+  return units;
+}
+
+// Archify: minimumNodeTextWidth = units * minimumFont * 0.6; available = width - 8
+const TEXT_MIN_FONT = 6;
+const TEXT_WIDTH_FACTOR = 0.6;
+const TEXT_PAD = 8;
+const MAX_COMPONENT_W = 200;
+const MIN_COMPONENT_W = 130;
+const MAX_EDGE_LABEL_UNITS = 22;
+
+function minTextWidth(text) {
+  return approxTextUnits(text) * TEXT_MIN_FONT * TEXT_WIDTH_FACTOR;
+}
+
+function truncateToUnits(text, maxUnits) {
+  const s = String(text || "").trim();
+  if (!s) return s;
+  if (approxTextUnits(s) <= maxUnits) return s;
+  let out = "";
+  let units = 0;
+  const budget = Math.max(2, maxUnits - 2);
+  for (const ch of s) {
+    const add = ch.codePointAt(0) > 0xff ? 2 : 1;
+    if (units + add > budget) break;
+    out += ch;
+    units += add;
+  }
+  return `${out}…`;
+}
+
+/**
+ * Fit label/sublabel/tag into component width (widen up to MAX, else truncate).
+ * Fix edge labels that would sit on nodes (shorten + labelDy).
+ */
+export function repairArchitectureGeometry(ir) {
+  if (!ir || typeof ir !== "object") return ir;
+  const components = Array.isArray(ir.components) ? ir.components : [];
+  for (const c of components) {
+    let w = hasFiniteSize(c) ? c.size[0] : 140;
+    let h = hasFiniteSize(c) ? c.size[1] : 64;
+    for (const field of ["label", "sublabel", "tag"]) {
+      if (!c[field]) continue;
+      c[field] = String(c[field]).trim();
+      if (!c[field]) {
+        delete c[field];
+        continue;
+      }
+      let need = minTextWidth(c[field]);
+      let avail = w - TEXT_PAD;
+      if (need <= avail) continue;
+      const widened = Math.ceil(need + TEXT_PAD + 4);
+      if (widened <= MAX_COMPONENT_W) {
+        w = widened;
+        continue;
+      }
+      w = MAX_COMPONENT_W;
+      const maxUnits = Math.floor((MAX_COMPONENT_W - TEXT_PAD) / (TEXT_MIN_FONT * TEXT_WIDTH_FACTOR));
+      c[field] = truncateToUnits(c[field], maxUnits);
+    }
+    c.size = [Math.max(MIN_COMPONENT_W, Math.min(MAX_COMPONENT_W, w)), Math.max(56, h)];
+  }
+
+  const connections = Array.isArray(ir.connections) ? ir.connections : [];
+  for (const e of connections) {
+    if (!e || typeof e !== "object") continue;
+    if (e.label) {
+      e.label = truncateToUnits(String(e.label).trim(), MAX_EDGE_LABEL_UNITS);
+      if (!e.label) delete e.label;
+    }
+    if (e.label && e.labelAt == null) {
+      // Pull labels above the edge so they clear horizontally adjacent boxes.
+      e.labelDy = -28;
+    }
+  }
+  return ir;
+}
+
+function recomputeViewBox(ir) {
+  const components = ir.components || [];
+  let maxX = 320;
+  let maxY = 240;
+  for (const c of components) {
+    if (!hasFinitePos(c)) continue;
+    const w = hasFiniteSize(c) ? c.size[0] : 130;
+    const h = hasFiniteSize(c) ? c.size[1] : 60;
+    maxX = Math.max(maxX, c.pos[0] + w + 48);
+    maxY = Math.max(maxY, c.pos[1] + h + 160);
+  }
+  ir.meta.viewBox = [maxX, maxY];
+}
+
 /**
  * Assign left-to-right layered positions when the LLM omits geometry.
  */
@@ -267,25 +367,15 @@ export function layoutArchitectureIr(raw) {
   if (!ir || typeof ir !== "object") return ir;
   const components = Array.isArray(ir.components) ? ir.components : [];
   ir.components = components;
+  repairArchitectureGeometry(ir);
 
   const needsLayout = components.some((c) => !hasFinitePos(c));
   if (!needsLayout) {
     for (const c of components) {
-      if (!hasFiniteSize(c)) c.size = [130, 60];
+      if (!hasFiniteSize(c)) c.size = [140, 64];
     }
-    let maxX = 320;
-    let maxY = 240;
-    for (const c of components) {
-      const w = hasFiniteSize(c) ? c.size[0] : 130;
-      const h = hasFiniteSize(c) ? c.size[1] : 60;
-      if (hasFinitePos(c)) {
-        maxX = Math.max(maxX, c.pos[0] + w + 48);
-        maxY = Math.max(maxY, c.pos[1] + h + 140);
-      }
-    }
-    if (!Array.isArray(ir.meta.viewBox) || ir.meta.viewBox.length < 2) {
-      ir.meta.viewBox = [maxX, maxY];
-    }
+    repairArchitectureGeometry(ir);
+    recomputeViewBox(ir);
     return ir;
   }
 
@@ -332,23 +422,28 @@ export function layoutArchitectureIr(raw) {
     byLayer.get(L).push(c);
   }
   const layers = [...byLayer.keys()].sort((a, b) => a - b);
-  const colW = 200;
-  const rowH = 110;
+  const maxCompW = Math.max(
+    140,
+    ...components.map((c) => (hasFiniteSize(c) ? c.size[0] : 140)),
+  );
+  const colW = Math.max(220, maxCompW + 70);
+  const rowH = 130;
   const originX = 48;
-  const originY = 80;
+  const originY = 96;
   let maxY = originY;
   for (const L of layers) {
     const col = byLayer.get(L) || [];
     col.forEach((c, i) => {
       c.pos = [originX + L * colW, originY + i * rowH];
-      if (!hasFiniteSize(c)) c.size = [130, 60];
+      if (!hasFiniteSize(c)) c.size = [140, 64];
       maxY = Math.max(maxY, c.pos[1] + c.size[1]);
     });
   }
+  repairArchitectureGeometry(ir);
   const maxX = originX + (layers.length || 1) * colW + 80;
   ir.meta.viewBox = [
     Math.max(320, maxX),
-    Math.max(240, maxY + 140),
+    Math.max(240, maxY + 160),
   ];
   return ir;
 }

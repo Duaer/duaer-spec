@@ -60,6 +60,64 @@ test("extractArchitectureIr finds diagram JSON", () => {
   assert.equal(ir.ready, undefined);
 });
 
+test("repairGeometry fits long CJK sublabels and edge labels for Archify", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-repair-"));
+  const out = renderArchitectureHtml(root, {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "Ban", quality_profile: "standard" },
+    components: [
+      {
+        id: "ops",
+        type: "external",
+        label: "运营",
+        pos: [48, 80],
+        size: [130, 60],
+      },
+      {
+        id: "accountsvc",
+        type: "backend",
+        label: "账号服务",
+        pos: [448, 80],
+        size: [130, 60],
+      },
+      {
+        id: "banstore",
+        type: "database",
+        label: "封禁存储",
+        sublabel: "用户ID / 封禁标记 / 时间 / 操作人 / 原因",
+        pos: [648, 80],
+        size: [130, 60],
+      },
+      {
+        id: "login",
+        type: "backend",
+        label: "登录校验",
+        pos: [848, 80],
+        size: [130, 60],
+      },
+    ],
+    connections: [
+      {
+        id: "c1",
+        from: "accountsvc",
+        to: "banstore",
+        label: "写入/更新封禁状态",
+        variant: "emphasis",
+      },
+      { id: "c2", from: "ops", to: "accountsvc", label: "封禁/解封" },
+      { id: "c3", from: "login", to: "banstore", label: "读状态" },
+    ],
+    cards: [{ dot: "cyan", title: "Path", items: ["ops → account → store"] }],
+  });
+  assert.ok(fs.existsSync(out.htmlPath));
+  assert.ok(out.ir.components.find((c) => c.id === "banstore").size[0] >= 130);
+  const edge = out.ir.connections.find((c) => c.id === "c1");
+  assert.equal(edge.labelDy, -28);
+  assert.ok(String(edge.label).length <= 20);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("sanitize strips Brief/chat extras before Archify", () => {
   const contaminated = {
     type: "architecture",

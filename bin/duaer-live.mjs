@@ -462,7 +462,7 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需�
 规则：
 1. 未 ready 前：每次回复必须提出 1 个具体问题，并在 JSON 的 options 给出 2～5 个短选项。禁止只复述需求/主路径而不提问。
 2. 组件 type 只能是：frontend / backend / database / cloud / security / messagebus / external。
-3. 控制在 4～12 个组件；一条主路径；可用 boundaries 与 cards。
+3. 控制在 4～12 个组件；一条主路径；可用 boundaries 与 cards。label/sublabel/连线 label 尽量短（sublabel ≤12 字，连线 label ≤8 字）。
 4. 不要写业务代码。不要派工。
 5. 输出格式（严格）：
    - 先写对用户说的纯文本（含那一个问题）
