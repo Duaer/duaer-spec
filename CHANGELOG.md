@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: deliverables dossier layout
+
+- Two-column layout: sticky TOC + white paper body
+- Quieter stage/module chrome; left-aligned document hierarchy
+
 ### Fix: deliverables HTML content structure
 
 - Numbered acceptance / out-of-scope chips / arrow flows parse into lists
