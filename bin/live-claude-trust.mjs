@@ -1,5 +1,5 @@
 /**
- * Pre-accept Claude Code workspace trust for FED-dispatched worktrees.
+ * Pre-accept Claude Code workspace trust for FDE-dispatched worktrees.
  *
  * Claude Code gates first open with hasTrustDialogAccepted in
  * ~/.claude.json (or $CLAUDE_CONFIG_DIR/.claude.json). Cursor Agent already
@@ -29,7 +29,7 @@ export function normalizeClaudeProjectKey(worktreePath) {
 }
 
 /**
- * Paths Claude may key on for a FED worktree (cwd + product root + git toplevel).
+ * Paths Claude may key on for a FDE worktree (cwd + product root + git toplevel).
  */
 export function claudeTrustCandidatePaths(worktreePath) {
   const abs = normalizeClaudeProjectKey(worktreePath);
@@ -56,7 +56,7 @@ export function claudeTrustCandidatePaths(worktreePath) {
 }
 
 /**
- * Set projects[path].hasTrustDialogAccepted = true for FED launch paths.
+ * Set projects[path].hasTrustDialogAccepted = true for FDE launch paths.
  * Preserves the rest of the Claude config file.
  *
  * @returns {{ ok: boolean, path?: string, keys?: string[], error?: string }}

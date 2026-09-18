@@ -2,6 +2,121 @@
 
 ## Unreleased
 
+## 0.19.0 — 2026-09-19
+
+### Feat: modular `[模块]` structured requirement cards
+
+- Accordion / confirm structured view splits `[title]` into section blocks
+- Inline `1)…；2)` acceptance becomes numbered lists;顿号 out-of-scope → bullets
+
+### Fix: requirements click-edit must not wipe fields
+
+- Exiting edit without changes no longer clears the hidden textarea
+
+### Feat: structured 初版 · 需求卡 accordion body
+
+- Version accordion fields use the same `structuredHtml` path as confirm
+
+### Fix: deliverables dossier layout
+
+- Two-column layout: sticky TOC + white paper body
+- Quieter stage/module chrome; left-aligned document hierarchy
+
+### Fix: deliverables HTML content structure
+
+- Numbered acceptance / out-of-scope chips / arrow flows parse into lists
+- Task pool as checklist table; confirmation as registry (no duplicate cards)
+- Module cards with clearer field layout
+
+### Feat: reliable multi-worker task orchestration
+
+- Kickoff / status poll only release ready waves (`dependsOn` satisfied via `[x]`)
+- Idle lanes get `--continue` for the next wave; blocked lanes show 等依赖
+- Assignment inherits first-dependency worker when possible
+
+### Feat: multi-worker lanes in 派工进度
+
+- When workerCount > 1, Progress shows one lane per digital employee
+- Status `workers[]` includes tasks, state, and per-lane log tails
+
+### Feat: structured deliverables page
+
+- Contents TOC with stage / artifact anchors
+- Confirmation cards as labeled field rows; bullets become lists
+
+### Fix: architecture layout hang freezes desk
+
+- Cyclic architecture connections no longer infinite-loop layout BFS
+- Deliverables HTML uses local fonts (no Google Fonts fetch)
+
+### Fix: architecture panel visibility
+
+- Move「系统架构」out of planned-hosting chips into the middle column
+- Server renders IR and returns `architectureUrl` on architecture chat
+- Missing IR after「图已生成」shows regenerate CTA
+
+### Fix: client-facing deliverables page (white dossier)
+
+- Deliverables HTML uses a white, spacious client document look
+- Drop FDE desk dark/orange palette from the customer-facing page
+
+### Feat: stage deliverables HTML page
+
+- Progress column **查看交付物** opens a generated standalone HTML page
+- Stages: requirements (doc timeline + confirmation), architecture, kickoff, delivery, revise
+- `GET /api/projects/deliverables?path=…&lang=zh|en`
+
+### Fix: confirm button state for modular modules
+
+- Stop rebuilding module tabs on every validate/input tick
+- Tab switch re-validates the active module card
+- After confirming one module, focus the next draft and refresh the button
+- Clearing busy recomputes Confirm enablement (no permanent latch)
+
+### Feat: modular FDE confirm and late kickoff
+
+- Session holds `modules[]` + `activeModuleId`; chat can jump topics
+- Per-module confirm locks one card; Brief / workers wait until kickoff
+- After all modules confirmed: architecture → kickoff builds dependency task pool
+- Default 1 worker; optional N parallel same-CLI workers (shared → w1; modules round-robin)
+- Docs: README EN/ZH Flow + [`docs/agent/live-desk.md`](docs/agent/live-desk.md)
+
+### Feat: parallel Terminal queue lanes
+
+- `workerCount>1` uses `live-terminal` / `live-terminal/wN` so workers do not fight one lock
+
+### Feat: README update on delivery
+
+- Kickoff / revise prompts require product README update before `delivery.json` accepted
+
+### Feat: chat Markdown render
+
+- Desk chat bubbles render safe inline Markdown (`**bold**`, code, links)
+
+### Fix: module tab active styling
+
+- Active module tab uses register background so it reads as selected
+
+### Fix: brand acronym FED → FDE
+
+- Correct desk brand to **Duaer-spec FDE** (Field Development Environment / 现场开发)
+- Rename brand SVG to `docs/assets/duaer-spec-fde.svg`
+
+### Feat: compact settings with host tutorials
+
+- Settings use collapsible blocks; denser spacing
+- Short how-to for model / Cloudflare / 阿里云 / AWS credentials
+
+### Feat: Cloudflare / AWS keys in FDE settings
+
+- Settings: Cloudflare API Token + Account ID; AWS Access Key (+ optional Region)
+- Cloudflare / AWS only appear in planned host / Deploy when credentials are set
+
+### Feat: Alibaba Cloud keys in FDE settings
+
+- Settings: AccessKey ID + Secret (local config only)
+- 「阿里云」仅在凭证齐全时出现在计划托管 / 部署选择
+
 ### Fix: intro Pages layout
 
 - Shared wrap column, text brand, 2x2 flow; drop ch-based Chinese max-width

@@ -1,5 +1,5 @@
 /**
- * Claude workspace trust stamp for FED launches.
+ * Claude workspace trust stamp for FDE launches.
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";

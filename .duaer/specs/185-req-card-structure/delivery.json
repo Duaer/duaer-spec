@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "185-req-card-structure",
+  "acceptedAt": "2026-09-19T00:00:00.000Z",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js structured-html.mjs bin/live-deliverables.mjs",
+    "L1": "node --test test/req-structured.test.mjs test/live-deliverables.test.mjs (14 pass)",
+    "L3": "npm run test:live (pass)"
+  }
+}

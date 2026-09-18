@@ -153,7 +153,7 @@ body {
   gap: 0.35rem 0.55rem;
 }
 
-.brand-fed {
+.brand-fde {
   color: var(--register);
   letter-spacing: 0.12em;
   font-weight: 700;
@@ -360,7 +360,7 @@ body {
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.4rem;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
@@ -368,7 +368,162 @@ body {
 }
 
 .settings-body .hint {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.settings-body .hint.tight,
+.settings-lead {
+  margin: 0 0 0.15rem;
+}
+
+.settings-body .field {
+  gap: 0.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.settings-body .field > span {
+  letter-spacing: 0.08em;
+  font-size: 0.64rem;
+}
+
+.settings-body .btn {
+  min-height: 2.1rem;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.setup-block {
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--plate-2) 70%, transparent);
+  border-radius: 2px;
+}
+
+.setup-block-sum {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  user-select: none;
+}
+
+.setup-block-sum::-webkit-details-marker {
+  display: none;
+}
+
+.setup-block-sum::before {
+  content: "▸";
+  display: inline-block;
+  width: 0.9em;
+  color: var(--mute);
+  font-size: 0.75rem;
+  transform: translateY(-0.05em);
+}
+
+.setup-block[open] > .setup-block-sum::before {
+  content: "▾";
+}
+
+.setup-block-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0 0.6rem 0.55rem;
+}
+
+.setup-host-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.setup-howto {
+  margin-top: 0.15rem;
+  border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent);
+  padding-top: 0.25rem;
+}
+
+.setup-howto > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--teal, #2f9e8f);
+  padding: 0.15rem 0;
+}
+
+.setup-howto > summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup-howto-list {
+  margin: 0.15rem 0 0;
+  padding-left: 1.05rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--mute);
+}
+
+.setup-howto-list li {
+  margin-bottom: 0.2rem;
+}
+
+.setup-howto-list a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.setup-howto-list code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--lock);
+}
+
+.setup-guide-block .setup-guide {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.setup-guide-block .setup-guide-title {
+  display: none;
+}
+
+.setup-guide-block .setup-guide-lead,
+.setup-guide-block .setup-guide-p {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.setup-guide-block .setup-guide-h {
+  margin: 0.45rem 0 0.2rem;
+  font-size: 0.72rem;
+}
+
+.setup-guide-block .setup-guide-list {
   margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+}
+
+.setup-guide-block .setup-guide-list li {
+  margin-bottom: 0.2rem;
+}
+
+.setup-guide-block .setup-guide-label {
+  margin: 0.3rem 0 0.15rem;
+  font-size: 0.72rem;
+}
+
+.setup-guide-block .setup-guide-cmd {
+  margin: 0 0 0.25rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.72rem;
 }
 
 .project-create {
@@ -663,7 +818,7 @@ body.history-open {
 .bubble {
   max-width: 92%;
   padding: 0.7rem 0.9rem;
-  white-space: pre-wrap;
+  white-space: normal;
   word-break: break-word;
   animation: rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -697,6 +852,42 @@ body.history-open {
   background: var(--plate-2);
   border: 1px solid var(--line);
   color: var(--ink);
+}
+
+.bubble-body {
+  white-space: normal;
+}
+
+.bubble-body strong {
+  font-weight: 650;
+}
+
+.bubble-body em {
+  font-style: italic;
+}
+
+.bubble-body code.chat-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.bubble-body pre.chat-code {
+  margin: 0.45em 0;
+  padding: 0.5em 0.65em;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  white-space: pre-wrap;
+  font-size: 0.85em;
+}
+
+.bubble-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .bubble.streaming::after {
@@ -921,6 +1112,75 @@ a.btn[hidden] {
   scroll-behavior: smooth;
 }
 
+.module-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.65rem;
+}
+
+.module-tab {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--mute);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.module-tab:hover,
+.module-tab:focus-visible {
+  color: var(--ink);
+  opacity: 0.9;
+  outline: none;
+}
+
+.module-tab.is-active,
+.module-tab[aria-selected="true"] {
+  border-color: var(--register);
+  background: color-mix(in srgb, var(--register) 18%, transparent);
+  color: var(--ink);
+  font-weight: 650;
+  opacity: 1;
+}
+
+.module-tab.is-confirmed:not(.is-active):not([aria-selected="true"]) {
+  border-style: dashed;
+  opacity: 0.78;
+}
+
+.module-meta {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.task-pool-preview {
+  margin: 0.75rem 0;
+}
+
+.task-pool-list {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  max-height: 10rem;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--border, #c9c4b8);
+  border-radius: 4px;
+  background: transparent;
+}
+
+.worker-count-field select {
+  margin-top: 0.35rem;
+  max-width: 6rem;
+}
+
 .progress-col {
   padding: 1.05rem 0.95rem 1.15rem;
   align-self: stretch;
@@ -943,6 +1203,26 @@ a.btn[hidden] {
   max-width: 100%;
   padding: 0 0.15rem 0.55rem;
   border-bottom: 1px solid rgba(63, 86, 108, 0.55);
+}
+
+.deliverables-open {
+  display: block;
+  width: 100%;
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.82rem;
+  background: rgba(47, 158, 143, 0.12);
+  border-color: var(--lock);
+  color: #9fe8dc;
+}
+
+.deliverables-open:not(:disabled):hover,
+.deliverables-open:not(:disabled):focus-visible {
+  background: rgba(47, 158, 143, 0.24);
+  color: var(--ink);
+}
+
+.deliverables-open[hidden] {
+  display: none !important;
 }
 
 .progress-col .card-title {
@@ -1134,6 +1414,30 @@ a.btn[hidden] {
 .req-structured .req-empty {
   margin: 0;
   color: #5f7386;
+}
+
+.req-structured .req-mod {
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.55rem 0.5rem;
+  border: 1px solid rgba(63, 86, 108, 0.55);
+  background: rgba(8, 14, 20, 0.35);
+}
+
+.req-structured .req-mod:last-child {
+  margin-bottom: 0;
+}
+
+.req-structured .req-mod-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--lock);
+}
+
+.req-structured .req-mod .req-list,
+.req-structured .req-mod .req-para {
+  margin-bottom: 0;
 }
 
 .req-edit {
@@ -1384,6 +1688,27 @@ a.btn[hidden] {
   margin-top: 0.85rem;
   padding-top: 0.75rem;
   border-top: 1px solid var(--line);
+}
+
+.architecture-slot-main {
+  margin: 1rem 0 0.35rem;
+  padding: 0.85rem 0.15rem 0.35rem;
+  border-top: 1px solid rgba(63, 86, 108, 0.55);
+}
+
+.architecture-slot-main .architecture-panel {
+  margin-top: 0;
+  padding: 0.75rem 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--plate-2) 55%, transparent);
+}
+
+.architecture-slot-main .architecture-title {
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0.02em;
 }
 
 .architecture-slot:empty {
@@ -1808,6 +2133,98 @@ a.btn[hidden] {
   word-break: break-word;
 }
 
+.worker-lanes {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.65rem 0 0;
+}
+
+.worker-lane {
+  padding: 0.55rem 0.6rem 0.65rem;
+  border: 1px solid var(--line);
+  background: rgba(8, 14, 20, 0.35);
+  min-width: 0;
+}
+
+.worker-lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.worker-lane-title {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.worker-lane-badge {
+  font-size: 0.65rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mute);
+  border: 1px solid var(--line);
+  padding: 0.12rem 0.35rem;
+}
+
+.worker-lane[data-state="running"] .worker-lane-badge {
+  color: var(--register);
+  border-color: color-mix(in srgb, var(--register) 45%, var(--line));
+}
+
+.worker-lane[data-state="waiting_deps"] .worker-lane-badge {
+  color: var(--mute);
+  border-color: color-mix(in srgb, var(--mute) 55%, var(--line));
+}
+
+.worker-lane[data-state="done"] .worker-lane-badge {
+  color: var(--lock);
+  border-color: color-mix(in srgb, var(--lock) 45%, var(--line));
+}
+
+.orch-summary {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+  color: var(--mute);
+  overflow-wrap: anywhere;
+}
+
+.worker-lane-meta {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  color: var(--mute);
+  overflow-wrap: anywhere;
+}
+
+.worker-lane-meter {
+  height: 0.28rem;
+  margin: 0 0 0.45rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--line);
+}
+
+.worker-lane-meter-fill {
+  height: 100%;
+  width: 0;
+  background: var(--register);
+}
+
+.worker-lane[data-state="done"] .worker-lane-meter-fill {
+  background: var(--lock);
+}
+
+.worker-lane-tasks {
+  margin: 0.35rem 0 0;
+}
+
+.worker-lane-log {
+  margin-top: 0.45rem;
+  max-height: 5.5rem;
+}
+
 .preview-panel {
   margin-top: 0.85rem;
   padding: 0.5rem 0.65rem;
@@ -2192,8 +2609,45 @@ a.btn[hidden] {
   font-size: 0.88rem;
   line-height: 1.4;
   color: var(--ink);
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.revise-version-fields dd.req-structured .req-para {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.revise-version-fields dd.req-structured .req-para:last-child {
+  margin-bottom: 0;
+}
+
+.revise-version-fields dd.req-structured .req-list {
+  margin: 0;
+  gap: 0.3rem;
+}
+
+.revise-version-fields dd.req-structured .req-item {
+  font-size: 0.84rem;
+  padding: 0.4rem 0.55rem 0.4rem 1.45rem;
+}
+
+.revise-version-fields dd.req-structured .req-list-num .req-item {
+  padding-left: 1.85rem;
+}
+
+.revise-version-fields dd.req-structured .req-empty {
+  margin: 0;
+  color: var(--mute);
+}
+
+.revise-version-fields dd.req-structured .req-mod {
+  margin-bottom: 0.5rem;
+  padding: 0.4rem 0.45rem 0.45rem;
+}
+
+.revise-version-fields dd.req-structured .req-mod-title {
+  font-size: 0.74rem;
 }
 
 .revise-arch-block {

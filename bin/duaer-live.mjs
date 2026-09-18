@@ -1,5 +1,5 @@
 /**
- * Duaer-spec FED (现场开发) — isolated desk (not the user's product repo).
+ * Duaer-spec FDE (现场开发) — isolated desk (not the user's product repo).
  *
  * Workspace: ~/.duaer/live/  (override with DUAER_HOME)
  *   config.json   model settings
@@ -24,6 +24,7 @@ import {
 import {
   buildDetailedProductTasksMd,
   buildDetailedRevisionTasksMd,
+  buildWorkersProgress,
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
 import {
@@ -37,6 +38,7 @@ import {
   architectureStoreDir,
 } from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
+import { extractArchitectureIr } from "../web/live-dev/architecture-ir.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -54,6 +56,29 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
+import {
+  buildDeliverablesModel,
+  renderDeliverablesHtml,
+  writeDeliverablesHtmlFile,
+} from "./live-deliverables.mjs";
+import {
+  clipModules,
+  clipActiveModuleId,
+  modulesAllConfirmed,
+  confirmModuleInList,
+  aggregateModulesCard,
+  buildTaskPoolFromModules,
+  taskPoolToMarkdown,
+  assignTasksToWorkers,
+  clipWorkerCount,
+} from "./live-modules.mjs";
+import {
+  doneIdsFromProgress,
+  fingerprintWave,
+  orchestrationSummary,
+  pendingWaveReleases,
+  waveForWorker,
+} from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
@@ -292,17 +317,54 @@ function ensureLiveDirs() {
   fs.mkdirSync(jobsRoot(), { recursive: true });
 }
 
+function emptyLiveConfig() {
+  return {
+    baseUrl: "",
+    apiKey: "",
+    model: "",
+    preferredAgentId: "",
+    projectsRoot: "",
+    activeProjectPath: "",
+    aliyunAccessKeyId: "",
+    aliyunAccessKeySecret: "",
+    cloudflareApiToken: "",
+    cloudflareAccountId: "",
+    awsAccessKeyId: "",
+    awsSecretAccessKey: "",
+    awsRegion: "",
+  };
+}
+
+function envPick(...keys) {
+  for (const k of keys) {
+    const v = String(process.env[k] || "").trim();
+    if (v) return v;
+  }
+  return "";
+}
+
 function readConfig() {
   ensureLiveDirs();
   const p = configPath();
   if (!fs.existsSync(p)) {
     return {
+      ...emptyLiveConfig(),
       baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
-      preferredAgentId: "",
-      projectsRoot: "",
-      activeProjectPath: "",
+      aliyunAccessKeyId: envPick(
+        "ALIBABA_CLOUD_ACCESS_KEY_ID",
+        "ALIYUN_ACCESS_KEY_ID",
+      ),
+      aliyunAccessKeySecret: envPick(
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
+        "ALIYUN_ACCESS_KEY_SECRET",
+      ),
+      cloudflareApiToken: envPick("CLOUDFLARE_API_TOKEN"),
+      cloudflareAccountId: envPick("CLOUDFLARE_ACCOUNT_ID"),
+      awsAccessKeyId: envPick("AWS_ACCESS_KEY_ID"),
+      awsSecretAccessKey: envPick("AWS_SECRET_ACCESS_KEY"),
+      awsRegion: envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
     };
   }
   try {
@@ -314,30 +376,48 @@ function readConfig() {
       preferredAgentId: String(raw.preferredAgentId || "").trim(),
       projectsRoot: String(raw.projectsRoot || "").trim(),
       activeProjectPath: String(raw.activeProjectPath || "").trim(),
+      aliyunAccessKeyId: String(
+        raw.aliyunAccessKeyId ||
+          envPick("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIYUN_ACCESS_KEY_ID"),
+      ).trim(),
+      aliyunAccessKeySecret: String(
+        raw.aliyunAccessKeySecret ||
+          envPick(
+            "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
+            "ALIYUN_ACCESS_KEY_SECRET",
+          ),
+      ).trim(),
+      cloudflareApiToken: String(
+        raw.cloudflareApiToken || envPick("CLOUDFLARE_API_TOKEN"),
+      ).trim(),
+      cloudflareAccountId: String(
+        raw.cloudflareAccountId || envPick("CLOUDFLARE_ACCOUNT_ID"),
+      ).trim(),
+      awsAccessKeyId: String(
+        raw.awsAccessKeyId || envPick("AWS_ACCESS_KEY_ID"),
+      ).trim(),
+      awsSecretAccessKey: String(
+        raw.awsSecretAccessKey || envPick("AWS_SECRET_ACCESS_KEY"),
+      ).trim(),
+      awsRegion: String(
+        raw.awsRegion || envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
+      ).trim(),
     };
   } catch {
-    return {
-      baseUrl: "",
-      apiKey: "",
-      model: "",
-      preferredAgentId: "",
-      projectsRoot: "",
-      activeProjectPath: "",
-    };
+    return emptyLiveConfig();
   }
 }
 
 function writeConfig(partial) {
   ensureLiveDirs();
   const cur = readConfig();
+  const pick = (key) =>
+    partial[key] !== undefined ? String(partial[key]).trim() : cur[key];
   const next = {
-    baseUrl: partial.baseUrl !== undefined ? String(partial.baseUrl).trim() : cur.baseUrl,
-    apiKey: partial.apiKey !== undefined ? String(partial.apiKey).trim() : cur.apiKey,
-    model: partial.model !== undefined ? String(partial.model).trim() : cur.model,
-    preferredAgentId:
-      partial.preferredAgentId !== undefined
-        ? String(partial.preferredAgentId).trim()
-        : cur.preferredAgentId,
+    baseUrl: pick("baseUrl"),
+    apiKey: pick("apiKey"),
+    model: pick("model"),
+    preferredAgentId: pick("preferredAgentId"),
     projectsRoot:
       partial.projectsRoot !== undefined
         ? String(partial.projectsRoot).trim().replace(/[\\/]+$/, "")
@@ -346,13 +426,107 @@ function writeConfig(partial) {
       partial.activeProjectPath !== undefined
         ? String(partial.activeProjectPath).trim().replace(/[\\/]+$/, "")
         : cur.activeProjectPath,
+    aliyunAccessKeyId: pick("aliyunAccessKeyId"),
+    aliyunAccessKeySecret: pick("aliyunAccessKeySecret"),
+    cloudflareApiToken: pick("cloudflareApiToken"),
+    cloudflareAccountId: pick("cloudflareAccountId"),
+    awsAccessKeyId: pick("awsAccessKeyId"),
+    awsSecretAccessKey: pick("awsSecretAccessKey"),
+    awsRegion: pick("awsRegion"),
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  try {
+    fs.chmodSync(configPath(), 0o600);
+  } catch {
+    // best-effort; Windows may ignore
+  }
   return next;
 }
 
 function configReady(cfg = readConfig()) {
   return Boolean(cfg.baseUrl && cfg.apiKey && cfg.model);
+}
+
+/** Both AccessKey ID and Secret present → 阿里云 may appear in deploy UI. */
+function hasAliyunCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.aliyunAccessKeyId || "").trim() &&
+      String(cfg.aliyunAccessKeySecret || "").trim(),
+  );
+}
+
+function hasCloudflareCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.cloudflareApiToken || "").trim() &&
+      String(cfg.cloudflareAccountId || "").trim(),
+  );
+}
+
+function hasAwsCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.awsAccessKeyId || "").trim() &&
+      String(cfg.awsSecretAccessKey || "").trim(),
+  );
+}
+
+/** Env map for Alibaba Cloud CLIs / SDKs (never log values). */
+function aliyunDeployEnv(cfg = readConfig()) {
+  if (!hasAliyunCredentials(cfg)) return null;
+  const id = String(cfg.aliyunAccessKeyId).trim();
+  const secret = String(cfg.aliyunAccessKeySecret).trim();
+  return {
+    ALIBABA_CLOUD_ACCESS_KEY_ID: id,
+    ALIBABA_CLOUD_ACCESS_KEY_SECRET: secret,
+    ALIYUN_ACCESS_KEY_ID: id,
+    ALIYUN_ACCESS_KEY_SECRET: secret,
+  };
+}
+
+function cloudflareDeployEnv(cfg = readConfig()) {
+  if (!hasCloudflareCredentials(cfg)) return null;
+  return {
+    CLOUDFLARE_API_TOKEN: String(cfg.cloudflareApiToken).trim(),
+    CLOUDFLARE_ACCOUNT_ID: String(cfg.cloudflareAccountId).trim(),
+  };
+}
+
+function awsDeployEnv(cfg = readConfig()) {
+  if (!hasAwsCredentials(cfg)) return null;
+  const env = {
+    AWS_ACCESS_KEY_ID: String(cfg.awsAccessKeyId).trim(),
+    AWS_SECRET_ACCESS_KEY: String(cfg.awsSecretAccessKey).trim(),
+  };
+  const region = String(cfg.awsRegion || "").trim();
+  if (region) {
+    env.AWS_DEFAULT_REGION = region;
+    env.AWS_REGION = region;
+  }
+  return env;
+}
+
+function deployEnvForTarget(target, cfg = readConfig()) {
+  if (target === "aliyun") return aliyunDeployEnv(cfg);
+  if (target === "cloudflare") return cloudflareDeployEnv(cfg);
+  if (target === "aws") return awsDeployEnv(cfg);
+  return null;
+}
+
+function assertDeployCredentials(target) {
+  if (target === "aliyun" && !hasAliyunCredentials()) {
+    throw new Error(
+      "未配置阿里云 AccessKey。请在设置中填写 AccessKey ID 与 AccessKey Secret。",
+    );
+  }
+  if (target === "cloudflare" && !hasCloudflareCredentials()) {
+    throw new Error(
+      "未配置 Cloudflare。请在设置中填写 API Token 与 Account ID。",
+    );
+  }
+  if (target === "aws" && !hasAwsCredentials()) {
+    throw new Error(
+      "未配置 AWS。请在设置中填写 Access Key ID 与 Secret Access Key。",
+    );
+  }
 }
 
 function publicUpdate() {
@@ -381,6 +555,9 @@ function publicConfig(cfg = readConfig()) {
     baseUrl: cfg.baseUrl || "",
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
+    hasAliyunCredentials: hasAliyunCredentials(cfg),
+    hasCloudflareCredentials: hasCloudflareCredentials(cfg),
+    hasAwsCredentials: hasAwsCredentials(cfg),
     provider: inferProviderId(cfg),
     preferredAgentId: cfg.preferredAgentId || "",
     projectsRoot: cfg.projectsRoot || "",
@@ -509,24 +686,26 @@ function nextJobDir() {
   return { root, nextNum: max + 1 };
 }
 
-const SYSTEM_PROMPT = `你是「Duaer-spec FED」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
+const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
 
 规则：
 1. 缺关键可执行信息时，每次只问 1 个卡点问题；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
-2. 维护四块：goal（要做什么）、outOfScope（不做什么）、acceptance（验收标准）、assumptions（假设）。
-3. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
-4. 四块够清楚、验收可检查时，直接填卡并 ready=true，让用户去点确认（确认前系统会自动校验）。
-5. 不要写代码。不要假设用户仓库路径。
-6. 只要问题是让用户做选择（A/B、平台、是否、静态/带后端等），必须在 JSON 的 options 填 2～5 个短选项（每个≤20字）。用户界面会显示可点击按钮，一点即发。禁止只在正文用「1. 2. 3.」或「请回复数字/请输入」却把 options 留空。
-7. 输出格式（严格）：
+2. 系统可能很大：边聊边发现模块清单 modules（id/title/status）。对话可以乱跳模块；把内容写进对应模块的四块，不要强迫用户按顺序说完。
+3. 每个模块维护四块：goal、outOfScope、acceptance、assumptions。小项目可只有一个模块（id=main）。
+4. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
+5. ready=true 只表示**当前 active 模块**可确认，不是整系统开工。不要催用户立刻派工。
+6. 不要写代码。不要假设用户仓库路径。
+7. 只要问题是让用户做选择，必须在 JSON 的 options 填 2～5 个短选项（每个≤20字）。禁止只在正文列选项却把 options 留空。
+8. 输出格式（严格）：
    - 先写对用户说的纯文本（可多行，不要 JSON；正文里不要再列一遍选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
-{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}
+说明：顶层 goal/outOfScope/acceptance/assumptions/ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
-const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
+const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
 
 规则：
 1. 缺关键信息时每次只问 1 个问题；信息够时直接填可执行的四块并 ready=true，不要用「请从 A/B/C/D 风格里选」代替验收标准。
@@ -544,7 +723,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
+const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
 
 规则：
 1. 未 ready 前：每次回复必须提出 1 个具体问题，并在 JSON 的 options 给出 2～5 个短选项。禁止只复述需求/主路径而不提问。
@@ -556,12 +735,12 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需�
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）。未成型时必须：
 {"ready":false,"options":["选项A","选项B"],"title":"可选标题"}
-   - 架构已可确认时必须 ready=true，并带完整 architecture IR。对用户说的纯文本只能类似：「架构图已生成，请在右侧计划托管区域查看，满意后点确认架构。」禁止说「JSON / 可渲染 / 请确认 JSON」等字样。
+   - 架构已可确认时必须 ready=true，并带完整 architecture IR。对用户说的纯文本只能类似：「架构图已生成，请在中间栏系统架构区域查看，满意后点确认架构。」禁止说「JSON / 可渲染 / 请确认 JSON」等字样。
 {"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"…","quality_profile":"standard"},"components":[{"id":"users","type":"external","label":"Users","sublabel":"Browser"}],"boundaries":[],"connections":[{"id":"c1","from":"users","to":"app","label":"HTTPS","variant":"emphasis"}],"cards":[{"dot":"cyan","title":"Overview","items":["…"]}],"options":[]}
 6. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
 7. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
 
-const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
+const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将锁定**某一个模块**的确认卡（尚未整系统开工）。目标是：规范该模块需求，使数字员工日后能交付可核对成品。
 
 检查：
 1. goal 是否单一、可执行（一件事，不要堆多个无关功能）
@@ -573,11 +752,11 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将�
 规则：
 - 若小改即可通过：修订四块（尤其把 acceptance 改成可检查句子），passed=true
 - 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
-- 不要写代码。不要假设仓库路径。
+- 不要写代码。不要假设仓库路径。不要催派工。
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FED」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
@@ -749,6 +928,31 @@ function parseChatResult(content) {
       if (typeof v === "number" || typeof v === "boolean") return String(v);
       return "";
     };
+    const modulesRaw = Array.isArray(obj.modules) ? obj.modules : undefined;
+    const modules = modulesRaw
+      ? modulesRaw
+          .map((m) => {
+            if (!m || typeof m !== "object") return null;
+            const id = flat(m.id) || flat(m.title);
+            if (!id) return null;
+            return {
+              id: id.slice(0, 80),
+              title: (flat(m.title) || id).slice(0, 120),
+              status: ["draft", "ready", "confirmed"].includes(m.status)
+                ? m.status
+                : "draft",
+              goal: flat(m.goal ?? m.card?.goal),
+              outOfScope: flat(m.outOfScope ?? m.card?.outOfScope),
+              acceptance: flat(m.acceptance ?? m.card?.acceptance),
+              assumptions: flat(m.assumptions ?? m.card?.assumptions),
+              dependsOn: Array.isArray(m.dependsOn)
+                ? m.dependsOn.map((x) => flat(x)).filter(Boolean).slice(0, 20)
+                : [],
+            };
+          })
+          .filter(Boolean)
+          .slice(0, 40)
+      : undefined;
     return {
       reply: reply || "请继续补充。",
       goal: flat(obj.goal),
@@ -756,6 +960,8 @@ function parseChatResult(content) {
       acceptance: flat(obj.acceptance),
       assumptions: flat(obj.assumptions),
       ready: Boolean(obj.ready),
+      activeModuleId: flat(obj.activeModuleId) || undefined,
+      modules,
       options: enrichChatOptions(
         reply || flat(obj.reply),
         Array.isArray(obj.options) ? obj.options : [],
@@ -787,6 +993,23 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
     acceptance: String(parsed?.acceptance || ""),
     assumptions: String(parsed?.assumptions || ""),
     ready: Boolean(parsed?.ready),
+    activeModuleId: parsed?.activeModuleId
+      ? String(parsed.activeModuleId).slice(0, 80)
+      : undefined,
+    modules: Array.isArray(parsed?.modules)
+      ? parsed.modules.slice(0, 40).map((m) => ({
+          id: String(m.id || "").slice(0, 80),
+          title: String(m.title || m.id || "").slice(0, 120),
+          status: String(m.status || "draft").slice(0, 20),
+          goal: String(m.goal || "").slice(0, 4000),
+          outOfScope: String(m.outOfScope || "").slice(0, 4000),
+          acceptance: String(m.acceptance || "").slice(0, 4000),
+          assumptions: String(m.assumptions || "").slice(0, 4000),
+          dependsOn: Array.isArray(m.dependsOn)
+            ? m.dependsOn.map(String).slice(0, 20)
+            : [],
+        }))
+      : undefined,
     options: Array.isArray(parsed?.options)
       ? parsed.options.slice(0, 6).map(String)
       : [],
@@ -796,7 +1019,42 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
       includeJsonBlock && typeof parsed?.jsonBlock === "string"
         ? parsed.jsonBlock.slice(0, 200_000)
         : undefined,
+    architectureUrl: parsed?.architectureUrl
+      ? String(parsed.architectureUrl).slice(0, 300)
+      : undefined,
+    architectureSummary: parsed?.architectureSummary
+      ? String(parsed.architectureSummary).slice(0, 2000)
+      : undefined,
+    architectureViewBox: Array.isArray(parsed?.architectureViewBox)
+      ? parsed.architectureViewBox
+      : undefined,
   };
+}
+
+/**
+ * When architecture chat includes IR, render HTML on the server so the desk
+ * always gets a URL even if the client fails to extract JSON.
+ */
+function attachArchitectureRender(parsed) {
+  if (!parsed || typeof parsed !== "object") return parsed;
+  try {
+    const ir = extractArchitectureIr(
+      `${parsed.reply || ""}\n${parsed.jsonBlock || ""}`,
+    );
+    if (!ir?.components?.length) return parsed;
+    const rendered = renderArchitectureHtml(liveRoot(), ir);
+    const vb = rendered.ir?.meta?.viewBox;
+    return {
+      ...parsed,
+      ready: true,
+      diagram_type: "architecture",
+      architectureUrl: rendered.urlPath,
+      architectureSummary: rendered.summary || "",
+      architectureViewBox: Array.isArray(vb) ? vb : null,
+    };
+  } catch {
+    return parsed;
+  }
 }
 
 function writeSse(res, payload) {
@@ -870,7 +1128,10 @@ async function streamChatResponse(
         emitted = safeLen;
       }
     }
-    const parsed = parseChatResult(full);
+    const parsedRaw = parseChatResult(full);
+    const parsed = includeJsonBlock
+      ? attachArchitectureRender(parsedRaw)
+      : parsedRaw;
     if (!inJson && parsed.reply && emitted < parsed.reply.length) {
       writeSse(res, {
         type: "delta",
@@ -1071,7 +1332,7 @@ function writeBrief(payload) {
 
 **Created**: ${today}
 
-**Status**: Confirmed (Duaer-spec FED)
+**Status**: Confirmed (Duaer-spec FDE)
 
 **Input**: ${rawAsk || goal}
 
@@ -1093,7 +1354,7 @@ ${assumptions || "- (none)"}
 ${reviewBlock}
 ## Notes
 
-Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product repo worktree from the live desk.
+Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product repo worktree from the live desk.
 `;
 
   const tasks = `# Tasks
@@ -1130,7 +1391,7 @@ Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product re
     "utf8",
   );
 
-  const agentPrompt = `Duaer-spec FED 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
+  const agentPrompt = `Duaer-spec FDE 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
@@ -1383,7 +1644,7 @@ function cmdRepoAdd(opts) {
     probe.path,
   );
   console.log(JSON.stringify(probe, null, 2));
-  console.log("Duaer-spec FED 派工时可直接点选。");
+  console.log("Duaer-spec FDE 派工时可直接点选。");
 }
 
 /**
@@ -2152,9 +2413,20 @@ function appleScriptString(s) {
  *
  * When `reuseKey` is set (typically the worktree path), subsequent launches
  * enqueue into the same Terminal runner instead of opening a new window.
+ * Optional `queueLane` (e.g. w1 / w2) isolates parallel digital employees into
+ * separate queues so they do not fight one runner.lock.d.
  */
-function terminalQueueDir(worktreePath) {
-  return path.join(worktreePath, ".duaer", "live-terminal");
+function normalizeTerminalQueueLane(lane) {
+  const raw = String(lane || "").trim();
+  if (!raw) return "";
+  const safe = raw.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe.slice(0, 40);
+}
+
+function terminalQueueDir(worktreePath, queueLane = null) {
+  const base = path.join(worktreePath, ".duaer", "live-terminal");
+  const lane = normalizeTerminalQueueLane(queueLane);
+  return lane ? path.join(base, lane) : base;
 }
 
 function isPidAlive(pid) {
@@ -2421,7 +2693,7 @@ function restoreTextFile(filePath, snap) {
   fs.writeFileSync(filePath, snap.content, "utf8");
 }
 
-function terminalQueueSnapshot(worktreePath) {
+function terminalQueueSnapshot(worktreePath, queueLane = null) {
   if (!worktreePath || !fs.existsSync(worktreePath)) {
     return {
       busy: false,
@@ -2429,7 +2701,7 @@ function terminalQueueSnapshot(worktreePath) {
       runnerHealthy: false,
     };
   }
-  const qdir = terminalQueueDir(worktreePath);
+  const qdir = terminalQueueDir(worktreePath, queueLane);
   return {
     busy: isTerminalRunnerBusy(qdir),
     queueDepth: countQueuedJobs(qdir),
@@ -2487,19 +2759,36 @@ function countQueuedJobs(queueDir) {
   }
 }
 
+/** Prefix shell exports for Terminal jobs (secrets must use shellSingleQuote). */
+function withShellEnvExports(commandLine, envExtra) {
+  if (!envExtra || typeof envExtra !== "object") return commandLine;
+  const lines = [];
+  for (const [k, v] of Object.entries(envExtra)) {
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(k)) continue;
+    const val = String(v ?? "").trim();
+    if (!val) continue;
+    lines.push(`export ${k}=${shellSingleQuote(val)}`);
+  }
+  if (!lines.length) return commandLine;
+  return `${lines.join("\n")}\n${commandLine}`;
+}
+
 function launchInTerminal({
   cwd,
   commandLine,
   logPath,
   reuseKey = null,
+  queueLane = null,
   preemptBusy = false,
+  envExtra = null,
 }) {
+  const line = withShellEnvExports(commandLine, envExtra);
   const stamped = `[${new Date().toISOString()}] terminal: ${commandLine}`;
   appendLaunchLog(logPath, stamped);
 
   const key = reuseKey || cwd;
   if (key && fs.existsSync(key)) {
-    const qdir = terminalQueueDir(key);
+    const qdir = terminalQueueDir(key, queueLane);
     fs.mkdirSync(qdir, { recursive: true });
 
     if (isTerminalRunnerHealthy(qdir)) {
@@ -2549,7 +2838,7 @@ function launchInTerminal({
         }
       }
 
-      const jobPath = enqueueTerminalJob(qdir, commandLine);
+      const jobPath = enqueueTerminalJob(qdir, line);
       const queuedCount = countQueuedJobs(qdir);
       busy = isTerminalRunnerBusy(qdir);
       try {
@@ -2579,7 +2868,7 @@ function launchInTerminal({
     }
 
     // Stale/dead PID or pre-heartbeat runner: do not claim reuse
-    const jobPath = enqueueTerminalJob(qdir, commandLine);
+    const jobPath = enqueueTerminalJob(qdir, line);
     const queuedCount = countQueuedJobs(qdir);
     const stalePid = readRunnerPid(qdir);
     if (stalePid != null) {
@@ -2722,7 +3011,7 @@ clear
 echo "[duaer] running Cursor CLI in Terminal"
 echo "[duaer] cwd: $(pwd)"
 echo
-${commandLine}
+${line}
 status=$?
 echo
 echo "[duaer] exit=$status — press Enter to close"
@@ -2753,9 +3042,9 @@ read _
 
   // Linux / other — also non-blocking
   for (const [cmd, args] of [
-    ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
-    ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
-    ["konsole", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${commandLine}; exec bash`]],
+    ["gnome-terminal", ["--", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
+    ["x-terminal-emulator", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
+    ["konsole", ["-e", "bash", "-lc", `cd ${shellSingleQuote(cwd)} && ${line}; exec bash`]],
   ]) {
     if (!whichCmd(cmd)) continue;
     const child = spawn(cmd, args, {
@@ -2767,7 +3056,7 @@ read _
     return { pid: child.pid ?? null, mode: "terminal", reused: false };
   }
 
-  const child = spawn("bash", ["-lc", commandLine], {
+  const child = spawn("bash", ["-lc", line], {
     detached: true,
     cwd,
     stdio: "ignore",
@@ -2902,6 +3191,10 @@ function launchAgent({
   continueSession = false,
   /** When true (revise after accept / recreate): use revise prompt file + preempt leftover busy agent. */
   reviseLaunch = false,
+  /** Optional env exports injected into the Terminal shell (e.g. Alibaba Cloud keys). */
+  envExtra = null,
+  /** Parallel digital-employee lane (w1/w2/…) — own Terminal queue + lock. */
+  queueLane = null,
 }) {
   const id = String(agentId || "none").trim() || "none";
   // Kick 10-day worker CLI check/upgrade without blocking dispatch
@@ -2924,6 +3217,7 @@ function launchAgent({
     openedWorktree: false,
     continueSession: Boolean(continueSession),
     cli: detected.cli || null,
+    queueLane: normalizeTerminalQueueLane(queueLane) || null,
   };
 
   if (id === "none") {
@@ -2949,11 +3243,16 @@ function launchAgent({
 
   // Always write revise prompts to agent-revise-prompt.txt so we never clobber
   // the original launch prompt while the first agent is still reading it.
+  const lane = normalizeTerminalQueueLane(queueLane);
   const promptFile = path.join(
     path.dirname(outLog),
     reviseLaunch || continueSession
-      ? "agent-revise-prompt.txt"
-      : "agent-launch-prompt.txt",
+      ? lane
+        ? `agent-revise-prompt-${lane}.txt`
+        : "agent-revise-prompt.txt"
+      : lane
+        ? `agent-launch-prompt-${lane}.txt`
+        : "agent-launch-prompt.txt",
   );
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
@@ -2969,7 +3268,9 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      queueLane,
       preemptBusy,
+      envExtra,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
@@ -2987,10 +3288,10 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
+    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote}${launch.queueLane ? ` ${launch.queueLane}` : ""})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
-    // Same consent as 「Yes, I trust this folder」— only for the FED worktree
+    // Same consent as 「Yes, I trust this folder」— only for the FDE worktree
     // the human already dispatched into (mirrors Cursor --trust).
     const trust = markClaudeWorkspacesTrusted(worktreePath);
     if (trust.ok) {
@@ -3012,7 +3313,9 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      queueLane,
       preemptBusy,
+      envExtra,
     });
     launch.pid = term.pid;
     launch.mode = term.mode || "terminal";
@@ -3029,7 +3332,7 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `claude --permission-mode bypassPermissions${continueSession ? " --continue" : ""} (${queueNote})`;
+    launch.command = `claude --permission-mode bypassPermissions${continueSession ? " --continue" : ""} (${queueNote}${launch.queueLane ? ` ${launch.queueLane}` : ""})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
@@ -3078,8 +3381,44 @@ function dispatchToRepo({
   architectureSummary: architectureSummaryRaw,
   architectureUrl: architectureUrlRaw,
   architectureIr: architectureIrRaw,
+  modules: modulesRaw,
+  workerCount: workerCountRaw,
+  rawAsk,
 }) {
-  const live = readLiveJob(jobId);
+  let liveJobId = String(jobId || "").trim();
+  const modules = clipModules(modulesRaw);
+  const workerCount = clipWorkerCount(workerCountRaw);
+
+  // Kickoff owns Brief write: create live job from confirmed modules when needed.
+  if (!liveJobId) {
+    if (!modulesAllConfirmed(modules)) {
+      throw new Error("请先确认全部模块需求后再开工");
+    }
+    const agg = aggregateModulesCard(modules);
+    const brief = writeBrief({
+      goal: agg.goal,
+      outOfScope: agg.outOfScope,
+      acceptance: agg.acceptance,
+      assumptions: agg.assumptions,
+      rawAsk: rawAsk || agg.goal,
+      projectPath: repoPath || readConfig().activeProjectPath,
+      review: { summary: `Modular kickoff (${modules.length} modules)` },
+    });
+    liveJobId = brief.jobId;
+    try {
+      const live = readLiveJob(liveJobId);
+      const next = {
+        ...live.job,
+        modules,
+        modular: true,
+      };
+      fs.writeFileSync(live.jobPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const live = readLiveJob(liveJobId);
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
   const probe = probeRepo(repoPath, {
     bootstrap: true,
@@ -3134,13 +3473,51 @@ function dispatchToRepo({
   }
   const deployPlan = deployPromptForTarget(deployTarget);
   const deployNeeded = deployPlan.needed || isDeployPlanned(deployTarget);
+  const moduleList =
+    modules.length > 0
+      ? modules
+      : clipModules(live.job.modules, {
+          goal: goalBody,
+          outOfScope: extractSection(live.spec, "Out of scope") || "",
+          acceptance: acceptBody,
+          assumptions: assumeBody,
+        });
+  const confirmedModules = moduleList.map((m) =>
+    m.status === "confirmed" ? m : { ...m, status: "confirmed" },
+  );
+  const poolBase = buildTaskPoolFromModules(confirmedModules, {
+    deployNeeded,
+    deployTaskText: deployPlan.deployTaskText,
+  });
+  const assigned = assignTasksToWorkers(poolBase, workerCount);
+  const taskPool = {
+    ...poolBase,
+    tasks: assigned.tasks,
+    workerCount: assigned.workerCount,
+  };
+  const productTasks = taskPoolToMarkdown(taskPool);
+
+  const modulesBlock =
+    confirmedModules.length > 1
+      ? `
+
+## Modules
+
+${confirmedModules
+  .map(
+    (m) =>
+      `### ${m.title} (\`${m.id}\`)\n\n**Goal:** ${m.card.goal}\n\n**Out of scope:** ${m.card.outOfScope || "(none)"}\n\n**Acceptance:** ${m.card.acceptance}\n\n**Assumptions:** ${m.card.assumptions || "(none)"}\n`,
+  )
+  .join("\n")}`
+      : "";
+
   const productSpec = `# Feature Specification: ${goal}
 
 **Feature Branch**: \`${branch}\`
 
 **Created**: ${today}
 
-**Status**: Dispatched (Duaer-spec FED)
+**Status**: Dispatched (Duaer-spec FDE)
 
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
@@ -3155,22 +3532,21 @@ ${acceptBody}
 
 ## Assumptions
 ${assumeBody}
-
+${modulesBlock}
 ## Notes
 
-Dispatched from Duaer-spec FED into product worktree \`${worktreePath}\`.
+Dispatched from Duaer-spec FDE into product worktree \`${worktreePath}\`.
+Task pool workers: ${assigned.workerCount} (same CLI family).
 ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
-  const productTasks = buildDetailedProductTasksMd({
-    goal: goalBody || goal,
-    acceptance: acceptBody,
-    deployNeeded,
-    deployTaskText: deployPlan.deployTaskText,
-  });
-
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
   fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
+  fs.writeFileSync(
+    path.join(featureDir, "task-pool.json"),
+    `${JSON.stringify(taskPool, null, 2)}\n`,
+    "utf8",
+  );
   const archSummary = String(architectureSummaryRaw || "").trim();
   const archUrl = String(architectureUrlRaw || "").trim();
   const architectureIr = resolveArchitectureIr(architectureIrRaw, archUrl);
@@ -3200,6 +3576,7 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
         deployTarget,
         deployViaGithubCli: deployTarget === "github-pages",
         architectureSummary: archSummary || undefined,
+        workerCount: assigned.workerCount,
       },
       null,
       2,
@@ -3219,22 +3596,25 @@ ${archUrl ? `架构图（只读参考）：${archUrl}` : ""}
 
   const defaultPrompt = `Duaer
 
-按 Duaer 数字员工流程在本 worktree 开工（Duaer-spec FED 已派工）。
+按 Duaer 数字员工流程在本 worktree 开工（Duaer-spec FDE 已派工）。
 
 工作目录: ${worktreePath}
 Brief: ${featureDir}
 分支: ${branch}
 产品仓: ${probe.path}
 计划托管: ${deployTarget}
+任务池: ${path.join(featureDir, "task-pool.json")}（含 dependsOn；可并行的先做）
 
 要求：
-0. 本 Brief 已在 Duaer-spec FED 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本 Brief 已在 Duaer-spec FDE 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
+4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波全部勾完后停止等待下一波（编排器会 continue）
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
+5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
 7. 合入 develop 并 handoff 清理 worktree
@@ -3282,14 +3662,79 @@ Brief: ${featureDir}
   }
 
   const logPath = path.join(featureDir, "agent-launch.log");
-  const launch = launchAgent({
-    agentId: chosen,
-    worktreePath,
-    agentPrompt,
-    logPath,
-    featureDir,
-  });
+  const doneSet = new Set();
+  const releasedWaves = {};
+  const launches = [];
+  for (let w = 1; w <= assigned.workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const workerTasks = assigned.tasks.filter((t) => t.workerId === workerId);
+    const ownedIds = workerTasks.map((t) => t.id);
+    const wave = waveForWorker(taskPool, workerId, doneSet);
+    const waveIds = wave.map((t) => t.id);
+    if (!waveIds.length) {
+      launches.push({
+        workerId,
+        taskIds: ownedIds,
+        waveTaskIds: [],
+        skipped: true,
+        reason: "waiting_deps",
+        agentId: chosen,
+        kind: "deferred",
+      });
+      continue;
+    }
+    const fp = fingerprintWave(waveIds);
+    releasedWaves[workerId] = [fp];
+    const waveList = wave
+      .map((t) => `- ${t.id}: ${t.title || t.id}`)
+      .join("\n");
+    const workerPrompt =
+      assigned.workerCount === 1
+        ? `${agentPrompt}
+
+——
+编排波次（只做这些已放行任务）：
+${waveList}
+
+本波全部改成 - [x] 后停止；不要开始未放行 / 未满足 dependsOn 的任务。编排器会在依赖就绪后继续派发。
+`
+        : `${agentPrompt}
+
+——
+你是并行数字员工 ${workerId}/${assigned.workerCount}（同一 CLI：${chosen}）。
+你负责的全部任务：${ownedIds.join(", ") || "(none)"}。
+当前编排波次（只做这些）：
+${waveList}
+
+本波全部改成 - [x] 后停止；不要开始未放行 / 未满足 dependsOn 的任务。其他任务由同事或后续波次负责。不要改 Brief 范围外的东西。
+`;
+    const wLog =
+      assigned.workerCount === 1
+        ? logPath
+        : path.join(featureDir, `agent-launch-${workerId}.log`);
+    const launch = launchAgent({
+      agentId: chosen,
+      worktreePath,
+      agentPrompt: workerPrompt,
+      logPath: wLog,
+      featureDir,
+      queueLane: assigned.workerCount > 1 ? workerId : null,
+    });
+    launches.push({
+      workerId,
+      ...launch,
+      taskIds: ownedIds,
+      waveTaskIds: waveIds,
+    });
+  }
+  const launch = launches.find((l) => !l.skipped) || launches[0] || null;
   rememberPreferredAgent(chosen);
+
+  const orchestration = {
+    version: 1,
+    releasedWaves,
+    updatedAt: new Date().toISOString(),
+  };
 
   const dispatch = {
     repoPath: probe.path,
@@ -3300,8 +3745,12 @@ Brief: ${featureDir}
     featureDir,
     dispatchedAt: new Date().toISOString(),
     deployTarget,
-    openedWith: launch.kind === "open" ? launch.agentId : null,
+    openedWith: launch?.kind === "open" ? launch.agentId : null,
     launch,
+    launches,
+    workerCount: assigned.workerCount,
+    taskPool,
+    orchestration,
     startCommand: agentPrompt,
     duaerInstall: {
       repo: probe.duaer || { action: "already", path: probe.path },
@@ -3316,6 +3765,9 @@ Brief: ${featureDir}
     deployTarget,
     dispatch,
     agentPrompt,
+    modules: confirmedModules,
+    taskPool,
+    orchestration,
   };
   fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
@@ -3367,7 +3819,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
   };
 }
 
-const REVISE_PROMPT = `你是「Duaer-spec FED」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
+const REVISE_PROMPT = `你是「Duaer-spec FDE」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
 
 规则：
 1. 提炼 change（改什么）、acceptance（怎么算改好）、keep（不要动什么）
@@ -3743,7 +4195,7 @@ ${reasonLine || text}
 
   const defaultPrompt = `Duaer
 
-用户看过成品后不满意，请在同一 worktree 继续改进（Duaer-spec FED Revision ${revN}）。
+用户看过成品后不满意，请在同一 worktree 继续改进（Duaer-spec FDE Revision ${revN}）。
 ${
   recreated
     ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。"
@@ -3769,11 +4221,12 @@ ${restated.acceptance}
 ${restated.keep}
 
 要求：
-0. 本轮 Revision 已在 Duaer-spec FED 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本轮 Revision 已在 Duaer-spec FDE 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
-2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
+2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
 2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）；若是服务须先启动并可打开
+3b. 交付前必须更新产品仓 README（说明文档）以反映本轮改动后的行为/用法；需求变了就改 README，不要只改代码。英文 README 不得出现中文；中文说明用 README.zh-CN.md（或项目既有约定）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
 `;
@@ -3877,6 +4330,7 @@ async function deployDispatchedJob({ jobId, agentId, deployTarget: deployTargetR
   );
   const defaultedFromNone = deployTarget === "none";
   if (defaultedFromNone) deployTarget = "github-pages";
+  assertDeployCredentials(deployTarget);
   const deployPlan = deployPromptForTarget(deployTarget);
 
   const revN = Number(live.job.revisionCount || 0) + 1;
@@ -4013,6 +4467,15 @@ Brief: ${dispatch.featureDir}
 ${deployPlan.promptBlock}
 3. 部署成功后 stamp delivery.json accepted，preview.url 必须是公网可打开地址（不要只用 localhost）
 4. 用户点了「部署」即授权本次发布所需的 push / gh / 平台 CLI（仍禁止 force-push 与无关分支）
+${
+  deployTarget === "aliyun"
+    ? "5. 阿里云凭证已注入环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET（及 ALIYUN_* 别名）；禁止打印密钥、禁止写入产品仓"
+    : deployTarget === "cloudflare"
+      ? "5. Cloudflare 凭证已注入 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID；禁止打印密钥、禁止写入产品仓"
+      : deployTarget === "aws"
+        ? "5. AWS 凭证已注入 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY（及可选 AWS_DEFAULT_REGION）；禁止打印密钥、禁止写入产品仓"
+        : ""
+}
 `;
 
   const logPath = path.join(featureDir, "agent-launch.log");
@@ -4031,6 +4494,7 @@ ${deployPlan.promptBlock}
       featureDir,
       continueSession,
       reviseLaunch: true,
+      envExtra: deployEnvForTarget(deployTarget),
     });
   } catch (err) {
     restoreTextFile(specPath, snapSpec);
@@ -4472,6 +4936,160 @@ function contentTypeFor(filePath) {
   return map[ext] || "application/octet-stream";
 }
 
+/**
+ * Release next ready waves to idle Terminal lanes (continueSession).
+ * Idempotent via orchestration.releasedWaves fingerprints.
+ */
+function advanceOrchestration(live, {
+  progress,
+  worktreePath,
+  featureDir,
+  terminalsByLane = {},
+  accepted = false,
+} = {}) {
+  if (accepted) {
+    return live.job.orchestration || live.job.dispatch?.orchestration || null;
+  }
+  const dispatch = live.job.dispatch || {};
+  const pool = dispatch.taskPool || live.job.taskPool || null;
+  if (!pool?.tasks?.length || !worktreePath) {
+    return live.job.orchestration || dispatch.orchestration || null;
+  }
+  const workerCount = Math.max(
+    Number(dispatch.workerCount) || 0,
+    Array.isArray(dispatch.launches) ? dispatch.launches.length : 0,
+    1,
+  );
+  const doneSet = doneIdsFromProgress(progress);
+  const prev =
+    live.job.orchestration ||
+    dispatch.orchestration ||
+    { version: 1, releasedWaves: {} };
+  const releasedWaves = {
+    ...(prev.releasedWaves && typeof prev.releasedWaves === "object"
+      ? prev.releasedWaves
+      : {}),
+  };
+  const pending = pendingWaveReleases({
+    pool,
+    workerCount,
+    doneSet,
+    releasedWaves,
+    terminals:
+      workerCount > 1
+        ? terminalsByLane
+        : { w1: terminalsByLane.w1 || terminalsByLane.default || {} },
+  });
+
+  const agentId =
+    dispatch.launch?.agentId ||
+    dispatch.launches?.find((l) => l?.agentId)?.agentId ||
+    null;
+  let changed = false;
+  const errors = [];
+
+  for (const item of pending) {
+    if (item.reason !== "ready") continue;
+    if (!agentId) {
+      errors.push(`${item.workerId}: missing agentId`);
+      continue;
+    }
+    const waveIds = item.wave.map((t) => t.id);
+    const waveList = item.wave
+      .map((t) => `- ${t.id}: ${t.title || t.id}`)
+      .join("\n");
+    const owned = (pool.tasks || [])
+      .filter((t) => String(t.workerId || "") === item.workerId)
+      .map((t) => t.id);
+    const prompt = `Duaer
+
+编排器放行下一波任务（continue）。工作目录: ${worktreePath}
+Brief: ${featureDir || dispatch.featureDir || ""}
+
+你是数字员工 ${item.workerId}/${workerCount}。
+你负责的全部任务：${owned.join(", ") || "(none)"}。
+当前编排波次（只做这些）：
+${waveList}
+
+要求：
+1. 只做本波已放行任务；立刻把完成项改成 tasks.md 的 - [x]
+2. 不要开始未放行 / 未满足 dependsOn 的任务
+3. 本波全部勾完后停止；编排器会继续派发
+4. 只在上述 worktree 内改动；不要推远程除非明确要求
+`;
+    const wLog =
+      workerCount === 1
+        ? path.join(featureDir || dispatch.featureDir, "agent-launch.log")
+        : path.join(
+            featureDir || dispatch.featureDir,
+            `agent-launch-${item.workerId}.log`,
+          );
+    try {
+      launchAgent({
+        agentId,
+        worktreePath,
+        agentPrompt: prompt,
+        logPath: wLog,
+        featureDir: featureDir || dispatch.featureDir,
+        continueSession: true,
+        queueLane: workerCount > 1 ? item.workerId : null,
+      });
+      const prior = Array.isArray(releasedWaves[item.workerId])
+        ? releasedWaves[item.workerId]
+        : [];
+      releasedWaves[item.workerId] = [...prior, item.fingerprint];
+      changed = true;
+    } catch (err) {
+      errors.push(
+        `${item.workerId}: ${err?.message || String(err || "launch failed")}`,
+      );
+    }
+  }
+
+  const summary = orchestrationSummary({
+    pool,
+    doneSet,
+    workerCount,
+    releasedWaves,
+  });
+  const nextOrch = {
+    version: 1,
+    releasedWaves,
+    updatedAt: new Date().toISOString(),
+    summary,
+    pending: pending.map((p) => ({
+      workerId: p.workerId,
+      reason: p.reason,
+      fingerprint: p.fingerprint,
+      taskIds: p.wave.map((t) => t.id),
+    })),
+    errors: errors.length ? errors : undefined,
+  };
+
+  if (changed || JSON.stringify(prev.releasedWaves || {}) !== JSON.stringify(releasedWaves)) {
+    try {
+      const nextDispatch = { ...dispatch, orchestration: nextOrch };
+      const nextJob = {
+        ...live.job,
+        dispatch: nextDispatch,
+        orchestration: nextOrch,
+      };
+      fs.writeFileSync(
+        live.jobPath,
+        `${JSON.stringify(nextJob, null, 2)}\n`,
+        "utf8",
+      );
+      live.job = nextJob;
+    } catch {
+      // ignore persist errors; still return computed orch
+    }
+  } else if (!prev.summary) {
+    // Attach summary without forcing write when nothing released
+    return { ...prev, summary, pending: nextOrch.pending };
+  }
+  return nextOrch;
+}
+
 function dispatchStatus(jobId) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch || null;
@@ -4482,6 +5100,7 @@ function dispatchStatus(jobId) {
       dispatch: null,
       delivery: null,
       progress: null,
+      workers: [],
       activity: null,
       logTail: [],
       preview: null,
@@ -4519,7 +5138,43 @@ function dispatchStatus(jobId) {
     worktreeExists && dispatch.worktreePath
       ? worktreeActivity(dispatch.worktreePath)
       : { files: [], summary: "" };
-  const terminal = terminalQueueSnapshot(dispatch.worktreePath);
+  const launches = Array.isArray(dispatch.launches) ? dispatch.launches : [];
+  const workerCount = Math.max(
+    Number(dispatch.workerCount) || 0,
+    launches.length || 0,
+    1,
+  );
+  const multiWorker = workerCount > 1;
+  let terminal = terminalQueueSnapshot(dispatch.worktreePath);
+  const terminalsByLane = {};
+  const logTailsByLane = {};
+  if (multiWorker && dispatch.worktreePath) {
+    let anyBusy = false;
+    let queueDepth = 0;
+    let anyHealthy = false;
+    for (let w = 1; w <= workerCount; w += 1) {
+      const workerId = `w${w}`;
+      const snap = terminalQueueSnapshot(dispatch.worktreePath, workerId);
+      terminalsByLane[workerId] = snap;
+      if (snap.busy) anyBusy = true;
+      queueDepth += Number(snap.queueDepth) || 0;
+      if (snap.runnerHealthy) anyHealthy = true;
+      const launch =
+        launches.find((l) => l.workerId === workerId) || launches[w - 1];
+      const wLog =
+        launch?.logPath ||
+        (featureDir
+          ? path.join(featureDir, `agent-launch-${workerId}.log`)
+          : null);
+      logTailsByLane[workerId] = wLog ? readLogTail(wLog, 16) : [];
+    }
+    terminal = {
+      busy: anyBusy,
+      queueDepth,
+      runnerHealthy: anyHealthy,
+      lanes: terminalsByLane,
+    };
+  }
   const inferredFromTasks = inferRevisionFromTasksMd(tasksRaw);
   const revisionHint = Math.max(
     Number(live.job.revisionCount || 0),
@@ -4709,17 +5364,47 @@ function dispatchStatus(jobId) {
       ? "accepted"
       : live.job.status;
 
+  const orchTerminals =
+    multiWorker
+      ? terminalsByLane
+      : {
+          w1: terminal,
+        };
+  const orchestration = advanceOrchestration(live, {
+    progress,
+    worktreePath: dispatch.worktreePath,
+    featureDir,
+    terminalsByLane: orchTerminals,
+    accepted,
+  });
+
+  const workers = buildWorkersProgress({
+    workerCount,
+    launches: Array.isArray(live.job.dispatch?.launches)
+      ? live.job.dispatch.launches
+      : launches,
+    taskPool: live.job.dispatch?.taskPool || live.job.taskPool || dispatch.taskPool || null,
+    progress,
+    terminals: multiWorker ? terminalsByLane : {},
+    logTails: multiWorker ? logTailsByLane : {},
+    orchestration,
+  });
+
   return {
     jobId: live.id,
     status: statusOut,
     dispatch: {
-      ...dispatch,
+      ...(live.job.dispatch || dispatch),
       worktreeExists,
       featureDir: featureDir || dispatch.featureDir,
       resolvedFrom: roots.source,
+      workerCount,
+      orchestration,
     },
     delivery,
     progress,
+    workers,
+    orchestration,
     activity,
     logTail,
     preview: previewOut,
@@ -4768,20 +5453,43 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/config") {
     try {
       const body = await readJson(req);
+      const hostCredKeys = [
+        "aliyunAccessKeyId",
+        "aliyunAccessKeySecret",
+        "clearAliyunCredentials",
+        "cloudflareApiToken",
+        "cloudflareAccountId",
+        "clearCloudflareCredentials",
+        "awsAccessKeyId",
+        "awsSecretAccessKey",
+        "awsRegion",
+        "clearAwsCredentials",
+      ];
+      const noHostCreds = hostCredKeys.every((k) => body[k] === undefined);
       const onlyProjectsRoot =
         body.projectsRoot !== undefined &&
         body.baseUrl === undefined &&
         body.apiKey === undefined &&
         body.model === undefined &&
         body.preferredAgentId === undefined &&
-        body.activeProjectPath === undefined;
+        body.activeProjectPath === undefined &&
+        noHostCreds;
       const onlyActiveProject =
         body.activeProjectPath !== undefined &&
         body.baseUrl === undefined &&
         body.apiKey === undefined &&
         body.model === undefined &&
         body.preferredAgentId === undefined &&
-        body.projectsRoot === undefined;
+        body.projectsRoot === undefined &&
+        noHostCreds;
+      const onlyHostCreds =
+        !noHostCreds &&
+        body.baseUrl === undefined &&
+        body.apiKey === undefined &&
+        body.model === undefined &&
+        body.preferredAgentId === undefined &&
+        body.projectsRoot === undefined &&
+        body.activeProjectPath === undefined;
       let projectsRoot = body.projectsRoot;
       if (projectsRoot !== undefined) {
         const raw = String(projectsRoot || "").trim();
@@ -4798,6 +5506,47 @@ async function handleApi(req, res) {
         const raw = String(activeProjectPath || "").trim();
         activeProjectPath = raw ? path.resolve(raw).replace(/[\\/]+$/, "") : "";
       }
+      const hostPartial = {};
+      if (body.clearAliyunCredentials) {
+        hostPartial.aliyunAccessKeyId = "";
+        hostPartial.aliyunAccessKeySecret = "";
+      } else {
+        if (body.aliyunAccessKeyId !== undefined) {
+          hostPartial.aliyunAccessKeyId = body.aliyunAccessKeyId;
+        }
+        if (body.aliyunAccessKeySecret !== undefined) {
+          const secret = String(body.aliyunAccessKeySecret || "").trim();
+          if (secret) hostPartial.aliyunAccessKeySecret = secret;
+        }
+      }
+      if (body.clearCloudflareCredentials) {
+        hostPartial.cloudflareApiToken = "";
+        hostPartial.cloudflareAccountId = "";
+      } else {
+        if (body.cloudflareApiToken !== undefined) {
+          const token = String(body.cloudflareApiToken || "").trim();
+          if (token) hostPartial.cloudflareApiToken = token;
+        }
+        if (body.cloudflareAccountId !== undefined) {
+          hostPartial.cloudflareAccountId = body.cloudflareAccountId;
+        }
+      }
+      if (body.clearAwsCredentials) {
+        hostPartial.awsAccessKeyId = "";
+        hostPartial.awsSecretAccessKey = "";
+        hostPartial.awsRegion = "";
+      } else {
+        if (body.awsAccessKeyId !== undefined) {
+          hostPartial.awsAccessKeyId = body.awsAccessKeyId;
+        }
+        if (body.awsSecretAccessKey !== undefined) {
+          const secret = String(body.awsSecretAccessKey || "").trim();
+          if (secret) hostPartial.awsSecretAccessKey = secret;
+        }
+        if (body.awsRegion !== undefined) {
+          hostPartial.awsRegion = body.awsRegion;
+        }
+      }
       const next = writeConfig({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
@@ -4805,9 +5554,9 @@ async function handleApi(req, res) {
         preferredAgentId: body.preferredAgentId,
         projectsRoot,
         activeProjectPath,
+        ...hostPartial,
       });
-      if (onlyProjectsRoot || onlyActiveProject) {
-        // Allow saving parent / active project without re-submitting model credentials
+      if (onlyProjectsRoot || onlyActiveProject || onlyHostCreds) {
         send(res, 200, publicConfig(next));
         return;
       }
@@ -4859,6 +5608,10 @@ async function handleApi(req, res) {
         return;
       }
       const card = body.card && typeof body.card === "object" ? body.card : {};
+      const modules = Array.isArray(body.modules) ? body.modules : undefined;
+      const activeModuleId = body.activeModuleId
+        ? String(body.activeModuleId).trim()
+        : "";
       const mode = String(body.mode || "specify").trim();
       const reviseMode = mode === "revise";
       const architectureMode = mode === "architecture";
@@ -4869,10 +5622,14 @@ async function handleApi(req, res) {
           ? REVISE_CHAT_PROMPT
           : SYSTEM_PROMPT;
       const followUp = architectureMode
-        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去右侧「计划托管」看图并确认，禁止提 JSON。`
+        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去中间栏「系统架构」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
-          : `当前确认卡草稿：\n${JSON.stringify(card)}\n请继续对话。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。`;
+          : `当前模块清单与确认卡草稿：\n${JSON.stringify({
+              modules: modules || [],
+              activeModuleId: activeModuleId || null,
+              card,
+            })}\n对话可乱跳模块。更新 modules 清单与 activeModuleId；顶层四块对应当前模块。ready=true 仅表示当前模块可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`;
       messages.push({
         role: "user",
         content: followUp,
@@ -4886,7 +5643,9 @@ async function handleApi(req, res) {
         return;
       }
       const result = await callChatModel(cfg, messages, systemPrompt);
-      const parsed = parseChatResult(result);
+      const parsed = architectureMode
+        ? attachArchitectureRender(parseChatResult(result))
+        : parseChatResult(result);
       if (architectureMode) {
         // Client extracts IR from jsonBlock string — never nest the object.
         send(res, 200, parsed);
@@ -5025,26 +5784,45 @@ async function handleApi(req, res) {
         });
         return;
       }
-      const result = writeBrief({
+      const acceptedCard = {
         goal: review.goal,
         outOfScope: review.outOfScope,
         acceptance: review.acceptance,
         assumptions: review.assumptions,
-        rawAsk: body.rawAsk,
-        projectPath:
-          body.projectPath || body.repoPath || readConfig().activeProjectPath,
-        review: { summary: review.summary || "自动验收通过" },
-      });
+      };
+      const incomingModules = Array.isArray(body.modules) ? body.modules : [];
+      const moduleId =
+        String(body.moduleId || body.activeModuleId || "").trim() ||
+        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+        "main";
+      let modules = clipModules(incomingModules, acceptedCard);
+      if (!modules.length) {
+        modules = [
+          {
+            id: moduleId,
+            title: moduleId === "main" ? "Main" : moduleId,
+            status: "draft",
+            card: acceptedCard,
+            dependsOn: [],
+          },
+        ];
+      }
+      modules = confirmModuleInList(modules, moduleId, acceptedCard);
+      const allConfirmed = modulesAllConfirmed(modules);
+      // Per-module confirm never writes Brief / launches agents — kickoff owns that.
       send(res, 200, {
-        ...result,
+        ok: true,
         passed: true,
-        needDispatch: true,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
-        },
+        moduleId,
+        modules,
+        activeModuleId: moduleId,
+        modulesAllConfirmed: allConfirmed,
+        needArchitecture: allConfirmed,
+        needDispatch: false,
+        writeBrief: false,
+        jobId: null,
+        card: acceptedCard,
+        review: { summary: review.summary || "自动验收通过" },
       });
     } catch (err) {
       send(res, 400, {
@@ -5096,27 +5874,47 @@ async function handleApi(req, res) {
         });
         return;
       }
-      const result = writeBrief({
+      const acceptedCard = {
         goal: review.goal,
         outOfScope: review.outOfScope,
         acceptance: review.acceptance,
         assumptions: review.assumptions,
-        rawAsk: body.rawAsk,
-        review: {
-          summary: `${fixed.summary || "已自动修正"}；${review.summary || "验收通过"}`,
-        },
-      });
+      };
+      const incomingModules = Array.isArray(body.modules) ? body.modules : [];
+      const moduleId =
+        String(body.moduleId || body.activeModuleId || "").trim() ||
+        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+        "main";
+      let modules = clipModules(incomingModules, acceptedCard);
+      if (!modules.length) {
+        modules = [
+          {
+            id: moduleId,
+            title: moduleId === "main" ? "Main" : moduleId,
+            status: "draft",
+            card: acceptedCard,
+            dependsOn: [],
+          },
+        ];
+      }
+      modules = confirmModuleInList(modules, moduleId, acceptedCard);
+      const allConfirmed = modulesAllConfirmed(modules);
       send(res, 200, {
-        ...result,
+        ok: true,
         passed: true,
         fixed: true,
-        needDispatch: true,
+        moduleId,
+        modules,
+        activeModuleId: moduleId,
+        modulesAllConfirmed: allConfirmed,
+        needArchitecture: allConfirmed,
+        needDispatch: false,
+        writeBrief: false,
+        jobId: null,
         fixSummary: fixed.summary,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
+        card: acceptedCard,
+        review: {
+          summary: `${fixed.summary || "已自动修正"}；${review.summary || "验收通过"}`,
         },
       });
     } catch (err) {
@@ -5272,6 +6070,9 @@ async function handleApi(req, res) {
         architectureSummary: body.architectureSummary,
         architectureUrl: body.architectureUrl,
         architectureIr: body.architectureIr,
+        modules: body.modules,
+        workerCount: body.workerCount,
+        rawAsk: body.rawAsk,
       });
       send(res, 200, result);
     } catch (err) {
@@ -5640,6 +6441,51 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/projects/deliverables") {
+    try {
+      const projectPath = String(url.searchParams.get("path") || "").trim();
+      if (!projectPath) {
+        send(res, 400, { error: "path required", code: "EMPTY_PATH" });
+        return;
+      }
+      const lang =
+        String(url.searchParams.get("lang") || "").toLowerCase() === "en"
+          ? "en"
+          : "zh";
+      const asJson = String(url.searchParams.get("format") || "") === "json";
+      const session = readProjectChat(liveRoot(), projectPath);
+      let job = null;
+      if (session.jobId) {
+        try {
+          job = liveJobDetail(session.jobId);
+        } catch {
+          job = null;
+        }
+      }
+      const model = buildDeliverablesModel(session, {
+        job,
+        lang,
+        projectTitle: path.basename(projectPath),
+      });
+      if (asJson) {
+        send(res, 200, model);
+        return;
+      }
+      const html = renderDeliverablesHtml(model);
+      try {
+        writeDeliverablesHtmlFile(liveRoot(), projectPath, html);
+      } catch {
+        /* best-effort cache file */
+      }
+      send(res, 200, html, "text/html; charset=utf-8");
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "deliverables failed",
+      });
+    }
+    return;
+  }
+
   if (req.method === "PUT" && url.pathname === "/api/projects/chat") {
     try {
       const body = await readJson(req);
@@ -5654,6 +6500,10 @@ async function handleApi(req, res) {
         reviseMessages: body.reviseMessages,
         rawAsk: body.rawAsk,
         card: body.card,
+        modules: body.modules,
+        activeModuleId: body.activeModuleId,
+        taskPool: body.taskPool,
+        workerCount: body.workerCount,
         reviseCard: body.reviseCard,
         reviseCards: body.reviseCards,
         reviseDraft: body.reviseDraft,
@@ -5829,7 +6679,7 @@ function serve(port) {
 
   server.listen(port, "127.0.0.1", () => {
     const cfg = publicConfig();
-    console.log(`Duaer-spec FED  http://127.0.0.1:${port}`);
+    console.log(`Duaer-spec FDE  http://127.0.0.1:${port}`);
     console.log(`隔离目录  ${liveRoot()}`);
     console.log(`Brief 写入 ${jobsRoot()}  （不会写入你当前业务仓库）`);
     if (!cfg.ready) {

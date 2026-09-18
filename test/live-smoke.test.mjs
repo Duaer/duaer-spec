@@ -211,6 +211,16 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /req-section/);
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="confirm"/);
+  assert.match(html, /id="architectureSlotDeploy"/);
+  assert.match(html, /id="architectureRetry"/);
+  assert.match(html, /architecture-slot-main/);
+  assert.match(html, /id="moduleTabs"/);
+  assert.match(html, /id="openDeliverables"/);
+  assert.match(html, /id="workerCount"/);
+  const cssText = await (await fetch(`${live.base}/styles.css`)).text();
+  assert.match(cssText, /\.module-tab\.is-active/);
+  assert.match(cssText, /module-tab\.is-active[^{]*\{[^}]*--register/s);
+  assert.doesNotMatch(cssText, /module-tab\.is-active[^{]*\{[^}]*--fg,\s*#1a1a1a/s);
 
   const css = await (await fetch(`${live.base}/styles.css`)).text();
   assert.match(css, /grid-template-columns/);
@@ -222,11 +232,19 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
   assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.match(css, /progress-meter|progress-empty-title/);
+  assert.match(css, /worker-lanes|worker-lane/);
   assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
+  assert.match(js, /openDeliverablesPage|\/api\/projects\/deliverables/);
+  assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
   assert.match(js, /validationAllowsSend/);
+  assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
+  assert.match(js, /card\.lockHintModuleDone/);
+  assert.match(js, /Do not renderModuleTabs here/);
   assert.match(js, /progress-meter-fill|meterFill/);
+  assert.match(js, /fillWorkerLanes|worker-lanes|run\.dispatchWorkers/);
+  assert.match(js, /run\.workerWaitingDeps|orch-summary|run\.orchSummary/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
   assert.match(js, /USER_SCROLL_HOLD_MS|wirePanelScrollHold|progressFocusKey/);
   assert.match(js, /wasHidden/);
@@ -234,11 +252,15 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
+  assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
+  assert.match(liveBin, /buildWorkersProgress/);
+  assert.match(liveBin, /advanceOrchestration|waveForWorker|releasedWaves/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
-  assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FED/);
+  assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
-  assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FED|Beginners can do FED too|chat\.emptyTitle/);
+  assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏/);
+  assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);
   assert.doesNotMatch(
@@ -247,6 +269,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   );
   assert.match(js, /structuredHtml/);
   assert.match(js, /paintReqEditor|reqEditModel|serializeReqEdit|req-item-input/);
+  assert.match(js, /!inputs\.length\)\s*return/);
+  assert.match(css, /req-mod-title/);
   assert.match(js, /card\.reqAdd/);
   assert.match(css, /req-item-edit|req-add-item/);
   assert.match(js, /\/api\/validate/);
@@ -266,6 +290,11 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);
   assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);
+  assert.match(html, /id="cfgAliyunId"|id="saveAliyunCfg"/);
+  assert.match(html, /id="cfgCfToken"|id="cfgAwsId"/);
+  assert.match(html, /setup-block|setup-howto/);
+  assert.match(js, /hasAliyunCredentials|hasCloudflareCredentials|hasAwsCredentials/);
+  assert.match(js, /visibleDeployHostIds/);
   assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);
   assert.match(html, /architecturePanel|architectureFrame/);
   assert.match(js, /beginArchitectureDesign|\/api\/architecture\/render/);
@@ -304,6 +333,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /architecture-mount/);
   assert.doesNotMatch(html, /<iframe[^>]*architecture/i);
   assert.match(js, /reviseVersionList|renderReviseVersionAccordion|initialArchitecture/);
+  assert.match(js, /renderReviseVersionBody[\s\S]*structuredHtml/);
   assert.match(js, /switchChatLogForMode|appendReviseMessagesToLog/);
   assert.match(js, /reviseAccordionFp|rebuildAccordion/);
   assert.match(js, /postReviseAgainUserMessage|user\.reviseAgain/);
@@ -334,6 +364,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(mjsType, /javascript/);
   const mjsBody = await mjsRes.text();
   assert.match(mjsBody, /structuredHtml|normalizeReqText|reqEditModel/);
+  assert.match(mjsBody, /splitModuleSections|req-mod/);
 
   const health = await (await fetch(`${live.base}/api/health`)).json();
   assert.equal(health.ready, true);

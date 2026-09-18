@@ -1,5 +1,5 @@
 /**
- * Duaer-spec FED UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
+ * Duaer-spec FDE UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
  */
 
 import {
@@ -11,6 +11,7 @@ import {
   applyDomI18n,
 } from "./i18n.js";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
+import { renderChatMarkdown } from "./chat-markdown.mjs";
 import { extractArchitectureIr } from "./architecture-ir.mjs";
 import {
   mountArchitectureDiagram,
@@ -39,6 +40,12 @@ const state = {
   ready: false,
   locked: false,
   busy: false,
+  /** Modular requirements: [{ id, title, status, card, dependsOn }] */
+  modules: [],
+  activeModuleId: null,
+  /** Kickoff: how many same-CLI digital employees (1..N). */
+  workerCount: 1,
+  taskPool: null,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -178,6 +185,22 @@ const el = {
   cfgBase: document.getElementById("cfgBase"),
   cfgKey: document.getElementById("cfgKey"),
   cfgModel: document.getElementById("cfgModel"),
+  cfgAliyunId: document.getElementById("cfgAliyunId"),
+  cfgAliyunSecret: document.getElementById("cfgAliyunSecret"),
+  saveAliyunCfg: document.getElementById("saveAliyunCfg"),
+  clearAliyunCfg: document.getElementById("clearAliyunCfg"),
+  aliyunCfgMsg: document.getElementById("aliyunCfgMsg"),
+  cfgCfToken: document.getElementById("cfgCfToken"),
+  cfgCfAccount: document.getElementById("cfgCfAccount"),
+  saveCfCfg: document.getElementById("saveCfCfg"),
+  clearCfCfg: document.getElementById("clearCfCfg"),
+  cfCfgMsg: document.getElementById("cfCfgMsg"),
+  cfgAwsId: document.getElementById("cfgAwsId"),
+  cfgAwsSecret: document.getElementById("cfgAwsSecret"),
+  cfgAwsRegion: document.getElementById("cfgAwsRegion"),
+  saveAwsCfg: document.getElementById("saveAwsCfg"),
+  clearAwsCfg: document.getElementById("clearAwsCfg"),
+  awsCfgMsg: document.getElementById("awsCfgMsg"),
   saveCfg: document.getElementById("saveCfg"),
   cfgOpen: document.getElementById("cfgOpen"),
   githubStars: document.getElementById("githubStars"),
@@ -219,6 +242,7 @@ const el = {
   architectureFrame: document.getElementById("architectureFrame"),
   architectureConfirm: document.getElementById("architectureConfirm"),
   architectureRedesign: document.getElementById("architectureRedesign"),
+  architectureRetry: document.getElementById("architectureRetry"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -230,6 +254,7 @@ const el = {
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
+  openDeliverables: document.getElementById("openDeliverables"),
   progressCol: document.querySelector(".progress-col"),
   progressEmpty: document.getElementById("progressEmpty"),
   runTimeline: document.getElementById("runTimeline"),
@@ -275,6 +300,11 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
+  moduleTabs: document.getElementById("moduleTabs"),
+  moduleMeta: document.getElementById("moduleMeta"),
+  workerCount: document.getElementById("workerCount"),
+  taskPoolPreview: document.getElementById("taskPoolPreview"),
+  taskPoolList: document.getElementById("taskPoolList"),
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
@@ -443,13 +473,23 @@ function setBusy(on) {
   // Only flip disabled flags — never rebuild accordion / architecture panel
   // here (that raced revise kickoff and could re-enter heavy IR work).
   try {
-    if (el.confirm) el.confirm.disabled = state.busy || el.confirm.disabled;
+    if (el.confirm) {
+      if (state.busy) {
+        el.confirm.disabled = true;
+      } else {
+        // Recompute from rules — do not latch busy||previousDisabled forever.
+        refreshConfirmButtonOnly();
+      }
+    }
     if (el.doReviseDispatch && state.mode === "revise") {
-      el.doReviseDispatch.disabled =
-        state.busy ||
-        state.reviseDispatching ||
-        state.revisePlanConfirmed ||
-        el.doReviseDispatch.disabled;
+      if (state.busy) {
+        el.doReviseDispatch.disabled = true;
+      } else {
+        el.doReviseDispatch.disabled =
+          state.reviseDispatching ||
+          state.revisePlanConfirmed ||
+          el.doReviseDispatch.disabled;
+      }
     }
     if (el.architectureConfirm) {
       const a = state.architecture;
@@ -479,6 +519,7 @@ function maybeClearStaleBusy() {
   if (!state.busy || !state.busySince) return false;
   if (Date.now() - state.busySince < BUSY_STALE_MS) return false;
   setBusy(false);
+  syncConfirmEnabled();
   return true;
 }
 
@@ -541,7 +582,24 @@ function setActiveProject(path, name, description) {
   state.projectDescription = description || null;
   if (el.repoPath && abs) el.repoPath.value = abs;
   syncDispatchProjectLine();
+  syncDeliverablesEntry();
   syncComposerEnabled();
+}
+
+function syncDeliverablesEntry() {
+  if (!el.openDeliverables) return;
+  el.openDeliverables.hidden = !state.projectPath;
+}
+
+function openDeliverablesPage() {
+  const abs = String(state.projectPath || "").trim();
+  if (!abs) {
+    addBubble("bot", t("bot.needProject"));
+    return;
+  }
+  const lang = getLocale() === "en" ? "en" : "zh";
+  const url = `/api/projects/deliverables?path=${encodeURIComponent(abs)}&lang=${lang}`;
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 function syncDispatchProjectLine() {
@@ -628,11 +686,207 @@ function showUpdateNotice(update) {
 
 function cardValues() {
   return {
-    goal: el.goal.value.trim(),
-    outOfScope: el.outOfScope.value.trim(),
-    acceptance: el.acceptance.value.trim(),
-    assumptions: el.assumptions.value.trim(),
+    goal: (el.goal?.value || "").trim(),
+    outOfScope: (el.outOfScope?.value || "").trim(),
+    acceptance: (el.acceptance?.value || "").trim(),
+    assumptions: (el.assumptions?.value || "").trim(),
   };
+}
+
+function ensureModulesSeed() {
+  if (Array.isArray(state.modules) && state.modules.length) return;
+  const c = cardValues();
+  state.modules = [
+    {
+      id: "main",
+      title: "Main",
+      status: "draft",
+      card: { ...c },
+      dependsOn: [],
+    },
+  ];
+  state.activeModuleId = "main";
+}
+
+function activeModule() {
+  ensureModulesSeed();
+  const id = state.activeModuleId || state.modules[0]?.id;
+  return state.modules.find((m) => m.id === id) || state.modules[0] || null;
+}
+
+function modulesAllConfirmedLocal() {
+  return (
+    Array.isArray(state.modules) &&
+    state.modules.length > 0 &&
+    state.modules.every((m) => m.status === "confirmed")
+  );
+}
+
+function syncActiveModuleCardFromFields() {
+  const m = activeModule();
+  if (!m || m.status === "confirmed") return;
+  m.card = cardValues();
+}
+
+function applyActiveModuleToFields() {
+  const m = activeModule();
+  const c = m?.card || {};
+  if (el.goal) el.goal.value = c.goal || "";
+  if (el.outOfScope) el.outOfScope.value = c.outOfScope || "";
+  if (el.acceptance) el.acceptance.value = c.acceptance || "";
+  if (el.assumptions) el.assumptions.value = c.assumptions || "";
+  syncReqSections();
+}
+
+function statusLabel(status) {
+  if (status === "confirmed") return t("card.moduleConfirmed");
+  if (status === "ready") return t("card.moduleReady");
+  return t("card.moduleDraft");
+}
+
+function renderModuleTabs() {
+  if (!el.moduleTabs) return;
+  ensureModulesSeed();
+  const list = state.modules;
+  el.moduleTabs.hidden = list.length < 1;
+  el.moduleTabs.replaceChildren();
+  for (const m of list) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "module-tab";
+    btn.setAttribute("role", "tab");
+    btn.dataset.moduleId = m.id;
+    const active = m.id === (state.activeModuleId || list[0]?.id);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+    if (active) btn.classList.add("is-active");
+    if (m.status === "confirmed") btn.classList.add("is-confirmed");
+    btn.textContent = `${m.title} · ${statusLabel(m.status)}`;
+    btn.addEventListener("click", () => {
+      if (m.id === state.activeModuleId) return;
+      syncActiveModuleCardFromFields();
+      state.activeModuleId = m.id;
+      applyActiveModuleToFields();
+      resetValidateGate();
+      setConfirmFieldsReadonly(
+        m.status === "confirmed" || modulesAllConfirmedLocal(),
+      );
+      renderModuleTabs();
+      syncConfirmEnabled();
+      if (
+        m.status !== "confirmed" &&
+        !modulesAllConfirmedLocal() &&
+        state.mode !== "revise"
+      ) {
+        scheduleValidate("confirm");
+      }
+      schedulePersistProjectDesk();
+    });
+    el.moduleTabs.appendChild(btn);
+  }
+  if (el.moduleMeta) {
+    const done = list.filter((m) => m.status === "confirmed").length;
+    el.moduleMeta.hidden = list.length < 1;
+    el.moduleMeta.textContent = t("card.modulesProgress", {
+      done: String(done),
+      total: String(list.length),
+    });
+  }
+}
+
+function mergeModulesFromChatPayload(data) {
+  ensureModulesSeed();
+  const incoming = Array.isArray(data.modules) ? data.modules : null;
+  if (incoming && incoming.length) {
+    const byId = new Map(state.modules.map((m) => [m.id, m]));
+    for (const raw of incoming) {
+      const id = String(raw.id || raw.title || "").trim().slice(0, 80);
+      if (!id) continue;
+      const old = byId.get(id);
+      const card = {
+        goal: String(raw.goal || raw.card?.goal || old?.card?.goal || ""),
+        outOfScope: String(
+          raw.outOfScope || raw.card?.outOfScope || old?.card?.outOfScope || "",
+        ),
+        acceptance: String(
+          raw.acceptance || raw.card?.acceptance || old?.card?.acceptance || "",
+        ),
+        assumptions: String(
+          raw.assumptions ||
+            raw.card?.assumptions ||
+            old?.card?.assumptions ||
+            "",
+        ),
+      };
+      if (old?.status === "confirmed") {
+        byId.set(id, {
+          ...old,
+          title: String(raw.title || old.title || id).slice(0, 120),
+        });
+      } else {
+        byId.set(id, {
+          id,
+          title: String(raw.title || id).slice(0, 120),
+          status: old?.status === "confirmed" ? "confirmed" : "draft",
+          card,
+          dependsOn: Array.isArray(raw.dependsOn)
+            ? raw.dependsOn.map(String)
+            : old?.dependsOn || [],
+        });
+      }
+    }
+    state.modules = [...byId.values()];
+  }
+  if (data.activeModuleId) {
+    const want = String(data.activeModuleId).trim();
+    if (state.modules.some((m) => m.id === want)) {
+      state.activeModuleId = want;
+    }
+  }
+  if (!state.activeModuleId) {
+    state.activeModuleId = state.modules[0]?.id || "main";
+  }
+  // Patch active module fields from top-level card keys
+  const m = activeModule();
+  if (m && m.status !== "confirmed") {
+    if (data.goal) m.card.goal = data.goal;
+    if (data.outOfScope) m.card.outOfScope = data.outOfScope;
+    if (data.acceptance) m.card.acceptance = data.acceptance;
+    if (data.assumptions) m.card.assumptions = data.assumptions;
+    if (data.ready) m.status = "ready";
+  }
+  applyActiveModuleToFields();
+  renderModuleTabs();
+}
+
+function previewTaskPoolLines() {
+  ensureModulesSeed();
+  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (!confirmed.length) return [];
+  const lines = [];
+  let n = 1;
+  let prevVerify = null;
+  for (const m of confirmed) {
+    const impl = `T${String(n++).padStart(3, "0")}`;
+    const acc = `T${String(n++).padStart(3, "0")}`;
+    const ver = `T${String(n++).padStart(3, "0")}`;
+    const dep = prevVerify ? ` ← ${prevVerify}` : "";
+    lines.push(`${impl} [${m.id}] Implement «${m.title}»${dep}`);
+    lines.push(`${acc} [${m.id}] Acceptance «${m.title}» ← ${impl}`);
+    lines.push(`${ver} [${m.id}] Verify «${m.title}» ← ${acc}`);
+    prevVerify = ver;
+  }
+  return lines;
+}
+
+function syncTaskPoolPreview() {
+  if (!el.taskPoolPreview || !el.taskPoolList) return;
+  const lines = previewTaskPoolLines();
+  if (!lines.length || !state.locked) {
+    el.taskPoolPreview.hidden = true;
+    return;
+  }
+  el.taskPoolPreview.hidden = false;
+  el.taskPoolList.textContent = lines.join("\n");
 }
 
 function reviseCardValues() {
@@ -805,11 +1059,12 @@ async function bindArchitectureMount(host, arch) {
 }
 
 function renderReviseVersionBody(card, { baselineArch = false } = {}) {
+  const empty = "—";
   return `<dl class="revise-version-fields">
-    <div><dt>${escapeHtml(t("revise.goal"))}</dt><dd>${escapeReviseText(card.goal)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.out"))}</dt><dd>${escapeReviseText(card.outOfScope)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.accept"))}</dt><dd>${escapeReviseText(card.acceptance)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.assume"))}</dt><dd>${escapeReviseText(card.assumptions)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.goal"))}</dt><dd class="req-structured">${structuredHtml(card.goal, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.out"))}</dt><dd class="req-structured">${structuredHtml(card.outOfScope, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.accept"))}</dt><dd class="req-structured">${structuredHtml(card.acceptance, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.assume"))}</dt><dd class="req-structured">${structuredHtml(card.assumptions, empty)}</dd></div>
   </dl>${renderReviseArchBlock(card.architecture, { baseline: baselineArch })}`;
 }
 
@@ -1156,7 +1411,7 @@ function validationAllowsSend(kind) {
 }
 
 function scheduleValidate(kind = currentValidateKind()) {
-  if (state.locked && kind === "confirm") return;
+  if (modulesAllConfirmedLocal() && kind === "confirm") return;
   if (state.reviseLocked && kind === "revise") return;
   const v = kind === "revise" ? reviseCardValues() : cardValues();
   if (!v.goal || !v.acceptance || !state.ready) {
@@ -1256,6 +1511,42 @@ async function runValidate(kind, expectedFp) {
   }
 }
 
+/** Confirm enablement without rebuilding module tabs (tabs flicker if rebuilt every tick). */
+function refreshConfirmButtonOnly() {
+  if (!el.confirm) return;
+  if (state.mode === "revise" || state.reviseLocked) {
+    el.confirm.disabled = true;
+    el.confirm.textContent = t("card.confirmed");
+    return;
+  }
+  const v = cardValues();
+  const fieldsOk = Boolean(v.goal && v.acceptance);
+  const validated = validationAllowsSend("confirm");
+  const active = activeModule();
+  const moduleLocked = active?.status === "confirmed";
+  const allDone = modulesAllConfirmedLocal();
+  const ok =
+    fieldsOk &&
+    !moduleLocked &&
+    !allDone &&
+    state.ready &&
+    validated &&
+    !state.busy;
+  if (!moduleLocked && !allDone) {
+    el.confirm.textContent =
+      state.validate.status === "checking"
+        ? t("card.validating")
+        : t("card.confirm");
+    el.confirm.disabled = !ok;
+  } else if (allDone) {
+    el.confirm.textContent = t("card.allModulesConfirmed");
+    el.confirm.disabled = true;
+  } else {
+    el.confirm.textContent = t("card.confirmed");
+    el.confirm.disabled = true;
+  }
+}
+
 function syncConfirmEnabled() {
   applyConfirmCardChrome();
   syncComposerEnabled();
@@ -1287,11 +1578,13 @@ function syncConfirmEnabled() {
   const v = cardValues();
   const fieldsOk = Boolean(v.goal && v.acceptance);
   const validated = validationAllowsSend("confirm");
-  const ok =
-    fieldsOk && !state.locked && state.ready && validated && !state.busy;
-  el.confirm.disabled = !ok;
-  if (state.locked) {
+  const active = activeModule();
+  const moduleLocked = active?.status === "confirmed";
+  const allDone = modulesAllConfirmedLocal();
+  if (allDone) {
     el.lockHint.textContent = t("card.lockHintLocked");
+  } else if (moduleLocked) {
+    el.lockHint.textContent = t("card.lockHintModuleDone");
   } else if (!fieldsOk) {
     el.lockHint.textContent = t("card.lockHintNeed");
   } else if (state.validate.status === "checking") {
@@ -1303,18 +1596,24 @@ function syncConfirmEnabled() {
   } else {
     el.lockHint.textContent = t("card.lockHintNeedValidate");
   }
-  if (!state.locked) {
-    el.confirm.textContent =
-      state.validate.status === "checking"
-        ? t("card.validating")
-        : t("card.confirm");
-  } else {
-    el.confirm.textContent = t("card.confirmed");
-    el.confirm.disabled = true;
-  }
-  setConfirmFieldsReadonly(state.locked);
+  refreshConfirmButtonOnly();
+  setConfirmFieldsReadonly(moduleLocked || allDone);
+  // Do not renderModuleTabs here — every validate/input tick rebuilt tabs.
+  syncTaskPoolPreview();
   syncReviseDispatchButton(false);
   syncAutoHandleButtons();
+}
+
+function focusNextUnconfirmedModule() {
+  ensureModulesSeed();
+  const next = state.modules.find((m) => m.status !== "confirmed");
+  if (!next) return false;
+  state.activeModuleId = next.id;
+  applyActiveModuleToFields();
+  resetValidateGate();
+  setConfirmFieldsReadonly(false);
+  renderModuleTabs();
+  return true;
 }
 
 function syncReviseDispatchButton(ready) {
@@ -1489,8 +1788,10 @@ function architectureContinueOptions(parsed) {
 function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
-  const textNode = document.createTextNode(text);
-  div.appendChild(textNode);
+  const body = document.createElement("div");
+  body.className = "bubble-body";
+  body.innerHTML = renderChatMarkdown(text);
+  div.appendChild(body);
   if (options?.length) appendOptionChips(div, options);
   if (actions?.length) {
     const row = document.createElement("div");
@@ -1510,25 +1811,29 @@ function addBubble(role, text, { options, actions } = {}) {
   el.log.appendChild(div);
   syncChatEmpty();
   afterChatBubbleUi();
-  return { div, textNode };
+  return { div, body };
 }
 
 function startStreamingBubble() {
-  const { div, textNode } = addBubble("bot", "");
+  const { div, body } = addBubble("bot", "");
   div.classList.add("streaming");
+  let plain = "";
   return {
     div,
-    textNode,
+    body,
     append(chunk) {
-      textNode.textContent += chunk;
+      plain += chunk;
+      // Plain text while streaming (stable cursor); render Markdown on finish.
+      body.textContent = plain;
       scrollChatToLatest();
     },
     set(text) {
-      textNode.textContent = text;
+      plain = String(text || "");
+      body.textContent = plain;
       scrollChatToLatest();
     },
     getText() {
-      return textNode.textContent || "";
+      return plain;
     },
     finish(options) {
       try {
@@ -1536,7 +1841,12 @@ function startStreamingBubble() {
       } catch {
         /* ignore */
       }
-      const reply = textNode.textContent || "";
+      const reply = plain;
+      try {
+        body.innerHTML = renderChatMarkdown(reply);
+      } catch {
+        body.textContent = reply;
+      }
       try {
         const opts = enrichChatOptions(reply, options);
         appendOptionChips(div, opts);
@@ -1654,6 +1964,10 @@ async function persistProjectChat() {
         reviseMessages: state.reviseMessages,
         rawAsk: state.rawAsk || "",
         card: cardValues(),
+        modules: state.modules,
+        activeModuleId: state.activeModuleId,
+        taskPool: state.taskPool,
+        workerCount: state.workerCount || 1,
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
         reviseDraft: (() => {
@@ -1775,7 +2089,22 @@ function clearDeskWorkspace() {
   state.rawAsk = "";
   state.jobId = null;
   state.locked = false;
+  state.modules = [];
+  state.activeModuleId = null;
+  state.workerCount = 1;
+  state.taskPool = null;
   state.mode = "specify";
+  if (el.moduleTabs) {
+    el.moduleTabs.replaceChildren();
+    el.moduleTabs.hidden = true;
+  }
+  if (el.moduleMeta) {
+    el.moduleMeta.hidden = true;
+    el.moduleMeta.textContent = "";
+  }
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
+  if (el.taskPoolList) el.taskPoolList.textContent = "";
+  if (el.workerCount) el.workerCount.value = "1";
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseStuckHint = false;
@@ -1869,6 +2198,7 @@ function clearDeskWorkspace() {
   if (el.progressEmpty) el.progressEmpty.hidden = false;
 
   syncDispatchProjectLine();
+  syncDeliverablesEntry();
   syncConfirmEnabled();
   syncComposerEnabled();
   syncChatEmpty();
@@ -1970,7 +2300,51 @@ async function loadProjectChatIntoUi(projectPath) {
       ? data.architectureMessages
       : [];
     state.dispatchPhase = data.dispatchPhase === "done" ? "done" : null;
+    if (Array.isArray(data.modules) && data.modules.length) {
+      state.modules = data.modules.map((m) => ({
+        id: String(m.id),
+        title: String(m.title || m.id),
+        status: String(m.status || "draft"),
+        card: {
+          goal: String(m.card?.goal || ""),
+          outOfScope: String(m.card?.outOfScope || ""),
+          acceptance: String(m.card?.acceptance || ""),
+          assumptions: String(m.card?.assumptions || ""),
+        },
+        dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
+      }));
+      state.activeModuleId =
+        data.activeModuleId || state.modules[0]?.id || null;
+      // Prefer module statuses over stale single-card locked flag
+      state.locked = modulesAllConfirmedLocal();
+    } else if (data.card) {
+      state.modules = [
+        {
+          id: "main",
+          title: "Main",
+          status: data.locked ? "confirmed" : "draft",
+          card: {
+            goal: data.card.goal || "",
+            outOfScope: data.card.outOfScope || "",
+            acceptance: data.card.acceptance || "",
+            assumptions: data.card.assumptions || "",
+          },
+          dependsOn: [],
+        },
+      ];
+      state.activeModuleId = "main";
+      state.locked = Boolean(data.locked);
+    } else {
+      state.modules = [];
+      state.activeModuleId = null;
+    }
+    state.taskPool = data.taskPool || null;
+    state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
+    if (el.workerCount) el.workerCount.value = String(state.workerCount);
     applySavedCardFields(data.card, data.reviseCard);
+    applyActiveModuleToFields();
+    renderModuleTabs();
+    syncTaskPoolPreview();
     // Prefer focused version card over flat reviseCard when history exists
     if (state.reviseCardFocus) {
       focusReviseCardVersion(state.reviseCardFocus);
@@ -1983,7 +2357,9 @@ async function loadProjectChatIntoUi(projectPath) {
       const stored = getStoredReviseCard(state.reviseCardFocus);
       if (stored) applyReviseFieldsFromCard(stored);
     }
-    setConfirmFieldsReadonly(state.locked);
+    setConfirmFieldsReadonly(
+      activeModule()?.status === "confirmed" || modulesAllConfirmedLocal(),
+    );
     setReviseFieldsReadonly(
       state.reviseLocked ||
         state.revisePlanConfirmed ||
@@ -2023,18 +2399,26 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     syncConfirmEnabled();
     syncComposerEnabled();
-    if (state.jobId) {
+    if (state.jobId || state.locked || modulesAllConfirmedLocal()) {
       if (el.dispatch) el.dispatch.hidden = false;
       syncDispatchProjectLine();
-      if (state.locked && el.confirm) {
-        el.confirm.textContent = t("card.confirmed");
+      if (modulesAllConfirmedLocal() && el.confirm) {
+        el.confirm.textContent = t("card.allModulesConfirmed");
         el.confirm.disabled = true;
       }
       if (state.dispatchPhase === "done") {
         syncDispatchButton();
       }
-      startStatusPoll();
+      if (state.jobId) startStatusPoll();
       void loadAgents();
+      syncTaskPoolPreview();
+    }
+    if (
+      !modulesAllConfirmedLocal() &&
+      activeModule()?.status !== "confirmed" &&
+      state.mode === "specify"
+    ) {
+      scheduleValidate("confirm");
     }
     if (
       state.locked &&
@@ -2087,6 +2471,14 @@ async function sendChat(userText) {
       body: JSON.stringify({
         messages: history,
         card: state.mode === "revise" ? reviseCardValues() : cardValues(),
+        modules:
+          state.mode === "revise" || state.mode === "architecture"
+            ? undefined
+            : state.modules,
+        activeModuleId:
+          state.mode === "revise" || state.mode === "architecture"
+            ? undefined
+            : state.activeModuleId,
         mode:
           state.mode === "revise"
             ? "revise"
@@ -2129,13 +2521,7 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: final.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        const rendered = await maybeRenderArchitectureFromReply(
-          `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
-        );
-        if (rendered) {
-          announceArchitectureRendered(streamBubble, bag);
-          void persistProjectChat();
-        }
+        await finishArchitectureChatResult(final, streamBubble, bag);
       } else if (lockedSpecify && (final.goal || final.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (final.ready) {
@@ -2162,13 +2548,7 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        const rendered = await maybeRenderArchitectureFromReply(
-          `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
-        );
-        if (rendered) {
-          announceArchitectureRendered(streamBubble, bag);
-          void persistProjectChat();
-        }
+        await finishArchitectureChatResult(data, streamBubble, bag);
       } else if (lockedSpecify && (data.goal || data.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (data.ready) {
@@ -2222,15 +2602,12 @@ function applyCard(data, { skipValidate = false } = {}) {
       applyReviseFieldsFromCard(state.reviseDraft);
     }
     syncReviseCardChrome({ rebuildAccordion: false });
-  } else if (state.locked) {
-    // Confirmed Brief stays frozen; chat remains conversational only.
+  } else if (state.locked && modulesAllConfirmedLocal()) {
+    // All modules confirmed — specify chat is conversational only.
     syncConfirmEnabled();
     return;
   } else {
-    if (data.goal) el.goal.value = data.goal;
-    if (data.outOfScope) el.outOfScope.value = data.outOfScope;
-    if (data.acceptance) el.acceptance.value = data.acceptance;
-    if (data.assumptions) el.assumptions.value = data.assumptions;
+    mergeModulesFromChatPayload(data);
   }
   syncReqSections();
   syncConfirmEnabled();
@@ -2304,6 +2681,69 @@ function setSettingsOpen(open) {
   syncDrawerBackdrop();
 }
 
+function fillAliyunFields(cfg) {
+  if (el.cfgAliyunId) {
+    el.cfgAliyunId.value = "";
+    el.cfgAliyunId.placeholder = cfg?.hasAliyunCredentials
+      ? t("setup.aliyunIdSaved")
+      : "LTAI…";
+  }
+  if (el.cfgAliyunSecret) {
+    el.cfgAliyunSecret.value = "";
+    el.cfgAliyunSecret.placeholder = cfg?.hasAliyunCredentials
+      ? t("setup.keySaved")
+      : "";
+  }
+  if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
+}
+
+function fillCloudflareFields(cfg) {
+  if (el.cfgCfToken) {
+    el.cfgCfToken.value = "";
+    el.cfgCfToken.placeholder = cfg?.hasCloudflareCredentials
+      ? t("setup.cloudflareTokenSaved")
+      : "";
+  }
+  if (el.cfgCfAccount) {
+    el.cfgCfAccount.value = "";
+    el.cfgCfAccount.placeholder = cfg?.hasCloudflareCredentials
+      ? t("setup.cloudflareAccountSaved")
+      : "";
+  }
+  if (el.cfCfgMsg) el.cfCfgMsg.hidden = true;
+}
+
+function fillAwsFields(cfg) {
+  if (el.cfgAwsId) {
+    el.cfgAwsId.value = "";
+    el.cfgAwsId.placeholder = cfg?.hasAwsCredentials
+      ? t("setup.awsIdSaved")
+      : "AKIA…";
+  }
+  if (el.cfgAwsSecret) {
+    el.cfgAwsSecret.value = "";
+    el.cfgAwsSecret.placeholder = cfg?.hasAwsCredentials
+      ? t("setup.keySaved")
+      : "";
+  }
+  if (el.cfgAwsRegion) {
+    el.cfgAwsRegion.value = "";
+    el.cfgAwsRegion.placeholder = "us-east-1";
+  }
+  if (el.awsCfgMsg) el.awsCfgMsg.hidden = true;
+}
+
+function syncGatedDeployTarget(cfg) {
+  const gated = {
+    aliyun: Boolean(cfg?.hasAliyunCredentials),
+    cloudflare: Boolean(cfg?.hasCloudflareCredentials),
+    aws: Boolean(cfg?.hasAwsCredentials),
+  };
+  if (gated[state.deployTarget] === false) {
+    state.deployTarget = "none";
+  }
+}
+
 function showSetup(cfg) {
   state.lastCfg = { ...(cfg || {}), ready: Boolean(cfg?.ready) };
   if (Array.isArray(cfg?.providers) && cfg.providers.length) {
@@ -2314,6 +2754,9 @@ function showSetup(cfg) {
   el.cfgModel.value = cfg?.model || "";
   el.cfgKey.value = "";
   el.cfgKey.placeholder = cfg?.hasApiKey ? t("setup.keySaved") : "sk-…";
+  fillAliyunFields(cfg);
+  fillCloudflareFields(cfg);
+  fillAwsFields(cfg);
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
   if (!state.ready) {
@@ -2327,6 +2770,8 @@ function showDesk(cfg) {
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
   setSettingsOpen(false);
+  syncGatedDeployTarget(cfg);
+  renderDeployTargetList();
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
@@ -2464,6 +2909,257 @@ el.saveCfg.addEventListener("click", async () => {
   }
 });
 
+async function saveAliyunCredentials({ clear = false } = {}) {
+  if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearAliyunCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillAliyunFields(data);
+      if (state.deployTarget === "aliyun") state.deployTarget = "none";
+      renderDeployTargetList();
+      if (el.aliyunCfgMsg) {
+        el.aliyunCfgMsg.hidden = false;
+        el.aliyunCfgMsg.textContent = t("setup.aliyunCleared");
+      }
+    } catch (err) {
+      if (el.aliyunCfgMsg) {
+        el.aliyunCfgMsg.hidden = false;
+        el.aliyunCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+
+  const id = el.cfgAliyunId?.value.trim() || "";
+  const secret = el.cfgAliyunSecret?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasAliyunCredentials);
+  if (!id && !secret) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = had
+        ? t("setup.aliyunSaved")
+        : t("setup.aliyunNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!id || !secret)) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = t("setup.aliyunNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (id) body.aliyunAccessKeyId = id;
+  if (secret) body.aliyunAccessKeySecret = secret;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillAliyunFields(data);
+    if (state.deployTarget === "aliyun" && !data.hasAliyunCredentials) {
+      state.deployTarget = "none";
+    }
+    renderDeployTargetList();
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = t("setup.aliyunSaved");
+    }
+  } catch (err) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveAliyunCfg?.addEventListener("click", () => {
+  void saveAliyunCredentials({ clear: false });
+});
+el.clearAliyunCfg?.addEventListener("click", () => {
+  void saveAliyunCredentials({ clear: true });
+});
+
+async function saveCloudflareCredentials({ clear = false } = {}) {
+  if (el.cfCfgMsg) el.cfCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearCloudflareCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillCloudflareFields(data);
+      syncGatedDeployTarget(data);
+      renderDeployTargetList();
+      if (el.cfCfgMsg) {
+        el.cfCfgMsg.hidden = false;
+        el.cfCfgMsg.textContent = t("setup.cloudflareCleared");
+      }
+    } catch (err) {
+      if (el.cfCfgMsg) {
+        el.cfCfgMsg.hidden = false;
+        el.cfCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+  const token = el.cfgCfToken?.value.trim() || "";
+  const account = el.cfgCfAccount?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasCloudflareCredentials);
+  if (!token && !account) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = had
+        ? t("setup.cloudflareSaved")
+        : t("setup.cloudflareNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!token || !account)) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = t("setup.cloudflareNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (token) body.cloudflareApiToken = token;
+  if (account) body.cloudflareAccountId = account;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillCloudflareFields(data);
+    syncGatedDeployTarget(data);
+    renderDeployTargetList();
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = t("setup.cloudflareSaved");
+    }
+  } catch (err) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveCfCfg?.addEventListener("click", () => {
+  void saveCloudflareCredentials({ clear: false });
+});
+el.clearCfCfg?.addEventListener("click", () => {
+  void saveCloudflareCredentials({ clear: true });
+});
+
+async function saveAwsCredentials({ clear = false } = {}) {
+  if (el.awsCfgMsg) el.awsCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearAwsCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillAwsFields(data);
+      syncGatedDeployTarget(data);
+      renderDeployTargetList();
+      if (el.awsCfgMsg) {
+        el.awsCfgMsg.hidden = false;
+        el.awsCfgMsg.textContent = t("setup.awsCleared");
+      }
+    } catch (err) {
+      if (el.awsCfgMsg) {
+        el.awsCfgMsg.hidden = false;
+        el.awsCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+  const id = el.cfgAwsId?.value.trim() || "";
+  const secret = el.cfgAwsSecret?.value.trim() || "";
+  const region = el.cfgAwsRegion?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasAwsCredentials);
+  if (!id && !secret && !region) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = had
+        ? t("setup.awsSaved")
+        : t("setup.awsNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!id || !secret)) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = t("setup.awsNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (id) body.awsAccessKeyId = id;
+  if (secret) body.awsSecretAccessKey = secret;
+  if (region || had) body.awsRegion = region;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillAwsFields(data);
+    syncGatedDeployTarget(data);
+    renderDeployTargetList();
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = t("setup.awsSaved");
+    }
+  } catch (err) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveAwsCfg?.addEventListener("click", () => {
+  void saveAwsCredentials({ clear: false });
+});
+el.clearAwsCfg?.addEventListener("click", () => {
+  void saveAwsCredentials({ clear: true });
+});
+
 el.cfgOpen?.addEventListener("click", () => {
   const open = el.settingsPanel?.hidden !== false;
   if (open) {
@@ -2516,7 +3212,17 @@ el.confirm.addEventListener("click", async () => {
     return;
   }
   const v = cardValues();
-  if (!v.goal || !v.acceptance || state.locked || state.busy) return;
+  syncActiveModuleCardFromFields();
+  const active = activeModule();
+  if (
+    !v.goal ||
+    !v.acceptance ||
+    active?.status === "confirmed" ||
+    modulesAllConfirmedLocal() ||
+    state.busy
+  ) {
+    return;
+  }
   if (!validationAllowsSend("confirm")) {
     scheduleValidate("confirm");
     addBubble("bot", t("bot.needValidate"));
@@ -2531,6 +3237,9 @@ el.confirm.addEventListener("click", async () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         ...v,
+        moduleId: state.activeModuleId || active?.id || "main",
+        activeModuleId: state.activeModuleId || active?.id || "main",
+        modules: state.modules,
         rawAsk: state.rawAsk || v.goal,
         projectPath: state.projectPath || undefined,
         repoPath: state.projectPath || undefined,
@@ -2657,11 +3366,68 @@ async function autoHandleFromGate(kind, btn) {
 }
 
 async function applyConfirmSuccess(data) {
-  state.locked = true;
-  state.jobId = data.jobId || null;
-  state.originalCard = cardValues();
+  if (Array.isArray(data.modules) && data.modules.length) {
+    state.modules = data.modules.map((m) => ({
+      id: String(m.id),
+      title: String(m.title || m.id),
+      status: m.status === "confirmed" ? "confirmed" : String(m.status || "draft"),
+      card: {
+        goal: String(m.card?.goal || m.goal || ""),
+        outOfScope: String(m.card?.outOfScope || m.outOfScope || ""),
+        acceptance: String(m.card?.acceptance || m.acceptance || ""),
+        assumptions: String(m.card?.assumptions || m.assumptions || ""),
+      },
+      dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
+    }));
+  }
+  if (data.activeModuleId || data.moduleId) {
+    state.activeModuleId = String(data.activeModuleId || data.moduleId);
+  }
+  if (data.card) {
+    const m = activeModule();
+    if (m) {
+      m.status = "confirmed";
+      m.card = {
+        goal: data.card.goal || "",
+        outOfScope: data.card.outOfScope || "",
+        acceptance: data.card.acceptance || "",
+        assumptions: data.card.assumptions || "",
+      };
+    }
+    applyActiveModuleToFields();
+  }
+  const allDone = Boolean(data.modulesAllConfirmed) || modulesAllConfirmedLocal();
+  state.locked = allDone;
+  // Brief is written at kickoff — do not set jobId from module confirm.
+  if (data.jobId) state.jobId = data.jobId;
+  state.originalCard = allDone
+    ? {
+        goal: state.modules.map((m) => `[${m.title}] ${m.card.goal}`).join("\n"),
+        outOfScope: state.modules
+          .map((m) => m.card.outOfScope)
+          .filter(Boolean)
+          .join("\n"),
+        acceptance: state.modules
+          .map((m) => `[${m.title}] ${m.card.acceptance}`)
+          .join("\n"),
+        assumptions: state.modules
+          .map((m) => m.card.assumptions)
+          .filter(Boolean)
+          .join("\n"),
+      }
+    : cardValues();
   clearRunTimeline();
-  el.confirm.textContent = t("card.confirmed");
+  const done = state.modules.filter((m) => m.status === "confirmed").length;
+  const total = state.modules.length;
+  const extra = allDone
+    ? t("result.allModulesExtra")
+    : t("result.moduleExtra", { done: String(done), total: String(total) });
+  if (!allDone) {
+    focusNextUnconfirmedModule();
+  }
+  el.confirm.textContent = allDone
+    ? t("card.allModulesConfirmed")
+    : t("card.confirm");
   syncReviseCardChrome();
   el.result.hidden = false;
   const reviewLine = data.review?.summary
@@ -2671,17 +3437,29 @@ async function applyConfirmSuccess(data) {
       : "";
   el.result.textContent = t("result.confirmOk", {
     review: reviewLine,
-    dir: data.relativeDir || data.featureDir,
-    branch: data.branch,
+    extra,
+    dir: data.relativeDir || "",
+    branch: data.branch || "",
   });
   addBubble(
     "bot",
-    data.fixed ? t("bot.confirmFixed") : t("bot.confirmOk"),
+    allDone
+      ? t("bot.allModulesOk")
+      : data.fixed
+        ? t("bot.confirmFixed")
+        : t("bot.confirmOk"),
   );
+  renderModuleTabs();
   syncConfirmEnabled();
+  if (!allDone) {
+    scheduleValidate("confirm");
+  }
   void persistProjectChat();
-  await showDispatchPanel();
-  beginArchitectureDesign({ kickoff: true });
+  if (allDone) {
+    await showDispatchPanel();
+    syncTaskPoolPreview();
+    beginArchitectureDesign({ kickoff: true });
+  }
 }
 
 function resetArchitecture({ stale = false } = {}) {
@@ -2882,8 +3660,21 @@ function syncArchitecturePanel(kind) {
     el.architectureRedesign.hidden = !canRedesign;
     el.architectureRedesign.disabled = state.busy;
   }
+  if (el.architectureRetry) {
+    const showRetry =
+      !a.url &&
+      !a.confirmed &&
+      (state.mode === "architecture" ||
+        state.locked ||
+        kind === "missing" ||
+        a.status === "designing");
+    el.architectureRetry.hidden = !showRetry;
+    el.architectureRetry.disabled = state.busy;
+  }
   if (el.architectureHint) {
-    if (kind === "stale") {
+    if (kind === "missing") {
+      el.architectureHint.textContent = t("arch.hintMissing");
+    } else if (kind === "stale") {
       el.architectureHint.textContent = t("arch.hintStale");
     } else if (state.revisePlanConfirmed && !a.confirmed) {
       el.architectureHint.textContent = t("arch.hintAfterRevisePlan");
@@ -2899,12 +3690,95 @@ function syncArchitecturePanel(kind) {
     } else if (a.status === "preview") {
       el.architectureHint.textContent = t("arch.hintPreview");
     } else if (a.status === "designing") {
-      el.architectureHint.textContent = t("arch.hintDesigning");
+      el.architectureHint.textContent = a.url
+        ? t("arch.hintPreview")
+        : t("arch.hintDesigning");
     } else {
       el.architectureHint.textContent = t("arch.hintNeed");
     }
   }
   syncDispatchButton();
+  if (
+    kind === "missing" ||
+    a.status === "designing" ||
+    a.status === "preview" ||
+    Boolean(a.url)
+  ) {
+    requestAnimationFrame(() => {
+      try {
+        el.architecturePanel?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+        focusRightPanel({ force: true });
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+}
+
+function applyArchitectureFromChatPayload(data) {
+  const url = String(data?.architectureUrl || "").trim();
+  if (!url) return false;
+  state.architecture.ir = null;
+  state.architecture.viewBox = normalizeViewBox(data.architectureViewBox);
+  state.architecture.fingerprint = String(data.architectureFingerprint || "");
+  state.architecture.url = url;
+  state.architecture.summary = String(data.architectureSummary || "");
+  state.architecture.status = "preview";
+  state.architecture.confirmed = false;
+  if (!state.architecture.fingerprint) {
+    state.architecture.fingerprint = architectureFpOf(state.architecture) || "";
+  }
+  syncArchitecturePanel();
+  schedulePersistProjectDesk();
+  return true;
+}
+
+function architectureClaimedReady(reply, data) {
+  if (data?.ready && data?.diagram_type === "architecture") return true;
+  const s = String(reply || "");
+  return /架构图已生成|architecture diagram is ready|diagram is ready under/i.test(
+    s,
+  );
+}
+
+async function finishArchitectureChatResult(data, streamBubble, bag) {
+  let rendered = applyArchitectureFromChatPayload(data);
+  if (!rendered) {
+    rendered = await maybeRenderArchitectureFromReply(
+      `${data?.reply || ""}\n${typeof data?.jsonBlock === "string" ? data.jsonBlock : ""}`,
+    );
+  }
+  if (rendered) {
+    announceArchitectureRendered(streamBubble, bag);
+    void persistProjectChat();
+    return true;
+  }
+  if (architectureClaimedReady(data?.reply, data)) {
+    syncArchitecturePanel("missing");
+    addBubble("bot", t("arch.renderMissing"), {
+      actions: [
+        {
+          label: t("arch.retry"),
+          onClick: () => {
+            retryArchitectureDesign();
+          },
+        },
+      ],
+    });
+    void persistProjectChat();
+  } else {
+    syncArchitecturePanel();
+  }
+  return false;
+}
+
+function retryArchitectureDesign() {
+  if (state.busy) return;
+  state.architectureMessages = [];
+  beginArchitectureDesign({ kickoff: true });
 }
 
 function isArchitectureSystemKick(m) {
@@ -3096,13 +3970,11 @@ async function kickoffArchitectureDialogue() {
         content: final.reply,
       });
       void persistProjectChat();
-      const rendered = await maybeRenderArchitectureFromReply(
-        `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
+      await finishArchitectureChatResult(
+        final,
+        streamBubble,
+        state.architectureMessages,
       );
-      if (rendered) {
-        announceArchitectureRendered(streamBubble, state.architectureMessages);
-        void persistProjectChat();
-      }
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
@@ -3113,13 +3985,11 @@ async function kickoffArchitectureDialogue() {
         content: data.reply,
       });
       void persistProjectChat();
-      const rendered = await maybeRenderArchitectureFromReply(
-        `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
+      await finishArchitectureChatResult(
+        data,
+        streamBubble,
+        state.architectureMessages,
       );
-      if (rendered) {
-        announceArchitectureRendered(streamBubble, state.architectureMessages);
-        void persistProjectChat();
-      }
     }
   } catch (err) {
     state.architectureMessages.pop();
@@ -3315,6 +4185,9 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
       body: JSON.stringify({
         ...v,
         issues,
+        moduleId: state.activeModuleId || "main",
+        activeModuleId: state.activeModuleId || "main",
+        modules: state.modules,
         rawAsk: state.rawAsk || v.goal,
       }),
     });
@@ -3411,7 +4284,9 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
+  if (el.workerCount) el.workerCount.value = String(state.workerCount || 1);
   syncDispatchProjectLine();
+  syncTaskPoolPreview();
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
   } else {
@@ -3520,10 +4395,24 @@ const DEPLOY_TARGET_IDS = [
   "github-pages",
 ];
 
+function visibleDeployTargetIds() {
+  return DEPLOY_TARGET_IDS.filter((id) => {
+    if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    if (id === "cloudflare")
+      return Boolean(state.lastCfg?.hasCloudflareCredentials);
+    if (id === "aws") return Boolean(state.lastCfg?.hasAwsCredentials);
+    return true;
+  });
+}
+
 function renderDeployTargetList() {
   if (!el.deployTargetList) return;
   el.deployTargetList.replaceChildren();
-  for (const id of DEPLOY_TARGET_IDS) {
+  const ids = visibleDeployTargetIds();
+  if (!ids.includes(state.deployTarget)) {
+    state.deployTarget = "none";
+  }
+  for (const id of ids) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "deploy-target-chip";
@@ -3767,8 +4656,15 @@ function commitReqEditorToTextarea(pair) {
   const ta = el[pair.ta];
   const view = el[pair.view];
   if (!ta || !view) return;
+  // After exit, syncReqSection replaces the editor DOM. Never serialize an
+  // empty input list back into the textarea or the field is wiped.
+  const inputs = view.querySelectorAll(".req-item-input");
+  if (!inputs.length) return;
   const mode = view.dataset.editMode || "ul";
-  ta.value = serializeReqEdit(mode, readReqEditorItems(view));
+  ta.value = serializeReqEdit(
+    mode,
+    [...inputs].map((n) => n.value),
+  );
 }
 
 function paintReqEditor(pair, focusIndex = 0, override = null) {
@@ -4033,6 +4929,10 @@ el.architectureRedesign?.addEventListener("click", () => {
   addBubble("bot", t("arch.enterDesign"));
 });
 
+el.architectureRetry?.addEventListener("click", () => {
+  retryArchitectureDesign();
+});
+
 el.saveProjectsRoot?.addEventListener("click", async () => {
   if (el.historyErr) el.historyErr.hidden = true;
   if (el.dispatchErr) el.dispatchErr.hidden = true;
@@ -4070,7 +4970,12 @@ el.saveProjectsRoot?.addEventListener("click", async () => {
 el.repoFilter?.addEventListener("input", () => renderRepoList());
 
 el.doDispatch.addEventListener("click", async () => {
-  if (!state.jobId || state.busy) return;
+  if (state.busy) return;
+  if (!state.jobId && !modulesAllConfirmedLocal()) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.needModules");
+    return;
+  }
   const repoPath =
     (state.projectPath || "").trim() || el.repoPath.value.trim();
   if (!repoPath) {
@@ -4100,6 +5005,8 @@ el.doDispatch.addEventListener("click", async () => {
   }
   ensureStartCommandPrefix();
   const startCommand = el.startCommand?.value?.trim() || "";
+  const workerCount = Number(el.workerCount?.value || state.workerCount || 1);
+  state.workerCount = workerCount;
   el.dispatchErr.hidden = true;
   el.doDispatch.disabled = true;
   state.dispatchPhase = "working";
@@ -4113,7 +5020,7 @@ el.doDispatch.addEventListener("click", async () => {
       headers: { "content-type": "application/json" },
       signal: ac.signal,
       body: JSON.stringify({
-        jobId: state.jobId,
+        jobId: state.jobId || undefined,
         repoPath,
         agentId: state.agentId || "cursor-agent",
         startCommand,
@@ -4122,10 +5029,15 @@ el.doDispatch.addEventListener("click", async () => {
         architectureUrl: state.architecture.url || "",
         // Never send deep IR — server loads from architecture/<key>.json.
         architectureIr: null,
+        modules: state.modules,
+        workerCount,
+        rawAsk: state.rawAsk || "",
       }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t("err.dispatch"));
+    if (data.jobId) state.jobId = data.jobId;
+    if (data.taskPool) state.taskPool = data.taskPool;
     const launch = data.launch || {};
     const launchLine = launch.agentId
       ? t("launch.line", {
@@ -4312,6 +5224,12 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   const activity = document.createElement("p");
   activity.className = "progress-activity";
   activity.hidden = true;
+  const workers = document.createElement("div");
+  workers.className = "worker-lanes";
+  workers.hidden = true;
+  const orchLine = document.createElement("p");
+  orchLine.className = "orch-summary";
+  orchLine.hidden = true;
   const tasks = document.createElement("ul");
   tasks.className = "progress-tasks";
   const log = document.createElement("pre");
@@ -4320,6 +5238,8 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   panel.appendChild(meter);
   panel.appendChild(summary);
   panel.appendChild(activity);
+  panel.appendChild(orchLine);
+  panel.appendChild(workers);
   panel.appendChild(tasks);
   panel.appendChild(log);
 
@@ -4334,10 +5254,13 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   state.activeRun = {
     revision: rev,
     root,
+    title,
     meter,
     meterFill,
     summary,
     activity,
+    orchLine,
+    workers,
     tasks,
     log,
     noteEl,
@@ -4345,8 +5268,122 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   return state.activeRun;
 }
 
+function workerStateLabel(stateKey) {
+  const key = String(stateKey || "idle");
+  const map = {
+    running: "run.workerRunning",
+    queued: "run.workerQueued",
+    waiting: "run.workerWaiting",
+    waiting_deps: "run.workerWaitingDeps",
+    done: "run.workerDone",
+    idle: "run.workerIdle",
+  };
+  return t(map[key] || map.idle);
+}
+
+function fillWorkerLanes(block, workers) {
+  if (!block?.workers) return;
+  const list = Array.isArray(workers) ? workers : [];
+  if (list.length <= 1) {
+    block.workers.hidden = true;
+    block.workers.replaceChildren();
+    if (block.tasks) block.tasks.hidden = false;
+    if (block.log) {
+      /* keep aggregate log visible for single worker */
+    }
+    return;
+  }
+  block.workers.hidden = false;
+  if (block.tasks) {
+    block.tasks.hidden = true;
+    block.tasks.replaceChildren();
+  }
+  if (block.log) {
+    block.log.hidden = true;
+    block.log.textContent = "";
+  }
+  block.workers.replaceChildren();
+  for (const w of list) {
+    const card = document.createElement("article");
+    card.className = "worker-lane";
+    card.dataset.state = w.state || "idle";
+    card.dataset.worker = w.id || "";
+
+    const head = document.createElement("header");
+    head.className = "worker-lane-head";
+    const name = document.createElement("h5");
+    name.className = "worker-lane-title";
+    name.textContent = t("run.worker", { id: w.id || "?" });
+    const badge = document.createElement("span");
+    badge.className = "worker-lane-badge";
+    badge.textContent = workerStateLabel(w.state);
+    const meta = document.createElement("p");
+    meta.className = "worker-lane-meta";
+    const done = Number(w.done) || 0;
+    const total = Number(w.total) || 0;
+    meta.textContent =
+      total > 0
+        ? `${done}/${total}${w.current ? ` · ${w.current}` : ""}`
+        : workerStateLabel(w.state);
+    head.appendChild(name);
+    head.appendChild(badge);
+    card.appendChild(head);
+    card.appendChild(meta);
+
+    const laneMeter = document.createElement("div");
+    laneMeter.className = "worker-lane-meter";
+    const fill = document.createElement("div");
+    fill.className = "worker-lane-meter-fill";
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    fill.style.width = `${pct}%`;
+    laneMeter.appendChild(fill);
+    if (total > 0) card.appendChild(laneMeter);
+
+    const ul = document.createElement("ul");
+    ul.className = "progress-tasks worker-lane-tasks";
+    const nextId = (w.tasks || []).find((task) => !task.done)?.id;
+    for (const task of w.tasks || []) {
+      const li = document.createElement("li");
+      li.dataset.done = task.done ? "true" : "false";
+      if (!task.done && task.id === nextId) li.dataset.current = "true";
+      const mark = document.createElement("span");
+      mark.className = "mark";
+      mark.textContent = task.done ? "✓" : "·";
+      const text = document.createElement("span");
+      text.className = "progress-task-text";
+      text.textContent = task.text;
+      li.appendChild(mark);
+      li.appendChild(text);
+      ul.appendChild(li);
+    }
+    if (ul.childNodes.length) card.appendChild(ul);
+
+    const lines = Array.isArray(w.logTail) ? w.logTail : [];
+    if (lines.length) {
+      const pre = document.createElement("pre");
+      pre.className = "progress-log worker-lane-log";
+      pre.textContent = lines.join("\n");
+      card.appendChild(pre);
+    }
+
+    block.workers.appendChild(card);
+  }
+}
+
 function fillRunProgress(block, data) {
   if (!block) return;
+  const workers = Array.isArray(data?.workers) ? data.workers : [];
+  const multi = workers.length > 1;
+  if (block.title) {
+    const rev = Number(block.revision) || 0;
+    if (rev > 0) {
+      block.title.textContent = t("run.revision", { revision: rev });
+    } else if (multi) {
+      block.title.textContent = t("run.dispatchWorkers", { n: workers.length });
+    } else {
+      block.title.textContent = t("run.dispatch");
+    }
+  }
   const progress = data?.progress;
   if (!progress) {
     if (block.summary) block.summary.textContent = "";
@@ -4358,7 +5395,11 @@ function fillRunProgress(block, data) {
       block.activity.hidden = true;
       block.activity.textContent = "";
     }
-    if (block.tasks) block.tasks.replaceChildren();
+    fillWorkerLanes(block, []);
+    if (block.tasks) {
+      block.tasks.hidden = false;
+      block.tasks.replaceChildren();
+    }
     if (block.log) {
       block.log.hidden = true;
       block.log.textContent = "";
@@ -4375,7 +5416,14 @@ function fillRunProgress(block, data) {
     block.meter.dataset.complete = done >= total && total > 0 ? "true" : "false";
   }
   if (block.summary) {
-    block.summary.textContent = `${done}/${total} · ${progress.current || ""}`;
+    block.summary.textContent = multi
+      ? t("run.dispatchWorkersSummary", {
+          n: workers.length,
+          done,
+          total,
+          current: progress.current || "",
+        })
+      : `${done}/${total} · ${progress.current || ""}`;
   }
   if (block.activity) {
     const act = data?.activity;
@@ -4395,7 +5443,24 @@ function fillRunProgress(block, data) {
       block.activity.textContent = "";
     }
   }
-  if (block.tasks) {
+  if (block.orchLine) {
+    const orch = data?.orchestration || data?.dispatch?.orchestration;
+    const sum = orch?.summary;
+    if (sum && (Number(sum.releasedWaveCount) > 0 || Number(sum.blockedCount) > 0 || Number(sum.readyCount) > 0)) {
+      block.orchLine.hidden = false;
+      block.orchLine.textContent = t("run.orchSummary", {
+        released: Number(sum.releasedWaveCount) || 0,
+        ready: Number(sum.readyCount) || 0,
+        blocked: Number(sum.blockedCount) || 0,
+      });
+    } else {
+      block.orchLine.hidden = true;
+      block.orchLine.textContent = "";
+    }
+  }
+  fillWorkerLanes(block, workers);
+  if (!multi && block.tasks) {
+    block.tasks.hidden = false;
     block.tasks.replaceChildren();
     const nextId = progress.tasks?.find((task) => !task.done)?.id;
     for (const task of progress.tasks || []) {
@@ -4413,7 +5478,7 @@ function fillRunProgress(block, data) {
       block.tasks.appendChild(li);
     }
   }
-  if (block.log) {
+  if (!multi && block.log) {
     const lines = data.logTail || [];
     if (lines.length) {
       block.log.hidden = false;
@@ -4435,7 +5500,10 @@ function renderProgress(data) {
   const rev = Number(data.revision || 0);
   const prevRun = state.activeRun;
   const block = beginRunBlock({ revision: rev });
-  const focusKey = `${rev}:${Number(progress.done) || 0}/${Number(progress.total) || 0}:${data.status || ""}`;
+  const workerKey = (Array.isArray(data.workers) ? data.workers : [])
+    .map((w) => `${w.id}:${w.done}/${w.total}:${w.state}`)
+    .join("|");
+  const focusKey = `${rev}:${Number(progress.done) || 0}/${Number(progress.total) || 0}:${data.status || ""}:${workerKey}`;
   const isNewBlock = Boolean(block && block !== prevRun);
   const changed = focusKey !== state.progressFocusKey;
   fillRunProgress(block, data);
@@ -5550,6 +6618,16 @@ el.previewStartService?.addEventListener("click", () => {
 
 const DEPLOY_HOST_IDS = ["cloudflare", "aliyun", "aws", "github-pages"];
 
+function visibleDeployHostIds() {
+  return DEPLOY_HOST_IDS.filter((id) => {
+    if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    if (id === "cloudflare")
+      return Boolean(state.lastCfg?.hasCloudflareCredentials);
+    if (id === "aws") return Boolean(state.lastCfg?.hasAwsCredentials);
+    return true;
+  });
+}
+
 function closeDeployPicker() {
   if (el.deployPicker) el.deployPicker.hidden = true;
 }
@@ -5557,7 +6635,13 @@ function closeDeployPicker() {
 function renderDeployPickerList() {
   if (!el.deployPickerList) return;
   el.deployPickerList.replaceChildren();
-  for (const id of DEPLOY_HOST_IDS) {
+  const ids = visibleDeployHostIds();
+  if (!ids.includes(state.deployPickerTarget)) {
+    state.deployPickerTarget = ids.includes("github-pages")
+      ? "github-pages"
+      : ids[0] || "github-pages";
+  }
+  for (const id of ids) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "deploy-target-chip";
@@ -5576,10 +6660,13 @@ function renderDeployPickerList() {
 
 function openDeployPicker() {
   if (!state.jobId || state.deployDispatching || state.busy) return;
+  const hosts = visibleDeployHostIds();
   const current = state.deployTarget || "none";
-  state.deployPickerTarget = DEPLOY_HOST_IDS.includes(current)
+  state.deployPickerTarget = hosts.includes(current)
     ? current
-    : "github-pages";
+    : hosts.includes("github-pages")
+      ? "github-pages"
+      : hosts[0] || "github-pages";
   renderDeployPickerList();
   if (el.deployPickerTitle) {
     el.deployPickerTitle.textContent = t("preview.deployWhere");
@@ -5610,9 +6697,8 @@ document.addEventListener("keydown", (ev) => {
 
 async function startPreviewDeploy(targetRaw) {
   if (!state.jobId || state.deployDispatching || state.busy) return;
-  const target = DEPLOY_HOST_IDS.includes(targetRaw)
-    ? targetRaw
-    : "github-pages";
+  const hosts = visibleDeployHostIds();
+  const target = hosts.includes(targetRaw) ? targetRaw : "github-pages";
   state.deployTarget = target;
   renderDeployTargetList();
   void persistProjectChat();
@@ -6068,6 +7154,9 @@ if (el.historyToggle) {
     setHistoryOpen(open);
   });
 }
+el.openDeliverables?.addEventListener("click", () => {
+  openDeliverablesPage();
+});
 if (el.historyClose) {
   el.historyClose.addEventListener("click", () => setHistoryOpen(false));
 }

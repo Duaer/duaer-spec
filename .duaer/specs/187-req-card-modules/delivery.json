@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "187-req-card-modules",
+  "acceptedAt": "2026-09-19T00:00:00.000Z",
+  "verification": {
+    "L1": "node --test test/req-structured.test.mjs (14 pass)",
+    "L3": "npm run test:live (pass)"
+  }
+}

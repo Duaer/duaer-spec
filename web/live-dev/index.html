@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Duaer-spec FED</title>
+    <title>Duaer-spec FDE</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -19,7 +19,7 @@
           <div class="top-lead">
             <p class="brand">
               <span data-i18n="header.brandProduct">Duaer-spec</span>
-              <span class="brand-fed" data-i18n="header.brandFed">FED</span>
+              <span class="brand-fde" data-i18n="header.brandFde">FDE</span>
             </p>
             <p class="flow-line">
               <span class="mark" data-i18n="header.mark">现场开发</span>
@@ -92,6 +92,8 @@
         <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="需求">
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
           <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
+          <div id="moduleTabs" class="module-tabs" hidden role="tablist" aria-label="Modules"></div>
+          <p id="moduleMeta" class="meta module-meta" hidden></p>
           <p id="meta" class="meta"></p>
           <div class="req-section field" data-req="goal">
             <span id="lblGoal" data-i18n="card.goal">要做什么</span>
@@ -120,9 +122,44 @@
             自动处理
           </button>
           <button type="button" class="btn confirm" id="confirm" disabled data-i18n="card.confirm">
-            需求无误，开始干活
+            确认本模块
           </button>
           <pre id="result" class="result" hidden></pre>
+
+          <div id="architectureSlotDeploy" class="architecture-slot architecture-slot-main">
+            <div id="architecturePanel" class="architecture-panel" hidden>
+              <div id="architecturePreviousBlock" class="architecture-previous" hidden>
+                <p class="architecture-title" data-i18n="arch.titlePrevious">原架构</p>
+                <p id="architecturePreviousSummary" class="architecture-summary" hidden></p>
+                <div
+                  id="architecturePreviousFrame"
+                  class="architecture-mount"
+                  title="previous architecture"
+                  hidden
+                ></div>
+              </div>
+              <p id="architectureCurrentTitle" class="architecture-title" data-i18n="arch.title">系统架构</p>
+              <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
+              <p id="architectureSummary" class="architecture-summary" hidden></p>
+              <div
+                id="architectureFrame"
+                class="architecture-mount"
+                title="architecture"
+                hidden
+              ></div>
+              <div class="architecture-actions">
+                <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
+                  确认架构，可派工
+                </button>
+                <button type="button" class="btn" id="architectureRedesign" hidden data-i18n="arch.redesign">
+                  架构有变，重新设计
+                </button>
+                <button type="button" class="btn" id="architectureRetry" hidden data-i18n="arch.retry">
+                  重新生成架构图
+                </button>
+              </div>
+            </div>
+          </div>
 
           <section id="dispatch" class="dispatch" hidden>
             <p class="mark" data-i18n="dispatch.mark">派工</p>
@@ -130,6 +167,20 @@
             <div id="dispatchProjectSummary" class="dispatch-project-summary" hidden>
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
+            </div>
+            <div id="taskPoolPreview" class="task-pool-preview" hidden>
+              <p class="agent-pick-label" data-i18n="dispatch.taskPool">任务池（依赖 / 并行）</p>
+              <pre id="taskPoolList" class="task-pool-list"></pre>
+            </div>
+            <div class="field worker-count-field">
+              <span data-i18n="dispatch.workerCount">数字员工数量</span>
+              <p class="hint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <select id="workerCount" aria-label="worker count">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
             </div>
             <div id="repoPickBlock" class="repo-pick-block">
               <div class="repo-actions" id="repoPickActions">
@@ -151,37 +202,6 @@
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
               <div id="deployTargetList" class="deploy-target-list" role="radiogroup" aria-label="deploy target"></div>
-              <div id="architectureSlotDeploy" class="architecture-slot">
-              <div id="architecturePanel" class="architecture-panel" hidden>
-                <div id="architecturePreviousBlock" class="architecture-previous" hidden>
-                  <p class="architecture-title" data-i18n="arch.titlePrevious">原架构</p>
-                  <p id="architecturePreviousSummary" class="architecture-summary" hidden></p>
-                  <div
-                    id="architecturePreviousFrame"
-                    class="architecture-mount"
-                    title="previous architecture"
-                    hidden
-                  ></div>
-                </div>
-                <p id="architectureCurrentTitle" class="architecture-title" data-i18n="arch.title">系统架构</p>
-                <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
-                <p id="architectureSummary" class="architecture-summary" hidden></p>
-                <div
-                  id="architectureFrame"
-                  class="architecture-mount"
-                  title="architecture"
-                  hidden
-                ></div>
-                <div class="architecture-actions">
-                  <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
-                    确认架构，可派工
-                  </button>
-                  <button type="button" class="btn" id="architectureRedesign" hidden data-i18n="arch.redesign">
-                    架构有变，重新设计
-                  </button>
-                </div>
-              </div>
-              </div>
             </div>
             <div class="agent-pick">
               <div class="agent-pick-head">
@@ -280,6 +300,17 @@
           <header class="progress-head">
             <p class="mark" data-i18n="progress.mark">Progress</p>
             <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
+            <button
+              type="button"
+              class="btn deliverables-open"
+              id="openDeliverables"
+              data-i18n="deliverables.open"
+              data-i18n-title="deliverables.openHint"
+              title="新标签打开结构化交付物档案（需求文档 / 确认书 / 架构…）"
+              hidden
+            >
+              查看交付物
+            </button>
             <p id="dispatchStatus" class="meta progress-status" hidden></p>
           </header>
           <div id="progressEmpty" class="progress-empty">
@@ -348,7 +379,7 @@
     <aside id="settingsPanel" class="history-drawer panel settings-drawer" hidden>
       <div class="history-head">
         <div>
-          <p class="mark" data-i18n="setup.mark">Duaer-spec FED · model</p>
+          <p class="mark" data-i18n="setup.mark">Duaer-spec FDE · model</p>
           <h2 class="history-title" data-i18n="setup.title">配置模型</h2>
         </div>
         <button type="button" class="btn history-close" id="settingsClose" data-i18n="setup.close" hidden>
@@ -356,52 +387,150 @@
         </button>
       </div>
       <div class="settings-body" id="setup">
-        <p class="hint" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
-        <div class="field">
-          <span data-i18n="setup.provider">服务商</span>
-          <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
-        </div>
-        <label class="field">
-          <span>Base URL</span>
-          <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
-        </label>
-        <label class="field">
-          <span>API Key</span>
-          <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Model</span>
-          <input id="cfgModel" type="text" placeholder="deepseek-flash" />
-        </label>
-        <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
-        <p id="cfgErr" class="hint" hidden></p>
+        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
 
-        <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
-          <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
-          <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+        <details class="setup-block" id="setupModelBlock" open>
+          <summary class="setup-block-sum" data-i18n="setup.modelBlock">台面模型</summary>
+          <div class="setup-block-body">
+            <div class="field">
+              <span data-i18n="setup.provider">服务商</span>
+              <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
+            </div>
+            <label class="field">
+              <span>Base URL</span>
+              <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
+            </label>
+            <label class="field">
+              <span>API Key</span>
+              <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Model</span>
+              <input id="cfgModel" type="text" placeholder="deepseek-flash" />
+            </label>
+            <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
+            <p id="cfgErr" class="hint" hidden></p>
+            <details class="setup-howto">
+              <summary data-i18n="setup.howtoFill">怎么填？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n="setup.howtoModel1">选 DeepSeek / OpenAI 预设，或 Custom 填兼容 Base URL</li>
+                <li data-i18n="setup.howtoModel2">API Key 来自对应服务商控制台；Model 填该服务商的模型名</li>
+                <li data-i18n-html="setup.howtoModel3">命令行：<code>duaer live config --provider deepseek --api-key &lt;key&gt;</code></li>
+              </ol>
+            </details>
+          </div>
+        </details>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">Duaer 台面模型（本页）</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideDesk1">选 DeepSeek / OpenAI 预设，或 Custom 填任意 OpenAI 兼容 Base URL + Key + Model</li>
-            <li data-i18n="setup.guideDesk2">也可用命令行：duaer live config --provider deepseek --api-key &lt;key&gt;</li>
-          </ul>
+        <details class="setup-block" id="setupCloudflare">
+          <summary class="setup-block-sum" data-i18n="setup.cloudflareTitle">Cloudflare 部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.cloudflareHint">保存后才会显示 Cloudflare 托管选项。密钥只存本机。</p>
+            <label class="field">
+              <span data-i18n="setup.cloudflareToken">API Token</span>
+              <input id="cfgCfToken" type="password" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.cloudflareAccount">Account ID</span>
+              <input id="cfgCfAccount" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveCfCfg" data-i18n="setup.cloudflareSave">保存</button>
+              <button type="button" class="btn" id="clearCfCfg" data-i18n="setup.cloudflareClear">清除</button>
+            </div>
+            <p id="cfCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoCf1">打开 <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Dashboard</a> → 右侧 Account ID 复制</li>
+                <li data-i18n-html="setup.howtoCf2">My Profile → API Tokens → Create Token；权限含 Workers / Pages 编辑</li>
+                <li data-i18n="setup.howtoCf3">粘贴 Token + Account ID → 保存；部署时会注入环境变量</li>
+              </ol>
+            </details>
+          </div>
+        </details>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
-          <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
-          <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
-          <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
-          <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
-          <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
-          <p class="hint" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
+        <details class="setup-block" id="setupAliyun">
+          <summary class="setup-block-sum" data-i18n="setup.aliyunTitle">阿里云部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.aliyunHint">保存后才会显示阿里云。密钥只存本机，不会回传页面。</p>
+            <label class="field">
+              <span data-i18n="setup.aliyunId">AccessKey ID</span>
+              <input id="cfgAliyunId" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.aliyunSecret">AccessKey Secret</span>
+              <input id="cfgAliyunSecret" type="password" autocomplete="off" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveAliyunCfg" data-i18n="setup.aliyunSave">保存</button>
+              <button type="button" class="btn" id="clearAliyunCfg" data-i18n="setup.aliyunClear">清除</button>
+            </div>
+            <p id="aliyunCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoAliyun1">打开 <a href="https://ram.console.aliyun.com/manage/ak" target="_blank" rel="noopener">RAM AccessKey</a>（建议子账号，最小权限）</li>
+                <li data-i18n="setup.howtoAliyun2">创建 AccessKey，复制 ID + Secret（Secret 只显示一次）</li>
+                <li data-i18n="setup.howtoAliyun3">粘贴保存；部署时注入 ALIBABA_CLOUD_ACCESS_KEY_*</li>
+              </ol>
+            </details>
+          </div>
+        </details>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
-            <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
-            <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
-          </ul>
-          <p class="hint" data-i18n-html="setup.guideDoc">完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a></p>
-        </aside>
+        <details class="setup-block" id="setupAws">
+          <summary class="setup-block-sum" data-i18n="setup.awsTitle">AWS 部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.awsHint">保存后才会显示 AWS。密钥只存本机。</p>
+            <label class="field">
+              <span data-i18n="setup.awsId">Access Key ID</span>
+              <input id="cfgAwsId" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.awsSecret">Secret Access Key</span>
+              <input id="cfgAwsSecret" type="password" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.awsRegion">Region（可选）</span>
+              <input id="cfgAwsRegion" type="text" placeholder="us-east-1" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveAwsCfg" data-i18n="setup.awsSave">保存</button>
+              <button type="button" class="btn" id="clearAwsCfg" data-i18n="setup.awsClear">清除</button>
+            </div>
+            <p id="awsCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoAws1">打开 <a href="https://console.aws.amazon.com/iam/" target="_blank" rel="noopener">IAM</a> → Users → 选用户 → Security credentials</li>
+                <li data-i18n="setup.howtoAws2">Create access key，复制 Access key ID + Secret</li>
+                <li data-i18n="setup.howtoAws3">可选填 Region（如 us-east-1）；部署时注入 AWS_* 环境变量</li>
+              </ol>
+            </details>
+          </div>
+        </details>
+
+        <details class="setup-block setup-guide-block" id="setupGuideBlock">
+          <summary class="setup-block-sum" data-i18n="setup.guideTitle">派工与模型说明</summary>
+          <div class="setup-block-body setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
+            <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+
+            <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
+            <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
+            <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
+            <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
+            <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
+            <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
+            <p class="hint tight" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
+
+            <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
+            <ul class="setup-guide-list">
+              <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+              <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
+              <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FDE 只负责启动 agent</li>
+            </ul>
+            <p class="hint tight" data-i18n-html="setup.guideDoc">完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a></p>
+          </div>
+        </details>
       </div>
     </aside>
 
@@ -417,6 +546,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=deploy-picker-1"></script>
+    <script type="module" src="/app.js?v=arch-visible-1"></script>
   </body>
 </html>

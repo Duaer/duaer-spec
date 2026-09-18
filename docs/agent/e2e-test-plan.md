@@ -58,7 +58,7 @@ the table for their app.
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt) while job is still in progress; after accept, see E2E-047 | manual |
 | E2E-042 | Wide desk layout; FIFO jobs/ queue auto-runs next task after running.cmd finishes | manual |
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
-| E2E-044 | Duaer-spec FED「项目」: header Projects button; drawer create/select project; chats listed under active project; restore loads job | `npm test` + `npm run test:live` + manual |
+| E2E-044 | Duaer-spec FDE「项目」: header Projects button; drawer create/select project; chats listed under active project; restore loads job | `npm test` + `npm run test:live` + manual |
 | E2E-079 | Project-first: chat/Send locked until active project; `/api/projects` + activate; confirm stamps projectPath; parent folder UI in project drawer | `npm test` + `npm run test:live` |
 | E2E-080 | Project create requires title + background description; list shows both | `npm test` + `npm run test:live` |
 | E2E-081 | Project chat persists under `~/.duaer/live/project-chats/`; refresh restores messages | `npm test` + `npm run test:live` |
@@ -95,7 +95,7 @@ the table for their app.
 | E2E-113 | Architecture embed passport stays in-view (left flush, top 100px, high z-index) | `npm test` + manual |
 | E2E-114 | Architecture passport offset 100px via gutter padding without iframe clip | `npm test` + manual |
 | E2E-115 | Architecture passport expands fully with no inner scroll; iframe grows | `npm test` + manual |
-| E2E-116 | README EN/ZH show Duaer-spec FED brand SVG from desk header | manual |
+| E2E-116 | README EN/ZH show Duaer-spec FDE brand SVG from desk header | manual |
 | E2E-117 | 再改一版 kickoff shows real error; no right-panel focus race during stream | `npm run test:live` + manual |
 | E2E-118 | Desk drops deep architecture IR after render (viewBox/fingerprint only); dispatch loads IR from disk; revise SSE omits jsonBlock | `npm run test:live` + manual |
 | E2E-119 | 再改一版 kickoff skips heavy chrome; no false「架构图序列化爆栈」; chrome after success only | `npm run test:live` + manual |
@@ -108,11 +108,31 @@ the table for their app.
 | E2E-126 | Architecture mount height follows SVG canvas (not 100vh black box) | `npm test` + manual |
 | E2E-127 | Result bar Deploy next to 打开看看; none → GitHub Pages; POST /api/deploy | `npm test` + manual |
 | E2E-128 | Deploy click opens host picker before starting deploy | `npm test` + manual |
-| E2E-129 | Public intro site at `site/` on GitHub Pages (brand, pitch, FED, install) | open Pages URL + manual |
+| E2E-129 | Public intro site at `site/` on GitHub Pages (brand, pitch, FDE, install) | open Pages URL + manual |
 | E2E-130 | Intro Pages hero is large-scale (brand-first, cinematic atmosphere) | open Pages URL + manual |
 | E2E-131 | Intro Pages layout: shared wrap, readable steps, no clipped hero | open Pages URL + manual |
+| E2E-132 | Settings Alibaba Cloud AccessKey; 阿里云 hidden until both keys saved | `npm test` + `npm run test:live` + manual |
+| E2E-133 | Settings Cloudflare / AWS credentials; options hidden until configured | `npm test` + `npm run test:live` + manual |
+| E2E-134 | Settings compact collapsible blocks + host credential tutorials | `npm run test:live` + manual |
+| E2E-135 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
+| E2E-136 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
+| E2E-137 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
+| E2E-138 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
+| E2E-139 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
+| E2E-140 | Confirm button state: no tab rebuild on validate; tab switch re-validates; busy clear re-enables | `npm run test:live` + manual |
+| E2E-141 | Progress column「查看交付物」opens generated stage deliverables HTML (req doc timeline + confirmation) | `npm test` + `npm run test:live` + manual |
+| E2E-142 | Architecture panel visible in middle column; server URL + regenerate when IR missing | `npm test` + `npm run test:live` + manual |
+| E2E-143 | Cyclic architecture IR does not freeze live desk; deliverables page opens without Google Fonts | `npm test` + manual |
+| E2E-144 | Deliverables HTML has Contents TOC + structured card fields (dl/dt/dd) | `npm test` + manual |
+| E2E-145 | Multi-worker dispatch shows per-employee lanes under 派工进度 | `npm test` + `npm run test:live` + manual |
+| E2E-146 | Wave orchestration: only ready tasks in first prompt; status poll continues next wave when lane idle | `npm test` + manual |
+| E2E-147 | Deliverables HTML: numbered acceptance lists, chips, task table, confirmation registry | `npm test` + manual |
+| E2E-148 | Deliverables page two-column dossier layout (TOC rail + paper body) | `npm test` + manual |
+| E2E-149 | 初版 · 需求卡 accordion body uses structured lists/paragraphs (`req-list` / `req-para`); goal prose does not shatter on `、` | `npm test` + `npm run test:live` |
+| E2E-150 | Requirements click-to-edit then blur without changes keeps field text (no wipe) | `npm run test:live` + manual |
+| E2E-151 | Modular `[模块]` card fields render section titles + numbered acceptance lists | `npm test` + `npm run test:live` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
-| E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
+| E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
@@ -127,7 +147,7 @@ the table for their app.
 | E2E-067 | Live serves `.mjs` as `text/javascript`; desk module graph loads; send shows chat bubbles | `npm run test:live` |
 | E2E-066 | Chat empty state shows three structured steps (plain words → confirm/dispatch → acceptance delivery); locale switch updates step copy | `npm run test:live` + manual |
 | E2E-065 | Chat send: after Confirm / History restore, Send/Enter still posts chat; locked specify card fields are not overwritten; busy/not-ready shows a bot notice (not silent) | `npm run test:live` + manual |
-| E2E-064 | FED UX polish: chat empty state, accented FED brand, opaque history drawer, stronger primary CTA | `npm test` + manual |
+| E2E-064 | FDE UX polish: chat empty state, accented FDE brand, opaque history drawer, stronger primary CTA | `npm test` + manual |
 | E2E-045 | Desk layout: compact header, history as side drawer (does not push columns), calm two-column desk | manual |
 | E2E-046 | Revise dispatch always returns: a stuck child (e.g. blocking `post-checkout` hook on `git worktree add`) yields HTTP 504 with an actionable message within its budget instead of hanging, so the button never sits on「续派中…」forever; normal revise still enqueues into `.duaer/live-terminal/jobs/` | manual / curl |
 | E2E-047 | After delivery accepted, revise while first agent still holds `running.cmd`: `POST /api/revise` preempts leftover CLI, enqueues revise, and Terminal drains the revise job (not forever behind the accepted first agent); pre-accept busy revise still waits without interrupt | manual / curl |
@@ -214,7 +234,7 @@ the table for their app.
 | E2E-060 | `062-deepseek-cli` | DeepSeek TUI as worker CLI |
 | E2E-061 | `064-cli-install-show` | missing CLI install cmds |
 | E2E-062 | `065-detailed-progress` | fine tasks + worktree activity |
-| E2E-063 | `066-duaer-fed` | Duaer-spec FED brand |
+| E2E-063 | `066-duaer-fed` | Duaer-spec FDE brand |
 | E2E-074 | `082-git-cli-ensure` | git auto-install + 10d CLI upgrade |
 | E2E-075 | `083-deepseek-w-flag` | DeepSeek `-w` not `--workspace` |
 | E2E-076 | `084-drop-deepseek-cli` | drop deepseek worker; model tutorial |
@@ -270,3 +290,20 @@ the table for their app.
 | E2E-126 | `159-arch-auto-height` | content-driven height; kill 100vh lock |
 | E2E-127 | `160-preview-deploy-btn` | result-bar Deploy; default Pages |
 | E2E-128 | `161-deploy-picker` | Deploy opens where-to-host dialog |
+| E2E-135 | `169-modular-fde-confirm` | modular messy chat; late kickoff |
+| E2E-136 | `169-modular-fde-confirm` | task pool + 1..N same-CLI workers |
+| E2E-137 | `170-readme-on-delivery` | README update before accepted |
+| E2E-138 | `171-chat-markdown` | safe chat Markdown bubbles |
+| E2E-139 | `173-parallel-terminal-lanes` | per-worker Terminal queue lanes |
+| E2E-140 | `175-confirm-btn-state` | confirm enablement / tab switch validate |
+| E2E-141 | `176-deliverables-page` | stage deliverables HTML page |
+| E2E-142 | `178-arch-panel-visible` | architecture panel visibility + server render |
+| E2E-143 | `179-arch-layout-hang` | cyclic IR layout must not freeze desk |
+| E2E-144 | `180-deliverables-structure` | structured TOC + card fields |
+| E2E-145 | `181-multi-worker-progress` | per-worker lanes in 派工进度 |
+| E2E-146 | `182-task-orchestrate` | wave orchestration / dependsOn gating |
+| E2E-147 | `183-deliverables-structure-v2` | deliverables content structure |
+| E2E-148 | `184-deliverables-layout` | deliverables dossier layout |
+| E2E-149 | `185-req-card-structure` | structured 初版需求卡 accordion |
+| E2E-150 | `186-req-edit-wipe` | click-edit blur must not wipe fields |
+| E2E-151 | `187-req-card-modules` | modular `[模块]` structured sections |

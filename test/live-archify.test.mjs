@@ -42,6 +42,29 @@ test("layoutArchitectureIr assigns pos and viewBox", () => {
   assert.ok(ir.meta.viewBox[1] >= 240);
 });
 
+test("layoutArchitectureIr finishes on cyclic connections", () => {
+  const t0 = Date.now();
+  const ir = layoutArchitectureIr({
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "cycle" },
+    components: [
+      { id: "a", type: "backend", label: "A" },
+      { id: "b", type: "backend", label: "B" },
+      { id: "c", type: "database", label: "C" },
+    ],
+    connections: [
+      { id: "c1", from: "a", to: "b" },
+      { id: "c2", from: "b", to: "a" },
+      { id: "c3", from: "b", to: "c" },
+      { id: "c4", from: "c", to: "b" },
+    ],
+  });
+  assert.ok(Date.now() - t0 < 500, "cycle layout must not hang");
+  assert.equal(ir.components.length, 3);
+  assert.ok(Array.isArray(ir.meta.viewBox));
+});
+
 test("sanitizeArchitectureIr drops extras in server and browser", () => {
   const dirty = {
     ready: true,

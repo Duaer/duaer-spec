@@ -37,7 +37,8 @@ test("buildDetailedProductTasksMd yields ≥6 checkboxes", () => {
   assert.ok(boxes.length >= 6, `expected ≥6, got ${boxes.length}`);
   assert.match(md, /T001/);
   assert.match(md, /Satisfy acceptance \(alone\): Hero with brand/);
-  assert.match(md, /Stamp delivery\.json accepted/);
+  assert.match(md, /[Ss]tamp delivery\.json accepted/);
+  assert.match(md, /Update product README/);
 });
 
 test("buildDetailedProductTasksMd includes deploy task when needed", () => {
@@ -69,6 +70,7 @@ test("buildDetailedRevisionTasksMd yields ≥5 R{n}-* boxes", () => {
   const boxes = block.match(/^\s*[-*]\s+\[[ xX]\]\s+R2-/gm) || [];
   assert.ok(boxes.length >= 5, `expected ≥5, got ${boxes.length}`);
   assert.match(block, /Apply revision: Make hero taller/);
+  assert.match(block, /Update product README/);
 });
 
 test("parseWorktreeActivityFromGit prefers product files in summary", () => {
@@ -90,8 +92,15 @@ test("live sources wire detailed progress + activity UI", () => {
   assert.match(live, /worktreeActivity/);
   assert.match(live, /activity,/);
   assert.match(live, /不要人为限制条数/);
+  assert.match(live, /更新产品仓 README/);
   assert.doesNotMatch(live, /扩成 8–15 条/);
   assert.doesNotMatch(live, /扩成 6–12 条/);
+
+  const progress = fs.readFileSync(
+    path.join(ROOT, "bin/live-progress.mjs"),
+    "utf8",
+  );
+  assert.match(progress, /Update product README/);
 
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /progress-activity/);
@@ -102,4 +111,7 @@ test("live sources wire detailed progress + activity UI", () => {
     "utf8",
   );
   assert.match(css, /\.progress-activity/);
+
+  const i18n = fs.readFileSync(path.join(ROOT, "web/live-dev/i18n.js"), "utf8");
+  assert.match(i18n, /更新产品 README|update the product README/);
 });

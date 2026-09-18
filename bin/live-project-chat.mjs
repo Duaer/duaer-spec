@@ -6,6 +6,12 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import {
+  clipModules,
+  clipActiveModuleId,
+  clipTaskPool,
+  clipWorkerCount,
+} from "./live-modules.mjs";
 
 export function projectChatKey(projectPath) {
   const abs = String(projectPath || "")
@@ -217,6 +223,10 @@ function emptySession(projectPath = "") {
     reviseMessages: [],
     rawAsk: "",
     card: clipCard(null),
+    modules: [],
+    activeModuleId: null,
+    taskPool: null,
+    workerCount: 1,
     reviseCard: clipCard(null),
     reviseCards: [],
     reviseDraft: null,
@@ -240,6 +250,14 @@ function emptySession(projectPath = "") {
   };
 }
 
+function normalizeModulesFields(raw) {
+  const modules = clipModules(raw?.modules, raw?.card);
+  const activeModuleId = clipActiveModuleId(raw?.activeModuleId, modules);
+  const active = modules.find((m) => m.id === activeModuleId);
+  const card = active?.card ? clipCard(active.card) : clipCard(raw?.card);
+  return { modules, activeModuleId, card };
+}
+
 /**
  * @returns {ReturnType<typeof emptySession>}
  */
@@ -249,13 +267,18 @@ export function readProjectChat(liveRoot, projectPath) {
   if (!file || !fs.existsSync(file)) return empty;
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const modFields = normalizeModulesFields(raw);
     return {
       projectPath: String(raw.projectPath || projectPath || "").trim(),
       updatedAt: raw.updatedAt || null,
       messages: clipMessages(raw.messages),
       reviseMessages: clipMessages(raw.reviseMessages),
       rawAsk: String(raw.rawAsk || "").slice(0, 8000),
-      card: clipCard(raw.card),
+      card: modFields.card,
+      modules: modFields.modules,
+      activeModuleId: modFields.activeModuleId,
+      taskPool: clipTaskPool(raw.taskPool),
+      workerCount: clipWorkerCount(raw.workerCount),
       reviseCard: clipCard(raw.reviseCard),
       reviseCards: migrateReviseCards(
         raw.reviseCards,
@@ -298,13 +321,20 @@ export function writeProjectChat(liveRoot, payload) {
     throw e;
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
+  const modFields = normalizeModulesFields(payload);
   const doc = {
     projectPath,
     updatedAt: new Date().toISOString(),
     messages: clipMessages(payload.messages),
     reviseMessages: clipMessages(payload.reviseMessages),
     rawAsk: String(payload.rawAsk || "").slice(0, 8000),
-    card: clipCard(payload.card),
+    card: modFields.card.goal || modFields.card.acceptance
+      ? modFields.card
+      : clipCard(payload.card),
+    modules: modFields.modules,
+    activeModuleId: modFields.activeModuleId,
+    taskPool: clipTaskPool(payload.taskPool),
+    workerCount: clipWorkerCount(payload.workerCount),
     reviseCard: clipCard(payload.reviseCard),
     reviseCards: migrateReviseCards(
       payload.reviseCards,

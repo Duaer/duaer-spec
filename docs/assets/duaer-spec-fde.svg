@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="112" viewBox="0 0 560 112" role="img" aria-label="Duaer-spec FED">
-  <title>Duaer-spec FED</title>
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="112" viewBox="0 0 560 112" role="img" aria-label="Duaer-spec FDE">
+  <title>Duaer-spec FDE</title>
   <defs>
     <radialGradient id="glow" cx="18%" cy="0%" r="70%">
       <stop offset="0%" stop-color="#e05a2b" stop-opacity="0.22"/>
@@ -29,5 +29,5 @@
     font-weight="700"
     letter-spacing="0.12em"
     fill="#e05a2b"
-  >FED</text>
+  >FDE</text>
 </svg>

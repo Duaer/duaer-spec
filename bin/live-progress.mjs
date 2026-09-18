@@ -3,6 +3,8 @@
  * Pure functions (no fs/git) so unit tests can import without the live server.
  */
 
+import { workerOrchestrationState } from "./live-orchestrate.mjs";
+
 export function truncateText(s, max = 100) {
   const t = String(s || "")
     .replace(/\s+/g, " ")
@@ -73,6 +75,9 @@ export function buildDetailedProductTasksMd({
   }
   push("Risk-based verification per testing.md");
   push(
+    "Update product README to match delivered requirements (what it does, modules/acceptance highlights, how to run/open)",
+  );
+  push(
     "启动可打开的服务（如 npm start），确认能打开后再 stamp delivery.json accepted，并必须写入 preview.url（页面路径或 http://localhost:…）",
   );
   if (deployNeeded) {
@@ -90,7 +95,7 @@ export function buildDetailedProductTasksMd({
 
 ${items.join("\n")}
 
-做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FED 显示进度。
+做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 显示进度。
 
 **拆任务规则（无条数上限）：**
 - 每个任务只做一个可独立验收的功能点；不要把多个验收项揉进同一条
@@ -134,6 +139,9 @@ export function buildDetailedRevisionTasksMd({
     push("Wire one change needed for revision acceptance");
   }
   push("Verify against revision acceptance");
+  push(
+    "Update product README for this revision (reflect what changed / current behavior)",
+  );
   push(
     "启动/更新可打开的服务，并 stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
   );
@@ -200,4 +208,160 @@ export function parseWorktreeActivityFromGit({
     ? `改动中：${show.map((f) => f.path).join(" · ")}`
     : "";
   return { files: capped, summary };
+}
+
+/**
+ * Per-worker progress for multi-employee dispatch (pure; no fs).
+ * Returns [] when only one worker — callers keep the single-panel UI.
+ *
+ * @param {{
+ *   workerCount?: number,
+ *   launches?: Array<{
+ *     workerId?: string,
+ *     taskIds?: string[],
+ *     agentId?: string,
+ *     kind?: string,
+ *   }>,
+ *   taskPool?: { tasks?: Array<{ id?: string, workerId?: string, title?: string }> } | null,
+ *   progress?: { tasks?: Array<{ id?: string, text?: string, done?: boolean }> } | null,
+ *   terminals?: Record<string, { busy?: boolean, queueDepth?: number, runnerHealthy?: boolean }>,
+ *   logTails?: Record<string, string[]>,
+ * }} input
+ */
+export function buildWorkersProgress(input = {}) {
+  const launches = Array.isArray(input.launches) ? input.launches : [];
+  const poolTasks = Array.isArray(input.taskPool?.tasks)
+    ? input.taskPool.tasks
+    : [];
+  const progressTasks = Array.isArray(input.progress?.tasks)
+    ? input.progress.tasks
+    : [];
+  const resolvedCount = Math.max(
+    Number(input.workerCount) || 0,
+    launches.length || 0,
+  );
+  if (resolvedCount <= 1) return [];
+
+  const doneSet = new Set();
+  const progressById = new Map();
+  for (const t of progressTasks) {
+    const id = String(t.id || "")
+      .trim()
+      .toUpperCase();
+    if (!id) continue;
+    progressById.set(id, t);
+    if (t.done) doneSet.add(id);
+  }
+
+  const workers = [];
+  for (let w = 1; w <= resolvedCount; w += 1) {
+    const workerId = `w${w}`;
+    const launch =
+      launches.find((l) => String(l.workerId || "") === workerId) ||
+      launches[w - 1] ||
+      null;
+    const fromPool = poolTasks
+      .filter((t) => String(t.workerId || "") === workerId)
+      .map((t) => String(t.id || "").trim())
+      .filter(Boolean);
+    const fromLaunch = Array.isArray(launch?.taskIds)
+      ? launch.taskIds.map((id) => String(id).trim()).filter(Boolean)
+      : [];
+    // Prefer full pool ownership so lanes show blocked tasks too.
+    const assigned = fromPool.length ? fromPool : fromLaunch;
+    const seen = new Set();
+    const tasks = [];
+    for (const rawId of assigned) {
+      const id = rawId.toUpperCase();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const p = progressById.get(id);
+      if (p) {
+        tasks.push({
+          id: String(p.id || id),
+          text: String(p.text || id),
+          done: Boolean(p.done),
+        });
+        continue;
+      }
+      const poolTask = poolTasks.find(
+        (t) => String(t.id || "").toUpperCase() === id,
+      );
+      tasks.push({
+        id,
+        text: poolTask
+          ? `${poolTask.id}${poolTask.title ? ` ${poolTask.title}` : ""}`.trim()
+          : id,
+        done: false,
+      });
+    }
+
+    const done = tasks.filter((t) => t.done).length;
+    const total = tasks.length;
+    const next = tasks.find((t) => !t.done) || null;
+    const term = input.terminals?.[workerId] || {
+      busy: false,
+      queueDepth: 0,
+      runnerHealthy: false,
+    };
+    const readyOwned = (poolTasks || []).filter((t) => {
+      if (String(t.workerId || "") !== workerId) return false;
+      const id = String(t.id || "")
+        .trim()
+        .toUpperCase();
+      if (!id || doneSet.has(id)) return false;
+      const deps = Array.isArray(t.dependsOn) ? t.dependsOn : [];
+      return deps.every((d) =>
+        doneSet.has(
+          String(d || "")
+            .trim()
+            .toUpperCase(),
+        ),
+      );
+    });
+    const blockedOwned = (poolTasks || []).filter((t) => {
+      if (String(t.workerId || "") !== workerId) return false;
+      const id = String(t.id || "")
+        .trim()
+        .toUpperCase();
+      if (!id || doneSet.has(id)) return false;
+      const deps = Array.isArray(t.dependsOn) ? t.dependsOn : [];
+      if (!deps.length) return false;
+      return !deps.every((d) =>
+        doneSet.has(
+          String(d || "")
+            .trim()
+            .toUpperCase(),
+        ),
+      );
+    }).length;
+
+    const state = workerOrchestrationState({
+      ownedTotal: total,
+      ownedDone: done,
+      readyCount: readyOwned.length,
+      blockedOwned,
+      terminal: term,
+    });
+
+    workers.push({
+      id: workerId,
+      agentId: launch?.agentId || null,
+      kind: launch?.kind || null,
+      state,
+      done,
+      total,
+      current: next?.text || (total > 0 && done >= total ? "done" : ""),
+      tasks,
+      terminal: {
+        busy: Boolean(term.busy),
+        queueDepth: Number(term.queueDepth) || 0,
+        runnerHealthy: Boolean(term.runnerHealthy),
+      },
+      logTail: Array.isArray(input.logTails?.[workerId])
+        ? input.logTails[workerId].slice(-16)
+        : [],
+    });
+  }
+  return workers;
 }

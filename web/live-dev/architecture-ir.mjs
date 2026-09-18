@@ -141,22 +141,29 @@ export function sanitizeArchitectureIr(raw) {
 }
 
 export function extractArchitectureIr(text) {
-  const s = String(text || "");
+  const s = String(text || "").slice(0, 400_000);
   const candidates = [];
   const marker = s.lastIndexOf("<<<JSON>>>");
   if (marker >= 0) {
-    const after = s.slice(marker + "<<<JSON>>>".length).trim();
-    const m = after.match(/\{[\s\S]*\}/);
-    if (m) candidates.push(m[0]);
+    const after = s.slice(marker + "<<<JSON>>>".length).trim().slice(0, 350_000);
+    const start = after.indexOf("{");
+    const end = after.lastIndexOf("}");
+    if (start >= 0 && end > start) candidates.push(after.slice(start, end + 1));
   }
   const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fence) candidates.push(fence[1]);
-  const brace = s.match(/\{[\s\S]*"diagram_type"\s*:\s*"architecture"[\s\S]*\}/);
-  if (brace) candidates.push(brace[0]);
-  const ready = s.match(
-    /\{[\s\S]*"ready"\s*:\s*true[\s\S]*"components"\s*:\s*\[[\s\S]*\}/,
-  );
-  if (ready) candidates.push(ready[0]);
+  if (fence) candidates.push(fence[1].slice(0, 350_000));
+  // Prefer marker/fence; avoid nested [\s\S]* scans on huge blobs (ReDoS risk).
+  if (!candidates.length) {
+    const dt = s.indexOf('"diagram_type"');
+    const ready = s.indexOf('"ready"');
+    const anchor = dt >= 0 ? dt : ready;
+    if (anchor >= 0) {
+      const windowStart = Math.max(0, s.lastIndexOf("{", anchor));
+      const window = s.slice(windowStart, windowStart + 350_000);
+      const end = window.lastIndexOf("}");
+      if (end > 0) candidates.push(window.slice(0, end + 1));
+    }
+  }
   for (const chunk of candidates) {
     try {
       const obj = JSON.parse(chunk.trim());

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/duaer-spec-fed.svg" alt="Duaer-spec FED" width="420" />
+  <img src="docs/assets/duaer-spec-fde.svg" alt="Duaer-spec FDE" width="420" />
 </p>
 
 # duaer-spec
@@ -55,10 +55,10 @@ Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
-## Duaer-spec FED (live desk)
+## Duaer-spec FDE (live desk)
 
 Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
-**Duaer-spec FED** = Field Engineering Desk.
+**Duaer-spec FDE** = Field Development Environment.
 
 ```bash
 # DeepSeek (recommended)
@@ -71,30 +71,51 @@ duaer live
 ```
 
 Open the printed URL (default `http://127.0.0.1:8787`). The desk is **full-width**
-with three columns: **chat** | **requirements / confirm / dispatch / revise** |
-**task progress**.
+with three columns: **chat** | **modules / confirm / architecture / kickoff /
+revise** | **task progress**. Detail:
+[`docs/agent/live-desk.md`](docs/agent/live-desk.md).
 
-**Verify (maintainers / agents):** after Duaer-spec FED UI or validate-gate changes,
+**Verify (maintainers / agents):** after Duaer-spec FDE UI or validate-gate changes,
 run `npm run test:live` (L3 smoke: desk shell markers + `/api/validate` with a
 mock LLM — no paid API).
 
 **Flow**
 
-1. Dialogue → fill the confirm card (structured goal / out-of-scope / **checkable**
-   acceptance / assumptions). Vague acceptance fails the gate; auto-validate must
-   pass before **Confirm** is enabled; auto-fix stays available on failure  
-2. Pick a product repo (browse / scan / recent), or paste a path / project name.
+1. Open or create a **project**, then chat. Messy multi-topic talk is fine: the
+   desk evolves **`modules[]`** (tabs). Chat bubbles render **Markdown**
+   (`**bold**`, code, links).  
+2. Per module: fill the confirm card (goal / out-of-scope / **checkable**
+   acceptance / assumptions). Vague acceptance fails the gate; validate must
+   pass before **Confirm**. Confirming a module **locks that card only** — it
+   does **not** write a Brief or start workers yet. Jump between modules freely.  
+3. When **all** modules you care about are confirmed → review / confirm
+   **architecture** (Archify) → **kickoff**. Kickoff writes the Brief, builds a
+   **dependency-aware task pool** (`dependsOn`), and assigns work. Default is
+   **1** worker; optionally **N** parallel workers on the **same CLI**. Shared
+   tasks go to worker 1; module tasks round-robin. Each worker gets its own
+   **Terminal queue lane** (`live-terminal` / `live-terminal/w2`…).  
+4. Pick a product repo (browse / scan / recent), or paste a path / project name.
    Missing paths are created; set **Projects parent folder** so short names
    resolve under it. Non-git folders get `git init -b develop`; missing
-   develop/main/master creates local `develop`  
-3. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code**  
+   develop/main/master creates local `develop`.  
+5. Choose a **CLI** digital employee: **Cursor Agent** or **Claude Code**  
    - Cursor: `curl https://cursor.com/install -fsS | bash`  
    - Claude Code: `npm install -g @anthropic-ai/claude-code` (or `curl -fsSL https://claude.ai/install.sh | bash`)  
-   - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FED setup page guide covers the same.  
-4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
-5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **Results** (**View result** when a page exists, otherwise **Open project folder**)  
-6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches on the same worktree (preempt leftover Agents before enqueueing revise). Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  
-7. If the job needs hosting / a public URL, pick a **planned host** on the desk
+   - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FDE setup page guide covers the same.  
+6. Edit the start command (must begin with `Duaer`) → kickoff creates
+   `.worktree/feat-*` and opens **Terminal** for each worker lane.  
+7. Watch progress in the right column (`tasks.md`). **View deliverables** (above
+   progress) opens a generated HTML page of stage artifacts (requirements doc
+   timeline, confirmation, architecture, task pool, delivery). On delivery,
+   workers update the product **README** before `delivery.json` is `accepted`.
+   Then open **Results** (**View result** when a page exists, otherwise **Open
+   project folder**).  
+8. If the result is not right: **Continue improving (left chat)** → confirm the
+   revise card (same validate gate) → re-confirm architecture (keep or redesign)
+   → relaunch on the same worktree (preempt leftover Agents before enqueue).
+   Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the
+   Brief Revision; status shows Terminal busy/queue per lane.  
+9. If the job needs hosting / a public URL, pick a **planned host** on the desk
    (Cloudflare / Alibaba Cloud / AWS / GitHub Pages) so code matches that
    platform ([`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md)).
    Default when unspecified: **GitHub CLI (`gh`) + Actions**
