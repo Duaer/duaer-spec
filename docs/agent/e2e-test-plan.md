@@ -127,6 +127,7 @@ the table for their app.
 | E2E-145 | Multi-worker dispatch shows per-employee lanes under 派工进度 | `npm test` + `npm run test:live` + manual |
 | E2E-146 | Wave orchestration: only ready tasks in first prompt; status poll continues next wave when lane idle | `npm test` + manual |
 | E2E-147 | Deliverables HTML: numbered acceptance lists, chips, task table, confirmation registry | `npm test` + manual |
+| E2E-148 | Deliverables page two-column dossier layout (TOC rail + paper body) | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -299,3 +300,4 @@ the table for their app.
 | E2E-145 | `181-multi-worker-progress` | per-worker lanes in 派工进度 |
 | E2E-146 | `182-task-orchestrate` | wave orchestration / dependsOn gating |
 | E2E-147 | `183-deliverables-structure-v2` | deliverables content structure |
+| E2E-148 | `184-deliverables-layout` | deliverables dossier layout |
