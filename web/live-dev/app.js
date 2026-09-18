@@ -3819,16 +3819,8 @@ function paintPreviewServiceUi(status) {
   if (!el.previewService) return;
   const url = String(status?.url || state.lastPreviewUrl || "").trim();
   const local = Boolean(status?.local);
+  // Static / artifact pages: no status chip — keep the bar one line.
   if (!url || !local) {
-    if (url && !/^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url)) {
-      el.previewService.hidden = false;
-      setServiceDot("unknown");
-      if (el.previewServiceStatus) {
-        el.previewServiceStatus.textContent = t("preview.serviceStatic");
-      }
-      if (el.previewStartService) el.previewStartService.hidden = true;
-      return;
-    }
     el.previewService.hidden = true;
     return;
   }
@@ -3836,15 +3828,15 @@ function paintPreviewServiceUi(status) {
   if (status?.listening === true) {
     setServiceDot("up");
     if (el.previewServiceStatus) {
-      el.previewServiceStatus.textContent = t("preview.serviceListening", {
-        url,
-      });
+      el.previewServiceStatus.textContent = t("preview.serviceListening");
+      el.previewServiceStatus.title = url;
     }
     if (el.previewStartService) el.previewStartService.hidden = true;
   } else if (status?.listening === false) {
     setServiceDot("down");
     if (el.previewServiceStatus) {
-      el.previewServiceStatus.textContent = t("preview.serviceDown", { url });
+      el.previewServiceStatus.textContent = t("preview.serviceDown");
+      el.previewServiceStatus.title = url;
     }
     if (el.previewStartService) {
       el.previewStartService.hidden = false;
@@ -3854,6 +3846,7 @@ function paintPreviewServiceUi(status) {
     setServiceDot("busy");
     if (el.previewServiceStatus) {
       el.previewServiceStatus.textContent = t("preview.serviceChecking");
+      el.previewServiceStatus.removeAttribute("title");
     }
     if (el.previewStartService) el.previewStartService.hidden = true;
   }
@@ -4054,10 +4047,6 @@ function renderPreviewVersions(versions, activeUrl) {
     return;
   }
   el.previewVersions.hidden = false;
-  const title = document.createElement("li");
-  title.className = "preview-versions-label";
-  title.textContent = t("preview.versions");
-  el.previewVersions.appendChild(title);
   for (const entry of list) {
     const li = document.createElement("li");
     const a = document.createElement("a");

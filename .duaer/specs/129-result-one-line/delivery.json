@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "feature": "129-result-one-line",
+  "summary": "Result panel compacted to one action bar",
+  "verification": {
+    "L3": "npm run test:live — pass"
+  }
+}
