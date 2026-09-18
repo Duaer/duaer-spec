@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "114-guide-doc-github",
+  "summary": "Setup guideDoc links locale-specific GitHub worker-models docs.",
+  "verification": {
+    "L0": "node --check web/live-dev/i18n.js — pass",
+    "L1": "node --test test/deepseek-cli.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

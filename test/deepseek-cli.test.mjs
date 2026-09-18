@@ -30,6 +30,19 @@ test("live workers are Cursor Agent and Claude Code only", () => {
   const i18n = fs.readFileSync(path.join(ROOT, "web/live-dev/i18n.js"), "utf8");
   assert.match(i18n, /Cursor Agent \/ Claude Code/);
   assert.doesNotMatch(i18n, /deepseek-tui/);
+  assert.match(
+    i18n,
+    /github\.com\/fujiezee\/duaer-spec\/blob\/main\/docs\/agent\/worker-models\.zh-CN\.md/,
+  );
+  assert.match(
+    i18n,
+    /github\.com\/fujiezee\/duaer-spec\/blob\/main\/docs\/agent\/worker-models\.md/,
+  );
+  assert.match(i18n, /data-i18n-html|\[data-i18n-html\]/);
+
+  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
+  assert.match(html, /data-i18n-html="setup\.guideDoc"/);
+  assert.doesNotMatch(html, /完整步骤见 docs\/agent\/worker-models/);
 
   const guide = fs.readFileSync(
     path.join(ROOT, "docs/agent/worker-models.md"),
