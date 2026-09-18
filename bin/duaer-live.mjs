@@ -37,6 +37,7 @@ import {
   architectureStoreDir,
 } from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
+import { extractArchitectureIr } from "../web/live-dev/architecture-ir.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -726,7 +727,7 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需�
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）。未成型时必须：
 {"ready":false,"options":["选项A","选项B"],"title":"可选标题"}
-   - 架构已可确认时必须 ready=true，并带完整 architecture IR。对用户说的纯文本只能类似：「架构图已生成，请在右侧计划托管区域查看，满意后点确认架构。」禁止说「JSON / 可渲染 / 请确认 JSON」等字样。
+   - 架构已可确认时必须 ready=true，并带完整 architecture IR。对用户说的纯文本只能类似：「架构图已生成，请在中间栏系统架构区域查看，满意后点确认架构。」禁止说「JSON / 可渲染 / 请确认 JSON」等字样。
 {"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"…","quality_profile":"standard"},"components":[{"id":"users","type":"external","label":"Users","sublabel":"Browser"}],"boundaries":[],"connections":[{"id":"c1","from":"users","to":"app","label":"HTTPS","variant":"emphasis"}],"cards":[{"dot":"cyan","title":"Overview","items":["…"]}],"options":[]}
 6. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
 7. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
@@ -1010,7 +1011,42 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
       includeJsonBlock && typeof parsed?.jsonBlock === "string"
         ? parsed.jsonBlock.slice(0, 200_000)
         : undefined,
+    architectureUrl: parsed?.architectureUrl
+      ? String(parsed.architectureUrl).slice(0, 300)
+      : undefined,
+    architectureSummary: parsed?.architectureSummary
+      ? String(parsed.architectureSummary).slice(0, 2000)
+      : undefined,
+    architectureViewBox: Array.isArray(parsed?.architectureViewBox)
+      ? parsed.architectureViewBox
+      : undefined,
   };
+}
+
+/**
+ * When architecture chat includes IR, render HTML on the server so the desk
+ * always gets a URL even if the client fails to extract JSON.
+ */
+function attachArchitectureRender(parsed) {
+  if (!parsed || typeof parsed !== "object") return parsed;
+  try {
+    const ir = extractArchitectureIr(
+      `${parsed.reply || ""}\n${parsed.jsonBlock || ""}`,
+    );
+    if (!ir?.components?.length) return parsed;
+    const rendered = renderArchitectureHtml(liveRoot(), ir);
+    const vb = rendered.ir?.meta?.viewBox;
+    return {
+      ...parsed,
+      ready: true,
+      diagram_type: "architecture",
+      architectureUrl: rendered.urlPath,
+      architectureSummary: rendered.summary || "",
+      architectureViewBox: Array.isArray(vb) ? vb : null,
+    };
+  } catch {
+    return parsed;
+  }
 }
 
 function writeSse(res, payload) {
@@ -1084,7 +1120,10 @@ async function streamChatResponse(
         emitted = safeLen;
       }
     }
-    const parsed = parseChatResult(full);
+    const parsedRaw = parseChatResult(full);
+    const parsed = includeJsonBlock
+      ? attachArchitectureRender(parsedRaw)
+      : parsedRaw;
     if (!inJson && parsed.reply && emitted < parsed.reply.length) {
       writeSse(res, {
         type: "delta",
@@ -5309,7 +5348,7 @@ async function handleApi(req, res) {
           ? REVISE_CHAT_PROMPT
           : SYSTEM_PROMPT;
       const followUp = architectureMode
-        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去右侧「计划托管」看图并确认，禁止提 JSON。`
+        ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去中间栏「系统架构」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
           : `当前模块清单与确认卡草稿：\n${JSON.stringify({
@@ -5330,7 +5369,9 @@ async function handleApi(req, res) {
         return;
       }
       const result = await callChatModel(cfg, messages, systemPrompt);
-      const parsed = parseChatResult(result);
+      const parsed = architectureMode
+        ? attachArchitectureRender(parseChatResult(result))
+        : parseChatResult(result);
       if (architectureMode) {
         // Client extracts IR from jsonBlock string — never nest the object.
         send(res, 200, parsed);

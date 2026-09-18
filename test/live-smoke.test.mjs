@@ -211,6 +211,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /req-section/);
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="confirm"/);
+  assert.match(html, /id="architectureSlotDeploy"/);
+  assert.match(html, /id="architectureRetry"/);
+  assert.match(html, /architecture-slot-main/);
   assert.match(html, /id="moduleTabs"/);
   assert.match(html, /id="openDeliverables"/);
   assert.match(html, /id="workerCount"/);
@@ -233,6 +236,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
   assert.match(js, /openDeliverablesPage|\/api\/projects\/deliverables/);
+  assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
   assert.match(js, /card\.lockHintModuleDone/);
@@ -245,11 +249,12 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
+  assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
-  assert.match(i18nSrc, /lockHintModuleDone/);
+  assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);

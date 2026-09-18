@@ -242,6 +242,7 @@ const el = {
   architectureFrame: document.getElementById("architectureFrame"),
   architectureConfirm: document.getElementById("architectureConfirm"),
   architectureRedesign: document.getElementById("architectureRedesign"),
+  architectureRetry: document.getElementById("architectureRetry"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -2519,13 +2520,7 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: final.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        const rendered = await maybeRenderArchitectureFromReply(
-          `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
-        );
-        if (rendered) {
-          announceArchitectureRendered(streamBubble, bag);
-          void persistProjectChat();
-        }
+        await finishArchitectureChatResult(final, streamBubble, bag);
       } else if (lockedSpecify && (final.goal || final.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (final.ready) {
@@ -2552,13 +2547,7 @@ async function sendChat(userText) {
       bag.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
       if (state.mode === "architecture") {
-        const rendered = await maybeRenderArchitectureFromReply(
-          `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
-        );
-        if (rendered) {
-          announceArchitectureRendered(streamBubble, bag);
-          void persistProjectChat();
-        }
+        await finishArchitectureChatResult(data, streamBubble, bag);
       } else if (lockedSpecify && (data.goal || data.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (data.ready) {
@@ -3670,8 +3659,21 @@ function syncArchitecturePanel(kind) {
     el.architectureRedesign.hidden = !canRedesign;
     el.architectureRedesign.disabled = state.busy;
   }
+  if (el.architectureRetry) {
+    const showRetry =
+      !a.url &&
+      !a.confirmed &&
+      (state.mode === "architecture" ||
+        state.locked ||
+        kind === "missing" ||
+        a.status === "designing");
+    el.architectureRetry.hidden = !showRetry;
+    el.architectureRetry.disabled = state.busy;
+  }
   if (el.architectureHint) {
-    if (kind === "stale") {
+    if (kind === "missing") {
+      el.architectureHint.textContent = t("arch.hintMissing");
+    } else if (kind === "stale") {
       el.architectureHint.textContent = t("arch.hintStale");
     } else if (state.revisePlanConfirmed && !a.confirmed) {
       el.architectureHint.textContent = t("arch.hintAfterRevisePlan");
@@ -3687,12 +3689,95 @@ function syncArchitecturePanel(kind) {
     } else if (a.status === "preview") {
       el.architectureHint.textContent = t("arch.hintPreview");
     } else if (a.status === "designing") {
-      el.architectureHint.textContent = t("arch.hintDesigning");
+      el.architectureHint.textContent = a.url
+        ? t("arch.hintPreview")
+        : t("arch.hintDesigning");
     } else {
       el.architectureHint.textContent = t("arch.hintNeed");
     }
   }
   syncDispatchButton();
+  if (
+    kind === "missing" ||
+    a.status === "designing" ||
+    a.status === "preview" ||
+    Boolean(a.url)
+  ) {
+    requestAnimationFrame(() => {
+      try {
+        el.architecturePanel?.scrollIntoView({
+          block: "nearest",
+          behavior: "smooth",
+        });
+        focusRightPanel({ force: true });
+      } catch {
+        /* ignore */
+      }
+    });
+  }
+}
+
+function applyArchitectureFromChatPayload(data) {
+  const url = String(data?.architectureUrl || "").trim();
+  if (!url) return false;
+  state.architecture.ir = null;
+  state.architecture.viewBox = normalizeViewBox(data.architectureViewBox);
+  state.architecture.fingerprint = String(data.architectureFingerprint || "");
+  state.architecture.url = url;
+  state.architecture.summary = String(data.architectureSummary || "");
+  state.architecture.status = "preview";
+  state.architecture.confirmed = false;
+  if (!state.architecture.fingerprint) {
+    state.architecture.fingerprint = architectureFpOf(state.architecture) || "";
+  }
+  syncArchitecturePanel();
+  schedulePersistProjectDesk();
+  return true;
+}
+
+function architectureClaimedReady(reply, data) {
+  if (data?.ready && data?.diagram_type === "architecture") return true;
+  const s = String(reply || "");
+  return /架构图已生成|architecture diagram is ready|diagram is ready under/i.test(
+    s,
+  );
+}
+
+async function finishArchitectureChatResult(data, streamBubble, bag) {
+  let rendered = applyArchitectureFromChatPayload(data);
+  if (!rendered) {
+    rendered = await maybeRenderArchitectureFromReply(
+      `${data?.reply || ""}\n${typeof data?.jsonBlock === "string" ? data.jsonBlock : ""}`,
+    );
+  }
+  if (rendered) {
+    announceArchitectureRendered(streamBubble, bag);
+    void persistProjectChat();
+    return true;
+  }
+  if (architectureClaimedReady(data?.reply, data)) {
+    syncArchitecturePanel("missing");
+    addBubble("bot", t("arch.renderMissing"), {
+      actions: [
+        {
+          label: t("arch.retry"),
+          onClick: () => {
+            retryArchitectureDesign();
+          },
+        },
+      ],
+    });
+    void persistProjectChat();
+  } else {
+    syncArchitecturePanel();
+  }
+  return false;
+}
+
+function retryArchitectureDesign() {
+  if (state.busy) return;
+  state.architectureMessages = [];
+  beginArchitectureDesign({ kickoff: true });
 }
 
 function isArchitectureSystemKick(m) {
@@ -3884,13 +3969,11 @@ async function kickoffArchitectureDialogue() {
         content: final.reply,
       });
       void persistProjectChat();
-      const rendered = await maybeRenderArchitectureFromReply(
-        `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
+      await finishArchitectureChatResult(
+        final,
+        streamBubble,
+        state.architectureMessages,
       );
-      if (rendered) {
-        announceArchitectureRendered(streamBubble, state.architectureMessages);
-        void persistProjectChat();
-      }
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
@@ -3901,13 +3984,11 @@ async function kickoffArchitectureDialogue() {
         content: data.reply,
       });
       void persistProjectChat();
-      const rendered = await maybeRenderArchitectureFromReply(
-        `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
+      await finishArchitectureChatResult(
+        data,
+        streamBubble,
+        state.architectureMessages,
       );
-      if (rendered) {
-        announceArchitectureRendered(streamBubble, state.architectureMessages);
-        void persistProjectChat();
-      }
     }
   } catch (err) {
     state.architectureMessages.pop();
@@ -4838,6 +4919,10 @@ el.architectureRedesign?.addEventListener("click", () => {
   if (state.busy) return;
   beginArchitectureDesign({ kickoff: true });
   addBubble("bot", t("arch.enterDesign"));
+});
+
+el.architectureRetry?.addEventListener("click", () => {
+  retryArchitectureDesign();
 });
 
 el.saveProjectsRoot?.addEventListener("click", async () => {

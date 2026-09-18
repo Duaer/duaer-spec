@@ -1666,6 +1666,27 @@ a.btn[hidden] {
   border-top: 1px solid var(--line);
 }
 
+.architecture-slot-main {
+  margin: 1rem 0 0.35rem;
+  padding: 0.85rem 0.15rem 0.35rem;
+  border-top: 1px solid rgba(63, 86, 108, 0.55);
+}
+
+.architecture-slot-main .architecture-panel {
+  margin-top: 0;
+  padding: 0.75rem 0.85rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--plate-2) 55%, transparent);
+}
+
+.architecture-slot-main .architecture-title {
+  font-size: 0.95rem;
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0.02em;
+}
+
 .architecture-slot:empty {
   display: none;
 }

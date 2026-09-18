@@ -126,6 +126,41 @@
           </button>
           <pre id="result" class="result" hidden></pre>
 
+          <div id="architectureSlotDeploy" class="architecture-slot architecture-slot-main">
+            <div id="architecturePanel" class="architecture-panel" hidden>
+              <div id="architecturePreviousBlock" class="architecture-previous" hidden>
+                <p class="architecture-title" data-i18n="arch.titlePrevious">原架构</p>
+                <p id="architecturePreviousSummary" class="architecture-summary" hidden></p>
+                <div
+                  id="architecturePreviousFrame"
+                  class="architecture-mount"
+                  title="previous architecture"
+                  hidden
+                ></div>
+              </div>
+              <p id="architectureCurrentTitle" class="architecture-title" data-i18n="arch.title">系统架构</p>
+              <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
+              <p id="architectureSummary" class="architecture-summary" hidden></p>
+              <div
+                id="architectureFrame"
+                class="architecture-mount"
+                title="architecture"
+                hidden
+              ></div>
+              <div class="architecture-actions">
+                <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
+                  确认架构，可派工
+                </button>
+                <button type="button" class="btn" id="architectureRedesign" hidden data-i18n="arch.redesign">
+                  架构有变，重新设计
+                </button>
+                <button type="button" class="btn" id="architectureRetry" hidden data-i18n="arch.retry">
+                  重新生成架构图
+                </button>
+              </div>
+            </div>
+          </div>
+
           <section id="dispatch" class="dispatch" hidden>
             <p class="mark" data-i18n="dispatch.mark">派工</p>
             <h3 class="dispatch-title" data-i18n="dispatch.title">启动数字员工</h3>
@@ -167,37 +202,6 @@
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
               <div id="deployTargetList" class="deploy-target-list" role="radiogroup" aria-label="deploy target"></div>
-              <div id="architectureSlotDeploy" class="architecture-slot">
-              <div id="architecturePanel" class="architecture-panel" hidden>
-                <div id="architecturePreviousBlock" class="architecture-previous" hidden>
-                  <p class="architecture-title" data-i18n="arch.titlePrevious">原架构</p>
-                  <p id="architecturePreviousSummary" class="architecture-summary" hidden></p>
-                  <div
-                    id="architecturePreviousFrame"
-                    class="architecture-mount"
-                    title="previous architecture"
-                    hidden
-                  ></div>
-                </div>
-                <p id="architectureCurrentTitle" class="architecture-title" data-i18n="arch.title">系统架构</p>
-                <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
-                <p id="architectureSummary" class="architecture-summary" hidden></p>
-                <div
-                  id="architectureFrame"
-                  class="architecture-mount"
-                  title="architecture"
-                  hidden
-                ></div>
-                <div class="architecture-actions">
-                  <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
-                    确认架构，可派工
-                  </button>
-                  <button type="button" class="btn" id="architectureRedesign" hidden data-i18n="arch.redesign">
-                    架构有变，重新设计
-                  </button>
-                </div>
-              </div>
-              </div>
             </div>
             <div class="agent-pick">
               <div class="agent-pick-head">
@@ -540,6 +544,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=deliverables-1"></script>
+    <script type="module" src="/app.js?v=arch-visible-1"></script>
   </body>
 </html>

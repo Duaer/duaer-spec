@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: architecture panel visibility
+
+- Move「系统架构」out of planned-hosting chips into the middle column
+- Server renders IR and returns `architectureUrl` on architecture chat
+- Missing IR after「图已生成」shows regenerate CTA
+
 ### Fix: client-facing deliverables page (white dossier)
 
 - Deliverables HTML uses a white, spacious client document look
