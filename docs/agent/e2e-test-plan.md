@@ -84,6 +84,7 @@ the table for their app.
 | E2E-102 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
 | E2E-103 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
 | E2E-104 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
+| E2E-105 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
 | E2E-101 | Desk buttons: no undefined --muted; architecture confirm/redesign row aligned; revise CTA not offset | `npm run test:live` + manual |
 | E2E-102 | Requirement versions accordion: 初版 + 第N版 expand with fields; architecture shown when changed | `npm test` + `npm run test:live` + manual |
 | E2E-103 | 再改一版 switches chat to revise thread so user-sent revise messages are visible | `npm run test:live` + manual |

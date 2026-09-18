@@ -2361,9 +2361,20 @@ function appleScriptString(s) {
  *
  * When `reuseKey` is set (typically the worktree path), subsequent launches
  * enqueue into the same Terminal runner instead of opening a new window.
+ * Optional `queueLane` (e.g. w1 / w2) isolates parallel digital employees into
+ * separate queues so they do not fight one runner.lock.d.
  */
-function terminalQueueDir(worktreePath) {
-  return path.join(worktreePath, ".duaer", "live-terminal");
+function normalizeTerminalQueueLane(lane) {
+  const raw = String(lane || "").trim();
+  if (!raw) return "";
+  const safe = raw.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+  return safe.slice(0, 40);
+}
+
+function terminalQueueDir(worktreePath, queueLane = null) {
+  const base = path.join(worktreePath, ".duaer", "live-terminal");
+  const lane = normalizeTerminalQueueLane(queueLane);
+  return lane ? path.join(base, lane) : base;
 }
 
 function isPidAlive(pid) {
@@ -2630,7 +2641,7 @@ function restoreTextFile(filePath, snap) {
   fs.writeFileSync(filePath, snap.content, "utf8");
 }
 
-function terminalQueueSnapshot(worktreePath) {
+function terminalQueueSnapshot(worktreePath, queueLane = null) {
   if (!worktreePath || !fs.existsSync(worktreePath)) {
     return {
       busy: false,
@@ -2638,7 +2649,7 @@ function terminalQueueSnapshot(worktreePath) {
       runnerHealthy: false,
     };
   }
-  const qdir = terminalQueueDir(worktreePath);
+  const qdir = terminalQueueDir(worktreePath, queueLane);
   return {
     busy: isTerminalRunnerBusy(qdir),
     queueDepth: countQueuedJobs(qdir),
@@ -2715,6 +2726,7 @@ function launchInTerminal({
   commandLine,
   logPath,
   reuseKey = null,
+  queueLane = null,
   preemptBusy = false,
   envExtra = null,
 }) {
@@ -2724,7 +2736,7 @@ function launchInTerminal({
 
   const key = reuseKey || cwd;
   if (key && fs.existsSync(key)) {
-    const qdir = terminalQueueDir(key);
+    const qdir = terminalQueueDir(key, queueLane);
     fs.mkdirSync(qdir, { recursive: true });
 
     if (isTerminalRunnerHealthy(qdir)) {
@@ -3129,6 +3141,8 @@ function launchAgent({
   reviseLaunch = false,
   /** Optional env exports injected into the Terminal shell (e.g. Alibaba Cloud keys). */
   envExtra = null,
+  /** Parallel digital-employee lane (w1/w2/…) — own Terminal queue + lock. */
+  queueLane = null,
 }) {
   const id = String(agentId || "none").trim() || "none";
   // Kick 10-day worker CLI check/upgrade without blocking dispatch
@@ -3151,6 +3165,7 @@ function launchAgent({
     openedWorktree: false,
     continueSession: Boolean(continueSession),
     cli: detected.cli || null,
+    queueLane: normalizeTerminalQueueLane(queueLane) || null,
   };
 
   if (id === "none") {
@@ -3176,11 +3191,16 @@ function launchAgent({
 
   // Always write revise prompts to agent-revise-prompt.txt so we never clobber
   // the original launch prompt while the first agent is still reading it.
+  const lane = normalizeTerminalQueueLane(queueLane);
   const promptFile = path.join(
     path.dirname(outLog),
     reviseLaunch || continueSession
-      ? "agent-revise-prompt.txt"
-      : "agent-launch-prompt.txt",
+      ? lane
+        ? `agent-revise-prompt-${lane}.txt`
+        : "agent-revise-prompt.txt"
+      : lane
+        ? `agent-launch-prompt-${lane}.txt`
+        : "agent-launch-prompt.txt",
   );
   fs.writeFileSync(promptFile, `${prompt}\n`, "utf8");
 
@@ -3196,6 +3216,7 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      queueLane,
       preemptBusy,
       envExtra,
     });
@@ -3215,7 +3236,7 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
+    launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote}${launch.queueLane ? ` ${launch.queueLane}` : ""})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
     // Same consent as 「Yes, I trust this folder」— only for the FDE worktree
@@ -3240,6 +3261,7 @@ function launchAgent({
       commandLine: line,
       logPath: outLog,
       reuseKey: worktreePath,
+      queueLane,
       preemptBusy,
       envExtra,
     });
@@ -3258,7 +3280,7 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `claude --permission-mode bypassPermissions${continueSession ? " --continue" : ""} (${queueNote})`;
+    launch.command = `claude --permission-mode bypassPermissions${continueSession ? " --continue" : ""} (${queueNote}${launch.queueLane ? ` ${launch.queueLane}` : ""})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }
@@ -3612,6 +3634,7 @@ Brief: ${featureDir}
       agentPrompt: workerPrompt,
       logPath: wLog,
       featureDir,
+      queueLane: assigned.workerCount > 1 ? workerId : null,
     });
     launches.push({ workerId, ...launch, taskIds: workerTasks.map((t) => t.id) });
   }
