@@ -232,6 +232,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
   assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.match(css, /progress-meter|progress-empty-title/);
+  assert.match(css, /worker-lanes|worker-lane/);
   assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
@@ -242,6 +243,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /card\.lockHintModuleDone/);
   assert.match(js, /Do not renderModuleTabs here/);
   assert.match(js, /progress-meter-fill|meterFill/);
+  assert.match(js, /fillWorkerLanes|worker-lanes|run\.dispatchWorkers/);
   assert.match(js, /chatAllowed|syncComposerEnabled|bot\.chatLockedHint/);
   assert.match(js, /USER_SCROLL_HOLD_MS|wirePanelScrollHold|progressFocusKey/);
   assert.match(js, /wasHidden/);
@@ -250,6 +252,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
   assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
+  assert.match(liveBin, /buildWorkersProgress/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);

@@ -5216,6 +5216,9 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   const activity = document.createElement("p");
   activity.className = "progress-activity";
   activity.hidden = true;
+  const workers = document.createElement("div");
+  workers.className = "worker-lanes";
+  workers.hidden = true;
   const tasks = document.createElement("ul");
   tasks.className = "progress-tasks";
   const log = document.createElement("pre");
@@ -5224,6 +5227,7 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   panel.appendChild(meter);
   panel.appendChild(summary);
   panel.appendChild(activity);
+  panel.appendChild(workers);
   panel.appendChild(tasks);
   panel.appendChild(log);
 
@@ -5238,10 +5242,12 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   state.activeRun = {
     revision: rev,
     root,
+    title,
     meter,
     meterFill,
     summary,
     activity,
+    workers,
     tasks,
     log,
     noteEl,
@@ -5249,8 +5255,121 @@ function beginRunBlock({ revision = 0, note = "" } = {}) {
   return state.activeRun;
 }
 
+function workerStateLabel(stateKey) {
+  const key = String(stateKey || "idle");
+  const map = {
+    running: "run.workerRunning",
+    queued: "run.workerQueued",
+    waiting: "run.workerWaiting",
+    done: "run.workerDone",
+    idle: "run.workerIdle",
+  };
+  return t(map[key] || map.idle);
+}
+
+function fillWorkerLanes(block, workers) {
+  if (!block?.workers) return;
+  const list = Array.isArray(workers) ? workers : [];
+  if (list.length <= 1) {
+    block.workers.hidden = true;
+    block.workers.replaceChildren();
+    if (block.tasks) block.tasks.hidden = false;
+    if (block.log) {
+      /* keep aggregate log visible for single worker */
+    }
+    return;
+  }
+  block.workers.hidden = false;
+  if (block.tasks) {
+    block.tasks.hidden = true;
+    block.tasks.replaceChildren();
+  }
+  if (block.log) {
+    block.log.hidden = true;
+    block.log.textContent = "";
+  }
+  block.workers.replaceChildren();
+  for (const w of list) {
+    const card = document.createElement("article");
+    card.className = "worker-lane";
+    card.dataset.state = w.state || "idle";
+    card.dataset.worker = w.id || "";
+
+    const head = document.createElement("header");
+    head.className = "worker-lane-head";
+    const name = document.createElement("h5");
+    name.className = "worker-lane-title";
+    name.textContent = t("run.worker", { id: w.id || "?" });
+    const badge = document.createElement("span");
+    badge.className = "worker-lane-badge";
+    badge.textContent = workerStateLabel(w.state);
+    const meta = document.createElement("p");
+    meta.className = "worker-lane-meta";
+    const done = Number(w.done) || 0;
+    const total = Number(w.total) || 0;
+    meta.textContent =
+      total > 0
+        ? `${done}/${total}${w.current ? ` · ${w.current}` : ""}`
+        : workerStateLabel(w.state);
+    head.appendChild(name);
+    head.appendChild(badge);
+    card.appendChild(head);
+    card.appendChild(meta);
+
+    const laneMeter = document.createElement("div");
+    laneMeter.className = "worker-lane-meter";
+    const fill = document.createElement("div");
+    fill.className = "worker-lane-meter-fill";
+    const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+    fill.style.width = `${pct}%`;
+    laneMeter.appendChild(fill);
+    if (total > 0) card.appendChild(laneMeter);
+
+    const ul = document.createElement("ul");
+    ul.className = "progress-tasks worker-lane-tasks";
+    const nextId = (w.tasks || []).find((task) => !task.done)?.id;
+    for (const task of w.tasks || []) {
+      const li = document.createElement("li");
+      li.dataset.done = task.done ? "true" : "false";
+      if (!task.done && task.id === nextId) li.dataset.current = "true";
+      const mark = document.createElement("span");
+      mark.className = "mark";
+      mark.textContent = task.done ? "✓" : "·";
+      const text = document.createElement("span");
+      text.className = "progress-task-text";
+      text.textContent = task.text;
+      li.appendChild(mark);
+      li.appendChild(text);
+      ul.appendChild(li);
+    }
+    if (ul.childNodes.length) card.appendChild(ul);
+
+    const lines = Array.isArray(w.logTail) ? w.logTail : [];
+    if (lines.length) {
+      const pre = document.createElement("pre");
+      pre.className = "progress-log worker-lane-log";
+      pre.textContent = lines.join("\n");
+      card.appendChild(pre);
+    }
+
+    block.workers.appendChild(card);
+  }
+}
+
 function fillRunProgress(block, data) {
   if (!block) return;
+  const workers = Array.isArray(data?.workers) ? data.workers : [];
+  const multi = workers.length > 1;
+  if (block.title) {
+    const rev = Number(block.revision) || 0;
+    if (rev > 0) {
+      block.title.textContent = t("run.revision", { revision: rev });
+    } else if (multi) {
+      block.title.textContent = t("run.dispatchWorkers", { n: workers.length });
+    } else {
+      block.title.textContent = t("run.dispatch");
+    }
+  }
   const progress = data?.progress;
   if (!progress) {
     if (block.summary) block.summary.textContent = "";
@@ -5262,7 +5381,11 @@ function fillRunProgress(block, data) {
       block.activity.hidden = true;
       block.activity.textContent = "";
     }
-    if (block.tasks) block.tasks.replaceChildren();
+    fillWorkerLanes(block, []);
+    if (block.tasks) {
+      block.tasks.hidden = false;
+      block.tasks.replaceChildren();
+    }
     if (block.log) {
       block.log.hidden = true;
       block.log.textContent = "";
@@ -5279,7 +5402,14 @@ function fillRunProgress(block, data) {
     block.meter.dataset.complete = done >= total && total > 0 ? "true" : "false";
   }
   if (block.summary) {
-    block.summary.textContent = `${done}/${total} · ${progress.current || ""}`;
+    block.summary.textContent = multi
+      ? t("run.dispatchWorkersSummary", {
+          n: workers.length,
+          done,
+          total,
+          current: progress.current || "",
+        })
+      : `${done}/${total} · ${progress.current || ""}`;
   }
   if (block.activity) {
     const act = data?.activity;
@@ -5299,7 +5429,9 @@ function fillRunProgress(block, data) {
       block.activity.textContent = "";
     }
   }
-  if (block.tasks) {
+  fillWorkerLanes(block, workers);
+  if (!multi && block.tasks) {
+    block.tasks.hidden = false;
     block.tasks.replaceChildren();
     const nextId = progress.tasks?.find((task) => !task.done)?.id;
     for (const task of progress.tasks || []) {
@@ -5317,7 +5449,7 @@ function fillRunProgress(block, data) {
       block.tasks.appendChild(li);
     }
   }
-  if (block.log) {
+  if (!multi && block.log) {
     const lines = data.logTail || [];
     if (lines.length) {
       block.log.hidden = false;
@@ -5339,7 +5471,10 @@ function renderProgress(data) {
   const rev = Number(data.revision || 0);
   const prevRun = state.activeRun;
   const block = beginRunBlock({ revision: rev });
-  const focusKey = `${rev}:${Number(progress.done) || 0}/${Number(progress.total) || 0}:${data.status || ""}`;
+  const workerKey = (Array.isArray(data.workers) ? data.workers : [])
+    .map((w) => `${w.id}:${w.done}/${w.total}:${w.state}`)
+    .join("|");
+  const focusKey = `${rev}:${Number(progress.done) || 0}/${Number(progress.total) || 0}:${data.status || ""}:${workerKey}`;
   const isNewBlock = Boolean(block && block !== prevRun);
   const changed = focusKey !== state.progressFocusKey;
   fillRunProgress(block, data);
