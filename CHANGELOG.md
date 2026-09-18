@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 0.19.0 — 2026-09-19
+
+### Feat: modular `[模块]` structured requirement cards
+
+- Accordion / confirm structured view splits `[title]` into section blocks
+- Inline `1)…；2)` acceptance becomes numbered lists;顿号 out-of-scope → bullets
+
+### Fix: requirements click-edit must not wipe fields
+
+- Exiting edit without changes no longer clears the hidden textarea
+
+### Feat: structured 初版 · 需求卡 accordion body
+
+- Version accordion fields use the same `structuredHtml` path as confirm
+
 ### Fix: deliverables dossier layout
 
 - Two-column layout: sticky TOC + white paper body
@@ -58,6 +73,7 @@
 - After confirming one module, focus the next draft and refresh the button
 - Clearing busy recomputes Confirm enablement (no permanent latch)
 
+### Feat: modular FDE confirm and late kickoff
 
 - Session holds `modules[]` + `activeModuleId`; chat can jump topics
 - Per-module confirm locks one card; Brief / workers wait until kickoff
