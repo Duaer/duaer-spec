@@ -5,4 +5,4 @@
 - [x] Desk: strengthen `normalizeReqText` for `；2)` numbered lines
 - [x] Deliverables: prose must not chip-split on `、`
 - [x] Tests + E2E-149 + verify L0/L1/L3
-- [ ] Merge to develop + handoff
+- [x] Merge to develop + handoff
