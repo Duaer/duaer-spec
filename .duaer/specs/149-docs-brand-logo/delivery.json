@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "149-docs-brand-logo",
+  "acceptedAt": "2026-09-18T13:25:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["node assert README + SVG brand colors"],
+    "results": "pass"
+  }
+}

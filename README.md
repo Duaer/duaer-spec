@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/duaer-spec-fed.svg" alt="Duaer-spec FED" width="420" />
+</p>
+
 # duaer-spec
 
 **Duaer** turns AI coding agents into **digital employees** that deliver

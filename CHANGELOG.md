@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs: Duaer-spec FED brand mark
+
+- README (EN/ZH) open with the desk top-left brand SVG (`docs/assets/duaer-spec-fed.svg`)
+
 ## 0.18.0 — 2026-09-18
 
 ### Architecture node passport in FED embed

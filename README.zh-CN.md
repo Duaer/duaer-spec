@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/duaer-spec-fed.svg" alt="Duaer-spec FED" width="420" />
+</p>
+
 # duaer-spec
 
 **Duaer** 把 AI 编程助手变成能**满意交付**的**数字员工**：你用自然语言说意图，它先把需求规范成可检查的 Brief（目标 / 边界 / 验收），再按范围实现，对照验收通过才算完成。
