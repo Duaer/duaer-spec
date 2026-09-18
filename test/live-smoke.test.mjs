@@ -331,6 +331,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /architecture-mount/);
   assert.doesNotMatch(html, /<iframe[^>]*architecture/i);
   assert.match(js, /reviseVersionList|renderReviseVersionAccordion|initialArchitecture/);
+  assert.match(js, /renderReviseVersionBody[\s\S]*structuredHtml/);
   assert.match(js, /switchChatLogForMode|appendReviseMessagesToLog/);
   assert.match(js, /reviseAccordionFp|rebuildAccordion/);
   assert.match(js, /postReviseAgainUserMessage|user\.reviseAgain/);

@@ -23,6 +23,15 @@ test("normalizeReqText splits inline Chinese numbered lists", () => {
   assert.equal(out.split("\n").filter(Boolean).length, 3);
 });
 
+test("normalizeReqText splits numbered list joined by Chinese semicolon", () => {
+  const out = normalizeReqText(
+    "1) 打开登录页；2) 输入账号并保存；3) 列表显示成功状态",
+  );
+  assert.equal(out.split("\n").filter(Boolean).length, 3);
+  assert.match(out, /^1\)/m);
+  assert.match(out, /^2\)/m);
+});
+
 test("structuredHtml renders list items with req-item class", () => {
   const html = structuredHtml("- One\n- Two", "…");
   assert.match(html, /req-list/);

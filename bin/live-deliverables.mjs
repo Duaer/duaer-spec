@@ -36,7 +36,8 @@ function fmtAt(iso, lang) {
  * Split free text into list items when it looks numbered / bulleted / delimited.
  * Handles inline forms like `1) …；2) …` common in Chinese acceptance.
  */
-export function splitContentItems(text) {
+export function splitContentItems(text, opts = {}) {
+  const allowChips = opts.allowChips !== false;
   const raw = String(text || "").trim();
   if (!raw) return [];
 
@@ -69,17 +70,28 @@ export function splitContentItems(text) {
         .filter(Boolean)
         .map((p) => ({ kind: "step", text: p }));
     } else {
-      // Short comma / 、 / ； list (out of scope style)
-      const parts = one
-        .split(/[、,，；;]/)
+      // Semicolon clauses (acceptance without numbers)
+      const semi = one
+        .split(/[；;]/)
         .map((p) => p.trim())
-        .filter(Boolean);
-      if (
-        parts.length >= 3 &&
-        parts.every((p) => p.length <= 40) &&
-        one.length <= 280
-      ) {
-        return parts.map((p) => ({ kind: "chip", text: p }));
+        .filter(Boolean)
+        .map((p) => p.replace(/^[-*•·]\s+/, ""));
+      if (semi.length >= 2 && semi.every((p) => p.length <= 120)) {
+        return semi.map((p) => ({ kind: "item", text: p }));
+      }
+      // Short comma / 、 list (out of scope style) — only when chips allowed
+      if (allowChips) {
+        const parts = one
+          .split(/[、,，]/)
+          .map((p) => p.trim())
+          .filter(Boolean);
+        if (
+          parts.length >= 3 &&
+          parts.every((p) => p.length <= 40) &&
+          one.length <= 280
+        ) {
+          return parts.map((p) => ({ kind: "chip", text: p }));
+        }
       }
     }
   }
@@ -102,23 +114,35 @@ export function splitContentItems(text) {
 export function structuredBody(text, opts = {}) {
   const raw = String(text || "").trim();
   if (!raw) return "";
-  const items = splitContentItems(raw);
+  const force = opts.as || "auto";
+  const items = splitContentItems(raw, {
+    allowChips: force === "chips" || force === "auto",
+  });
   if (!items.length) return "";
 
-  const force = opts.as || "auto";
   if (force === "prose") {
-    if (items.length > 1 && !items.every((i) => i.kind === "chip" || i.kind === "step")) {
-      // Still split numbered acceptance even in goal/prose fields when clearly numbered
-      const numbered = items.length > 1 && /(?:^|\n)\s*\d+[\.\)、]/.test(
-        raw.replace(/[；;]\s*(?=\d+)/g, "\n"),
-      );
-      if (numbered) {
-        return `<ol class="struct-ol">${items
-          .map((i) => `<li>${esc(i.text)}</li>`)
-          .join("")}</ol>`;
-      }
+    // Prose fields (goal): never chip-split on 、; only lift clear numbered lists
+    const proseItems = splitContentItems(raw, { allowChips: false });
+    const numbered =
+      proseItems.length > 1 &&
+      !proseItems.every((i) => i.kind === "step") &&
+      /(?:^|\n)\s*\d+[\.\)、]/.test(raw.replace(/[；;]\s*(?=\d+)/g, "\n"));
+    if (numbered) {
+      return `<ol class="struct-ol">${proseItems
+        .map((i) => `<li>${esc(i.text)}</li>`)
+        .join("")}</ol>`;
     }
-    return items.map((i) => `<p class="struct-p">${esc(i.text)}</p>`).join("");
+    if (proseItems.length === 1 && proseItems[0].kind !== "step") {
+      return `<p class="struct-p">${esc(proseItems[0].text)}</p>`;
+    }
+    // Semicolon-split items under prose → keep as paragraphs, not chips
+    if (
+      proseItems.length > 1 &&
+      proseItems.every((i) => i.kind === "item" || i.kind === "para")
+    ) {
+      return proseItems.map((i) => `<p class="struct-p">${esc(i.text)}</p>`).join("");
+    }
+    return `<p class="struct-p">${esc(raw)}</p>`;
   }
   const allChips = items.every((i) => i.kind === "chip");
   const allSteps = items.every((i) => i.kind === "step");

@@ -2585,8 +2585,36 @@ a.btn[hidden] {
   font-size: 0.88rem;
   line-height: 1.4;
   color: var(--ink);
-  white-space: pre-wrap;
   word-break: break-word;
+}
+
+.revise-version-fields dd.req-structured .req-para {
+  margin: 0 0 0.35rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
+.revise-version-fields dd.req-structured .req-para:last-child {
+  margin-bottom: 0;
+}
+
+.revise-version-fields dd.req-structured .req-list {
+  margin: 0;
+  gap: 0.3rem;
+}
+
+.revise-version-fields dd.req-structured .req-item {
+  font-size: 0.84rem;
+  padding: 0.4rem 0.55rem 0.4rem 1.45rem;
+}
+
+.revise-version-fields dd.req-structured .req-list-num .req-item {
+  padding-left: 1.85rem;
+}
+
+.revise-version-fields dd.req-structured .req-empty {
+  margin: 0;
+  color: var(--mute);
 }
 
 .revise-arch-block {

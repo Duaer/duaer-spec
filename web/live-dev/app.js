@@ -1059,11 +1059,12 @@ async function bindArchitectureMount(host, arch) {
 }
 
 function renderReviseVersionBody(card, { baselineArch = false } = {}) {
+  const empty = "—";
   return `<dl class="revise-version-fields">
-    <div><dt>${escapeHtml(t("revise.goal"))}</dt><dd>${escapeReviseText(card.goal)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.out"))}</dt><dd>${escapeReviseText(card.outOfScope)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.accept"))}</dt><dd>${escapeReviseText(card.acceptance)}</dd></div>
-    <div><dt>${escapeHtml(t("revise.assume"))}</dt><dd>${escapeReviseText(card.assumptions)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.goal"))}</dt><dd class="req-structured">${structuredHtml(card.goal, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.out"))}</dt><dd class="req-structured">${structuredHtml(card.outOfScope, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.accept"))}</dt><dd class="req-structured">${structuredHtml(card.acceptance, empty)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.assume"))}</dt><dd class="req-structured">${structuredHtml(card.assumptions, empty)}</dd></div>
   </dl>${renderReviseArchBlock(card.architecture, { baseline: baselineArch })}`;
 }
 
