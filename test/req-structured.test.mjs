@@ -9,6 +9,7 @@ import {
   reqEditModel,
   serializeReqEdit,
   parseReqBlocks,
+  splitModuleSections,
 } from "../web/live-dev/structured-html.mjs";
 
 test("normalizeReqText splits semicolon acceptance into bullets", () => {
@@ -73,4 +74,58 @@ test("parseReqBlocks reads numbered lists", () => {
   assert.equal(blocks.length, 1);
   assert.equal(blocks[0].kind, "ol");
   assert.deepEqual(blocks[0].items, ["One", "Two"]);
+});
+
+test("splitModuleSections reads [module] markers", () => {
+  const sections = splitModuleSections(
+    "[录入] 做录入\n[审核] 做审核\n[报告] 出报告",
+  );
+  assert.equal(sections.length, 3);
+  assert.equal(sections[0].title, "录入");
+  assert.equal(sections[1].body, "做审核");
+});
+
+test("structuredHtml renders modular acceptance as titled numbered lists", () => {
+  const text = [
+    "[检测结果录入与自动判定] 1) 打开录入页；2) 保存后状态更新；3) 缺必填有提示",
+    "[样品接收登记] 1) 打开登记页；2) 生成唯一编号；3) 列表可见",
+  ].join("\n");
+  const html = structuredHtml(text, "…");
+  assert.match(html, /req-mod/);
+  assert.match(html, /req-mod-title/);
+  assert.match(html, /检测结果录入与自动判定/);
+  assert.match(html, /样品接收登记/);
+  assert.match(html, /req-list-num/);
+  assert.equal((html.match(/req-item/g) || []).length, 6);
+});
+
+test("structuredHtml keeps goal prose under module titles", () => {
+  const text = [
+    "[检测结果录入与自动判定] 在检测结果录入页完成结果值、单位的录入，并自动判定。",
+    "[样品接收登记] 登记样品信息并生成样品号。",
+  ].join("\n");
+  const html = structuredHtml(text, "…");
+  assert.match(html, /req-mod-title/);
+  assert.match(html, /req-para/);
+  assert.doesNotMatch(html, /req-list-num/);
+});
+
+test("structuredHtml turns顿号 out-of-scope into bullets", () => {
+  const html = structuredHtml(
+    "收样登记、审核复核、报告签发、财务计费",
+    "…",
+  );
+  assert.match(html, /req-list/);
+  assert.equal((html.match(/req-item/g) || []).length, 4);
+});
+
+test("modular edit round-trip keeps [module] lines", () => {
+  const text = "[录入] 做录入\n[审核] 做审核";
+  const model = reqEditModel(text);
+  assert.equal(model.mode, "ul");
+  assert.equal(model.items.length, 2);
+  const out = serializeReqEdit(model.mode, model.items);
+  assert.match(out, /\[录入\]/);
+  assert.match(out, /\[审核\]/);
+  assert.match(structuredHtml(out, "…"), /req-mod/);
 });
