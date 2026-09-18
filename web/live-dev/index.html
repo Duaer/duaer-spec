@@ -356,110 +356,150 @@
         </button>
       </div>
       <div class="settings-body" id="setup">
-        <p class="hint" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
-        <div class="field">
-          <span data-i18n="setup.provider">服务商</span>
-          <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
-        </div>
-        <label class="field">
-          <span>Base URL</span>
-          <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
-        </label>
-        <label class="field">
-          <span>API Key</span>
-          <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Model</span>
-          <input id="cfgModel" type="text" placeholder="deepseek-flash" />
-        </label>
-        <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
-        <p id="cfgErr" class="hint" hidden></p>
+        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
 
-        <div class="setup-host-creds" id="setupCloudflare">
-          <h3 class="setup-guide-title" data-i18n="setup.cloudflareTitle">Cloudflare 部署</h3>
-          <p class="hint" data-i18n="setup.cloudflareHint">填写 API Token 与 Account ID 后，「计划托管 / 部署」才会显示 Cloudflare。密钥只存本机。</p>
-          <label class="field">
-            <span data-i18n="setup.cloudflareToken">API Token</span>
-            <input id="cfgCfToken" type="password" autocomplete="off" />
-          </label>
-          <label class="field">
-            <span data-i18n="setup.cloudflareAccount">Account ID</span>
-            <input id="cfgCfAccount" type="text" autocomplete="off" spellcheck="false" />
-          </label>
-          <div class="setup-host-actions">
-            <button type="button" class="btn confirm" id="saveCfCfg" data-i18n="setup.cloudflareSave">保存 Cloudflare 凭证</button>
-            <button type="button" class="btn" id="clearCfCfg" data-i18n="setup.cloudflareClear">清除</button>
+        <details class="setup-block" id="setupModelBlock" open>
+          <summary class="setup-block-sum" data-i18n="setup.modelBlock">台面模型</summary>
+          <div class="setup-block-body">
+            <div class="field">
+              <span data-i18n="setup.provider">服务商</span>
+              <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
+            </div>
+            <label class="field">
+              <span>Base URL</span>
+              <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
+            </label>
+            <label class="field">
+              <span>API Key</span>
+              <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Model</span>
+              <input id="cfgModel" type="text" placeholder="deepseek-flash" />
+            </label>
+            <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
+            <p id="cfgErr" class="hint" hidden></p>
+            <details class="setup-howto">
+              <summary data-i18n="setup.howtoFill">怎么填？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n="setup.howtoModel1">选 DeepSeek / OpenAI 预设，或 Custom 填兼容 Base URL</li>
+                <li data-i18n="setup.howtoModel2">API Key 来自对应服务商控制台；Model 填该服务商的模型名</li>
+                <li data-i18n-html="setup.howtoModel3">命令行：<code>duaer live config --provider deepseek --api-key &lt;key&gt;</code></li>
+              </ol>
+            </details>
           </div>
-          <p id="cfCfgMsg" class="hint" hidden></p>
-        </div>
+        </details>
 
-        <div class="setup-host-creds" id="setupAliyun">
-          <h3 class="setup-guide-title" data-i18n="setup.aliyunTitle">阿里云部署</h3>
-          <p class="hint" data-i18n="setup.aliyunHint">填写 AccessKey 后，「计划托管 / 部署」才会显示阿里云。密钥只存本机 ~/.duaer/live/config.json，不会回传到页面。</p>
-          <label class="field">
-            <span data-i18n="setup.aliyunId">AccessKey ID</span>
-            <input id="cfgAliyunId" type="text" autocomplete="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span data-i18n="setup.aliyunSecret">AccessKey Secret</span>
-            <input id="cfgAliyunSecret" type="password" autocomplete="off" />
-          </label>
-          <div class="setup-host-actions">
-            <button type="button" class="btn confirm" id="saveAliyunCfg" data-i18n="setup.aliyunSave">保存阿里云凭证</button>
-            <button type="button" class="btn" id="clearAliyunCfg" data-i18n="setup.aliyunClear">清除</button>
+        <details class="setup-block" id="setupCloudflare">
+          <summary class="setup-block-sum" data-i18n="setup.cloudflareTitle">Cloudflare 部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.cloudflareHint">保存后才会显示 Cloudflare 托管选项。密钥只存本机。</p>
+            <label class="field">
+              <span data-i18n="setup.cloudflareToken">API Token</span>
+              <input id="cfgCfToken" type="password" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.cloudflareAccount">Account ID</span>
+              <input id="cfgCfAccount" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveCfCfg" data-i18n="setup.cloudflareSave">保存</button>
+              <button type="button" class="btn" id="clearCfCfg" data-i18n="setup.cloudflareClear">清除</button>
+            </div>
+            <p id="cfCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoCf1">打开 <a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare Dashboard</a> → 右侧 Account ID 复制</li>
+                <li data-i18n-html="setup.howtoCf2">My Profile → API Tokens → Create Token；权限含 Workers / Pages 编辑</li>
+                <li data-i18n="setup.howtoCf3">粘贴 Token + Account ID → 保存；部署时会注入环境变量</li>
+              </ol>
+            </details>
           </div>
-          <p id="aliyunCfgMsg" class="hint" hidden></p>
-        </div>
+        </details>
 
-        <div class="setup-host-creds" id="setupAws">
-          <h3 class="setup-guide-title" data-i18n="setup.awsTitle">AWS 部署</h3>
-          <p class="hint" data-i18n="setup.awsHint">填写 Access Key 后，「计划托管 / 部署」才会显示 AWS。密钥只存本机。</p>
-          <label class="field">
-            <span data-i18n="setup.awsId">Access Key ID</span>
-            <input id="cfgAwsId" type="text" autocomplete="off" spellcheck="false" />
-          </label>
-          <label class="field">
-            <span data-i18n="setup.awsSecret">Secret Access Key</span>
-            <input id="cfgAwsSecret" type="password" autocomplete="off" />
-          </label>
-          <label class="field">
-            <span data-i18n="setup.awsRegion">Region（可选）</span>
-            <input id="cfgAwsRegion" type="text" placeholder="us-east-1" autocomplete="off" spellcheck="false" />
-          </label>
-          <div class="setup-host-actions">
-            <button type="button" class="btn confirm" id="saveAwsCfg" data-i18n="setup.awsSave">保存 AWS 凭证</button>
-            <button type="button" class="btn" id="clearAwsCfg" data-i18n="setup.awsClear">清除</button>
+        <details class="setup-block" id="setupAliyun">
+          <summary class="setup-block-sum" data-i18n="setup.aliyunTitle">阿里云部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.aliyunHint">保存后才会显示阿里云。密钥只存本机，不会回传页面。</p>
+            <label class="field">
+              <span data-i18n="setup.aliyunId">AccessKey ID</span>
+              <input id="cfgAliyunId" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.aliyunSecret">AccessKey Secret</span>
+              <input id="cfgAliyunSecret" type="password" autocomplete="off" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveAliyunCfg" data-i18n="setup.aliyunSave">保存</button>
+              <button type="button" class="btn" id="clearAliyunCfg" data-i18n="setup.aliyunClear">清除</button>
+            </div>
+            <p id="aliyunCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoAliyun1">打开 <a href="https://ram.console.aliyun.com/manage/ak" target="_blank" rel="noopener">RAM AccessKey</a>（建议子账号，最小权限）</li>
+                <li data-i18n="setup.howtoAliyun2">创建 AccessKey，复制 ID + Secret（Secret 只显示一次）</li>
+                <li data-i18n="setup.howtoAliyun3">粘贴保存；部署时注入 ALIBABA_CLOUD_ACCESS_KEY_*</li>
+              </ol>
+            </details>
           </div>
-          <p id="awsCfgMsg" class="hint" hidden></p>
-        </div>
+        </details>
 
-        <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
-          <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
-          <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+        <details class="setup-block" id="setupAws">
+          <summary class="setup-block-sum" data-i18n="setup.awsTitle">AWS 部署</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.awsHint">保存后才会显示 AWS。密钥只存本机。</p>
+            <label class="field">
+              <span data-i18n="setup.awsId">Access Key ID</span>
+              <input id="cfgAwsId" type="text" autocomplete="off" spellcheck="false" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.awsSecret">Secret Access Key</span>
+              <input id="cfgAwsSecret" type="password" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span data-i18n="setup.awsRegion">Region（可选）</span>
+              <input id="cfgAwsRegion" type="text" placeholder="us-east-1" autocomplete="off" spellcheck="false" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveAwsCfg" data-i18n="setup.awsSave">保存</button>
+              <button type="button" class="btn" id="clearAwsCfg" data-i18n="setup.awsClear">清除</button>
+            </div>
+            <p id="awsCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto" open>
+              <summary data-i18n="setup.howtoGet">怎么拿？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n-html="setup.howtoAws1">打开 <a href="https://console.aws.amazon.com/iam/" target="_blank" rel="noopener">IAM</a> → Users → 选用户 → Security credentials</li>
+                <li data-i18n="setup.howtoAws2">Create access key，复制 Access key ID + Secret</li>
+                <li data-i18n="setup.howtoAws3">可选填 Region（如 us-east-1）；部署时注入 AWS_* 环境变量</li>
+              </ol>
+            </details>
+          </div>
+        </details>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">Duaer 台面模型（本页）</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideDesk1">选 DeepSeek / OpenAI 预设，或 Custom 填任意 OpenAI 兼容 Base URL + Key + Model</li>
-            <li data-i18n="setup.guideDesk2">也可用命令行：duaer live config --provider deepseek --api-key &lt;key&gt;</li>
-          </ul>
+        <details class="setup-block setup-guide-block" id="setupGuideBlock">
+          <summary class="setup-block-sum" data-i18n="setup.guideTitle">派工与模型说明</summary>
+          <div class="setup-block-body setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
+            <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
-          <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
-          <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
-          <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
-          <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
-          <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
-          <p class="hint" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
+            <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
+            <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
+            <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
+            <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
+            <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
+            <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
+            <p class="hint tight" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
-            <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
-            <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
-          </ul>
-          <p class="hint" data-i18n-html="setup.guideDoc">完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a></p>
-        </aside>
+            <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
+            <ul class="setup-guide-list">
+              <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+              <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
+              <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
+            </ul>
+            <p class="hint tight" data-i18n-html="setup.guideDoc">完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a></p>
+          </div>
+        </details>
       </div>
     </aside>
 
@@ -475,6 +515,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=cloud-aws-settings-1"></script>
+    <script type="module" src="/app.js?v=settings-compact-1"></script>
   </body>
 </html>

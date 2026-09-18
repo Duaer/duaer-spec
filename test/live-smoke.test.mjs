@@ -268,6 +268,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="settingsPanel"|settings-drawer/);
   assert.match(html, /id="cfgAliyunId"|id="saveAliyunCfg"/);
   assert.match(html, /id="cfgCfToken"|id="cfgAwsId"/);
+  assert.match(html, /setup-block|setup-howto/);
   assert.match(js, /hasAliyunCredentials|hasCloudflareCredentials|hasAwsCredentials/);
   assert.match(js, /visibleDeployHostIds/);
   assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);

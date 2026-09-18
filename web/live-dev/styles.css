@@ -360,7 +360,7 @@ body {
 .settings-body {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.4rem;
   flex: 1 1 auto;
   min-height: 0;
   overflow: auto;
@@ -368,22 +368,162 @@ body {
 }
 
 .settings-body .hint {
-  margin: 0 0 0.35rem;
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
-.setup-host-creds {
-  margin-top: 0.85rem;
-  padding-top: 0.85rem;
-  border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+.settings-body .hint.tight,
+.settings-lead {
+  margin: 0 0 0.15rem;
+}
+
+.settings-body .field {
+  gap: 0.2rem;
+  margin-bottom: 0.4rem;
+}
+
+.settings-body .field > span {
+  letter-spacing: 0.08em;
+  font-size: 0.64rem;
+}
+
+.settings-body .btn {
+  min-height: 2.1rem;
+  padding: 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.setup-block {
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--plate-2) 70%, transparent);
+  border-radius: 2px;
+}
+
+.setup-block-sum {
+  cursor: pointer;
+  list-style: none;
+  padding: 0.45rem 0.6rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  user-select: none;
+}
+
+.setup-block-sum::-webkit-details-marker {
+  display: none;
+}
+
+.setup-block-sum::before {
+  content: "▸";
+  display: inline-block;
+  width: 0.9em;
+  color: var(--mute);
+  font-size: 0.75rem;
+  transform: translateY(-0.05em);
+}
+
+.setup-block[open] > .setup-block-sum::before {
+  content: "▾";
+}
+
+.setup-block-body {
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.35rem;
+  padding: 0 0.6rem 0.55rem;
 }
 
 .setup-host-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.35rem;
+  margin-top: 0.1rem;
+}
+
+.setup-howto {
+  margin-top: 0.15rem;
+  border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent);
+  padding-top: 0.25rem;
+}
+
+.setup-howto > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--teal, #2f9e8f);
+  padding: 0.15rem 0;
+}
+
+.setup-howto > summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup-howto-list {
+  margin: 0.15rem 0 0;
+  padding-left: 1.05rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--mute);
+}
+
+.setup-howto-list li {
+  margin-bottom: 0.2rem;
+}
+
+.setup-howto-list a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.setup-howto-list code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--lock);
+}
+
+.setup-guide-block .setup-guide {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.setup-guide-block .setup-guide-title {
+  display: none;
+}
+
+.setup-guide-block .setup-guide-lead,
+.setup-guide-block .setup-guide-p {
+  margin: 0 0 0.4rem;
+  font-size: 0.8rem;
+}
+
+.setup-guide-block .setup-guide-h {
+  margin: 0.45rem 0 0.2rem;
+  font-size: 0.72rem;
+}
+
+.setup-guide-block .setup-guide-list {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+}
+
+.setup-guide-block .setup-guide-list li {
+  margin-bottom: 0.2rem;
+}
+
+.setup-guide-block .setup-guide-label {
+  margin: 0.3rem 0 0.15rem;
+  font-size: 0.72rem;
+}
+
+.setup-guide-block .setup-guide-cmd {
+  margin: 0 0 0.25rem;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.72rem;
 }
 
 .project-create {
