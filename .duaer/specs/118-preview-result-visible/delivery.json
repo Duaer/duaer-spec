@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T05:55:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "node --check web/live-dev/app.js",
+      "node --test test/result-versions.test.mjs test/live-project-chat.test.mjs",
+      "npm run test:live"
+    ],
+    "result": "pass"
+  }
+}

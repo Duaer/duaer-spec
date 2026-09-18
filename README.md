@@ -88,7 +88,7 @@ mock LLM — no paid API).
    - Claude Code: `npm install -g @anthropic-ai/claude-code` (or `curl -fsSL https://claude.ai/install.sh | bash`)  
    - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FED setup page guide covers the same.  
 4. Edit the start command (must begin with `Duaer`) → dispatch creates `.worktree/feat-*` and opens **Terminal** to run the CLI  
-5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **View result** (versioned; `preview.url` or auto-detected `index.html`)  
+5. Watch progress in the right column (`tasks.md`); when `delivery.json` is `accepted`, open **Results** (**View result** when a page exists, otherwise **Open project folder**)  
 6. If the result is not right: click **Continue improving (left chat)**, clarify why and what to change, confirm the revise card (same validate gate), then the desk relaunches on the same worktree (preempt leftover Agents before enqueueing revise). Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the Brief Revision and keeps **Confirm revise** available; status shows Terminal busy/queue.  
 7. If the job needs hosting / a public URL, pick a **planned host** on the desk
    (Cloudflare / Alibaba Cloud / AWS / GitHub Pages) so code matches that

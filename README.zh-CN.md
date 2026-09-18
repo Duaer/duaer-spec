@@ -81,7 +81,7 @@ duaer live
    - Claude Code：`npm install -g @anthropic-ai/claude-code`（或 `curl -fsSL https://claude.ai/install.sh | bash`）  
    - 要用 **DeepSeek 等其它模型**写代码：把 Claude Code 接到对应 API，见 [`docs/agent/worker-models.zh-CN.md`](docs/agent/worker-models.zh-CN.md)。FED「配置模型」页下方也有同样说明。  
 4. 编辑「启动命令」（须以 `Duaer` 开头）→ 派工建 `.worktree/feat-*`，并打开 **Terminal** 跑对应 CLI  
-5. 右侧进度列轮询 `tasks.md`；`delivery.json` 为 `accepted` 后出现 **查看结果**（按版本累计；`preview.url`，或自动发现 `index.html`）  
+5. 右侧进度列轮询 `tasks.md`；`delivery.json` 为 `accepted` 后出现 **结果**（有页面时 **查看结果**；否则 **打开项目目录**）  
 6. 成品不满意：点 **继续改进（左侧对话）**，说清原因与期望，确认改进卡（同样须校验通过）后续派（先清残留 Agent 再入队）。进度跟本轮 `R{n}-*` 任务。启动失败会回滚本轮 Brief Revision，并可再点「再派一版」；状态行显示 Terminal 忙闲/队列。  
 7. 若需求需要上线 / 公网访问：在派工台选 **计划托管平台**（Cloudflare / 阿里云 / AWS / GitHub Pages），数字员工按该平台约束写代码（说明见英文 [`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md)）。未指定时默认 **GitHub CLI（`gh`）+ Actions**（[`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)）
 
