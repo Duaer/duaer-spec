@@ -8,6 +8,10 @@ FDE launches **digital employees** with Terminal CLIs. That is separate from the
 | Desk LLM | OpenAI-compatible HTTP API for the FDE UI | DeepSeek API, OpenAI, custom gateway |
 | Worker CLI | Coding agent that edits the product worktree | **Cursor Agent**, **Claude Code** |
 
+On kickoff, FDE can launch **1..N** workers of the **same** CLI (not mixed).
+Each parallel worker uses its own Terminal queue lane. Desk flow:
+[`live-desk.md`](live-desk.md).
+
 Third-party packages named `deepseek` / `deepseek-tui` (now Codewhale) are
 **not** supported as worker CLIs. To use DeepSeek **models** for coding, point
 Claude Code (or another supported agent) at DeepSeek’s official API.

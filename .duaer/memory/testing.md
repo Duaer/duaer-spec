@@ -36,18 +36,23 @@ level without an explicit waiver in the feature docs (`tasks.md` or Spec).
 Covers without a paid LLM:
 
 1. Desk shell HTML/CSS/JS markers (three columns, structured confirm fields,
-   `validationAllowsSend`)
+   `validationAllowsSend`, modular module-tab / kickoff markers when present)
 2. Local validate failures (empty / too-short card)
 3. `/api/validate` pass and `/api/validate/fix` via an in-process mock
    OpenAI-compatible server
 
 Also run `npm test` (includes revise-reliability contract tests: Brief
 snapshot/rollback helpers + source markers for `PREEMPT_FAILED` / longer
-client timeout).
+client timeout; modular / task-pool / chat-markdown / terminal-lane unit
+coverage when those modules change).
 
 Does **not** cover: real model quality, live Terminal CLI launch against a
-real Cursor/Claude session. Those stay manual E2E catalog rows (E2E-055) or
-future suites.
+real Cursor/Claude session, or full multi-worker Terminal orchestration.
+Those stay manual E2E catalog rows (E2E-055, E2E-136, E2E-139) or future suites.
+
+Modular desk behavior (per-module confirm, late kickoff, README-on-delivery,
+chat Markdown, parallel lanes): see E2E-135…E2E-139 and
+[`docs/agent/live-desk.md`](../../docs/agent/live-desk.md).
 
 ## Opt-in (still need an explicit ask or Spec note)
 

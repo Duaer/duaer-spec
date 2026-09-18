@@ -80,11 +80,6 @@ the table for their app.
 | E2E-098 | Result bar buttons stay horizontal; heading/current chip follow latest revision | `npm run test:live` + manual |
 | E2E-099 | 改进卡 is versioned: each dispatched revision keeps its card; 再改一版 opens next empty card; chips browse history without overwrite | `npm test` + `npm run test:live` + manual |
 | E2E-100 | Revise: confirm 改进方案 first, then re-confirm architecture (keep or redesign), then dispatch | `npm test` + `npm run test:live` + manual |
-| E2E-101 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
-| E2E-102 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
-| E2E-103 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
-| E2E-104 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
-| E2E-105 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
 | E2E-101 | Desk buttons: no undefined --muted; architecture confirm/redesign row aligned; revise CTA not offset | `npm run test:live` + manual |
 | E2E-102 | Requirement versions accordion: 初版 + 第N版 expand with fields; architecture shown when changed | `npm test` + `npm run test:live` + manual |
 | E2E-103 | 再改一版 switches chat to revise thread so user-sent revise messages are visible | `npm run test:live` + manual |
@@ -119,6 +114,11 @@ the table for their app.
 | E2E-132 | Settings Alibaba Cloud AccessKey; 阿里云 hidden until both keys saved | `npm test` + `npm run test:live` + manual |
 | E2E-133 | Settings Cloudflare / AWS credentials; options hidden until configured | `npm test` + `npm run test:live` + manual |
 | E2E-134 | Settings compact collapsible blocks + host credential tutorials | `npm run test:live` + manual |
+| E2E-135 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
+| E2E-136 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
+| E2E-137 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
+| E2E-138 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
+| E2E-139 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -278,3 +278,8 @@ the table for their app.
 | E2E-126 | `159-arch-auto-height` | content-driven height; kill 100vh lock |
 | E2E-127 | `160-preview-deploy-btn` | result-bar Deploy; default Pages |
 | E2E-128 | `161-deploy-picker` | Deploy opens where-to-host dialog |
+| E2E-135 | `169-modular-fde-confirm` | modular messy chat; late kickoff |
+| E2E-136 | `169-modular-fde-confirm` | task pool + 1..N same-CLI workers |
+| E2E-137 | `170-readme-on-delivery` | README update before accepted |
+| E2E-138 | `171-chat-markdown` | safe chat Markdown bubbles |
+| E2E-139 | `173-parallel-terminal-lanes` | per-worker Terminal queue lanes |
