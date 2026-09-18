@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.18.0 — 2026-09-18
+
 ### Result bar: horizontal buttons + follow latest version
 
 - Fix confirm `width:100%` squeezing action buttons into vertical glyphs
