@@ -234,7 +234,7 @@ body {
   padding: 0 0.55rem;
   border: 1px solid var(--line);
   background: var(--plate);
-  color: var(--muted);
+  color: var(--mute);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 500;
@@ -251,7 +251,7 @@ body {
 }
 
 .project-badge.is-empty {
-  color: var(--muted);
+  color: var(--mute);
 }
 
 .top-actions .top-btn:hover,
@@ -386,7 +386,7 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--mute);
 }
 
 .project-list {
@@ -1415,10 +1415,26 @@ input:focus {
   flex-wrap: wrap;
   gap: 0.45rem;
   margin-top: 0.35rem;
+  align-items: stretch;
+}
+
+.architecture-actions .btn,
+.architecture-actions .btn.confirm {
+  width: auto;
+  flex: 1 1 auto;
+  min-width: 8rem;
+  margin-top: 0;
+  height: auto;
+  white-space: normal;
+  text-align: center;
 }
 
 #architectureConfirm {
   min-width: 10rem;
+}
+
+#architectureRedesign {
+  flex: 0 1 auto;
 }
 
 .deploy-target-chip {
@@ -1854,10 +1870,16 @@ input:focus {
 
 .preview-service .btn {
   flex-shrink: 0;
+  width: auto;
   min-width: auto;
   height: 1.55rem;
+  margin: 0;
   padding: 0 0.4rem;
   font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+  line-height: 1;
 }
 
 .preview-link {
@@ -1917,7 +1939,7 @@ input:focus {
 .revise-cta {
   display: inline-flex;
   margin-top: 0.65rem;
-  margin-left: 0.5rem;
+  margin-left: 0;
   min-width: auto;
   padding: 0.45rem 0.85rem;
   font-size: 0.85rem;
@@ -2017,6 +2039,7 @@ input:focus {
   display: inline-flex;
   width: auto;
   margin-top: 0.65rem;
+  margin-left: 0;
   margin-right: 0;
 }
 
