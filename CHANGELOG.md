@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Feat: grander intro landing
+
+- Larger brand hero, cinematic sky/grid motion, wider section rhythm on `site/`
+
 ### Feat: intro site on GitHub Pages
 
 - Static landing at `site/` (Chinese-primary): brand, delivery flow, FED, install

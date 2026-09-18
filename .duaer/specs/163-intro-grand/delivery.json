@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "feature": "163-intro-grand",
+  "acceptedAt": "2026-09-18T15:50:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["static review of site/index.html scale/motion"],
+    "notes": "Grander hero; republish Pages"
+  },
+  "preview": {
+    "url": "https://fujiezee.github.io/duaer-spec/",
+    "label": "View result"
+  }
+}
