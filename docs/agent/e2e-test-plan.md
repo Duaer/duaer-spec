@@ -110,6 +110,7 @@ the table for their app.
 | E2E-128 | Deploy click opens host picker before starting deploy | `npm test` + manual |
 | E2E-129 | Public intro site at `site/` on GitHub Pages (brand, pitch, FED, install) | open Pages URL + manual |
 | E2E-130 | Intro Pages hero is large-scale (brand-first, cinematic atmosphere) | open Pages URL + manual |
+| E2E-131 | Intro Pages layout: shared wrap, readable steps, no clipped hero | open Pages URL + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
