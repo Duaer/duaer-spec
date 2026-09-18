@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: intro site on GitHub Pages
+
+- Static landing at `site/` (Chinese-primary): brand, delivery flow, FED, install
+- Workflow `.github/workflows/pages.yml` deploys `site/` from `main`
+
 ### Feat: deploy target picker
 
 - Clicking「部署」opens「要部署到哪里？」(Cloudflare / 阿里云 / AWS / GitHub Pages)

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Duaer-spec — 数字员工，满意交付</title>
+  <meta
+    name="description"
+    content="Duaer 把 AI 编程助手变成数字员工：自然语言说意图，Brief 约束范围，对照验收才算完成。Duaer-spec FED 是现场工程台。"
+  />
+  <link rel="canonical" href="https://fujiezee.github.io/duaer-spec/" />
+  <meta property="og:title" content="Duaer-spec — 数字员工，满意交付" />
+  <meta
+    property="og:description"
+    content="规范 → 满意交付。你说话，数字员工跑流程。"
+  />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Outfit:wght@500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    :root {
+      --ink: #f2ebe0;
+      --mute: #9aa8b5;
+      --line: rgba(242, 235, 224, 0.14);
+      --bg: #0c141c;
+      --bg-2: #121c26;
+      --ember: #e05a2b;
+      --teal: #2f9e8f;
+      --font: "Outfit", "Avenir Next", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+        "Microsoft YaHei", sans-serif;
+      --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* —— Hero —— */
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: clamp(1.25rem, 3vw, 2rem);
+      padding-bottom: clamp(2.5rem, 8vh, 4.5rem);
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse 70% 55% at 12% -10%, rgba(224, 90, 43, 0.28), transparent 55%),
+        radial-gradient(ellipse 50% 45% at 95% 5%, rgba(47, 158, 143, 0.2), transparent 50%),
+        linear-gradient(180deg, #152230 0%, var(--bg) 72%);
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(242, 235, 224, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(242, 235, 224, 0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 78%);
+      pointer-events: none;
+      animation: gridDrift 28s linear infinite;
+    }
+
+    @keyframes gridDrift {
+      from {
+        background-position: 0 0;
+      }
+      to {
+        background-position: 48px 48px;
+      }
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      max-width: 52rem;
+    }
+
+    .brand {
+      display: block;
+      width: min(26rem, 92vw);
+      height: auto;
+      margin: 0 0 1.75rem;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.08s forwards;
+    }
+
+    .hero h1 {
+      margin: 0 0 0.85rem;
+      font-size: clamp(2rem, 5.4vw, 3.35rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.12;
+      max-width: 14ch;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+    }
+
+    .hero .lede {
+      margin: 0 0 1.75rem;
+      max-width: 34rem;
+      font-size: clamp(1.02rem, 2.1vw, 1.2rem);
+      color: var(--mute);
+      opacity: 0;
+      transform: translateY(14px);
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.34s forwards;
+    }
+
+    .cta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      opacity: 0;
+      transform: translateY(14px);
+      animation: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.48s forwards;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 2.75rem;
+      padding: 0 1.15rem;
+      border-radius: 2px;
+      font: inherit;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-ember {
+      background: var(--ember);
+      color: #1a0f0a;
+    }
+
+    .btn-ember:hover {
+      background: #f06a3a;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(242, 235, 224, 0.35);
+    }
+
+    @keyframes rise {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* —— Sections —— */
+    main {
+      padding: 0 clamp(1.25rem, 3vw, 2rem) 4rem;
+    }
+
+    section {
+      max-width: 52rem;
+      margin: 0 auto;
+      padding: 3.5rem 0 0;
+      border-top: 1px solid var(--line);
+    }
+
+    section:first-of-type {
+      border-top: 0;
+      padding-top: 3rem;
+    }
+
+    h2 {
+      margin: 0 0 0.75rem;
+      font-size: clamp(1.35rem, 2.8vw, 1.75rem);
+      font-weight: 650;
+      letter-spacing: -0.015em;
+    }
+
+    .section-lede {
+      margin: 0 0 1.5rem;
+      color: var(--mute);
+      max-width: 36rem;
+    }
+
+    .flow {
+      display: grid;
+      gap: 0;
+      counter-reset: step;
+      border-left: 1px solid var(--line);
+      margin-left: 0.35rem;
+    }
+
+    .flow li {
+      list-style: none;
+      position: relative;
+      padding: 0.85rem 0 0.85rem 1.35rem;
+      color: var(--ink);
+    }
+
+    .flow li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: -0.7rem;
+      top: 1rem;
+      width: 1.35rem;
+      height: 1.35rem;
+      border-radius: 50%;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      color: var(--teal);
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      font-weight: 500;
+      display: grid;
+      place-items: center;
+    }
+
+    .flow strong {
+      display: block;
+      margin-bottom: 0.15rem;
+    }
+
+    .flow span {
+      color: var(--mute);
+      font-size: 0.95rem;
+    }
+
+    .cmd {
+      margin: 0;
+      padding: 1rem 1.1rem;
+      background: var(--bg-2);
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-family: var(--mono);
+      font-size: 0.86rem;
+      overflow-x: auto;
+      color: #d7e0e8;
+    }
+
+    .cmd code {
+      font: inherit;
+    }
+
+    .hosts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 0.85rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--mute);
+      font-size: 0.92rem;
+    }
+
+    .hosts li {
+      position: relative;
+      padding-left: 0.85rem;
+    }
+
+    .hosts li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.55em;
+      width: 0.35rem;
+      height: 0.35rem;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    footer {
+      max-width: 52rem;
+      margin: 0 auto;
+      padding: 2.5rem clamp(1.25rem, 3vw, 2rem) 3rem;
+      border-top: 1px solid var(--line);
+      color: var(--mute);
+      font-size: 0.88rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+      justify-content: space-between;
+    }
+
+    footer a:hover {
+      color: var(--ink);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .hero::after {
+        animation: none;
+      }
+      .brand,
+      .hero h1,
+      .hero .lede,
+      .cta-row {
+        opacity: 1;
+        transform: none;
+        animation: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <img
+        class="brand"
+        src="assets/duaer-spec-fed.svg"
+        width="560"
+        height="112"
+        alt="Duaer-spec FED"
+      />
+      <h1>把 AI 助手变成能交付的数字员工</h1>
+      <p class="lede">
+        你用自然语言说意图。Duaer 先写成可检查的 Brief，再按范围实现，对照验收通过才算完成——不是让你去操作阶段和命令。
+      </p>
+      <div class="cta-row">
+        <a class="btn btn-ember" href="https://github.com/fujiezee/duaer-spec">GitHub 仓库</a>
+        <a class="btn btn-ghost" href="#install">安装起步</a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="how">
+      <h2>它自己会跑完交付</h2>
+      <p class="section-lede">日常你只要说话；流程由数字员工执行。</p>
+      <ol class="flow">
+        <li>
+          <strong>Brief</strong>
+          <span>目标 / 边界 / 可检查验收</span>
+        </li>
+        <li>
+          <strong>实现</strong>
+          <span>只做 Brief 范围，隔离分支与 worktree</span>
+        </li>
+        <li>
+          <strong>验收</strong>
+          <span>对照验收与项目测试规则；未满足不算完成</span>
+        </li>
+        <li>
+          <strong>交接</strong>
+          <span>一行结论；满意后再改一版或部署</span>
+        </li>
+      </ol>
+    </section>
+
+    <section id="fed">
+      <h2>Duaer-spec FED</h2>
+      <p class="section-lede">
+        Field Engineering Desk——与业务仓隔离的现场工程台：对话确认需求、架构、派工、预览与改进。
+      </p>
+      <pre class="cmd"><code>duaer live</code></pre>
+    </section>
+
+    <section id="install">
+      <h2>装一次，在熟悉的工具里说话</h2>
+      <p class="section-lede">写入各宿主适配文件后，继续用你习惯的 Agent。</p>
+      <pre class="cmd" style="margin-bottom: 1.25rem"><code>npx duaer-spec init --here</code></pre>
+      <ul class="hosts">
+        <li>Cursor</li>
+        <li>Claude Code</li>
+        <li>Codex</li>
+        <li>Copilot</li>
+        <li>Windsurf</li>
+        <li>Cline</li>
+        <li>Continue</li>
+        <li>Gemini</li>
+        <li>Aider</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    <span>duaer-spec · 规范 → 满意交付</span>
+    <span>
+      <a href="https://github.com/fujiezee/duaer-spec">GitHub</a>
+      ·
+      <a href="https://github.com/fujiezee/duaer-spec/blob/main/README.zh-CN.md">中文说明</a>
+      ·
+      <a href="https://www.npmjs.com/package/duaer-spec">npm</a>
+    </span>
+  </footer>
+</body>
+</html>
