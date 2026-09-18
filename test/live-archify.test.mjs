@@ -281,6 +281,8 @@ test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
     expandTwice.split(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`).length - 1,
     1,
   );
+  assert.match(expandOnce, /getBoundingClientRect/);
+  assert.match(expandOnce, /diagram-container/);
 });
 
 test("live sources wire architecture API + desk panel", () => {
@@ -290,11 +292,13 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(live, /ARCHITECTURE_CHAT_PROMPT/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /architecturePanel|architectureFrame/);
+  assert.match(html, /scrolling="no"/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /beginArchitectureDesign|confirmArchitecture|kickoffArchitectureDialogue/);
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
   assert.match(js, /architectureEmbedUrl|embed=1/);
   assert.match(js, /architectureFrameHeightPx|syncArchitectureFrameSize|ResizeObserver/);
+  assert.match(js, /ARCH_EMBED_GUTTER_TOP|ARCH_EMBED_GUTTER_LEFT/);
   assert.match(js, /duaer-arch-embed|onArchitectureEmbedMessage|embedHeight/);
   assert.match(js, /announceArchitectureRendered|arch\.renderedReady/);
   assert.match(

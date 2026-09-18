@@ -1423,7 +1423,8 @@ a.btn[hidden] {
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
   background: #0b1118;
-  overflow: visible;
+  /* Grow to canvas — never show an inner iframe scrollbar. */
+  overflow: hidden;
 }
 
 .architecture-frame[hidden] {

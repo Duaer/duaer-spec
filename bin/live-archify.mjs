@@ -535,7 +535,7 @@ html[data-embed="true"] body {
   height: auto !important;
   max-height: none !important;
   min-height: 0 !important;
-  overflow: visible !important;
+  overflow: hidden !important;
 }
 html[data-embed="true"] .container,
 html[data-embed="true"] .diagram-container {
@@ -556,6 +556,7 @@ html[data-embed="true"] .diagram-container svg {
   min-width: 0 !important;
   height: auto !important;
   max-height: none !important;
+  display: block !important;
 }
 html[data-embed="true"] .diagram-container svg [data-node-id] {
   cursor: pointer;
@@ -672,18 +673,30 @@ export function injectDuaerEmbedPassportExpand(html) {
   }
   function reportHeight() {
     expandChip();
-    var base = Math.max(
+    var need = 0;
+    var container = document.querySelector(".diagram-container");
+    var svg = container ? container.querySelector("svg") : null;
+    if (svg) {
+      var sr = svg.getBoundingClientRect();
+      var cr = container.getBoundingClientRect();
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      need = Math.max(
+        Math.ceil(y + sr.bottom + 28),
+        Math.ceil(y + cr.bottom + 16)
+      );
+    }
+    need = Math.max(
+      need,
       document.documentElement ? document.documentElement.scrollHeight : 0,
       document.body ? document.body.scrollHeight : 0
     );
-    var need = base;
     var chip = chipEl();
     if (chip && !chip.hasAttribute("hidden")) {
       var r = chip.getBoundingClientRect();
-      var y = window.scrollY || document.documentElement.scrollTop || 0;
-      need = Math.max(need, Math.ceil(y + r.bottom + 24));
+      var sy = window.scrollY || document.documentElement.scrollTop || 0;
+      need = Math.max(need, Math.ceil(sy + r.bottom + 24));
     }
-    if (window.parent && window.parent !== window) {
+    if (need > 0 && window.parent && window.parent !== window) {
       window.parent.postMessage({ source: SOURCE, type: "height", height: need }, "*");
     }
   }

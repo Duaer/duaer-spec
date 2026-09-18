@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T14:45:00.000Z",
+  "verification": {
+    "levels": ["L0-archify", "L3-live-smoke"],
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"]
+  },
+  "notes": "Architecture iframe expands to viewBox canvas + gutters; scrolling=no; embed height from SVG bbox."
+}

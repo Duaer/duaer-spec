@@ -748,7 +748,7 @@ function renderReviseArchBlock(arch, { baseline = false } = {}) {
   return `<div class="revise-arch-block">
     <p class="revise-arch-label">${escapeHtml(label)}</p>
     ${summary}
-    <iframe class="architecture-frame revise-arch-frame" src="${escapeHtml(src)}" title="architecture" style="height:${h}px"></iframe>
+    <iframe class="architecture-frame revise-arch-frame" src="${escapeHtml(src)}" title="architecture" scrolling="no" style="height:${h}px"></iframe>
   </div>`;
 }
 
@@ -2752,16 +2752,25 @@ function architectureEmbedUrl(url) {
   }
 }
 
-/** Frame height from viewBox aspect × current width (not raw viewBox Y as px). */
+/** Frame height from canvas viewBox × width + embed gutters (no inner scroll). */
+const ARCH_EMBED_GUTTER_TOP = 100;
+const ARCH_EMBED_GUTTER_LEFT = 100;
+const ARCH_EMBED_PAD_BOTTOM = 28;
+
 function architectureFrameHeightPx(viewBoxOrIr, frameEl) {
   const vb = architectureViewBoxOf(viewBoxOrIr);
-  const pad = 24;
   if (vb) {
-    const w = Math.max(
+    const frameW = Math.max(
       1,
       frameEl?.clientWidth || frameEl?.offsetWidth || 640,
     );
-    return Math.max(240, Math.ceil((w * vb[1]) / vb[0] + pad));
+    // border-box left gutter shrinks the SVG content box.
+    const contentW = Math.max(1, frameW - ARCH_EMBED_GUTTER_LEFT);
+    const svgH = Math.ceil((contentW * vb[1]) / vb[0]);
+    return Math.max(
+      240,
+      svgH + ARCH_EMBED_GUTTER_TOP + ARCH_EMBED_PAD_BOTTOM,
+    );
   }
   return 480;
 }
