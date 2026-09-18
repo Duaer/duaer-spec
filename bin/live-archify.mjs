@@ -511,6 +511,44 @@ export function architectureSummary(ir) {
   return `${title}: ${comps.join(" → ")}`;
 }
 
+/** CSS id used when patching Archify HTML for the Duaer desk embed. */
+export const DUAER_EMBED_FIT_STYLE_ID = "duaer-embed-fit";
+
+/**
+ * Archify's .diagram-container uses overflow:hidden (one-screen reader).
+ * Inside the Duaer iframe we need the full diagram height — inject overrides
+ * for data-embed=true so the container does not clip.
+ */
+export function injectDuaerEmbedFitCss(html) {
+  const src = String(html || "");
+  if (src.includes(`id="${DUAER_EMBED_FIT_STYLE_ID}"`)) return src;
+  const style = `<style id="${DUAER_EMBED_FIT_STYLE_ID}">
+html[data-embed="true"],
+html[data-embed="true"] body {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+html[data-embed="true"] .container,
+html[data-embed="true"] .diagram-container {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+html[data-embed="true"] .diagram-container svg {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+}
+</style>`;
+  if (/<\/head>/i.test(src)) {
+    return src.replace(/<\/head>/i, `${style}\n</head>`);
+  }
+  return `${style}\n${src}`;
+}
+
 /**
  * Render IR to HTML under liveRoot/architecture/<hash>.html
  */
@@ -565,6 +603,8 @@ export function renderArchitectureHtml(liveRoot, irInput) {
     e.code = "ARCHIFY_DELIVER";
     throw e;
   }
+  const patched = injectDuaerEmbedFitCss(fs.readFileSync(htmlPath, "utf8"));
+  fs.writeFileSync(htmlPath, patched, "utf8");
   return {
     key,
     jsonPath,

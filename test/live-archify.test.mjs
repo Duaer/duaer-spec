@@ -8,9 +8,11 @@ import path from "node:path";
 import test from "node:test";
 import {
   extractArchitectureIr,
+  injectDuaerEmbedFitCss,
   layoutArchitectureIr,
   renderArchitectureHtml,
   sanitizeArchitectureIr,
+  DUAER_EMBED_FIT_STYLE_ID,
 } from "../bin/live-archify.mjs";
 import {
   extractArchitectureIr as extractBrowser,
@@ -175,7 +177,24 @@ test("renderArchitectureHtml produces HTML via Archify", () => {
   assert.match(out.urlPath, /\/api\/architecture\//);
   assert.ok(fs.existsSync(out.htmlPath));
   assert.ok(fs.statSync(out.htmlPath).size > 1000);
+  const html = fs.readFileSync(out.htmlPath, "utf8");
+  assert.match(html, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
+  assert.match(html, /\.diagram-container\s*\{[^}]*max-height:\s*none/s);
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () => {
+  const raw = `<!doctype html><html><head></head><body><div class="diagram-container"></div></body></html>`;
+  const once = injectDuaerEmbedFitCss(raw);
+  assert.match(once, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
+  assert.match(once, /html\[data-embed="true"\] \.diagram-container/);
+  assert.match(once, /max-height:\s*none\s*!important/);
+  assert.match(once, /overflow:\s*visible\s*!important/);
+  const twice = injectDuaerEmbedFitCss(once);
+  assert.equal(
+    twice.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
+    1,
+  );
 });
 
 test("live sources wire architecture API + desk panel", () => {
@@ -189,6 +208,7 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(js, /beginArchitectureDesign|confirmArchitecture|kickoffArchitectureDialogue/);
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
   assert.match(js, /architectureEmbedUrl|embed=1/);
+  assert.match(js, /architectureFrameHeightPx|syncArchitectureFrameSize|ResizeObserver/);
   assert.match(js, /announceArchitectureRendered|arch\.renderedReady/);
   assert.match(
     js,
@@ -200,4 +220,5 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(i18n, /可渲染的架构 JSON/);
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
+  assert.match(live, /injectDuaerEmbedFitCss/);
 });

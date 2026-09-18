@@ -1379,7 +1379,7 @@ input:focus {
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
   background: #0b1118;
-  overflow: auto;
+  overflow: visible;
 }
 
 .architecture-frame[hidden] {

@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "113-arch-diagram-height",
+  "summary": "Lift Archify diagram-container height clip in Duaer embed; size iframe by aspect ratio.",
+  "verification": {
+    "L0": "node --check bin/live-archify.mjs bin/duaer-live.mjs web/live-dev/app.js — pass",
+    "L1": "node --test test/live-archify.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

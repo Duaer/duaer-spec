@@ -1855,6 +1855,46 @@ function architectureEmbedUrl(url) {
   }
 }
 
+/** Frame height from viewBox aspect × current width (not raw viewBox Y as px). */
+function architectureFrameHeightPx(ir, frameEl) {
+  const vb = ir?.meta?.viewBox;
+  const pad = 24;
+  if (
+    Array.isArray(vb) &&
+    Number(vb[0]) > 0 &&
+    Number.isFinite(Number(vb[1])) &&
+    Number(vb[1]) > 0
+  ) {
+    const w = Math.max(
+      1,
+      frameEl?.clientWidth || frameEl?.offsetWidth || 640,
+    );
+    return Math.max(
+      240,
+      Math.ceil((w * Number(vb[1])) / Number(vb[0]) + pad),
+    );
+  }
+  return 480;
+}
+
+let architectureFrameResizeObserver = null;
+
+function syncArchitectureFrameSize() {
+  const frame = el.architectureFrame;
+  const a = state.architecture;
+  if (!frame || !a?.url) return;
+  frame.style.height = `${architectureFrameHeightPx(a.ir, frame)}px`;
+}
+
+function ensureArchitectureFrameObserver() {
+  if (!el.architectureFrame || typeof ResizeObserver === "undefined") return;
+  if (architectureFrameResizeObserver) return;
+  architectureFrameResizeObserver = new ResizeObserver(() => {
+    syncArchitectureFrameSize();
+  });
+  architectureFrameResizeObserver.observe(el.architectureFrame);
+}
+
 function syncArchitecturePanel(kind) {
   if (!el.architecturePanel) return;
   el.architecturePanel.hidden = false;
@@ -1867,12 +1907,8 @@ function syncArchitecturePanel(kind) {
     if (a.url) {
       el.architectureFrame.hidden = false;
       el.architectureFrame.src = architectureEmbedUrl(a.url);
-      const vb = a.ir?.meta?.viewBox;
-      const h =
-        Array.isArray(vb) && Number.isFinite(vb[1])
-          ? Math.max(240, Math.ceil(Number(vb[1]) + 32))
-          : 480;
-      el.architectureFrame.style.height = `${h}px`;
+      ensureArchitectureFrameObserver();
+      syncArchitectureFrameSize();
     } else {
       el.architectureFrame.hidden = true;
       el.architectureFrame.removeAttribute("src");
