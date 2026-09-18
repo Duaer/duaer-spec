@@ -178,6 +178,7 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /dispatchPhase|markDispatchDone|applyDispatchStateFromStatus/);
   assert.match(js, /appendReviseMessagesToLog|restoreReviseDeskUi/);
   assert.match(js, /reviseCards|reviseDraft|upsertReviseCardEntry/);
+  assert.match(js, /revisePlanConfirmed|confirmRevisePlan|dispatchReviseAgent/);
 });
 
 test("reviseCards round-trip and legacy lastRevision migrate", () => {
