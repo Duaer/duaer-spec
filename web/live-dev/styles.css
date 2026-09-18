@@ -1181,6 +1181,39 @@ input:focus {
   margin-bottom: 0.35rem;
 }
 
+.deploy-target-field {
+  margin-top: 0.85rem;
+}
+
+.deploy-target-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.55rem;
+}
+
+.deploy-target-chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 0.4rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.deploy-target-chip:hover,
+.deploy-target-chip:focus-visible {
+  border-color: var(--register);
+}
+
+.deploy-target-chip[aria-pressed="true"] {
+  border-color: var(--register);
+  color: var(--register);
+  background: rgba(47, 158, 143, 0.12);
+}
+
 .agent-chip {
   text-align: left;
   border: 1px solid var(--line);

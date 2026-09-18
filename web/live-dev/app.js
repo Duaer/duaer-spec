@@ -55,6 +55,8 @@ const state = {
   agents: [],
   missingAgents: [],
   agentId: "cursor-agent",
+  /** Planned host: none | cloudflare | aliyun | aws | github-pages */
+  deployTarget: "none",
   /** null | "working" | "done" — dispatch button phase */
   dispatchPhase: null,
   lastCfg: null,
@@ -122,6 +124,7 @@ const el = {
   repoBrowse: document.getElementById("repoBrowse"),
   repoScan: document.getElementById("repoScan"),
   agentList: document.getElementById("agentList"),
+  deployTargetList: document.getElementById("deployTargetList"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -336,6 +339,7 @@ function syncDynamicI18n() {
   syncConfirmEnabled();
   syncComposerEnabled();
   if (el.agentList && !el.dispatch?.hidden) renderAgentList();
+  if (el.deployTargetList && !el.dispatch?.hidden) renderDeployTargetList();
   if (el.repoList && !el.dispatch?.hidden) renderRepoList();
   if (el.doDispatch && !el.dispatch?.hidden) syncDispatchButton();
   if (el.copyInstallCmd && el.agentInstall && !el.agentInstall.hidden) {
@@ -1416,6 +1420,7 @@ async function showDispatchPanel() {
   } else {
     ensureStartCommandPrefix();
   }
+  renderDeployTargetList();
   syncDispatchButton();
   state.repoCatalog = { recent: [], discovered: [] };
   focusRightPanel({ force: true });
@@ -1441,12 +1446,14 @@ async function loadAgents() {
       state.agentId = "cursor-agent";
     }
     renderAgentList();
+    renderDeployTargetList();
     syncDispatchButton();
   } catch (err) {
     state.agents = [];
     state.missingAgents = [];
     state.agentId = "cursor-agent";
     renderAgentList();
+    renderDeployTargetList();
     if (el.agentHint) {
       el.agentHint.textContent =
         err instanceof Error ? err.message : t("err.agentsDetect");
@@ -1506,6 +1513,34 @@ function syncStartCommandField() {
   if (!el.startCmdField || !el.startCommand) return;
   el.startCmdField.hidden = false;
   ensureStartCommandPrefix();
+}
+
+const DEPLOY_TARGET_IDS = [
+  "none",
+  "cloudflare",
+  "aliyun",
+  "aws",
+  "github-pages",
+];
+
+function renderDeployTargetList() {
+  if (!el.deployTargetList) return;
+  el.deployTargetList.replaceChildren();
+  for (const id of DEPLOY_TARGET_IDS) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "deploy-target-chip";
+    b.setAttribute(
+      "aria-pressed",
+      id === state.deployTarget ? "true" : "false",
+    );
+    b.textContent = t(`dispatch.deploy.${id}`);
+    b.addEventListener("click", () => {
+      state.deployTarget = id;
+      renderDeployTargetList();
+    });
+    el.deployTargetList.appendChild(b);
+  }
 }
 
 function renderAgentList() {
@@ -1905,6 +1940,7 @@ el.doDispatch.addEventListener("click", async () => {
         repoPath,
         agentId: state.agentId || "cursor-agent",
         startCommand,
+        deployTarget: state.deployTarget || "none",
       }),
     });
     const data = await res.json();
@@ -2876,6 +2912,10 @@ async function restoreHistoryJob() {
   syncConfirmEnabled();
   if (data.dispatch?.repoPath || data.dispatch?.worktreePath) {
     el.dispatch.hidden = false;
+    if (data.dispatch?.deployTarget) {
+      state.deployTarget = data.dispatch.deployTarget;
+    }
+    renderDeployTargetList();
     if (el.repoPath) el.repoPath.value = data.dispatch.repoPath || "";
     el.dispatchStatus.hidden = false;
     el.dispatchStatus.textContent = t("status.poll", {

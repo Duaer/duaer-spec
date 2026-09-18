@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Deploy target choice + fine tasks + self-update bootstrap
+
+- Live dispatch: pick planned host (Cloudflare / Alibaba Cloud / AWS /
+  GitHub Pages / none); agent prompts + `docs/agent/deploy-targets.md`
+- Cloudflare choice encodes Workers/Pages coding constraints
+- Task checklists: no hard max (was effectively capped); one acceptance line
+  → one independently acceptable task
+- Upgrade hint prefers `npm i -g duaer-spec@latest` (old CLIs lack
+  `self-update`); `duaer upgrade` alias added
+
 ### Result versions + 查看结果
 
 - Preview CTA renamed to **查看结果** / View result

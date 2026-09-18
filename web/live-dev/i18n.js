@@ -90,6 +90,14 @@ const zhCN = {
   "dispatch.path": "或粘贴路径 / 项目名",
   "dispatch.pathPh": "/Users/…/your-product 或 my-app",
   "dispatch.pathHint": "路径不存在会自动创建；填项目名时在父目录下新建",
+  "dispatch.deployTarget": "计划托管平台",
+  "dispatch.deployTargetHint":
+    "选好后数字员工按该平台约束写代码（Cloudflare → Workers/Pages）",
+  "dispatch.deploy.none": "暂不部署",
+  "dispatch.deploy.cloudflare": "Cloudflare",
+  "dispatch.deploy.aliyun": "阿里云",
+  "dispatch.deploy.aws": "AWS",
+  "dispatch.deploy.github-pages": "GitHub Pages",
   "dispatch.projectsRoot": "产品父目录",
   "dispatch.projectsRootPh": "/Users/…/Projects",
   "dispatch.saveProjectsRoot": "保存父目录",
@@ -190,9 +198,9 @@ const zhCN = {
   "bot.reviseKickoffFail":
     "改进对话没启动起来：{msg}。你也可以直接在左侧输入哪里不满意。",
   "update.notice":
-    "新版本 {latest}（当前 {current}）。终端运行 duaer self-update；业务仓再跑 npx duaer-spec@latest update",
+    "新版本 {latest}（当前 {current}）。终端执行：npm i -g duaer-spec@latest（或 duaer self-update）；业务仓再跑 npx duaer-spec@latest update",
   "update.noticeHtml":
-    "新版本 <code>{latest}</code>（当前 <code>{current}</code>）。终端运行 <code>duaer self-update</code>；业务仓再跑 <code>npx duaer-spec@latest update</code>",
+    "新版本 <code>{latest}</code>（当前 <code>{current}</code>）。终端执行：<code>npm i -g duaer-spec@latest</code>（或 <code>duaer self-update</code>）；业务仓再跑 <code>npx duaer-spec@latest update</code>",
   "repo.recent": "最近",
   "repo.discovered": "发现",
   "repo.empty":
@@ -374,6 +382,14 @@ const en = {
   "dispatch.path": "Or paste path / project name",
   "dispatch.pathPh": "/Users/…/your-product or my-app",
   "dispatch.pathHint": "Missing paths are created; bare names go under the parent folder",
+  "dispatch.deployTarget": "Planned hosting",
+  "dispatch.deployTargetHint":
+    "Code follows the chosen platform (Cloudflare → Workers/Pages rules)",
+  "dispatch.deploy.none": "No deploy yet",
+  "dispatch.deploy.cloudflare": "Cloudflare",
+  "dispatch.deploy.aliyun": "Alibaba Cloud",
+  "dispatch.deploy.aws": "AWS",
+  "dispatch.deploy.github-pages": "GitHub Pages",
   "dispatch.projectsRoot": "Projects parent folder",
   "dispatch.projectsRootPh": "/Users/…/Projects",
   "dispatch.saveProjectsRoot": "Save parent",
@@ -479,9 +495,9 @@ const en = {
   "bot.reviseKickoffFail":
     "Revise chat failed to start: {msg}. You can type what is wrong on the left.",
   "update.notice":
-    "Update {latest} (current {current}). Run duaer self-update; in product repos: npx duaer-spec@latest update",
+    "Update {latest} (current {current}). Run: npm i -g duaer-spec@latest (or duaer self-update); in product repos: npx duaer-spec@latest update",
   "update.noticeHtml":
-    "Update <code>{latest}</code> (current <code>{current}</code>). Run <code>duaer self-update</code>; in product repos: <code>npx duaer-spec@latest update</code>",
+    "Update <code>{latest}</code> (current <code>{current}</code>). Run <code>npm i -g duaer-spec@latest</code> (or <code>duaer self-update</code>); in product repos: <code>npx duaer-spec@latest update</code>",
   "repo.recent": "recent",
   "repo.discovered": "found",
   "repo.empty": "Browse / scan, or run duaer live repo add in a product repo",

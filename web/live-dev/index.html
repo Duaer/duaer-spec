@@ -152,6 +152,11 @@
               <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product 或 my-app" />
             </label>
             <p class="hint" data-i18n="dispatch.pathHint">路径不存在会自动创建；填项目名时在父目录下新建</p>
+            <div class="field deploy-target-field">
+              <span data-i18n="dispatch.deployTarget">计划托管平台</span>
+              <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
+              <div id="deployTargetList" class="deploy-target-list" role="radiogroup" aria-label="deploy target"></div>
+            </div>
             <div class="agent-pick">
               <div class="agent-pick-head">
                 <p class="agent-pick-label" data-i18n="dispatch.agentLabel">用哪个 CLI 数字员工启动</p>

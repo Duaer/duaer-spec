@@ -255,14 +255,19 @@ them; record results in the pull request comment. Completeness gaps on the
 contributor's branch may still be follow-up *after* a principle-sound merge,
 except when a failing required suite would break `main`.
 
-### 4. Deploy via GitHub CLI when hosting is required
+### 4. Deploy via chosen host (desk) or GitHub CLI default
 
-If the product job needs a public URL or hosting, default to **GitHub Actions
+If the live desk (or Brief) records a **planned host** — Cloudflare, Alibaba
+Cloud, AWS, or GitHub Pages — implement and publish for **that** platform
+([deploy-targets.md](docs/agent/deploy-targets.md)). Cloudflare implies
+Workers/Pages coding constraints from day one.
+
+When hosting is needed but no target was chosen, default to **GitHub Actions
 automated deploy driven by `gh`** (see
 [deploy-github.md](docs/agent/deploy-github.md)). Do not default to third-party
 host CLIs unless the adopting project already standardizes on them. A deploy
-ask authorizes the push / `gh` steps required for that publish (still no
-force-push or unrelated branches).
+ask authorizes the push / `gh` / platform CLI steps required for that publish
+(still no force-push or unrelated branches).
 
 ### 5. Merge Back into Local `develop` (or hotfix `main`)
 
