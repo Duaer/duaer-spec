@@ -33,11 +33,16 @@ test("activelyRevising requires worktree + open R work when delivery accepted", 
 test("desk UI: 查看结果 + version list + clear 续派中 on accept", () => {
   assert.match(HTML, /查看结果/);
   assert.match(HTML, /id="previewVersions"/);
+  assert.match(HTML, /id="previewOpenFolder"|id="progressResult"/);
   assert.match(I18N, /"preview\.view":\s*"查看结果"/);
   assert.match(I18N, /"preview\.view":\s*"View result"/);
+  assert.match(I18N, /"preview\.openFolder"/);
   assert.match(APP, /function renderPreviewVersions\b/);
+  assert.match(APP, /function openResultFolder\b/);
   assert.match(APP, /state\.reviseDispatching\s*=\s*false/);
   assert.match(APP, /data\?\.results/);
+  assert.match(APP, /!productReady/);
+  assert.match(LIVE, /\/api\/reveal/);
 });
 
 test("snapshot + prune keeps only previewable files after worktree gone", () => {

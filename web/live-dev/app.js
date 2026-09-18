@@ -72,6 +72,7 @@ const state = {
   deployTarget: "none",
   /** null | "working" | "done" — dispatch button phase */
   dispatchPhase: null,
+  lastDispatch: null,
   lastCfg: null,
   lastUpdate: null,
   historyJobs: [],
@@ -184,8 +185,14 @@ const el = {
   runTimeline: document.getElementById("runTimeline"),
   previewPanel: document.getElementById("previewPanel"),
   previewLink: document.getElementById("previewLink"),
+  previewOpenFolder: document.getElementById("previewOpenFolder"),
+  previewMissing: document.getElementById("previewMissing"),
   previewMeta: document.getElementById("previewMeta"),
   previewVersions: document.getElementById("previewVersions"),
+  progressResult: document.getElementById("progressResult"),
+  progressPreviewLink: document.getElementById("progressPreviewLink"),
+  progressOpenFolder: document.getElementById("progressOpenFolder"),
+  progressResultMeta: document.getElementById("progressResultMeta"),
   revisePanel: document.getElementById("revisePanel"),
   reviseHint: document.getElementById("reviseHint"),
   reviseCardFields: document.getElementById("reviseCardFields"),
@@ -255,6 +262,7 @@ function activeRightFocusEl() {
 }
 
 function activeProgressFocusEl() {
+  if (el.progressResult && !el.progressResult.hidden) return el.progressResult;
   if (state.activeRun?.root?.isConnected) return state.activeRun.root;
   if (el.runTimeline && !el.runTimeline.hidden) return el.runTimeline;
   return el.progressCol;
@@ -3398,10 +3406,45 @@ function renderProgress(data) {
   focusRightPanel({ force: isNewBlock });
 }
 
+function resultFolderPath(data) {
+  const d = data?.dispatch || {};
+  const wt = String(d.worktreePath || "").trim();
+  if (wt && d.worktreeExists !== false) return wt;
+  const repo = String(d.repoPath || state.projectPath || "").trim();
+  return repo || "";
+}
+
+async function openResultFolder(data) {
+  const folder = resultFolderPath(data || { dispatch: state.lastDispatch });
+  if (!folder || !state.jobId) {
+    addBubble("bot", t("preview.openFail", { msg: t("err.noRepo") }));
+    return;
+  }
+  try {
+    const res = await fetch("/api/reveal", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobId: state.jobId, which: "worktree" }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "reveal failed");
+    if (el.previewMeta) {
+      el.previewMeta.textContent = t("preview.opened");
+    }
+    if (el.progressResultMeta) {
+      el.progressResultMeta.textContent = t("preview.opened");
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    addBubble("bot", t("preview.openFail", { msg }));
+  }
+}
+
 function renderPreview(data) {
-  if (!el.previewPanel || !el.previewLink) return;
+  if (!el.previewPanel) return;
   const wasHidden = el.previewPanel.hidden;
   state.lastStatus = data?.status || state.lastStatus;
+  if (data?.dispatch) state.lastDispatch = data.dispatch;
   state.lastDeliveryAccepted =
     data?.delivery?.status === "accepted" || data?.status === "accepted";
   // Task finished / accepted: never leave the dispatch button stuck on「续派中」.
@@ -3424,15 +3467,47 @@ function renderPreview(data) {
   const latest =
     versions.length > 0 ? versions[versions.length - 1] : null;
   const openUrl = preview?.url || latest?.url || "";
-  if (!openUrl || !productReady) {
+  const folder = resultFolderPath(data);
+  if (!productReady) {
     el.previewPanel.hidden = true;
+    if (el.progressResult) el.progressResult.hidden = true;
   } else {
     el.previewPanel.hidden = false;
-    el.previewLink.href = openUrl;
-    el.previewLink.textContent =
+    if (el.progressResult) el.progressResult.hidden = false;
+    const label =
       preview?.label || latest?.label || t("preview.view");
-    if (el.previewMeta) {
-      const bits = [];
+    if (el.previewLink) {
+      if (openUrl) {
+        el.previewLink.hidden = false;
+        el.previewLink.href = openUrl;
+        el.previewLink.textContent = label;
+      } else {
+        el.previewLink.hidden = true;
+        el.previewLink.removeAttribute("href");
+      }
+    }
+    if (el.progressPreviewLink) {
+      if (openUrl) {
+        el.progressPreviewLink.hidden = false;
+        el.progressPreviewLink.href = openUrl;
+        el.progressPreviewLink.textContent = label;
+      } else {
+        el.progressPreviewLink.hidden = true;
+        el.progressPreviewLink.removeAttribute("href");
+      }
+    }
+    const canOpenFolder = Boolean(folder && state.jobId);
+    if (el.previewOpenFolder) {
+      el.previewOpenFolder.hidden = !canOpenFolder;
+    }
+    if (el.progressOpenFolder) {
+      el.progressOpenFolder.hidden = !canOpenFolder;
+    }
+    if (el.previewMissing) {
+      el.previewMissing.hidden = Boolean(openUrl);
+    }
+    const bits = [];
+    if (openUrl) {
       if (preview?.path || latest?.path)
         bits.push(preview?.path || latest?.path);
       if (preview?.source)
@@ -3442,14 +3517,23 @@ function renderPreview(data) {
       if (data?.revision > 0) bits.push(`r${data.revision}`);
       else if (latest && Number(latest.revision) > 0)
         bits.push(`r${latest.revision}`);
-      el.previewMeta.textContent = bits.join(" · ");
+    } else if (folder) {
+      bits.push(t("preview.folderHint", { path: folder }));
     }
+    const metaText = bits.join(" · ");
+    if (el.previewMeta) el.previewMeta.textContent = metaText;
+    if (el.progressResultMeta) el.progressResultMeta.textContent = metaText;
   }
   renderPreviewVersions(versions, openUrl);
   renderRevisePanel(data);
   // Only when the result panel first appears — not on every status poll.
   if (!el.previewPanel.hidden && wasHidden) {
     focusRightPanel({ force: true });
+    try {
+      el.previewPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } catch {
+      /* ignore */
+    }
   }
 }
 
@@ -3914,6 +3998,16 @@ if (el.startReviseChatAlt) {
     enterReviseMode();
   });
 }
+
+async function onOpenResultFolder() {
+  await openResultFolder({ dispatch: state.lastDispatch });
+}
+el.previewOpenFolder?.addEventListener("click", () => {
+  void onOpenResultFolder();
+});
+el.progressOpenFolder?.addEventListener("click", () => {
+  void onOpenResultFolder();
+});
 
 if (el.doReviseDispatch) {
   el.doReviseDispatch.addEventListener("click", () => {

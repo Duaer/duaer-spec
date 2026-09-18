@@ -181,7 +181,11 @@
             <p id="dispatchErr" class="hint" hidden></p>
             <div id="previewPanel" class="preview-panel" hidden>
               <p class="preview-title" data-i18n="preview.title">结果</p>
-              <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" data-i18n="preview.view">查看结果</a>
+              <div class="preview-actions">
+                <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" data-i18n="preview.view" hidden>查看结果</a>
+                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开项目目录</button>
+              </div>
+              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">没有可打开的页面；可打开项目目录查看交付物。</p>
               <p id="previewMeta" class="hint"></p>
               <ul id="previewVersions" class="preview-versions" hidden></ul>
               <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
@@ -235,6 +239,14 @@
             <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
             <p id="dispatchStatus" class="meta progress-status" hidden></p>
           </header>
+          <div id="progressResult" class="progress-result" hidden>
+            <p class="progress-result-title" data-i18n="preview.title">结果</p>
+            <div class="preview-actions">
+              <a id="progressPreviewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" hidden data-i18n="preview.view">查看结果</a>
+              <button type="button" class="btn" id="progressOpenFolder" hidden data-i18n="preview.openFolder">打开项目目录</button>
+            </div>
+            <p id="progressResultMeta" class="hint"></p>
+          </div>
           <div id="progressEmpty" class="progress-empty">
             <p class="progress-empty-title" data-i18n="progress.emptyTitle">还没有进度</p>
             <p class="progress-empty-hint" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>

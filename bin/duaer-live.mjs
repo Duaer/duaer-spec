@@ -4912,6 +4912,66 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/reveal") {
+    try {
+      const body = await readJson(req);
+      const live = readLiveJob(body.jobId);
+      const which = body.which === "repo" ? "repo" : "worktree";
+      const dispatch = live.job.dispatch || {};
+      let target =
+        which === "repo"
+          ? String(dispatch.repoPath || live.job.repoPath || live.job.projectPath || "").trim()
+          : String(dispatch.worktreePath || "").trim();
+      if (!target || !fs.existsSync(target)) {
+        target = String(
+          dispatch.repoPath || live.job.repoPath || live.job.projectPath || "",
+        ).trim();
+      }
+      if (!target || !fs.existsSync(target)) {
+        const e = new Error("project folder not found");
+        e.code = "NOT_FOUND";
+        throw e;
+      }
+      const abs = path.resolve(target);
+      const allowed = [
+        dispatch.worktreePath,
+        dispatch.repoPath,
+        live.job.repoPath,
+        live.job.projectPath,
+      ]
+        .filter(Boolean)
+        .map((p) => path.resolve(String(p)));
+      const ok = allowed.some(
+        (root) => abs === root || abs.startsWith(root + path.sep),
+      );
+      if (!ok) {
+        const e = new Error("path not allowed for this job");
+        e.code = "FORBIDDEN";
+        throw e;
+      }
+      if (process.platform === "darwin") {
+        spawn("open", [abs], { detached: true, stdio: "ignore" }).unref();
+      } else if (process.platform === "win32") {
+        spawn("explorer", [abs], { detached: true, stdio: "ignore" }).unref();
+      } else {
+        spawn("xdg-open", [abs], { detached: true, stdio: "ignore" }).unref();
+      }
+      send(res, 200, { ok: true, path: abs });
+    } catch (err) {
+      const code =
+        err?.code === "NOT_FOUND"
+          ? 404
+          : err?.code === "FORBIDDEN"
+            ? 403
+            : 400;
+      send(res, code, {
+        error: err instanceof Error ? err.message : "reveal failed",
+        code: err?.code,
+      });
+    }
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/revise") {
     try {
       const body = await readJson(req);
