@@ -280,6 +280,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="previewOpenFolder"/);
   assert.match(css, /\.preview-actions\s+\.btn\.confirm[^{]*\{[^}]*width:\s*auto/s);
   assert.match(css, /\.architecture-actions\s+\.btn\.confirm[^{]*\{[^}]*width:\s*auto/s);
+  assert.match(css, /\.btn\[hidden\][^{]*\{[^}]*display:\s*none\s*!important/s);
   assert.doesNotMatch(css, /var\(--muted\)/);
   assert.match(js, /previewFollowLatest|previewFocusRevision/);
   assert.match(html, /preview-bar|result-bar-layout/);
