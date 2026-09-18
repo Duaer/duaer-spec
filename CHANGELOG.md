@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### DeepSeek launch flag
+
+- Terminal DeepSeek worker uses `-w <worktree>` (not Cursor `--workspace`),
+  which the `deepseek` CLI rejects
+
 ### Git ensure + worker CLI 10-day upgrade
 
 - Before product-repo `git init` / probe: verify `git` is installed; best-effort

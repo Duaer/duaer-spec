@@ -2560,8 +2560,8 @@ function deepseekTerminalCommand(worktreePath, promptFile, { continueSession = f
   const ws = shellSingleQuote(worktreePath);
   const pf = shellSingleQuote(promptFile);
   const cont = continueSession ? "--continue " : "";
-  // --yolo enables agent tools + shell; --skip-onboarding avoids first-run blockers in Terminal.
-  return `${bin} --workspace ${ws} --yolo --skip-onboarding ${cont}-p "$(cat ${pf})"`;
+  // DeepSeek CLI uses -w (not Cursor's --workspace). --yolo auto-approves tools.
+  return `${bin} -w ${ws} --yolo --skip-onboarding ${cont}-p "$(cat ${pf})"`;
 }
 
 function spawnBackgroundWorker({ cmd, args, cwd, logPath }) {
@@ -2752,7 +2752,7 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `deepseek${continueSession ? " --continue" : ""} --workspace --yolo (${queueNote})`;
+    launch.command = `deepseek${continueSession ? " --continue" : ""} -w --yolo (${queueNote})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent、Claude Code 或 DeepSeek");
   }

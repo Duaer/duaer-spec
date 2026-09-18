@@ -14,6 +14,8 @@ test("live sources declare DeepSeek CLI worker", () => {
   assert.match(live, /id:\s*"deepseek"/);
   assert.match(live, /function deepseekTerminalCommand/);
   assert.match(live, /npm install -g deepseek-tui/);
+  assert.match(live, /return `\$\{bin\} -w \$\{ws\} --yolo --skip-onboarding/);
+  assert.doesNotMatch(live, /return `\$\{bin\} --workspace /);
   assert.match(live, /--yolo --skip-onboarding/);
   assert.match(live, /deepseek-tui/);
   assert.match(live, /nvmBinDirs|npmGlobalBinDir/);

@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/082-git-cli-ensure",
-  "slug": "082-git-cli-ensure",
-  "branch": "feat/git-cli-ensure",
-  "worktree": ".worktree/feat-git-cli-ensure"
+  "featureDir": ".duaer/specs/083-deepseek-w-flag",
+  "slug": "083-deepseek-w-flag",
+  "branch": "fix/deepseek-w-flag",
+  "worktree": ".worktree/fix-deepseek-w-flag"
 }
