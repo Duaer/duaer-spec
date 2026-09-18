@@ -205,6 +205,21 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
     twice.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
     1,
   );
+  // Upgrade path: old fit block without passport is replaced in place.
+  const stale = once.replace(
+    /\/\* Archify embed mode hides[\s\S]*?\.focus-chip\[hidden\][\s\S]*?\}/,
+    "",
+  );
+  assert.doesNotMatch(stale, /\.focus-chip\s*\{[^}]*display:\s*block/s);
+  const upgraded = injectDuaerEmbedFitCss(stale);
+  assert.match(
+    upgraded,
+    /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*display:\s*block\s*!important/s,
+  );
+  assert.equal(
+    upgraded.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
+    1,
+  );
 });
 
 test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {

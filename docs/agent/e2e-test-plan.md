@@ -90,6 +90,7 @@ the table for their app.
 | E2E-108 | Revise kickoff keeps streamed model reply; safe chat done SSE (no stack-overflow wipe) | `npm run test:live` + manual |
 | E2E-109 | 再改一版 never shows Maximum call stack; persist/SSE omit deep IR | `npm run test:live` + manual |
 | E2E-110 | Architecture embed node click shows Archify semantic passport (`.focus-chip`) popup | `npm test` + manual |
+| E2E-111 | Served architecture HTML upgrades stale `#duaer-embed-fit` so passport CSS applies | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -231,3 +232,4 @@ the table for their app.
 | E2E-108 | `140-revise-kickoff-stack` | keep model reply; safe done SSE |
 | E2E-109 | `141-revise-stack-2` | never surface call-stack; omit deep IR |
 | E2E-110 | `142-arch-node-popup` | restore Archify focus-chip passport in embed |
+| E2E-111 | `143-arch-popup-upgrade` | replace stale embed-fit CSS on serve |

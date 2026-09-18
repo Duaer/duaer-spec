@@ -520,10 +520,11 @@ export const DUAER_EMBED_ZOOM_SCRIPT_ID = "duaer-embed-node-zoom";
  * Archify's .diagram-container uses overflow:hidden (one-screen reader).
  * Inside the Duaer iframe we need the full diagram height — inject overrides
  * for data-embed=true so the container does not clip.
+ * Also restore `.focus-chip` (semantic passport): Archify hides it in embed mode.
+ * Replaces any prior `#duaer-embed-fit` block so upgrades apply to cached HTML.
  */
 export function injectDuaerEmbedFitCss(html) {
   const src = String(html || "");
-  if (src.includes(`id="${DUAER_EMBED_FIT_STYLE_ID}"`)) return src;
   const style = `<style id="${DUAER_EMBED_FIT_STYLE_ID}">
 html[data-embed="true"],
 html[data-embed="true"] body {
@@ -563,6 +564,13 @@ html[data-embed="true"] .focus-chip[hidden] {
   display: none !important;
 }
 </style>`;
+  const re = new RegExp(
+    `<style\\s+id="${DUAER_EMBED_FIT_STYLE_ID}"[\\s\\S]*?<\\/style>`,
+    "i",
+  );
+  if (re.test(src)) {
+    return src.replace(re, style);
+  }
   if (/<\/head>/i.test(src)) {
     return src.replace(/<\/head>/i, `${style}\n</head>`);
   }
