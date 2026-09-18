@@ -179,6 +179,46 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /appendReviseMessagesToLog|restoreReviseDeskUi/);
   assert.match(js, /reviseCards|reviseDraft|upsertReviseCardEntry/);
   assert.match(js, /revisePlanConfirmed|confirmRevisePlan|dispatchReviseAgent/);
+  assert.match(js, /renderReviseVersionAccordion|initialArchitecture/);
+});
+
+test("reviseCards architecture snapshot round-trips", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-arch-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    messages: [],
+    reviseCards: [
+      {
+        revision: 1,
+        goal: "lighter",
+        outOfScope: "",
+        acceptance: "ok",
+        assumptions: "",
+        architecture: {
+          url: "/arch/r1.html",
+          summary: "edge",
+          changed: true,
+          fingerprint: "abc",
+          ir: { schema_version: 1 },
+        },
+      },
+    ],
+    initialArchitecture: {
+      url: "/arch/v0.html",
+      summary: "base",
+      changed: true,
+      fingerprint: "zzz",
+    },
+    reviseExpanded: { "0": true, "1": false },
+    locked: true,
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.reviseCards[0].architecture.url, "/arch/r1.html");
+  assert.equal(loaded.reviseCards[0].architecture.changed, true);
+  assert.equal(loaded.initialArchitecture.url, "/arch/v0.html");
+  assert.equal(loaded.reviseExpanded["1"], false);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("reviseCards round-trip and legacy lastRevision migrate", () => {

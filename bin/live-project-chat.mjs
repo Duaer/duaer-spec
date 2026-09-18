@@ -39,12 +39,26 @@ function clipReviseCardEntry(entry) {
   const revision = Number(entry.revision);
   if (!Number.isFinite(revision) || revision < 1) return null;
   const card = clipCard(entry);
-  return {
+  const arch = clipArchitectureSnapshot(entry.architecture);
+  const out = {
     revision: Math.floor(revision),
     goal: card.goal,
     outOfScope: card.outOfScope,
     acceptance: card.acceptance,
     assumptions: card.assumptions,
+  };
+  if (arch) out.architecture = arch;
+  return out;
+}
+
+function clipArchitectureSnapshot(arch) {
+  if (!arch || typeof arch !== "object" || !arch.url) return null;
+  return {
+    url: String(arch.url).slice(0, 300),
+    ir: arch.ir || null,
+    summary: String(arch.summary || "").slice(0, 2000),
+    changed: Boolean(arch.changed),
+    fingerprint: String(arch.fingerprint || "").slice(0, 200),
   };
 }
 
@@ -61,6 +75,17 @@ function clipReviseCards(list) {
 function clipReviseDraft(draft) {
   const entry = clipReviseCardEntry(draft);
   return entry;
+}
+
+function clipReviseExpanded(raw) {
+  if (!raw || typeof raw !== "object") return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    const key = String(k).slice(0, 20);
+    if (!key) continue;
+    out[key] = Boolean(v);
+  }
+  return out;
 }
 
 function clipReviseCardFocus(focus) {
@@ -176,6 +201,8 @@ function emptySession(projectPath = "") {
     reviseCards: [],
     reviseDraft: null,
     reviseCardFocus: null,
+    initialArchitecture: null,
+    reviseExpanded: {},
     originalCard: null,
     jobId: null,
     locked: false,
@@ -217,6 +244,8 @@ export function readProjectChat(liveRoot, projectPath) {
       ),
       reviseDraft: clipReviseDraft(raw.reviseDraft),
       reviseCardFocus: clipReviseCardFocus(raw.reviseCardFocus),
+      initialArchitecture: clipArchitectureSnapshot(raw.initialArchitecture),
+      reviseExpanded: clipReviseExpanded(raw.reviseExpanded),
       originalCard: raw.originalCard ? clipCard(raw.originalCard) : null,
       jobId: raw.jobId ? String(raw.jobId).slice(0, 200) : null,
       locked: Boolean(raw.locked),
@@ -264,6 +293,8 @@ export function writeProjectChat(liveRoot, payload) {
     ),
     reviseDraft: clipReviseDraft(payload.reviseDraft),
     reviseCardFocus: clipReviseCardFocus(payload.reviseCardFocus),
+    initialArchitecture: clipArchitectureSnapshot(payload.initialArchitecture),
+    reviseExpanded: clipReviseExpanded(payload.reviseExpanded),
     originalCard: payload.originalCard ? clipCard(payload.originalCard) : null,
     jobId: payload.jobId ? String(payload.jobId).slice(0, 200) : null,
     locked: Boolean(payload.locked),

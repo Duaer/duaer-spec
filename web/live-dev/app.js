@@ -67,6 +67,10 @@ const state = {
    * Architecture gate runs only after this is true.
    */
   revisePlanConfirmed: false,
+  /** First confirmed architecture (初版), for accordion + change detection. */
+  initialArchitecture: null,
+  /** Accordion open state keyed by "0" | "1" | "2" | "draft". Default: open. */
+  reviseExpanded: {},
   originalCard: null, // snapshot after first confirm
   lastStatus: null,
   lastDeliveryAccepted: false,
@@ -225,6 +229,7 @@ const el = {
   revisePanel: document.getElementById("revisePanel"),
   reviseTitle: document.getElementById("reviseTitle"),
   reviseVersions: document.getElementById("reviseVersions"),
+  reviseVersionList: document.getElementById("reviseVersionList"),
   reviseHint: document.getElementById("reviseHint"),
   reviseCardFields: document.getElementById("reviseCardFields"),
   startReviseChat: document.getElementById("startReviseChat"),
@@ -611,9 +616,10 @@ function getStoredReviseCard(revision) {
   return (state.reviseCards || []).find((e) => Number(e.revision) === rev) || null;
 }
 
-function upsertReviseCardEntry(revision, card) {
+function upsertReviseCardEntry(revision, card, architecture = undefined) {
   const rev = Number(revision) || 0;
   if (rev < 1 || !card) return;
+  const prev = getStoredReviseCard(rev);
   const entry = {
     revision: rev,
     goal: String(card.goal || ""),
@@ -621,12 +627,151 @@ function upsertReviseCardEntry(revision, card) {
     acceptance: String(card.acceptance || ""),
     assumptions: String(card.assumptions || ""),
   };
+  if (architecture !== undefined) {
+    if (architecture) entry.architecture = architecture;
+  } else if (prev?.architecture) {
+    entry.architecture = prev.architecture;
+  }
   const list = Array.isArray(state.reviseCards) ? [...state.reviseCards] : [];
   const idx = list.findIndex((e) => Number(e.revision) === rev);
   if (idx >= 0) list[idx] = entry;
   else list.push(entry);
   list.sort((a, b) => Number(a.revision) - Number(b.revision));
   state.reviseCards = list;
+}
+
+function architectureSnapshotFromState({ changed = false } = {}) {
+  if (!state.architecture?.url) return null;
+  return {
+    url: state.architecture.url,
+    ir: state.architecture.ir || null,
+    summary: state.architecture.summary || "",
+    changed: Boolean(changed),
+    fingerprint: architectureFingerprint(state.architecture.ir) || "",
+  };
+}
+
+function previousArchitectureFingerprint(beforeRevision) {
+  const rev = Number(beforeRevision) || 0;
+  if (rev <= 1) {
+    return (
+      state.initialArchitecture?.fingerprint ||
+      architectureFingerprint(state.initialArchitecture?.ir) ||
+      ""
+    );
+  }
+  const prev = getStoredReviseCard(rev - 1);
+  return (
+    prev?.architecture?.fingerprint ||
+    architectureFingerprint(prev?.architecture?.ir) ||
+    state.initialArchitecture?.fingerprint ||
+    ""
+  );
+}
+
+function isReviseExpanded(key) {
+  const k = String(key);
+  if (Object.prototype.hasOwnProperty.call(state.reviseExpanded, k)) {
+    return Boolean(state.reviseExpanded[k]);
+  }
+  return true; // default: all expanded
+}
+
+function setReviseExpanded(key, open) {
+  state.reviseExpanded = {
+    ...state.reviseExpanded,
+    [String(key)]: Boolean(open),
+  };
+}
+
+function escapeReviseText(s) {
+  return escapeHtml(String(s || "").trim() || "—");
+}
+
+function renderReviseArchBlock(arch, { baseline = false } = {}) {
+  if (!arch?.url) return "";
+  if (!baseline && !arch.changed) return "";
+  const src = architectureEmbedUrl(arch.url);
+  const summary = arch.summary
+    ? `<p class="revise-arch-summary">${escapeReviseText(arch.summary)}</p>`
+    : "";
+  const h = architectureFrameHeightPx(arch.ir, null) || 280;
+  const label = baseline ? t("revise.archBaseline") : t("revise.archChanged");
+  return `<div class="revise-arch-block">
+    <p class="revise-arch-label">${escapeHtml(label)}</p>
+    ${summary}
+    <iframe class="architecture-frame revise-arch-frame" src="${escapeHtml(src)}" title="architecture" style="height:${h}px"></iframe>
+  </div>`;
+}
+
+function renderReviseVersionBody(card, { baselineArch = false } = {}) {
+  return `<dl class="revise-version-fields">
+    <div><dt>${escapeHtml(t("revise.goal"))}</dt><dd>${escapeReviseText(card.goal)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.out"))}</dt><dd>${escapeReviseText(card.outOfScope)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.accept"))}</dt><dd>${escapeReviseText(card.acceptance)}</dd></div>
+    <div><dt>${escapeHtml(t("revise.assume"))}</dt><dd>${escapeReviseText(card.assumptions)}</dd></div>
+  </dl>${renderReviseArchBlock(card.architecture, { baseline: baselineArch })}`;
+}
+
+function renderReviseVersionAccordion() {
+  if (!el.reviseVersionList) return;
+  el.reviseVersionList.replaceChildren();
+  const items = [];
+
+  if (state.originalCard && (state.originalCard.goal || state.originalCard.acceptance)) {
+    items.push({
+      key: "0",
+      title: t("revise.versionInitial"),
+      card: {
+        ...state.originalCard,
+        architecture: state.initialArchitecture || null,
+      },
+      baselineArch: true,
+    });
+  }
+
+  for (const entry of state.reviseCards || []) {
+    items.push({
+      key: String(entry.revision),
+      title: t("revise.versionReq", { revision: entry.revision }),
+      card: entry,
+    });
+  }
+
+  if (!items.length) {
+    el.reviseVersionList.hidden = true;
+    return;
+  }
+  el.reviseVersionList.hidden = false;
+
+  for (const item of items) {
+    const details = document.createElement("details");
+    details.className = "revise-version-item";
+    details.open = isReviseExpanded(item.key);
+    details.dataset.revKey = item.key;
+    details.addEventListener("toggle", () => {
+      setReviseExpanded(item.key, details.open);
+      schedulePersistProjectDesk();
+    });
+
+    const summary = document.createElement("summary");
+    summary.className = "revise-version-summary";
+    summary.textContent = item.title;
+    if (Number(item.key) > 0) {
+      summary.addEventListener("click", () => {
+        focusReviseCardVersion(Number(item.key));
+      });
+    }
+    details.appendChild(summary);
+
+    const body = document.createElement("div");
+    body.className = "revise-version-body";
+    body.innerHTML = renderReviseVersionBody(item.card, {
+      baselineArch: Boolean(item.baselineArch),
+    });
+    details.appendChild(body);
+    el.reviseVersionList.appendChild(details);
+  }
 }
 
 function applyReviseFieldsFromCard(card) {
@@ -663,6 +808,7 @@ function syncReviseCardChrome() {
     0;
   if (el.reviseTitle) el.reviseTitle.textContent = reviseCardTitleText(focus);
   renderReviseVersionChips();
+  renderReviseVersionAccordion();
 }
 
 function isReviseDraftFocus() {
@@ -701,41 +847,10 @@ function focusReviseCardVersion(revision) {
 }
 
 function renderReviseVersionChips() {
+  // Accordion (reviseVersionList) is the version browser; chips stay hidden.
   if (!el.reviseVersions) return;
   el.reviseVersions.replaceChildren();
-  const chips = [];
-  for (const entry of state.reviseCards || []) {
-    const rev = Number(entry.revision) || 0;
-    if (rev >= 1) chips.push(rev);
-  }
-  const draftRev = Number(state.reviseDraft?.revision) || 0;
-  if (draftRev >= 1 && !chips.includes(draftRev)) chips.push(draftRev);
-  const focus =
-    Number(state.reviseCardFocus) ||
-    draftRev ||
-    Number(state.lastRevision?.revision) ||
-    0;
-  if (focus >= 1 && !chips.includes(focus)) chips.push(focus);
-  chips.sort((a, b) => a - b);
-  if (chips.length <= 1) {
-    el.reviseVersions.hidden = true;
-    return;
-  }
-  el.reviseVersions.hidden = false;
-  for (const rev of chips) {
-    const li = document.createElement("li");
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "revise-version-link";
-    if (rev === focus) btn.classList.add("is-current");
-    const isDraft = draftRev === rev && !getStoredReviseCard(rev);
-    btn.textContent = isDraft
-      ? t("revise.versionDraft", { revision: rev })
-      : t("revise.versionRev", { revision: rev });
-    btn.addEventListener("click", () => focusReviseCardVersion(rev));
-    li.appendChild(btn);
-    el.reviseVersions.appendChild(li);
-  }
+  el.reviseVersions.hidden = true;
 }
 
 function setConfirmFieldsReadonly(ro) {
@@ -1315,6 +1430,8 @@ async function persistProjectChat() {
           return state.reviseDraft;
         })(),
         reviseCardFocus: state.reviseCardFocus,
+        initialArchitecture: state.initialArchitecture,
+        reviseExpanded: state.reviseExpanded,
         originalCard: state.originalCard,
         jobId: state.jobId,
         locked: state.locked,
@@ -1443,6 +1560,8 @@ function clearDeskWorkspace() {
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
+  state.initialArchitecture = null;
+  state.reviseExpanded = {};
   state.dispatchPhase = null;
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
@@ -1499,6 +1618,10 @@ function clearDeskWorkspace() {
   if (el.reviseVersions) {
     el.reviseVersions.replaceChildren();
     el.reviseVersions.hidden = true;
+  }
+  if (el.reviseVersionList) {
+    el.reviseVersionList.replaceChildren();
+    el.reviseVersionList.hidden = true;
   }
   if (el.reviseTitle) el.reviseTitle.textContent = t("revise.title");
   if (el.previewLink) el.previewLink.hidden = true;
@@ -1562,6 +1685,14 @@ async function loadProjectChatIntoUi(projectPath) {
     state.reviseCardFocus =
       data.reviseCardFocus != null ? Number(data.reviseCardFocus) || null : null;
     state.revisePlanConfirmed = Boolean(data.revisePlanConfirmed);
+    state.initialArchitecture =
+      data.initialArchitecture && data.initialArchitecture.url
+        ? data.initialArchitecture
+        : null;
+    state.reviseExpanded =
+      data.reviseExpanded && typeof data.reviseExpanded === "object"
+        ? data.reviseExpanded
+        : {};
     // Migrate: single reviseCard + lastRevision → version list when empty
     if (
       !state.reviseCards.length &&
@@ -2288,6 +2419,7 @@ async function applyConfirmSuccess(data) {
   state.originalCard = cardValues();
   clearRunTimeline();
   el.confirm.textContent = t("card.confirmed");
+  syncReviseCardChrome();
   el.result.hidden = false;
   const reviewLine = data.review?.summary
     ? t("result.review", { summary: data.review.summary })
@@ -2827,6 +2959,12 @@ function confirmArchitecture() {
   if (!state.architecture.url || !state.architecture.ir) return;
   state.architecture.confirmed = true;
   state.architecture.status = "confirmed";
+  // Snapshot 初版 architecture on first confirm (before any revise plan).
+  if (!state.revisePlanConfirmed && !state.initialArchitecture?.url) {
+    state.initialArchitecture = architectureSnapshotFromState({
+      changed: true,
+    });
+  }
   const revisePending = Boolean(
     state.revisePlanConfirmed ||
       (el.revGoal?.value || "").trim() ||
@@ -2835,6 +2973,7 @@ function confirmArchitecture() {
   state.mode = revisePending && !state.reviseLocked ? "revise" : "specify";
   syncArchitecturePanel();
   syncChatPlaceholder();
+  syncReviseCardChrome();
   schedulePersistProjectDesk();
   addBubble("bot", t("arch.hintConfirmed"));
   // Revise path: architecture confirm comes *after* 改进方案确认 → then dispatch.
@@ -4532,7 +4671,17 @@ function lockReviseCard(data, card) {
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
   const rev = Number(data.revision) || 0;
-  upsertReviseCardEntry(rev, card);
+  const prevFp = previousArchitectureFingerprint(rev);
+  const curFp = architectureFingerprint(state.architecture?.ir) || "";
+  const archChanged = Boolean(
+    state.architecturePrevious ||
+      (prevFp && curFp && prevFp !== curFp) ||
+      (!prevFp && curFp && rev > 1),
+  );
+  const archSnap = architectureSnapshotFromState({ changed: archChanged });
+  upsertReviseCardEntry(rev, card, archSnap);
+  // Clear one-shot previous block after we recorded the change.
+  if (archChanged) state.architecturePrevious = null;
   state.reviseDraft = null;
   state.reviseCardFocus = rev > 0 ? rev : state.reviseCardFocus;
   state.lastRevision = {
@@ -5206,6 +5355,8 @@ async function restoreHistoryJob() {
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
+  state.initialArchitecture = null;
+  state.reviseExpanded = {};
   clearRunTimeline();
   const card = data.card || {};
   el.goal.value = card.goal || "";

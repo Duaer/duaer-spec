@@ -5280,6 +5280,8 @@ async function handleApi(req, res) {
         reviseCards: body.reviseCards,
         reviseDraft: body.reviseDraft,
         reviseCardFocus: body.reviseCardFocus,
+        initialArchitecture: body.initialArchitecture,
+        reviseExpanded: body.reviseExpanded,
         originalCard: body.originalCard,
         jobId: body.jobId,
         locked: body.locked,
