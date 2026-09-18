@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: intro Pages layout
+
+- Shared wrap column, text brand, 2x2 flow; drop ch-based Chinese max-width
+
 ### Feat: grander intro landing
 
 - Larger brand hero, cinematic sky/grid motion, wider section rhythm on `site/`

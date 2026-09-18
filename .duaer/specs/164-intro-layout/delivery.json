@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "feature": "164-intro-layout",
+  "acceptedAt": "2026-09-18T15:55:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["playwright screenshots desk+mobile"]
+  },
+  "preview": {
+    "url": "https://fujiezee.github.io/duaer-spec/",
+    "label": "View result"
+  }
+}
