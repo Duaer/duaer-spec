@@ -319,5 +319,6 @@ test("live sources wire architecture API + desk panel", () => {
   );
   assert.match(mount, /attachShadow|archify-root|focus-chip|runViewerScript|scopeArchifyCss/);
   assert.match(mount, /data-motion-capable|installDesktopReveal|bodyHtml|btn-preset/);
+  assert.match(mount, /100vh|100dvh|duaer-arch-host-chrome|height:\s*auto\s*!important/);
   assert.doesNotMatch(mount, /arch-passport/);
 });

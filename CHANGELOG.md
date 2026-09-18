@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: architecture mount auto height
+
+- Override Archify reader `100vh` / `100dvh` locks so the desk host grows with
+  the SVG canvas instead of a black fixed viewport box
+
 ### Fix: architecture click FX (viewer boot)
 
 - Mount full Archify body (toolbar nodes kept, visually hidden) so viewer init

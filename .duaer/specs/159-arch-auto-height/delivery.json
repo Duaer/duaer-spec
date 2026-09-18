@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "feature": "159-arch-auto-height",
+  "acceptedAt": "2026-09-18T15:20:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3-live"],
+    "commands": [
+      "node --test test/live-smoke.test.mjs test/live-archify.test.mjs",
+      "playwright: host height content-driven; click chip ok"
+    ]
+  }
+}

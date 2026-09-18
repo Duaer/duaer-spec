@@ -38,20 +38,26 @@ function hostChromeCss() {
   display: block;
   position: relative;
   width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
   background: #020617;
   color: #e8eef7;
-  overflow: visible;
+  overflow: visible !important;
 }
 :host([hidden]) { display: none !important; }
 .archify-root {
   position: relative;
   width: 100%;
-  min-height: 0;
-  margin: 0;
-  padding: 0;
+  /* Kill Archify reader viewport lock (body/html min-height:100vh, container 100dvh). */
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
   background: var(--bg, #020617);
   color: var(--text, #e8eef7);
-  overflow: visible;
+  overflow: visible !important;
   box-sizing: border-box;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -74,12 +80,23 @@ function hostChromeCss() {
   display: none !important;
 }
 .archify-root .container {
+  display: block !important;
+  width: 100% !important;
   max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
   margin: 0 !important;
   padding: 0 !important;
+  gap: 0 !important;
 }
 .archify-root .diagram-container {
+  display: block !important;
+  flex: none !important;
+  align-items: stretch !important;
+  justify-content: flex-start !important;
   height: auto !important;
+  min-height: 0 !important;
   max-height: none !important;
   overflow: visible !important;
   position: relative !important;
@@ -350,11 +367,12 @@ export async function mountArchitectureDiagram(host, opts = {}) {
   const parsed = parseArchifyHtml(await htmlRes.text());
 
   const styleHtml = [
-    `<style id="duaer-arch-host-chrome">${hostChromeCss()}</style>`,
     ...parsed.styles.map((s) => {
       const idAttr = s.id ? ` id="${s.id}"` : "";
       return `<style${idAttr}>${scopeArchifyCss(s.css)}</style>`;
     }),
+    // Host overrides last so they beat Archify 100vh / 100dvh reader layout.
+    `<style id="duaer-arch-host-chrome">${hostChromeCss()}</style>`,
   ].join("\n");
 
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
