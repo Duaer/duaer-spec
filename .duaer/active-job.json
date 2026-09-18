@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/080-progress-polish",
-  "slug": "080-progress-polish",
-  "branch": "feat/progress-polish",
-  "worktree": ".worktree/feat-progress-polish"
+  "featureDir": ".duaer/specs/081-beginner-copy",
+  "slug": "081-beginner-copy",
+  "branch": "fix/beginner-copy",
+  "worktree": ".worktree/fix-beginner-copy"
 }

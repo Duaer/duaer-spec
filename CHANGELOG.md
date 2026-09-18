@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Beginner slogan
+
+- Header line: 「小白也能做FED」 (was 「小白也能用 FED」)
+
 ### Progress column polish
 
 - Run cards with active accent, done/total meter, clearer checklist rows,
@@ -31,7 +35,7 @@
 
 ### Header beginner line
 
-- 「小白也能用 FED」 moves to top-nav center (always on); chat empty keeps only
+- 「小白也能做FED」 moves to top-nav center (always on); chat empty keeps only
   the three how-to steps so the slogan no longer flashes away on load
 
 ### Live desk module MIME
