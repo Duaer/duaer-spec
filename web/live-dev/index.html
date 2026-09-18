@@ -376,6 +376,24 @@
         <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
         <p id="cfgErr" class="hint" hidden></p>
 
+        <div class="setup-aliyun" id="setupAliyun">
+          <h3 class="setup-guide-title" data-i18n="setup.aliyunTitle">阿里云部署</h3>
+          <p class="hint" data-i18n="setup.aliyunHint">填写 AccessKey 后，「计划托管 / 部署」才会显示阿里云。密钥只存本机 ~/.duaer/live/config.json，不会回传到页面。</p>
+          <label class="field">
+            <span data-i18n="setup.aliyunId">AccessKey ID</span>
+            <input id="cfgAliyunId" type="text" autocomplete="off" spellcheck="false" />
+          </label>
+          <label class="field">
+            <span data-i18n="setup.aliyunSecret">AccessKey Secret</span>
+            <input id="cfgAliyunSecret" type="password" autocomplete="off" />
+          </label>
+          <div class="setup-aliyun-actions">
+            <button type="button" class="btn confirm" id="saveAliyunCfg" data-i18n="setup.aliyunSave">保存阿里云凭证</button>
+            <button type="button" class="btn" id="clearAliyunCfg" data-i18n="setup.aliyunClear">清除</button>
+          </div>
+          <p id="aliyunCfgMsg" class="hint" hidden></p>
+        </div>
+
         <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
           <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
           <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
@@ -417,6 +435,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=deploy-picker-1"></script>
+    <script type="module" src="/app.js?v=aliyun-settings-1"></script>
   </body>
 </html>

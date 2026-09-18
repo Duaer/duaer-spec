@@ -48,6 +48,13 @@ publish (label e.g. `View result`).
 
 Use when the desk target is `aliyun`.
 
+**FED gate:** Operators must save **AccessKey ID** and **AccessKey Secret** in
+desk Settings first. Until both are present, the live UI hides the Alibaba
+Cloud option. Keys live in `~/.duaer/live/config.json` (mode `0600` when
+possible); the public config API only exposes `hasAliyunCredentials`, never
+the secret values. On deploy, FED injects
+`ALIBABA_CLOUD_ACCESS_KEY_*` / `ALIYUN_ACCESS_KEY_*` into the Terminal shell.
+
 Common shapes: **OSS** (+ CDN) for static sites; **Function Compute (FC)**
 for APIs; **SAE** / ECS when a container or long-lived process is required.
 

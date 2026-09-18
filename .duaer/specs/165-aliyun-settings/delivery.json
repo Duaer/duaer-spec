@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "feature": "165-aliyun-settings",
+  "acceptedAt": "2026-09-18T16:10:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs web/live-dev/app.js",
+      "node --test test/aliyun-settings.test.mjs test/deploy-target-tasks.test.mjs test/live-smoke.test.mjs",
+      "npm run test:live"
+    ]
+  }
+}
