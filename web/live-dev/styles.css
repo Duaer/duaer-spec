@@ -1374,10 +1374,20 @@ input:focus {
 .architecture-frame {
   display: block;
   width: 100%;
-  height: 280px;
+  min-height: 0;
+  height: auto;
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
   background: #0b1118;
+  overflow: auto;
+}
+
+.architecture-frame[hidden] {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent;
 }
 
 #architectureConfirm {

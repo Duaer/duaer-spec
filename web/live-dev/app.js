@@ -1838,16 +1838,23 @@ function syncArchitecturePanel(kind) {
   el.architecturePanel.hidden = false;
   const a = state.architecture;
   if (el.architectureSummary) {
-    el.architectureSummary.hidden = !a.summary;
-    el.architectureSummary.textContent = a.summary || "";
+    el.architectureSummary.hidden = !(a.url && a.summary);
+    el.architectureSummary.textContent = a.url ? a.summary || "" : "";
   }
   if (el.architectureFrame) {
     if (a.url) {
       el.architectureFrame.hidden = false;
       el.architectureFrame.src = a.url;
+      const vb = a.ir?.meta?.viewBox;
+      const h =
+        Array.isArray(vb) && Number.isFinite(vb[1])
+          ? Math.max(240, Math.ceil(Number(vb[1]) + 32))
+          : 480;
+      el.architectureFrame.style.height = `${h}px`;
     } else {
       el.architectureFrame.hidden = true;
       el.architectureFrame.removeAttribute("src");
+      el.architectureFrame.style.removeProperty("height");
     }
   }
   if (el.architectureConfirm) {

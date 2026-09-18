@@ -31,6 +31,7 @@ test("layoutArchitectureIr assigns pos and viewBox", () => {
   assert.equal(ir.components[0].pos.length, 2);
   assert.equal(ir.meta.viewBox.length, 2);
   assert.ok(ir.meta.viewBox[0] >= 320);
+  assert.ok(ir.meta.viewBox[1] >= 240);
 });
 
 test("sanitizeArchitectureIr drops extras in server and browser", () => {

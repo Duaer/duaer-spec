@@ -273,6 +273,19 @@ export function layoutArchitectureIr(raw) {
     for (const c of components) {
       if (!hasFiniteSize(c)) c.size = [130, 60];
     }
+    let maxX = 320;
+    let maxY = 240;
+    for (const c of components) {
+      const w = hasFiniteSize(c) ? c.size[0] : 130;
+      const h = hasFiniteSize(c) ? c.size[1] : 60;
+      if (hasFinitePos(c)) {
+        maxX = Math.max(maxX, c.pos[0] + w + 48);
+        maxY = Math.max(maxY, c.pos[1] + h + 140);
+      }
+    }
+    if (!Array.isArray(ir.meta.viewBox) || ir.meta.viewBox.length < 2) {
+      ir.meta.viewBox = [maxX, maxY];
+    }
     return ir;
   }
 
