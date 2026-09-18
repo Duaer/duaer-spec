@@ -1,5 +1,5 @@
 {
-  "featureDir": ".duaer/specs/096-project-card-persist",
-  "slug": "096-project-card-persist",
-  "branch": "feat/project-card-persist"
+  "featureDir": ".duaer/specs/097-validate-persist",
+  "slug": "097-validate-persist",
+  "branch": "fix/validate-persist"
 }

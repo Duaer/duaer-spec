@@ -44,6 +44,32 @@ function clipMessages(list) {
     .slice(-200);
 }
 
+function clipValidate(v) {
+  if (!v || typeof v !== "object") {
+    return {
+      kind: "confirm",
+      fingerprint: "",
+      status: "idle",
+      summary: "",
+      issues: [],
+    };
+  }
+  const status = ["idle", "checking", "passed", "failed"].includes(v.status)
+    ? v.status === "checking"
+      ? "idle" // never restore mid-flight
+      : v.status
+    : "idle";
+  return {
+    kind: v.kind === "revise" ? "revise" : "confirm",
+    fingerprint: String(v.fingerprint || "").slice(0, 20000),
+    status,
+    summary: String(v.summary || "").slice(0, 2000),
+    issues: Array.isArray(v.issues)
+      ? v.issues.map((x) => String(x).slice(0, 500)).slice(0, 20)
+      : [],
+  };
+}
+
 function emptySession(projectPath = "") {
   return {
     projectPath: String(projectPath || "").trim(),
@@ -61,6 +87,7 @@ function emptySession(projectPath = "") {
     lastRevision: null,
     deployTarget: "none",
     agentId: "",
+    validate: clipValidate(null),
   };
 }
 
@@ -92,6 +119,7 @@ export function readProjectChat(liveRoot, projectPath) {
           : null,
       deployTarget: String(raw.deployTarget || "none").slice(0, 40),
       agentId: String(raw.agentId || "").slice(0, 80),
+      validate: clipValidate(raw.validate),
     };
   } catch {
     return empty;
@@ -126,6 +154,7 @@ export function writeProjectChat(liveRoot, payload) {
         : null,
     deployTarget: String(payload.deployTarget || "none").slice(0, 40),
     agentId: String(payload.agentId || "").slice(0, 80),
+    validate: clipValidate(payload.validate),
   };
   fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
   return doc;

@@ -49,11 +49,19 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
     reviseLocked: false,
     deployTarget: "github-pages",
     agentId: "cursor-agent",
+    validate: {
+      kind: "confirm",
+      fingerprint: '{"goal":"Ship login","outOfScope":"SSO","acceptance":"User can sign in","assumptions":"Email auth"}',
+      status: "passed",
+      summary: "ok",
+      issues: [],
+    },
   });
   assert.equal(saved.messages.length, 2);
   assert.equal(saved.card.goal, "Ship login");
   assert.equal(saved.jobId, "job-abc");
   assert.equal(saved.locked, true);
+  assert.equal(saved.validate.status, "passed");
   const loaded = readProjectChat(root, projectPath);
   assert.equal(loaded.messages[0].content, "hello");
   assert.equal(loaded.card.acceptance, "User can sign in");
@@ -62,6 +70,20 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
   assert.equal(loaded.locked, true);
   assert.equal(loaded.deployTarget, "github-pages");
   assert.equal(loaded.agentId, "cursor-agent");
+  assert.equal(loaded.validate.status, "passed");
+  assert.equal(loaded.validate.summary, "ok");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("checking validate status is not restored (stored as idle)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    validate: { kind: "confirm", fingerprint: "x", status: "checking", summary: "" },
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.validate.status, "idle");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -72,9 +94,11 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(live, /readProjectChat|writeProjectChat/);
   assert.match(live, /body\.card/);
   assert.match(live, /body\.jobId/);
+  assert.match(live, /body\.validate/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /persistProjectChat|loadProjectChatIntoUi/);
   assert.match(js, /schedulePersistProjectDesk/);
   assert.match(js, /applySavedCardFields/);
+  assert.match(js, /restoreValidateGate/);
   assert.match(js, /startStatusPoll/);
 });

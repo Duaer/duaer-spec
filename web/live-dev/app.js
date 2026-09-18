@@ -698,6 +698,7 @@ async function runValidate(kind, expectedFp) {
     };
     renderValidateHint();
     syncConfirmEnabled();
+    schedulePersistProjectDesk();
   } catch (err) {
     if (seq !== state.validateSeq) return;
     state.validate = {
@@ -709,6 +710,7 @@ async function runValidate(kind, expectedFp) {
     };
     renderValidateHint();
     syncConfirmEnabled();
+    schedulePersistProjectDesk();
   }
 }
 
@@ -1009,6 +1011,13 @@ async function persistProjectChat() {
         lastRevision: state.lastRevision,
         deployTarget: state.deployTarget || "none",
         agentId: state.agentId || "",
+        validate: {
+          kind: state.validate.kind,
+          fingerprint: state.validate.fingerprint,
+          status: state.validate.status,
+          summary: state.validate.summary,
+          issues: state.validate.issues,
+        },
       }),
     });
   } catch {
@@ -1039,6 +1048,45 @@ function applySavedCardFields(card, reviseCard) {
   syncReqSections();
 }
 
+/** Restore validate gate when fingerprint still matches the card. */
+function restoreValidateGate(saved) {
+  const v = saved && typeof saved === "object" ? saved : null;
+  const kind =
+    v?.kind === "revise"
+      ? "revise"
+      : currentValidateKind();
+  const values = kind === "revise" ? reviseCardValues() : cardValues();
+  const fp = cardFingerprint(values);
+  const fieldsOk = Boolean(values.goal && values.acceptance);
+  if (
+    v &&
+    (v.status === "passed" || v.status === "failed") &&
+    v.fingerprint &&
+    v.fingerprint === fp &&
+    (v.kind === kind || (!v.kind && kind === "confirm"))
+  ) {
+    state.validate = {
+      kind,
+      fingerprint: fp,
+      status: v.status,
+      summary: String(v.summary || ""),
+      issues: Array.isArray(v.issues) ? v.issues : [],
+    };
+    renderValidateHint();
+    return;
+  }
+  resetValidateGate();
+  if (!state.locked && fieldsOk && kind === "confirm") {
+    scheduleValidate("confirm");
+  } else if (
+    state.mode === "revise" &&
+    !state.reviseLocked &&
+    fieldsOk
+  ) {
+    scheduleValidate("revise");
+  }
+}
+
 /**
  * Load saved desk session (chat + 需求卡 + job/任务绑定) for a project.
  * @returns {Promise<number>} message count restored
@@ -1056,6 +1104,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.originalCard = null;
     state.lastRevision = null;
     applySavedCardFields(null, null);
+    resetValidateGate();
     clearChatLog();
     return 0;
   }
@@ -1084,6 +1133,7 @@ async function loadProjectChatIntoUi(projectPath) {
     applyConfirmCardChrome();
     applyCardChrome();
     renderMessagesToLog(state.messages);
+    restoreValidateGate(data.validate);
     syncConfirmEnabled();
     syncComposerEnabled();
     if (state.jobId) {
@@ -1108,6 +1158,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.originalCard = null;
     state.lastRevision = null;
     applySavedCardFields(null, null);
+    resetValidateGate();
     clearChatLog();
     return 0;
   }

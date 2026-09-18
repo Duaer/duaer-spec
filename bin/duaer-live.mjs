@@ -4925,6 +4925,7 @@ async function handleApi(req, res) {
         lastRevision: body.lastRevision,
         deployTarget: body.deployTarget,
         agentId: body.agentId,
+        validate: body.validate,
       });
       send(res, 200, { ok: true, ...saved });
     } catch (err) {

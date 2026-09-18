@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Persist validate gate across refresh
+
+- Auto-validate passed/failed state is stored with the project desk session
+- Refresh restores Confirm enablement when the card fingerprint still matches
+
 ### Persist requirements card + task binding
 
 - Project session file also stores confirm/revise card fields, `jobId`, and
