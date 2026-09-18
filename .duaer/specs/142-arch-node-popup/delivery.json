@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "142-arch-node-popup",
+  "acceptedAt": "2026-09-18T09:20:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "Restore Archify .focus-chip (semantic passport) in desk embed; Archify hid it under data-embed=true"
+}
