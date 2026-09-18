@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "feature": "162-intro-pages",
+  "acceptedAt": "2026-09-18T15:50:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["static review of site/index.html; pages.yml path=site"],
+    "notes": "Publish via GitHub Pages after merge to main"
+  },
+  "preview": {
+    "url": "https://fujiezee.github.io/duaer-spec/",
+    "label": "View result"
+  }
+}

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="112" viewBox="0 0 560 112" role="img" aria-label="Duaer-spec FED">
+  <title>Duaer-spec FED</title>
+  <defs>
+    <radialGradient id="glow" cx="18%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#e05a2b" stop-opacity="0.22"/>
+      <stop offset="55%" stop-color="#e05a2b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="teal" cx="92%" cy="0%" r="45%">
+      <stop offset="0%" stop-color="#2f9e8f" stop-opacity="0.16"/>
+      <stop offset="60%" stop-color="#2f9e8f" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="560" height="112" rx="4" fill="#121c26"/>
+  <rect width="560" height="112" rx="4" fill="url(#glow)"/>
+  <rect width="560" height="112" rx="4" fill="url(#teal)"/>
+  <text
+    x="28"
+    y="68"
+    font-family="Outfit, Avenir Next, Segoe UI, Helvetica Neue, sans-serif"
+    font-size="42"
+    font-weight="700"
+    fill="#f2ebe0"
+  >Duaer-spec</text>
+  <text
+    x="292"
+    y="68"
+    font-family="Outfit, Avenir Next, Segoe UI, Helvetica Neue, sans-serif"
+    font-size="42"
+    font-weight="700"
+    letter-spacing="0.12em"
+    fill="#e05a2b"
+  >FED</text>
+</svg>
