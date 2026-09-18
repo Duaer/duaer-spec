@@ -58,6 +58,7 @@ the table for their app.
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
 | E2E-044 | Duaer-spec FED history: header row has Duaer-spec FED + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
 | E2E-075 | DeepSeek Terminal launch uses `deepseek -w <worktree> --yolo` (not `--workspace`); job exits 0 when CLI present | `npm test` + manual |
@@ -163,3 +164,4 @@ the table for their app.
 | E2E-075 | `083-deepseek-w-flag` | DeepSeek `-w` not `--workspace` |
 | E2E-076 | `084-drop-deepseek-cli` | drop deepseek worker; model tutorial |
 | E2E-077 | `085-repo-mkdir` | create missing product dirs + projectsRoot |
+| E2E-078 | `086-claude-auto-perms` | Claude bypassPermissions on dispatch |

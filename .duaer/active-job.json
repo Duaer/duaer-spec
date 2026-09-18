@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/085-repo-mkdir",
-  "slug": "085-repo-mkdir",
-  "branch": "feat/repo-mkdir",
-  "worktree": ".worktree/feat-repo-mkdir"
+  "featureDir": ".duaer/specs/086-claude-auto-perms",
+  "slug": "086-claude-auto-perms",
+  "branch": "fix/claude-auto-perms",
+  "worktree": ".worktree/fix-claude-auto"
 }

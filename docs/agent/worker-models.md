@@ -54,6 +54,9 @@ Smoke test:
 claude -p "Reply with exactly: pong"
 ```
 
+FED dispatch launches Claude with `--permission-mode bypassPermissions` so the
+employee can edit and run commands in the worktree without stepwise confirms.
+
 ## Worker: Cursor Agent
 
 Install: `curl https://cursor.com/install -fsS | bash`

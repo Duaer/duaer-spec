@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Claude auto permissions on dispatch
+
+- Terminal Claude Code launches with `--permission-mode bypassPermissions` so
+  the digital employee can edit/run without stopping for tool confirms
+
 ### Create missing product dirs + projects root
 
 - Missing product path is created automatically before git init / dispatch

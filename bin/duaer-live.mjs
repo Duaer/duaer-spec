@@ -2669,7 +2669,8 @@ function launchAgent({
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
     const cont = continueSession ? "--continue " : "";
-    const line = `claude ${cont}"$(cat ${shellSingleQuote(promptFile)})"`;
+    // Digital-employee mode: auto-approve tools (like Cursor --force --trust).
+    const line = `claude --permission-mode bypassPermissions ${cont}"$(cat ${shellSingleQuote(promptFile)})"`;
     const term = launchInTerminal({
       cwd: worktreePath,
       commandLine: line,
@@ -2692,7 +2693,7 @@ function launchAgent({
         : term.reused
           ? "Terminal reuse"
           : "Terminal";
-    launch.command = `claude${continueSession ? " --continue" : ""} (${queueNote})`;
+    launch.command = `claude --permission-mode bypassPermissions${continueSession ? " --continue" : ""} (${queueNote})`;
   } else {
     throw new Error("只支持 CLI 启动：Cursor Agent 或 Claude Code");
   }

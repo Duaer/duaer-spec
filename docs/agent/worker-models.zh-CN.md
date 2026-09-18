@@ -50,6 +50,8 @@ DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FED 派工
 claude -p "Reply with exactly: pong"
 ```
 
+FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令，不再逐步要确认。
+
 ## 数字员工：Cursor Agent
 
 安装：`curl https://cursor.com/install -fsS | bash`
