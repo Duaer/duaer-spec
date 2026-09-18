@@ -969,6 +969,76 @@ async function readChatStream(res, onEvent) {
   }
 }
 
+function clearChatLog() {
+  if (!el.log) return;
+  for (const node of [...el.log.children]) {
+    if (node.id === "chatEmpty") continue;
+    node.remove();
+  }
+  syncChatEmpty();
+}
+
+function renderMessagesToLog(messages) {
+  clearChatLog();
+  for (const m of messages || []) {
+    const role = m.role === "user" ? "user" : "bot";
+    addBubble(role, m.content || "");
+  }
+}
+
+async function persistProjectChat() {
+  if (!state.projectPath) return;
+  try {
+    await fetch("/api/projects/chat", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        projectPath: state.projectPath,
+        messages: state.messages,
+        reviseMessages: state.reviseMessages,
+        rawAsk: state.rawAsk || "",
+      }),
+    });
+  } catch {
+    /* ignore persist errors */
+  }
+}
+
+/**
+ * Load saved chat for a project into state + UI.
+ * @returns {Promise<number>} message count restored
+ */
+async function loadProjectChatIntoUi(projectPath) {
+  const abs = String(projectPath || "").trim();
+  if (!abs) {
+    state.messages = [];
+    state.reviseMessages = [];
+    state.rawAsk = "";
+    clearChatLog();
+    return 0;
+  }
+  try {
+    const res = await fetch(
+      `/api/projects/chat?path=${encodeURIComponent(abs)}`,
+    );
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "chat load failed");
+    state.messages = Array.isArray(data.messages) ? data.messages : [];
+    state.reviseMessages = Array.isArray(data.reviseMessages)
+      ? data.reviseMessages
+      : [];
+    state.rawAsk = data.rawAsk || "";
+    renderMessagesToLog(state.messages);
+    return state.messages.length;
+  } catch {
+    state.messages = [];
+    state.reviseMessages = [];
+    state.rawAsk = "";
+    clearChatLog();
+    return 0;
+  }
+}
+
 async function sendChat(userText) {
   if (!state.projectPath) {
     explainChatBlocked();
@@ -980,6 +1050,7 @@ async function sendChat(userText) {
   bag.push({ role: "user", content: userText });
   addBubble("user", userText);
   if (state.mode !== "revise" && !state.rawAsk) state.rawAsk = userText;
+  void persistProjectChat();
 
   setBusy(true);
   state.lastChatBlockMsg = "";
@@ -1023,6 +1094,7 @@ async function sendChat(userText) {
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
       bag.push({ role: "assistant", content: final.reply });
+      void persistProjectChat();
       if (lockedSpecify && (final.goal || final.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (final.ready) {
@@ -1043,6 +1115,7 @@ async function sendChat(userText) {
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
       bag.push({ role: "assistant", content: data.reply });
+      void persistProjectChat();
       if (lockedSpecify && (data.goal || data.acceptance)) {
         addBubble("bot", t("bot.chatLockedHint"));
       } else if (data.ready) {
@@ -1165,27 +1238,30 @@ function showDesk(cfg) {
     model: cfg.model,
     jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
   });
-  if (!state.messages.length) {
-    if (state.projectPath) {
-      addBubble("bot", t("bot.ready"), {
-        options: [
-          t("chat.optFeature"),
-          t("chat.optChange"),
-          t("chat.optBug"),
-          t("chat.optScript"),
-        ],
-      });
-    } else {
-      addBubble("bot", t("bot.needProject"));
-    }
-  }
   syncConfirmEnabled();
   syncComposerEnabled();
   if (!state.projectPath) {
+    if (!state.messages.length) {
+      addBubble("bot", t("bot.needProject"));
+    }
     setHistoryOpen(true);
   }
-  // Refresh title/description from project list when we only have a path
-  void hydrateActiveProjectMeta();
+  void (async () => {
+    await hydrateActiveProjectMeta();
+    if (state.projectPath) {
+      const n = await loadProjectChatIntoUi(state.projectPath);
+      if (!n && !state.messages.length) {
+        addBubble("bot", t("bot.ready"), {
+          options: [
+            t("chat.optFeature"),
+            t("chat.optChange"),
+            t("chat.optBug"),
+            t("chat.optScript"),
+          ],
+        });
+      }
+    }
+  })();
 }
 
 async function hydrateActiveProjectMeta() {
@@ -3092,6 +3168,8 @@ async function activateProjectPath(pathOrName, meta = {}) {
     }
   }
   try {
+    // Save outgoing project chat before switching.
+    if (state.projectPath) await persistProjectChat();
     const body = { path: raw };
     if (requireMeta || title) body.title = title;
     if (requireMeta || description) body.description = description;
@@ -3122,7 +3200,12 @@ async function activateProjectPath(pathOrName, meta = {}) {
     const background = desc
       ? t("project.kickoffBackground", { description: desc })
       : "";
-    // Selecting a project starts the requirements dialogue immediately.
+    const restored = await loadProjectChatIntoUi(state.projectPath);
+    if (restored > 0) {
+      if (el.input) el.input.focus();
+      return;
+    }
+    // New / empty project: start the requirements dialogue immediately.
     void sendChat(
       t("project.kickoff", {
         name,

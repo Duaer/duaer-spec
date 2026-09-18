@@ -45,6 +45,10 @@ import {
   buildProjectList,
   normalizeProjectKey,
 } from "./live-projects.mjs";
+import {
+  readProjectChat,
+  writeProjectChat,
+} from "./live-project-chat.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -4876,6 +4880,46 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "activate project failed",
+        code: err?.code || undefined,
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/projects/chat") {
+    try {
+      const projectPath = String(url.searchParams.get("path") || "").trim();
+      if (!projectPath) {
+        send(res, 400, { error: "path required", code: "EMPTY_PATH" });
+        return;
+      }
+      send(res, 200, readProjectChat(liveRoot(), projectPath));
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "chat load failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "PUT" && url.pathname === "/api/projects/chat") {
+    try {
+      const body = await readJson(req);
+      const projectPath = String(body.projectPath || body.path || "").trim();
+      if (!projectPath) {
+        send(res, 400, { error: "projectPath required", code: "EMPTY_PATH" });
+        return;
+      }
+      const saved = writeProjectChat(liveRoot(), {
+        projectPath,
+        messages: body.messages,
+        reviseMessages: body.reviseMessages,
+        rawAsk: body.rawAsk,
+      });
+      send(res, 200, { ok: true, ...saved });
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "chat save failed",
         code: err?.code || undefined,
       });
     }

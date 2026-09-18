@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Persist project chat across refresh
+
+- Desk messages are stored per project under `~/.duaer/live/project-chats/`
+- Refresh / re-select restores the conversation; empty projects still auto-kickoff
+
 ### Dispatch shows current project only
 
 - When a project is already selected, dispatch hides browse/path pickers and

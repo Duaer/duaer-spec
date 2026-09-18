@@ -61,6 +61,7 @@ the table for their app.
 | E2E-044 | Duaer-spec FED「项目」: header Projects button; drawer create/select project; chats listed under active project; restore loads job | `npm test` + `npm run test:live` + manual |
 | E2E-079 | Project-first: chat/Send locked until active project; `/api/projects` + activate; confirm stamps projectPath; parent folder UI in project drawer | `npm test` + `npm run test:live` |
 | E2E-080 | Project create requires title + background description; list shows both | `npm test` + `npm run test:live` |
+| E2E-081 | Project chat persists under `~/.duaer/live/project-chats/`; refresh restores messages | `npm test` + `npm run test:live` |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
@@ -171,3 +172,4 @@ the table for their app.
 | E2E-078 | `086-claude-auto-perms` | Claude bypassPermissions on dispatch |
 | E2E-079 | `090-project-first` | project-first desk; chats under project |
 | E2E-080 | `091-project-meta` | project title + background description |
+| E2E-081 | `095-project-chat-persist` | persist project desk chat |
