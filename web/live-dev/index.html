@@ -29,6 +29,7 @@
           </div>
           <p class="top-beginner" data-i18n="header.beginner">小白也能做FED</p>
           <div class="top-actions">
+            <p id="projectBadge" class="project-badge" data-i18n="project.noneBadge">未选项目</p>
             <button type="button" class="history-btn" id="historyToggle" data-i18n="project.toggle">
               项目
             </button>
@@ -89,8 +90,11 @@
               data-i18n-placeholder="chat.placeholder"
               placeholder="想做什么…"
               autocomplete="off"
+              disabled
             ></textarea>
-            <button type="submit" class="btn primary" id="send" data-i18n="chat.send">发送</button>
+            <button type="submit" class="btn primary" id="send" data-i18n="chat.send" disabled>
+              发送
+            </button>
           </form>
         </section>
 
@@ -296,6 +300,6 @@
       </div>
     </aside>
 
-    <script type="module" src="/app.js"></script>
+    <script type="module" src="/app.js?v=project-gate-1"></script>
   </body>
 </html>

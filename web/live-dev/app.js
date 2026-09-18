@@ -186,6 +186,7 @@ const el = {
   updateNotice: document.getElementById("updateNotice"),
   langSelect: document.getElementById("langSelect"),
   historyToggle: document.getElementById("historyToggle"),
+  projectBadge: document.getElementById("projectBadge"),
   historyPanel: document.getElementById("historyPanel"),
   historyBackdrop: document.getElementById("historyBackdrop"),
   historyClose: document.getElementById("historyClose"),
@@ -327,6 +328,22 @@ function syncComposerEnabled() {
   if (el.input) el.input.disabled = !state.ready || !state.projectPath;
   syncChatPlaceholder();
   syncProjectGateHint();
+  syncProjectBadge();
+}
+
+function syncProjectBadge() {
+  if (!el.projectBadge) return;
+  if (state.projectPath) {
+    el.projectBadge.textContent = t("project.activeBadge", {
+      name: state.projectName || state.projectPath,
+    });
+    el.projectBadge.classList.add("is-active");
+    el.projectBadge.classList.remove("is-empty");
+  } else {
+    el.projectBadge.textContent = t("project.noneBadge");
+    el.projectBadge.classList.add("is-empty");
+    el.projectBadge.classList.remove("is-active");
+  }
 }
 
 function syncProjectGateHint() {
@@ -945,6 +962,12 @@ async function readChatStream(res, onEvent) {
 }
 
 async function sendChat(userText) {
+  if (!state.projectPath) {
+    explainChatBlocked();
+    syncComposerEnabled();
+    setHistoryOpen(true);
+    return;
+  }
   const bag = state.mode === "revise" ? state.reviseMessages : state.messages;
   bag.push({ role: "user", content: userText });
   addBubble("user", userText);
@@ -969,6 +992,10 @@ async function sendChat(userText) {
     const ctype = res.headers.get("content-type") || "";
     if (!res.ok && !ctype.includes("text/event-stream")) {
       const data = await res.json().catch(() => ({}));
+      if (data.code === "NEED_PROJECT") {
+        setActiveProject(null);
+        setHistoryOpen(true);
+      }
       throw new Error(data.error || t("err.chat"));
     }
 
@@ -1120,6 +1147,7 @@ function showDesk(cfg) {
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
+  // Always resolve project from server; never leave composer open without one.
   if (cfg.activeProjectPath) {
     setActiveProject(cfg.activeProjectPath);
   } else {
@@ -1147,6 +1175,31 @@ function showDesk(cfg) {
   syncComposerEnabled();
   if (!state.projectPath) {
     setHistoryOpen(true);
+  }
+  // Refresh title/description from project list when we only have a path
+  void hydrateActiveProjectMeta();
+}
+
+async function hydrateActiveProjectMeta() {
+  if (!state.projectPath) return;
+  try {
+    const res = await fetch("/api/projects");
+    const data = await res.json();
+    if (!res.ok) return;
+    state.projects = data.projects || [];
+    const active = normalizePathKey(state.projectPath);
+    const row = state.projects.find(
+      (p) => normalizePathKey(p.path) === active,
+    );
+    if (row) {
+      setActiveProject(row.path, row.title || row.name, row.description);
+    } else if (!data.activeProjectPath) {
+      // Server dropped active project — lock chat
+      setActiveProject(null);
+      setHistoryOpen(true);
+    }
+  } catch {
+    /* ignore */
   }
 }
 

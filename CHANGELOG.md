@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Harden project-before-chat gate
+
+- Composer starts disabled; `sendChat` refuses without a current project
+- Header badge shows「未选项目」or the active project name
+
 ### Project name + background
 
 - Creating a project requires **项目名称** and a short **背景描述**

@@ -250,10 +250,13 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="projectActivate"/);
   assert.match(html, /id="projectTitle"/);
   assert.match(html, /id="projectDescription"/);
+  assert.match(html, /id="projectBadge"|project\.noneBadge/);
   assert.match(js, /bot\.needProject|state\.projectPath/);
   assert.match(js, /\/api\/projects/);
+  assert.match(js, /if \(!state\.projectPath\)/);
   assert.match(liveBin, /activeProjectPath|\/api\/projects\/activate/);
   assert.match(liveBin, /NEED_TITLE|NEED_DESCRIPTION/);
+  assert.match(liveBin, /NEED_PROJECT/);
 
   const mjsRes = await fetch(`${live.base}/structured-html.mjs`);
   assert.equal(mjsRes.status, 200);

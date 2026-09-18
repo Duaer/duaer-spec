@@ -229,6 +229,29 @@ body {
   cursor: pointer;
 }
 
+.project-badge {
+  margin: 0;
+  max-width: 14rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid var(--line);
+  background: var(--plate-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-badge.is-active {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--lock) 50%, var(--line));
+}
+
+.project-badge.is-empty {
+  color: var(--muted);
+}
+
 .history-btn {
   min-width: auto;
   text-transform: uppercase;
