@@ -4,6 +4,18 @@
 
 ## 0.18.0 — 2026-09-18
 
+### Architecture node passport in FED embed
+
+- Desk architecture iframe shows Archify `.focus-chip` on node click
+- 100px upper-left gutter offset without clipping; passport expands fully
+  (no inner scroll); iframe grows with the chip
+
+### Revise dialogue reliability
+
+- 「再改一版」posts the user message and kicks off on the first click
+- Safe chat-done SSE / persist omit deep IR (no Maximum call stack wipe)
+- Keep streamed model reply; never paint call-stack error copy
+
 ### Result bar: horizontal buttons + follow latest version
 
 - Fix confirm `width:100%` squeezing action buttons into vertical glyphs
