@@ -550,13 +550,14 @@ html[data-embed="true"] .diagram-container svg [data-node-id] {
   cursor: pointer;
 }
 /* Archify embed mode hides the node passport; restore it for the desk.
-   Desk ask: shift 100px left and 100px up from the default inset. */
+   Keep upper-left placement in-view (top 100px): prior −100px inset
+   clipped under the iframe edge. Raise z-index above diagram paint. */
 html[data-embed="true"] .focus-chip {
   display: block !important;
   position: absolute !important;
-  left: calc(0.75rem - 100px) !important;
-  top: calc(0.75rem - 100px) !important;
-  z-index: 40 !important;
+  left: 0.75rem !important;
+  top: 100px !important;
+  z-index: 10000 !important;
   width: min(22rem, calc(100% - 1.5rem)) !important;
   max-width: calc(100% - 1.5rem) !important;
   pointer-events: auto !important;
