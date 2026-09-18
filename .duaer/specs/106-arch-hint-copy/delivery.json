@@ -1,0 +1,5 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T03:40:00.000Z",
+  "verification": { "commands": ["rg arch.hintDesigning web/live-dev/i18n.js"], "result": "copy updated" }
+}
