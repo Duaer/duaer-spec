@@ -116,8 +116,14 @@ test("ensureWorkerClisFresh upgrades installed CLIs when due and stamps cache", 
 test("live sources wire git ensure + 10d CLI refresh", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /ensureGitInstalled/);
-  assert.match(live, /ensureWorkerClisFresh|maybeRefreshWorkerClis/);
+  assert.match(live, /scheduleWorkerCliRefresh/);
   assert.match(live, /claudeCliVersion/);
   assert.match(live, /Worker CLI 10d check/);
   assert.match(live, /from "\.\/live-tooling\.mjs"/);
+
+  const tooling = fs.readFileSync(
+    path.join(ROOT, "bin/live-tooling.mjs"),
+    "utf8",
+  );
+  assert.match(tooling, /--refresh-clis/);
 });

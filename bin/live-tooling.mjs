@@ -10,7 +10,8 @@ import {
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const CLI_UPGRADE_TTL_MS = 10 * 24 * 60 * 60 * 1000;
 
@@ -286,3 +287,42 @@ export function defaultRunChild(label, command, args, options = {}) {
   if (r.error) throw r.error;
   return r;
 }
+
+function whichFromPath(cmd) {
+  const name = String(cmd || "").trim();
+  if (!/^[A-Za-z0-9._+-]+$/.test(name)) return null;
+  try {
+    const r = spawnSync("bash", ["-lc", `command -v ${name}`], {
+      encoding: "utf8",
+      timeout: 5000,
+      env: process.env,
+    });
+    if (r.status !== 0) return null;
+    const p = String(r.stdout || "")
+      .trim()
+      .split("\n")[0];
+    return p || null;
+  } catch {
+    return null;
+  }
+}
+
+/** CLI entry: `node bin/live-tooling.mjs --refresh-clis [--force]` */
+const isMain =
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === resolve(process.argv[1]);
+
+if (isMain && process.argv.includes("--refresh-clis")) {
+  const force = process.argv.includes("--force");
+  try {
+    const r = ensureWorkerClisFresh(whichFromPath, defaultRunChild, { force });
+    process.stdout.write(`${JSON.stringify(r)}\n`);
+    process.exit(0);
+  } catch (err) {
+    process.stderr.write(
+      `${err instanceof Error ? err.message : String(err)}\n`,
+    );
+    process.exit(1);
+  }
+}
+

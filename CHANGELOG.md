@@ -7,7 +7,8 @@
 - Before product-repo `git init` / probe: verify `git` is installed; best-effort
   auto-install (`brew` / non-interactive `apt`/`dnf`/`yum`) then continue
 - Worker CLIs (Cursor Agent / Claude Code / DeepSeek): version on `/api/agents`;
-  every 10 days auto-check and best-effort upgrade (live start + before launch);
+  every 10 days auto-check and best-effort upgrade (live start + before launch)
+  via a **detached** `live-tooling --refresh-clis` child (does not block the desk);
   stamp `~/.duaer/cli-tools-check.json`; opt-out `DUAER_NO_CLI_UPGRADE=1`
 
 ### Beginner slogan

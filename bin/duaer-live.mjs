@@ -30,7 +30,6 @@ import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
-  ensureWorkerClisFresh,
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
   DEEPSEEK_INSTALL_CMD as TOOLING_DEEPSEEK_INSTALL,
 } from "./live-tooling.mjs";
@@ -1743,17 +1742,22 @@ function claudeCliVersion() {
     .slice(0, 120);
 }
 
-function maybeRefreshWorkerClis({ force = false } = {}) {
+function scheduleWorkerCliRefresh({ force = false } = {}) {
+  if (process.env.DUAER_NO_CLI_UPGRADE === "1") return;
   try {
-    return ensureWorkerClisFresh(whichCmd, runChildSync, { force });
+    const args = [path.join(__dirname, "live-tooling.mjs"), "--refresh-clis"];
+    if (force) args.push("--force");
+    const child = spawn(process.execPath, args, {
+      detached: true,
+      stdio: "ignore",
+      env: process.env,
+    });
+    child.unref();
   } catch (err) {
-    return {
-      skipped: true,
-      due: false,
-      checkedAt: new Date().toISOString(),
-      results: [],
-      reason: err instanceof Error ? err.message : String(err),
-    };
+    console.warn(
+      "Worker CLI schedule failed:",
+      err instanceof Error ? err.message : err,
+    );
   }
 }
 
@@ -2610,23 +2614,8 @@ function launchAgent({
   reviseLaunch = false,
 }) {
   const id = String(agentId || "none").trim() || "none";
-  // 10-day worker CLI check/upgrade before launching a digital employee
-  try {
-    const refresh = maybeRefreshWorkerClis({ force: false });
-    if (refresh.due && !refresh.skipped && Array.isArray(refresh.results)) {
-      const summary = refresh.results
-        .map((r) => `${r.id}:${r.ok ? "ok" : "fail"}`)
-        .join(", ");
-      if (summary) {
-        console.log(`Worker CLI 10d check: ${summary}`);
-      }
-    }
-  } catch (err) {
-    console.warn(
-      "Worker CLI check failed:",
-      err instanceof Error ? err.message : err,
-    );
-  }
+  // Kick 10-day worker CLI check/upgrade without blocking dispatch
+  scheduleWorkerCliRefresh({ force: false });
   const detected = detectAgents();
   const meta = detected.agents.find((a) => a.id === id);
   if (!meta?.available) {
@@ -4662,22 +4651,8 @@ function serve(port) {
     void refreshUpdateInfo({ force: false });
     // Background: every 10 days check/upgrade Cursor Agent / Claude / DeepSeek CLIs
     setTimeout(() => {
-      try {
-        const refresh = maybeRefreshWorkerClis({ force: false });
-        if (refresh.due && !refresh.skipped) {
-          const summary = (refresh.results || [])
-            .map((r) => `${r.id}:${r.ok ? "ok" : "fail"}`)
-            .join(", ");
-          console.log(
-            `Worker CLI 10d check${summary ? `: ${summary}` : " (no CLIs)"}`,
-          );
-        }
-      } catch (err) {
-        console.warn(
-          "Worker CLI check failed:",
-          err instanceof Error ? err.message : err,
-        );
-      }
+      console.log("Worker CLI 10d check: scheduled (background)");
+      scheduleWorkerCliRefresh({ force: false });
     }, 2500);
   });
 }
