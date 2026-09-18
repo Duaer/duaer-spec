@@ -1,5 +1,5 @@
 {
-  "featureDir": ".duaer/specs/100-architecture-archify",
-  "slug": "100-architecture-archify",
-  "branch": "feat/architecture-archify"
+  "featureDir": ".duaer/specs/101-archify-ir-sanitize",
+  "slug": "101-archify-ir-sanitize",
+  "branch": "fix/archify-ir-sanitize"
 }

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: Archify IR sanitize before render
+
+- Strip chat/Brief extras (`goal`, `reply`, `type`, …) so Archify schema accepts IR
+
 ### Architecture design with Archify render
 
 - After Confirm, desk runs an architecture dialogue for every job

@@ -472,7 +472,8 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需�
 {"ready":false,"options":["…"],"title":"可选标题"}
    - 架构已可确认时必须 ready=true，并带完整 Archify IR：
 {"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"…","quality_profile":"standard"},"components":[{"id":"users","type":"external","label":"Users","sublabel":"Browser"}],"boundaries":[],"connections":[{"id":"c1","from":"users","to":"app","label":"HTTPS","variant":"emphasis"}],"cards":[{"dot":"cyan","title":"Overview","items":["…"]}],"options":[]}
-7. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。`;
+7. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
+8. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
 
 const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
 

@@ -10,8 +10,12 @@ import {
   extractArchitectureIr,
   layoutArchitectureIr,
   renderArchitectureHtml,
+  sanitizeArchitectureIr,
 } from "../bin/live-archify.mjs";
-import { extractArchitectureIr as extractBrowser } from "../web/live-dev/architecture-ir.mjs";
+import {
+  extractArchitectureIr as extractBrowser,
+  sanitizeArchitectureIr as sanitizeBrowser,
+} from "../web/live-dev/architecture-ir.mjs";
 
 test("layoutArchitectureIr assigns pos and viewBox", () => {
   const ir = layoutArchitectureIr({
@@ -29,12 +33,69 @@ test("layoutArchitectureIr assigns pos and viewBox", () => {
   assert.ok(ir.meta.viewBox[0] >= 320);
 });
 
+test("sanitizeArchitectureIr drops extras in server and browser", () => {
+  const dirty = {
+    ready: true,
+    goal: "x",
+    reply: "y",
+    diagram_type: "architecture",
+    components: [{ id: "a", type: "external", label: "A", foo: 1 }],
+    connections: [],
+  };
+  const a = sanitizeArchitectureIr(dirty);
+  const b = sanitizeBrowser(dirty);
+  assert.equal(a.goal, undefined);
+  assert.equal(b.reply, undefined);
+  assert.equal(a.components[0].foo, undefined);
+  assert.equal(b.components[0].id, "a");
+});
+
 test("extractArchitectureIr finds diagram JSON", () => {
   const text = `ok\n<<<JSON>>>\n{"ready":true,"diagram_type":"architecture","schema_version":1,"meta":{"title":"X"},"components":[{"id":"u","type":"external","label":"U"}],"connections":[]}`;
   const ir = extractArchitectureIr(text);
   assert.equal(ir.diagram_type, "architecture");
   assert.equal(ir.components[0].id, "u");
   assert.equal(extractBrowser(text).components[0].id, "u");
+  assert.equal(ir.ready, undefined);
+});
+
+test("sanitize strips Brief/chat extras before Archify", () => {
+  const contaminated = {
+    type: "architecture",
+    reply: "here is the diagram",
+    goal: "build app",
+    outOfScope: "mobile",
+    acceptance: "works",
+    assumptions: "none",
+    ready: true,
+    diagram_type: "architecture",
+    schema_version: 1,
+    meta: { title: "Desk", quality_profile: "standard", extra: "nope" },
+    components: [
+      { id: "users", type: "external", label: "Users", note: "drop" },
+      { id: "app", type: "frontend", label: "App" },
+    ],
+    connections: [
+      {
+        id: "c1",
+        from: "users",
+        to: "app",
+        label: "HTTPS",
+        variant: "emphasis",
+        junk: true,
+      },
+    ],
+    cards: [{ dot: "cyan", title: "Edge", items: ["App"], more: 1 }],
+  };
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-dirty-"));
+  const out = renderArchitectureHtml(root, contaminated);
+  assert.ok(fs.existsSync(out.htmlPath));
+  assert.equal(out.ir.goal, undefined);
+  assert.equal(out.ir.reply, undefined);
+  assert.equal(out.ir.ready, undefined);
+  assert.equal(out.ir.meta.extra, undefined);
+  assert.equal(out.ir.components[0].note, undefined);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("renderArchitectureHtml produces HTML via Archify", () => {

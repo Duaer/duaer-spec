@@ -1,33 +1,167 @@
 /**
  * Extract Archify architecture JSON from assistant reply text (browser).
+ * Must strip chat/Brief extras — Archify rejects additionalProperties.
  */
+
+const COMPONENT_TYPES = new Set([
+  "frontend",
+  "backend",
+  "database",
+  "cloud",
+  "security",
+  "messagebus",
+  "external",
+]);
+const CONNECTION_VARIANTS = new Set([
+  "default",
+  "emphasis",
+  "security",
+  "dashed",
+]);
+const BOUNDARY_KINDS = new Set(["region", "security-group"]);
+const CARD_DOTS = new Set([
+  "cyan",
+  "emerald",
+  "violet",
+  "amber",
+  "rose",
+  "orange",
+  "slate",
+]);
+
+function pickKeys(obj, allowed) {
+  if (!obj || typeof obj !== "object" || Array.isArray(obj)) return {};
+  const out = {};
+  for (const key of allowed) {
+    if (Object.prototype.hasOwnProperty.call(obj, key)) out[key] = obj[key];
+  }
+  return out;
+}
+
+export function sanitizeArchitectureIr(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  if (!Array.isArray(raw.components)) return null;
+
+  const metaIn = raw.meta && typeof raw.meta === "object" ? raw.meta : {};
+  const meta = pickKeys(metaIn, [
+    "title",
+    "locale",
+    "subtitle",
+    "output",
+    "animation",
+    "visual_preset",
+    "quality_profile",
+    "engineering_profile",
+    "repository",
+    "views",
+    "legend",
+    "viewBox",
+  ]);
+  if (!meta.title) {
+    meta.title =
+      (typeof raw.title === "string" && raw.title.trim()) || "Architecture";
+  }
+  if (!meta.quality_profile) meta.quality_profile = "standard";
+
+  const components = raw.components
+    .filter((c) => c && typeof c === "object")
+    .map((c) =>
+      pickKeys(c, [
+        "id",
+        "type",
+        "label",
+        "sublabel",
+        "tag",
+        "brand",
+        "sources",
+        "row",
+        "col",
+        "pos",
+        "size",
+      ]),
+    )
+    .filter((c) => c.id && c.type && c.label && COMPONENT_TYPES.has(c.type));
+
+  const connections = (Array.isArray(raw.connections) ? raw.connections : [])
+    .filter((e) => e && typeof e === "object")
+    .map((e) => {
+      const row = pickKeys(e, [
+        "id",
+        "from",
+        "to",
+        "label",
+        "variant",
+        "fromSide",
+        "toSide",
+        "route",
+        "via",
+        "labelAt",
+        "labelDx",
+        "labelDy",
+        "labelSegment",
+        "width",
+      ]);
+      if (row.variant && !CONNECTION_VARIANTS.has(row.variant)) {
+        delete row.variant;
+      }
+      return row;
+    })
+    .filter((e) => e.from && e.to);
+
+  const boundaries = (Array.isArray(raw.boundaries) ? raw.boundaries : [])
+    .filter((b) => b && typeof b === "object")
+    .map((b) => pickKeys(b, ["kind", "label", "wraps", "pad"]))
+    .filter(
+      (b) =>
+        BOUNDARY_KINDS.has(b.kind) &&
+        b.label &&
+        Array.isArray(b.wraps) &&
+        b.wraps.length,
+    );
+
+  const cards = (Array.isArray(raw.cards) ? raw.cards : [])
+    .filter((c) => c && typeof c === "object")
+    .map((c) => {
+      const row = pickKeys(c, ["dot", "title", "items"]);
+      if (!CARD_DOTS.has(row.dot)) row.dot = "cyan";
+      if (!Array.isArray(row.items)) row.items = [];
+      return row;
+    })
+    .filter((c) => c.title);
+
+  return {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta,
+    components,
+    connections,
+    boundaries,
+    cards,
+  };
+}
 
 export function extractArchitectureIr(text) {
   const s = String(text || "");
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidates = [];
+  const marker = s.lastIndexOf("<<<JSON>>>");
+  if (marker >= 0) {
+    const after = s.slice(marker + "<<<JSON>>>".length).trim();
+    const m = after.match(/\{[\s\S]*\}/);
+    if (m) candidates.push(m[0]);
+  }
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fence) candidates.push(fence[1]);
   const brace = s.match(/\{[\s\S]*"diagram_type"\s*:\s*"architecture"[\s\S]*\}/);
   if (brace) candidates.push(brace[0]);
-  // Also accept ready payload that embeds IR fields at top level
-  const ready = s.match(/\{[\s\S]*"ready"\s*:\s*true[\s\S]*"components"\s*:\s*\[[\s\S]*\}/);
+  const ready = s.match(
+    /\{[\s\S]*"ready"\s*:\s*true[\s\S]*"components"\s*:\s*\[[\s\S]*\}/,
+  );
   if (ready) candidates.push(ready[0]);
   for (const chunk of candidates) {
     try {
       const obj = JSON.parse(chunk.trim());
-      if (!obj || typeof obj !== "object") continue;
-      if (obj.diagram_type === "architecture") return obj;
-      if (obj.ready && Array.isArray(obj.components)) {
-        return {
-          schema_version: obj.schema_version || 1,
-          diagram_type: "architecture",
-          meta: obj.meta || { title: obj.title || "Architecture", quality_profile: "standard" },
-          components: obj.components,
-          boundaries: obj.boundaries || [],
-          connections: obj.connections || [],
-          cards: obj.cards || [],
-        };
-      }
+      const ir = sanitizeArchitectureIr(obj);
+      if (ir?.components?.length) return ir;
     } catch {
       /* try next */
     }
