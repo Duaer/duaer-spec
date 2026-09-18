@@ -53,9 +53,14 @@ function clipReviseCardEntry(entry) {
 
 function clipArchitectureSnapshot(arch) {
   if (!arch || typeof arch !== "object" || !arch.url) return null;
+  const vb = Array.isArray(arch.viewBox) ? arch.viewBox : null;
   return {
     url: String(arch.url).slice(0, 300),
     ir: null,
+    viewBox:
+      vb && Number(vb[0]) > 0 && Number(vb[1]) > 0
+        ? [Number(vb[0]), Number(vb[1])]
+        : null,
     summary: String(arch.summary || "").slice(0, 2000),
     changed: Boolean(arch.changed),
     fingerprint: String(arch.fingerprint || "").slice(0, 200),
@@ -166,15 +171,23 @@ function clipArchitecture(arch) {
     return {
       status: "idle",
       ir: null,
+      viewBox: null,
+      fingerprint: "",
       url: null,
       summary: "",
       confirmed: false,
     };
   }
+  const vb = Array.isArray(arch.viewBox) ? arch.viewBox : null;
   return {
     status: String(arch.status || "idle").slice(0, 20),
     // Never persist deep IR graphs — they blow JSON.stringify call stack.
     ir: null,
+    viewBox:
+      vb && Number(vb[0]) > 0 && Number(vb[1]) > 0
+        ? [Number(vb[0]), Number(vb[1])]
+        : null,
+    fingerprint: String(arch.fingerprint || "").slice(0, 200),
     url: arch.url ? String(arch.url).slice(0, 300) : null,
     summary: String(arch.summary || "").slice(0, 2000),
     confirmed: Boolean(arch.confirmed),
@@ -183,8 +196,14 @@ function clipArchitecture(arch) {
 
 function clipArchitecturePrevious(prev) {
   if (!prev || typeof prev !== "object" || !prev.url) return null;
+  const vb = Array.isArray(prev.viewBox) ? prev.viewBox : null;
   return {
     ir: null,
+    viewBox:
+      vb && Number(vb[0]) > 0 && Number(vb[1]) > 0
+        ? [Number(vb[0]), Number(vb[1])]
+        : null,
+    fingerprint: String(prev.fingerprint || "").slice(0, 200),
     url: String(prev.url).slice(0, 300),
     summary: String(prev.summary || "").slice(0, 2000),
   };

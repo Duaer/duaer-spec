@@ -97,6 +97,7 @@ the table for their app.
 | E2E-115 | Architecture passport expands fully with no inner scroll; iframe grows | `npm test` + manual |
 | E2E-116 | README EN/ZH show Duaer-spec FED brand SVG from desk header | manual |
 | E2E-117 | 再改一版 kickoff shows real error; no right-panel focus race during stream | `npm run test:live` + manual |
+| E2E-118 | Desk drops deep architecture IR after render (viewBox/fingerprint only); dispatch loads IR from disk; revise SSE omits jsonBlock | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -245,3 +246,4 @@ the table for their app.
 | E2E-115 | `147-arch-expand-noscroll` | passport expand, no inner scroll |
 | E2E-116 | `149-docs-brand-logo` | README brand mark SVG |
 | E2E-117 | `150-revise-kickoff-err` | revise kickoff real error + no focus race |
+| E2E-118 | `151-revise-ir-stack` | drop deep IR after render; resolve from disk |

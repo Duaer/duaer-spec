@@ -32,7 +32,6 @@ import {
   normalizeDeployTarget,
 } from "./deploy-targets.mjs";
 import {
-  extractArchitectureIr,
   injectDuaerEmbedPatches,
   renderArchitectureHtml,
   architectureStoreDir,
@@ -779,7 +778,7 @@ function parseChatResult(content) {
 }
 
 /** Flat SSE done payload — never embed deep IR (stringify stack overflow). */
-function chatDoneSsePayload(parsed) {
+function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
   return {
     type: "done",
     reply: String(parsed?.reply || ""),
@@ -794,7 +793,7 @@ function chatDoneSsePayload(parsed) {
     diagram_type:
       parsed?.diagram_type === "architecture" ? "architecture" : undefined,
     jsonBlock:
-      typeof parsed?.jsonBlock === "string"
+      includeJsonBlock && typeof parsed?.jsonBlock === "string"
         ? parsed.jsonBlock.slice(0, 200_000)
         : undefined,
   };
@@ -835,7 +834,13 @@ function writeSse(res, payload) {
   }
 }
 
-async function streamChatResponse(cfg, messages, res, systemPrompt = SYSTEM_PROMPT) {
+async function streamChatResponse(
+  cfg,
+  messages,
+  res,
+  systemPrompt = SYSTEM_PROMPT,
+  { includeJsonBlock = true } = {},
+) {
   res.writeHead(200, {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-cache, no-transform",
@@ -872,7 +877,7 @@ async function streamChatResponse(cfg, messages, res, systemPrompt = SYSTEM_PROM
         text: parsed.reply.slice(emitted),
       });
     }
-    writeSse(res, chatDoneSsePayload(parsed));
+    writeSse(res, chatDoneSsePayload(parsed, { includeJsonBlock }));
   } catch (err) {
     writeSse(res, {
       type: "error",
@@ -3043,6 +3048,27 @@ function needsGithubDeploy(text) {
   );
 }
 
+/** Load architecture IR from disk when the client no longer holds it in memory. */
+function resolveArchitectureIr(irRaw, urlRaw) {
+  if (irRaw && typeof irRaw === "object" && Array.isArray(irRaw.components)) {
+    return irRaw;
+  }
+  const url = String(urlRaw || "");
+  const m = url.match(/\/api\/architecture\/([a-f0-9]+)\.html/i);
+  if (!m) return null;
+  const jsonPath = path.join(
+    architectureStoreDir(liveRoot()),
+    `${m[1]}.json`,
+  );
+  if (!fs.existsSync(jsonPath)) return null;
+  try {
+    const parsed = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function dispatchToRepo({
   jobId,
   repoPath,
@@ -3147,10 +3173,11 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
   fs.writeFileSync(path.join(featureDir, "tasks.md"), productTasks, "utf8");
   const archSummary = String(architectureSummaryRaw || "").trim();
   const archUrl = String(architectureUrlRaw || "").trim();
-  if (architectureIrRaw && typeof architectureIrRaw === "object") {
+  const architectureIr = resolveArchitectureIr(architectureIrRaw, archUrl);
+  if (architectureIr && typeof architectureIr === "object") {
     fs.writeFileSync(
       path.join(featureDir, "architecture.json"),
-      `${JSON.stringify(architectureIrRaw, null, 2)}\n`,
+      `${JSON.stringify(architectureIr, null, 2)}\n`,
       "utf8",
     );
   }
@@ -4622,16 +4649,22 @@ async function handleApi(req, res) {
       });
       const wantStream = body.stream !== false;
       if (wantStream) {
-        await streamChatResponse(cfg, messages, res, systemPrompt);
+        await streamChatResponse(cfg, messages, res, systemPrompt, {
+          // Revise done SSE must stay flat — jsonBlock can carry huge IR text.
+          includeJsonBlock: !reviseMode,
+        });
         return;
       }
       const result = await callChatModel(cfg, messages, systemPrompt);
       const parsed = parseChatResult(result);
       if (architectureMode) {
-        const ir =
-          extractArchitectureIr(result) ||
-          (parsed?.diagram_type === "architecture" ? parsed : null);
-        send(res, 200, { ...parsed, architectureIr: ir || undefined });
+        // Client extracts IR from jsonBlock string — never nest the object.
+        send(res, 200, parsed);
+        return;
+      }
+      if (reviseMode && parsed.jsonBlock) {
+        const { jsonBlock: _drop, ...flat } = parsed;
+        send(res, 200, flat);
         return;
       }
       send(res, 200, parsed);
@@ -4949,12 +4982,14 @@ async function handleApi(req, res) {
       const body = await readJson(req);
       const ir = body.ir || body.architecture || body;
       const rendered = renderArchitectureHtml(liveRoot(), ir);
+      const vb = rendered.ir?.meta?.viewBox;
       send(res, 200, {
         ok: true,
         key: rendered.key,
         url: rendered.urlPath,
         summary: rendered.summary,
-        ir: rendered.ir,
+        // Never return the deep IR graph — client keeps viewBox only.
+        viewBox: Array.isArray(vb) ? vb : null,
       });
     } catch (err) {
       send(res, 400, {

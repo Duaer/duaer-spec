@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T13:40:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3-live-smoke"],
+    "commands": ["npm test", "npm run test:live"]
+  },
+  "notes": "Drop deep architecture IR from desk memory after render; dispatch resolves from architecture/<key>.json; revise SSE omits jsonBlock."
+}

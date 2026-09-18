@@ -45,7 +45,12 @@ const state = {
    */
   architecture: {
     status: "idle",
+    /** Always null after render — deep IR blows JSON.stringify call stack. */
     ir: null,
+    /** [w, h] from IR meta.viewBox; used for iframe height without keeping IR. */
+    viewBox: null,
+    /** Structural fingerprint (comps/links) for change detection. */
+    fingerprint: "",
     url: null,
     summary: "",
     confirmed: false,
@@ -417,21 +422,24 @@ function setBusy(on) {
   state.busy = Boolean(on);
   state.busySince = state.busy ? Date.now() : 0;
   syncComposerEnabled();
-  // Keep confirm / arch buttons in sync with busy — avoid full panel rebuild
-  // (iframe reloads / focus races) on every busy flip during chat streams.
+  // Only flip disabled flags — never rebuild accordion / architecture panel
+  // here (that raced revise kickoff and could re-enter heavy IR work).
   try {
-    syncConfirmEnabled();
-  } catch {
-    /* ignore */
-  }
-  if (el.architectureConfirm) {
-    try {
+    if (el.confirm) el.confirm.disabled = state.busy || el.confirm.disabled;
+    if (el.doReviseDispatch && state.mode === "revise") {
+      el.doReviseDispatch.disabled =
+        state.busy ||
+        state.reviseDispatching ||
+        state.revisePlanConfirmed ||
+        el.doReviseDispatch.disabled;
+    }
+    if (el.architectureConfirm) {
       const a = state.architecture;
       const canConfirm = a.status === "preview" && a.url && !a.confirmed;
       el.architectureConfirm.disabled = !canConfirm || state.busy;
-    } catch {
-      /* ignore */
     }
+  } catch {
+    /* ignore */
   }
 }
 
@@ -664,28 +672,23 @@ function architectureSnapshotFromState({ changed = false } = {}) {
   if (!state.architecture?.url) return null;
   return {
     url: state.architecture.url,
-    ir: state.architecture.ir || null,
+    ir: null,
+    viewBox: state.architecture.viewBox || null,
     summary: state.architecture.summary || "",
     changed: Boolean(changed),
-    fingerprint: architectureFingerprint(state.architecture.ir) || "",
+    fingerprint: architectureFpOf(state.architecture),
   };
 }
 
 function previousArchitectureFingerprint(beforeRevision) {
   const rev = Number(beforeRevision) || 0;
   if (rev <= 1) {
-    return (
-      state.initialArchitecture?.fingerprint ||
-      architectureFingerprint(state.initialArchitecture?.ir) ||
-      ""
-    );
+    return architectureFpOf(state.initialArchitecture);
   }
   const prev = getStoredReviseCard(rev - 1);
   return (
-    prev?.architecture?.fingerprint ||
-    architectureFingerprint(prev?.architecture?.ir) ||
-    state.initialArchitecture?.fingerprint ||
-    ""
+    architectureFpOf(prev?.architecture) ||
+    architectureFpOf(state.initialArchitecture)
   );
 }
 
@@ -715,7 +718,7 @@ function renderReviseArchBlock(arch, { baseline = false } = {}) {
   const summary = arch.summary
     ? `<p class="revise-arch-summary">${escapeReviseText(arch.summary)}</p>`
     : "";
-  const h = architectureFrameHeightPx(arch.ir, null) || 280;
+  const h = architectureFrameHeightPx(arch.viewBox || arch, null) || 280;
   const label = baseline ? t("revise.archBaseline") : t("revise.archChanged");
   return `<div class="revise-arch-block">
     <p class="revise-arch-label">${escapeHtml(label)}</p>
@@ -1509,6 +1512,8 @@ async function persistProjectChat() {
     const archLite = {
       status: state.architecture.status,
       ir: null,
+      viewBox: state.architecture.viewBox || null,
+      fingerprint: String(state.architecture.fingerprint || ""),
       url: state.architecture.url,
       summary: state.architecture.summary,
       confirmed: state.architecture.confirmed,
@@ -1516,6 +1521,8 @@ async function persistProjectChat() {
     const prevLite = state.architecturePrevious
       ? {
           ir: null,
+          viewBox: state.architecturePrevious.viewBox || null,
+          fingerprint: String(state.architecturePrevious.fingerprint || ""),
           url: state.architecturePrevious.url,
           summary: state.architecturePrevious.summary || "",
         }
@@ -1524,6 +1531,7 @@ async function persistProjectChat() {
       ? {
           url: state.initialArchitecture.url,
           ir: null,
+          viewBox: state.initialArchitecture.viewBox || null,
           summary: state.initialArchitecture.summary || "",
           changed: Boolean(state.initialArchitecture.changed),
           fingerprint: String(state.initialArchitecture.fingerprint || ""),
@@ -1539,6 +1547,7 @@ async function persistProjectChat() {
         ? {
             url: e.architecture.url,
             ir: null,
+            viewBox: e.architecture.viewBox || null,
             summary: e.architecture.summary || "",
             changed: Boolean(e.architecture.changed),
             fingerprint: String(e.architecture.fingerprint || ""),
@@ -1817,7 +1826,14 @@ async function loadProjectChatIntoUi(projectPath) {
     state.revisePlanConfirmed = Boolean(data.revisePlanConfirmed);
     state.initialArchitecture =
       data.initialArchitecture && data.initialArchitecture.url
-        ? data.initialArchitecture
+        ? {
+            url: data.initialArchitecture.url,
+            ir: null,
+            viewBox: normalizeViewBox(data.initialArchitecture.viewBox),
+            summary: data.initialArchitecture.summary || "",
+            changed: Boolean(data.initialArchitecture.changed),
+            fingerprint: String(data.initialArchitecture.fingerprint || ""),
+          }
         : null;
     state.reviseExpanded =
       data.reviseExpanded && typeof data.reviseExpanded === "object"
@@ -1843,7 +1859,9 @@ async function loadProjectChatIntoUi(projectPath) {
     if (data.architecture && typeof data.architecture === "object") {
       state.architecture = {
         status: data.architecture.status || "idle",
-        ir: data.architecture.ir || null,
+        ir: null,
+        viewBox: normalizeViewBox(data.architecture.viewBox),
+        fingerprint: String(data.architecture.fingerprint || ""),
         url: data.architecture.url || null,
         summary: data.architecture.summary || "",
         confirmed: Boolean(data.architecture.confirmed),
@@ -1852,7 +1870,9 @@ async function loadProjectChatIntoUi(projectPath) {
     state.architecturePrevious =
       data.architecturePrevious && data.architecturePrevious.url
         ? {
-            ir: data.architecturePrevious.ir || null,
+            ir: null,
+            viewBox: normalizeViewBox(data.architecturePrevious.viewBox),
+            fingerprint: String(data.architecturePrevious.fingerprint || ""),
             url: data.architecturePrevious.url,
             summary: data.architecturePrevious.summary || "",
           }
@@ -2579,6 +2599,8 @@ function resetArchitecture({ stale = false } = {}) {
   state.architecture = {
     status: "idle",
     ir: null,
+    viewBox: null,
+    fingerprint: "",
     url: null,
     summary: "",
     confirmed: false,
@@ -2626,10 +2648,39 @@ function architectureFingerprint(ir) {
   }
 }
 
+/** Prefer stored fingerprint; fall back to hashing ir when still present. */
+function architectureFpOf(arch) {
+  if (!arch) return "";
+  const stored = String(arch.fingerprint || "");
+  if (stored) return stored;
+  return architectureFingerprint(arch.ir) || "";
+}
+
+function normalizeViewBox(raw) {
+  if (!Array.isArray(raw) || raw.length < 2) return null;
+  const w = Number(raw[0]);
+  const h = Number(raw[1]);
+  if (!(w > 0) || !(h > 0) || !Number.isFinite(w) || !Number.isFinite(h)) {
+    return null;
+  }
+  return [w, h];
+}
+
+function architectureViewBoxOf(archOrIr) {
+  if (!archOrIr) return null;
+  if (Array.isArray(archOrIr)) return normalizeViewBox(archOrIr);
+  return (
+    normalizeViewBox(archOrIr.viewBox) ||
+    normalizeViewBox(archOrIr?.meta?.viewBox)
+  );
+}
+
 function snapshotArchitectureAsPrevious() {
   if (!state.architecture?.url) return;
   state.architecturePrevious = {
-    ir: state.architecture.ir,
+    ir: null,
+    viewBox: state.architecture.viewBox || null,
+    fingerprint: architectureFpOf(state.architecture),
     url: state.architecture.url,
     summary: state.architecture.summary || "",
   };
@@ -2643,7 +2694,7 @@ function showArchitecturePreviousBlock() {
   if (
     cur?.confirmed &&
     cur.url &&
-    architectureFingerprint(cur.ir) === architectureFingerprint(prev.ir) &&
+    architectureFpOf(cur) === architectureFpOf(prev) &&
     cur.url === prev.url
   ) {
     return false;
@@ -2664,23 +2715,15 @@ function architectureEmbedUrl(url) {
 }
 
 /** Frame height from viewBox aspect × current width (not raw viewBox Y as px). */
-function architectureFrameHeightPx(ir, frameEl) {
-  const vb = ir?.meta?.viewBox;
+function architectureFrameHeightPx(viewBoxOrIr, frameEl) {
+  const vb = architectureViewBoxOf(viewBoxOrIr);
   const pad = 24;
-  if (
-    Array.isArray(vb) &&
-    Number(vb[0]) > 0 &&
-    Number.isFinite(Number(vb[1])) &&
-    Number(vb[1]) > 0
-  ) {
+  if (vb) {
     const w = Math.max(
       1,
       frameEl?.clientWidth || frameEl?.offsetWidth || 640,
     );
-    return Math.max(
-      240,
-      Math.ceil((w * Number(vb[1])) / Number(vb[0]) + pad),
-    );
+    return Math.max(240, Math.ceil((w * vb[1]) / vb[0] + pad));
   }
   return 480;
 }
@@ -2691,7 +2734,7 @@ function syncArchitectureFrameSize() {
   const frame = el.architectureFrame;
   const a = state.architecture;
   if (!frame || !a?.url) return;
-  const fromIr = architectureFrameHeightPx(a.ir, frame);
+  const fromIr = architectureFrameHeightPx(a.viewBox || a, frame);
   const fromEmbed = Number(frame.dataset.embedHeight || 0);
   frame.style.height = `${Math.max(fromIr, fromEmbed || 0)}px`;
 }
@@ -2708,11 +2751,11 @@ function onArchitectureEmbedMessage(ev) {
   );
   for (const frame of frames) {
     frame.dataset.embedHeight = String(Math.ceil(height));
-    const ir =
+    const meta =
       frame === el.architectureFrame
-        ? state.architecture?.ir
-        : state.architecturePrevious?.ir;
-    const fromIr = architectureFrameHeightPx(ir, frame);
+        ? state.architecture
+        : state.architecturePrevious;
+    const fromIr = architectureFrameHeightPx(meta?.viewBox || meta, frame);
     frame.style.height = `${Math.max(fromIr, Math.ceil(height))}px`;
   }
 }
@@ -2752,7 +2795,7 @@ function syncArchitecturePanel(kind) {
       el.architecturePreviousFrame.hidden = false;
       el.architecturePreviousFrame.src = architectureEmbedUrl(prev.url);
       el.architecturePreviousFrame.style.height = `${architectureFrameHeightPx(
-        prev.ir,
+        prev.viewBox || prev,
         el.architecturePreviousFrame,
       )}px`;
     }
@@ -3065,8 +3108,8 @@ async function kickoffArchitectureDialogue() {
 async function renderArchitectureFromIr(ir) {
   if (!ir) return false;
   const fp = architectureFingerprint(ir);
-  const prevFp = architectureFingerprint(state.architecturePrevious?.ir);
-  const curFp = architectureFingerprint(state.architecture.ir);
+  const prevFp = architectureFpOf(state.architecturePrevious);
+  const curFp = architectureFpOf(state.architecture);
   // Same structure as prior / current confirmed → keep confirmed, no re-gate.
   if (
     fp &&
@@ -3076,7 +3119,9 @@ async function renderArchitectureFromIr(ir) {
     if (fp === prevFp && state.architecturePrevious) {
       state.architecture = {
         status: "confirmed",
-        ir: state.architecturePrevious.ir,
+        ir: null,
+        viewBox: state.architecturePrevious.viewBox || null,
+        fingerprint: architectureFpOf(state.architecturePrevious) || fp,
         url: state.architecturePrevious.url,
         summary: state.architecturePrevious.summary || "",
         confirmed: true,
@@ -3085,6 +3130,7 @@ async function renderArchitectureFromIr(ir) {
     } else {
       state.architecture.status = "confirmed";
       state.architecture.confirmed = true;
+      if (!state.architecture.fingerprint) state.architecture.fingerprint = fp;
     }
     syncArchitecturePanel();
     schedulePersistProjectDesk();
@@ -3101,7 +3147,11 @@ async function renderArchitectureFromIr(ir) {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "render failed");
-    state.architecture.ir = data.ir || ir;
+    // Drop deep IR immediately — keep only viewBox + fingerprint for UI.
+    state.architecture.ir = null;
+    state.architecture.viewBox =
+      normalizeViewBox(data.viewBox) || architectureViewBoxOf(ir);
+    state.architecture.fingerprint = fp;
     state.architecture.url = data.url;
     state.architecture.summary = data.summary || "";
     state.architecture.status = "preview";
@@ -3149,9 +3199,10 @@ function announceArchitectureRendered(streamBubble, bag) {
 }
 
 function confirmArchitecture() {
-  if (!state.architecture.url || !state.architecture.ir) return;
+  if (!state.architecture.url) return;
   state.architecture.confirmed = true;
   state.architecture.status = "confirmed";
+  state.architecture.ir = null;
   // Snapshot 初版 architecture on first confirm (before any revise plan).
   if (!state.revisePlanConfirmed && !state.initialArchitecture?.url) {
     state.initialArchitecture = architectureSnapshotFromState({
@@ -4037,7 +4088,8 @@ el.doDispatch.addEventListener("click", async () => {
         deployTarget: state.deployTarget || "none",
         architectureSummary: state.architecture.summary || "",
         architectureUrl: state.architecture.url || "",
-        architectureIr: state.architecture.ir || null,
+        // Never send deep IR — server loads from architecture/<key>.json.
+        architectureIr: null,
       }),
     });
     const data = await res.json();
@@ -4818,6 +4870,10 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
+  // Never keep deep IR in memory across revise kickoff stringify paths.
+  if (state.architecture) state.architecture.ir = null;
+  if (state.architecturePrevious) state.architecturePrevious.ir = null;
+  if (state.initialArchitecture) state.initialArchitecture.ir = null;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Advance to the next iteration card — never overwrite prior reviseCards.
   const nextRev = nextReviseRevisionNumber();
@@ -4910,7 +4966,10 @@ async function kickoffReviseDialogue() {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        messages: state.reviseMessages.slice(-16),
+        messages: (state.reviseMessages || []).slice(-16).map((m) => ({
+          role: m?.role === "user" ? "user" : "assistant",
+          content: String(m?.content || "").slice(0, 8000),
+        })),
         card: reviseCardValues(),
         mode: "revise",
         stream: true,
@@ -5031,7 +5090,7 @@ function lockReviseCard(data, card) {
   state.revisePlanConfirmed = false;
   const rev = Number(data.revision) || 0;
   const prevFp = previousArchitectureFingerprint(rev);
-  const curFp = architectureFingerprint(state.architecture?.ir) || "";
+  const curFp = architectureFpOf(state.architecture);
   const archChanged = Boolean(
     state.architecturePrevious ||
       (prevFp && curFp && prevFp !== curFp) ||
@@ -5098,9 +5157,10 @@ function confirmRevisePlan() {
  * preview, or redesign). Dispatch runs only after confirmArchitecture.
  */
 function openReviseArchitectureGate() {
-  if (state.architecture.url && state.architecture.ir) {
+  if (state.architecture.url) {
     state.architecture.confirmed = false;
     state.architecture.status = "preview";
+    state.architecture.ir = null;
     state.mode = "architecture";
     syncArchitecturePanel();
     syncChatPlaceholder();

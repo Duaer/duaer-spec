@@ -301,7 +301,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /syncReviseChromeAfterKickoff|err\.reviseKickoffStack/);
   assert.match(js, /getText\(|gotReply/);
   assert.match(js, /ir:\s*null/);
+  assert.match(js, /architectureFpOf|normalizeViewBox|architectureViewBoxOf/);
+  assert.match(js, /architectureIr:\s*null/);
   assert.match(liveBin, /chatDoneSsePayload/);
+  assert.match(liveBin, /resolveArchitectureIr|includeJsonBlock/);
   assert.doesNotMatch(
     liveBin,
     /writeSse\(res, \{ type: "done", \.\.\.parsed \}\)/,
