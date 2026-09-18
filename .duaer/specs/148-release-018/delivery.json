@@ -4,17 +4,21 @@
   "acceptedAt": "2026-09-18T13:06:30.000Z",
   "summary": "0.18.0 shipped: develop+main pushed, tag v0.18.0, GitHub Release, npm publish success.",
   "verification": {
-    "levels": ["L3", "release"],
+    "levels": [
+      "L3",
+      "release"
+    ],
     "commands": [
       "npm run test:live",
       "git push origin develop main v0.18.0",
       "gh release create v0.18.0",
       "gh run watch npm-publish"
     ],
-    "results": "pass"
+    "results": "git+release pass; npm 0.18.0 staged (E409 on republish) — approve on npmjs or enable Allowed actions: npm publish then re-run"
   },
   "preview": {
     "url": "https://www.npmjs.com/package/duaer-spec/v/0.18.0",
     "label": "npm 0.18.0"
-  }
+  },
+  "notes": "Actions logged + duaer-spec@0.18.0 with provenance, but registry has no public 0.18.0; workflow_dispatch got Cannot publish over previously staged version."
 }

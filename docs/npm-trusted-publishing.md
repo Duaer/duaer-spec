@@ -58,6 +58,7 @@ Trusted Publisher.
 | 404 | Config not saved, or org/repo casing mismatch |
 | OIDC errors | Missing `id-token: write` |
 | `cannot publish over existing version` | Auth worked; version already exists — bump `package.json` next time |
+| `Cannot publish over previously staged version` | Trusted Publisher Allowed actions is **stage-only**, or a prior run left a staged candidate. On npmjs.com enable **npm publish**, then approve/reject the staged version (or bump and re-run). |
 
 npm requires **Node ≥ 22.14** and **npm CLI ≥ 11.5.1**.
 
