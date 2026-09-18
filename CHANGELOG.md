@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: full Archify styles & FX in inline mount
+
+- Mount full `.container` + Archify CSS/fonts into Shadow DOM (`.archify-root`)
+- Run Archify viewer via scoped document proxy (real focus-chip + node zoom)
+- Keep motion overlays; hide only desk-irrelevant chrome (toolbar/header)
+
 ### Feat: architecture diagram without iframe
 
 - Mount Archify SVG in Shadow DOM (`architecture-mount`); same canvas + node passport

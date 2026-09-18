@@ -317,5 +317,7 @@ test("live sources wire architecture API + desk panel", () => {
     path.join(ROOT, "web/live-dev/architecture-mount.mjs"),
     "utf8",
   );
-  assert.match(mount, /attachShadow|arch-passport|data-node-id/);
+  assert.match(mount, /attachShadow|archify-root|focus-chip|runViewerScript|scopeArchifyCss/);
+  assert.match(mount, /data-motion-capable|installDesktopReveal/);
+  assert.doesNotMatch(mount, /arch-passport/);
 });

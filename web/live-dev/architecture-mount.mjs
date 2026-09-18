@@ -1,10 +1,8 @@
 /**
  * Mount Archify architecture HTML into a page host (no iframe).
- * Shadow DOM keeps Archify CSS isolated; SVG height flows with the canvas.
+ * Full styles + viewer runtime (focus-chip, zoom, motion) via Shadow DOM
+ * and a document proxy scoped to `.archify-root`.
  */
-
-const STYLE_RE = /<style\b[^>]*>([\s\S]*?)<\/style>/gi;
-const SVG_RE = /<svg\b[\s\S]*?<\/svg>/i;
 
 function architectureKeyFromUrl(url) {
   const raw = String(url || "");
@@ -12,33 +10,24 @@ function architectureKeyFromUrl(url) {
   return m ? m[1].toLowerCase() : "";
 }
 
-function extractSvg(html) {
-  // Prefer the main diagram SVG; wrap it so Archify container CSS applies.
-  const svg = String(html || "").match(SVG_RE);
-  if (!svg) return null;
-  return {
-    wrapHtml: `<div class="diagram-container" data-detail-level="read">${svg[0]}</div>`,
-    svgHtml: svg[0],
-  };
-}
-
-function extractStyles(html) {
-  const chunks = [];
-  for (const m of String(html || "").matchAll(STYLE_RE)) {
-    const css = String(m[1] || "").trim();
-    if (css) chunks.push(css);
-  }
-  return chunks.join("\n\n");
-}
-
-/** Rewrite document-level Archify selectors for Shadow :host. */
+/**
+ * Retarget document-level Archify selectors to the in-shadow root.
+ * Avoid data-embed mode — it strips motion overlays / passport.
+ */
 function scopeArchifyCss(css) {
-  return String(css || "")
-    .replace(/html\[data-embed="true"\]/g, ":host")
-    .replace(/html\[data-present="true"\]/g, ":host")
-    .replace(/html\[([^\]]+)\]/g, ":host[$1]")
-    .replace(/\bhtml\b/g, ":host")
-    .replace(/\bbody\b/g, ":host");
+  let out = String(css || "")
+    .replace(/:root\b/g, ".archify-root")
+    .replace(/html\[/g, ".archify-root[")
+    .replace(/\bhtml\b/g, ".archify-root")
+    .replace(/\bbody\b/g, ".archify-root");
+  // Collapse `html body` / `html[…] body` → single `.archify-root[…]`
+  for (let i = 0; i < 3; i += 1) {
+    out = out.replace(
+      /\.archify-root((?:\[[^\]]*\])*)\s+\.archify-root\b/g,
+      ".archify-root$1",
+    );
+  }
+  return out;
 }
 
 function hostChromeCss() {
@@ -47,157 +36,269 @@ function hostChromeCss() {
   display: block;
   position: relative;
   width: 100%;
-  background: #0b1118;
+  background: #020617;
   color: #e8eef7;
   overflow: visible;
 }
 :host([hidden]) { display: none !important; }
-.architecture-canvas {
+.archify-root {
   position: relative;
   width: 100%;
-  padding: 100px 0 28px 100px;
-  box-sizing: border-box;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: var(--bg, #020617);
+  color: var(--text, #e8eef7);
   overflow: visible;
+  box-sizing: border-box;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-.architecture-canvas .diagram-container {
+/* Desk: hide Archify chrome; keep diagram FX + focus-chip. */
+.archify-root .toolbar,
+.archify-root .header,
+.archify-root .cards,
+.archify-root .diagram-nav,
+.archify-root .overview-map,
+.archify-root .route-probe,
+.archify-root .semantic-lens,
+.archify-root .diagram-guide,
+.archify-root .node-finder,
+.archify-root .guided-views,
+.archify-root .share-chapter-cue {
+  display: none !important;
+}
+.archify-root .container {
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.archify-root .diagram-container {
   height: auto !important;
   max-height: none !important;
   overflow: visible !important;
   position: relative !important;
+  padding: 100px 0 28px 100px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
-.architecture-canvas svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: none;
+.archify-root .diagram-container svg {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  max-height: none !important;
 }
-.architecture-canvas svg [data-node-id] {
-  cursor: pointer;
+.archify-root .focus-chip {
+  display: block !important;
+  position: absolute !important;
+  left: 0.75rem !important;
+  top: 0.75rem !important;
+  z-index: 10000 !important;
+  width: min(22rem, calc(100% - 1.5rem - 100px)) !important;
+  max-width: calc(100% - 1.5rem - 100px) !important;
+  max-height: none !important;
+  overflow: visible !important;
+  pointer-events: auto !important;
 }
-.architecture-canvas svg [data-node-id].is-arch-focus {
-  filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.55));
+.archify-root .focus-chip[hidden] {
+  display: none !important;
 }
-.arch-passport {
-  position: absolute;
-  left: 0.75rem;
-  top: 0.75rem;
-  z-index: 5;
-  width: min(22rem, calc(100% - 1.5rem - 100px));
-  max-width: calc(100% - 1.5rem - 100px);
-  padding: 0.75rem 0.85rem;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  border-radius: 10px;
-  background: rgba(15, 23, 42, 0.96);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  overflow: visible;
-}
-.arch-passport[hidden] { display: none !important; }
-.arch-passport-title {
-  margin: 0 0 0.2rem;
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-.arch-passport-sub {
-  margin: 0 0 0.55rem;
-  font-size: 0.78rem;
-  color: #94a3b8;
-}
-.arch-passport-list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.35rem;
-}
-.arch-passport-list li {
-  font-size: 0.8rem;
-  line-height: 1.35;
-  color: #cbd5e1;
-}
-.arch-passport-close {
-  position: absolute;
-  top: 0.4rem;
-  right: 0.45rem;
-  border: 0;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  font-size: 1rem;
-  line-height: 1;
+.archify-root .focus-chip .relationship-lens-list {
+  display: block !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 `;
 }
 
-function buildPassportModel(ir, nodeId) {
-  const id = String(nodeId || "");
-  const comps = Array.isArray(ir?.components) ? ir.components : [];
-  const links = Array.isArray(ir?.connections)
-    ? ir.connections
-    : Array.isArray(ir?.links)
-      ? ir.links
-      : [];
-  const comp = comps.find((c) => String(c?.id || "") === id) || null;
-  const label =
-    String(comp?.label || comp?.name || id || "Node").trim() || id;
-  const sub = [comp?.type, comp?.sublabel || comp?.tag]
-    .map((x) => String(x || "").trim())
-    .filter(Boolean)
-    .join(" · ");
-  const rel = [];
-  for (const l of links) {
-    const from = String(l?.from || l?.source || "");
-    const to = String(l?.to || l?.target || "");
-    const edge = String(l?.label || "").trim();
-    if (from === id && to) {
-      const other =
-        comps.find((c) => String(c?.id || "") === to)?.label || to;
-      rel.push(edge ? `→ ${other}（${edge}）` : `→ ${other}`);
-    } else if (to === id && from) {
-      const other =
-        comps.find((c) => String(c?.id || "") === from)?.label || from;
-      rel.push(edge ? `← ${other}（${edge}）` : `← ${other}`);
-    }
-  }
-  return { id, label, sub, rel: rel.slice(0, 12) };
-}
+function parseArchifyHtml(html) {
+  const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
+  const theme =
+    doc.documentElement.getAttribute("data-theme") ||
+    doc.body?.getAttribute("data-theme") ||
+    "dark";
+  const preset =
+    doc.documentElement.getAttribute("data-preset") ||
+    doc.body?.getAttribute("data-preset") ||
+    "classic";
+  const lang = doc.documentElement.getAttribute("lang") || "en";
 
-function renderPassport(shadow, model) {
-  let box = shadow.querySelector(".arch-passport");
-  if (!box) {
-    box = document.createElement("div");
-    box.className = "arch-passport";
-    box.innerHTML = `
-      <button type="button" class="arch-passport-close" aria-label="close">×</button>
-      <p class="arch-passport-title"></p>
-      <p class="arch-passport-sub"></p>
-      <ul class="arch-passport-list"></ul>
-    `;
-    shadow.appendChild(box);
-    box.querySelector(".arch-passport-close")?.addEventListener("click", () => {
-      box.hidden = true;
-      shadow
-        .querySelectorAll("[data-node-id].is-arch-focus")
-        .forEach((n) => n.classList.remove("is-arch-focus"));
+  const styleChunks = [];
+  for (const el of doc.querySelectorAll("style")) {
+    if (el.id === "duaer-embed-fit") continue;
+    const css = String(el.textContent || "").trim();
+    if (css) styleChunks.push(css);
+  }
+
+  const container = doc.querySelector(".container");
+  if (!container || !container.querySelector("svg")) {
+    throw new Error("architecture svg missing");
+  }
+
+  // Keep JSON data scripts that live inside the container.
+  const jsonScripts = [];
+  for (const el of doc.querySelectorAll(
+    "script#archify-i18n-data, script#archify-guided-views-data, script[type='application/json']",
+  )) {
+    jsonScripts.push({
+      id: el.id || "",
+      body: el.textContent || "",
     });
   }
-  box.querySelector(".arch-passport-title").textContent = model.label;
-  const sub = box.querySelector(".arch-passport-sub");
-  sub.textContent = model.sub || "";
-  sub.hidden = !model.sub;
-  const list = box.querySelector(".arch-passport-list");
-  list.replaceChildren();
-  if (!model.rel.length) {
-    const li = document.createElement("li");
-    li.textContent = "暂无连接说明";
-    list.appendChild(li);
-  } else {
-    for (const line of model.rel) {
-      const li = document.createElement("li");
-      li.textContent = line;
-      list.appendChild(li);
+
+  let main = "";
+  for (const el of doc.querySelectorAll("script")) {
+    if (el.id === "duaer-embed-node-zoom") continue;
+    if (el.type && el.type !== "text/javascript" && el.type !== "module") {
+      continue;
+    }
+    const body = el.textContent || "";
+    if (body.includes("var Archify") || /Archify\s*=\s*\{\}/.test(body)) {
+      main = body;
+      break;
     }
   }
-  box.hidden = false;
+
+  return {
+    theme,
+    preset,
+    lang,
+    css: styleChunks.join("\n\n"),
+    containerHtml: container.outerHTML,
+    jsonScripts,
+    main,
+  };
+}
+
+function createScopedDocument(rootEl, shadow) {
+  const real = document;
+  const scoped = {
+    documentElement: rootEl,
+    body: rootEl,
+    head: shadow,
+    getElementById: (id) => shadow.getElementById(id),
+    querySelector: (sel) => {
+      const s = String(sel || "");
+      if (s === "html" || s === ":root" || s === "body") return rootEl;
+      if (s.startsWith("html")) {
+        try {
+          return rootEl.matches(s.replace(/^html/, "*")) ? rootEl : null;
+        } catch {
+          return null;
+        }
+      }
+      try {
+        if (rootEl.matches?.(s)) return rootEl;
+      } catch {
+        /* invalid for Element.matches */
+      }
+      return shadow.querySelector(s);
+    },
+    querySelectorAll: (sel) => {
+      const s = String(sel || "");
+      if (s === "html" || s === ":root" || s === "body") return [rootEl];
+      return shadow.querySelectorAll(s);
+    },
+    getElementsByClassName: (name) =>
+      shadow.querySelectorAll(`.${CSS.escape(String(name))}`),
+    getElementsByTagName: (tag) => {
+      const t = String(tag || "*").toLowerCase();
+      if (t === "html" || t === "body") return [rootEl];
+      return shadow.querySelectorAll(t);
+    },
+    createElement: (...a) => real.createElement(...a),
+    createElementNS: (...a) => real.createElementNS(...a),
+    createTextNode: (...a) => real.createTextNode(...a),
+    createComment: (...a) => real.createComment(...a),
+    createDocumentFragment: () => real.createDocumentFragment(),
+    createTreeWalker: (root, ...rest) =>
+      real.createTreeWalker(root || rootEl, ...rest),
+    createRange: () => real.createRange(),
+    adoptNode: (n) => real.adoptNode(n),
+    importNode: (n, deep) => real.importNode(n, deep),
+    addEventListener: (...a) => rootEl.addEventListener(...a),
+    removeEventListener: (...a) => rootEl.removeEventListener(...a),
+    dispatchEvent: (...a) => rootEl.dispatchEvent(...a),
+    hasFocus: () => shadow.activeElement != null,
+    get activeElement() {
+      return shadow.activeElement || rootEl;
+    },
+    get defaultView() {
+      return window;
+    },
+    get location() {
+      return real.location;
+    },
+    get visibilityState() {
+      return real.visibilityState;
+    },
+    get hidden() {
+      return real.hidden;
+    },
+  };
+
+  return new Proxy(scoped, {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      const v = real[prop];
+      return typeof v === "function" ? v.bind(real) : v;
+    },
+    set(target, prop, value) {
+      target[prop] = value;
+      return true;
+    },
+  });
+}
+
+function installDesktopReveal(Archify) {
+  if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
+  if (Archify.view.__duaerEmbedZoom) return;
+  const original = Archify.view.reveal.bind(Archify.view);
+  Archify.view.reveal = function duaerReveal(ids, options) {
+    const opts = Object.assign({}, options || {}, {
+      includeNeighbors: false,
+      maxScale: 2.6,
+      padding: 28,
+    });
+    let forced = false;
+    const desc = Object.getOwnPropertyDescriptor(window, "innerWidth");
+    try {
+      if ((window.innerWidth || 0) <= 720) {
+        Object.defineProperty(window, "innerWidth", {
+          configurable: true,
+          get() {
+            return 1280;
+          },
+        });
+        forced = true;
+      }
+      return original(ids, opts);
+    } finally {
+      if (forced) {
+        try {
+          if (desc) Object.defineProperty(window, "innerWidth", desc);
+          else delete window.innerWidth;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  };
+  Archify.view.__duaerEmbedZoom = true;
+}
+
+function runViewerScript(code, scopedDocument) {
+  if (!code) return null;
+  const runner = new Function(
+    "document",
+    "window",
+    `"use strict";\n${code}\n;return typeof Archify !== "undefined" ? Archify : null;`,
+  );
+  const Archify = runner(scopedDocument, window);
+  installDesktopReveal(Archify);
+  return Archify;
 }
 
 /**
@@ -208,8 +309,7 @@ export async function mountArchitectureDiagram(host, opts = {}) {
   if (!host) return false;
   const url = String(opts.url || host.dataset.archUrl || "").trim();
   if (!url) {
-    host.replaceChildren();
-    host.hidden = true;
+    clearArchitectureMount(host);
     return false;
   }
   const key = architectureKeyFromUrl(url);
@@ -218,58 +318,64 @@ export async function mountArchitectureDiagram(host, opts = {}) {
     return false;
   }
 
+  if (
+    host.dataset.archKey === key &&
+    host.shadowRoot?.querySelector(".archify-root svg") &&
+    host._archify
+  ) {
+    host.hidden = false;
+    return true;
+  }
+
   host.hidden = false;
   host.dataset.archUrl = url;
   host.dataset.archKey = key;
   host.classList.add("architecture-mount");
 
-  const htmlRes = await fetch(`/api/architecture/${key}.html?embed=1`, {
+  const htmlRes = await fetch(`/api/architecture/${key}.html`, {
     cache: "no-store",
   });
   if (!htmlRes.ok) throw new Error(`architecture ${key} not found`);
-  const html = await htmlRes.text();
-  const extracted = extractSvg(html);
-  if (!extracted?.svgHtml) throw new Error("architecture svg missing");
+  const parsed = parseArchifyHtml(await htmlRes.text());
+  const scoped = scopeArchifyCss(parsed.css);
 
-  let ir = opts.ir && typeof opts.ir === "object" ? opts.ir : null;
-  if (!ir) {
-    try {
-      const jr = await fetch(`/api/architecture/${key}.json`, {
-        cache: "no-store",
-      });
-      if (jr.ok) ir = await jr.json();
-    } catch {
-      ir = null;
-    }
-  }
-
-  const shadow =
-    host.shadowRoot || host.attachShadow({ mode: "open" });
-  const scoped = scopeArchifyCss(extractStyles(html));
-  const canvasInner = extracted.wrapHtml
-    ? extracted.wrapHtml
-    : `<div class="diagram-container">${extracted.svgHtml}</div>`;
+  const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
+  host._archify = null;
 
   shadow.innerHTML = `
     <style>${hostChromeCss()}\n${scoped}</style>
-    <div class="architecture-canvas" data-embed="true">${canvasInner}</div>
+    <div
+      class="archify-root"
+      data-theme="${parsed.theme}"
+      data-preset="${parsed.preset}"
+      data-motion-capable="true"
+      data-ambient-motion="running"
+      lang="${parsed.lang}"
+    >${parsed.containerHtml}</div>
   `;
 
-  const canvas = shadow.querySelector(".architecture-canvas");
-  canvas?.querySelectorAll("[data-node-id]").forEach((node) => {
-    node.addEventListener("click", (ev) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      const id = node.getAttribute("data-node-id");
-      shadow
-        .querySelectorAll("[data-node-id].is-arch-focus")
-        .forEach((n) => n.classList.remove("is-arch-focus"));
-      node.classList.add("is-arch-focus");
-      renderPassport(shadow, buildPassportModel(ir, id));
-    });
-  });
+  const rootEl = shadow.querySelector(".archify-root");
+  if (!rootEl) throw new Error("architecture root missing");
 
-  // Content-driven height: clear any leftover iframe pixel height.
+  // Ensure i18n / guided-views JSON nodes exist (some builds place them outside .container).
+  for (const s of parsed.jsonScripts) {
+    if (!s.id) continue;
+    if (rootEl.querySelector(`#${CSS.escape(s.id)}`)) continue;
+    const el = document.createElement("script");
+    el.type = "application/json";
+    el.id = s.id;
+    el.textContent = s.body;
+    rootEl.appendChild(el);
+  }
+
+  const scopedDocument = createScopedDocument(rootEl, shadow);
+  try {
+    host._archify = runViewerScript(parsed.main, scopedDocument);
+  } catch (err) {
+    console.warn("archify viewer init failed", err);
+    host._archify = null;
+  }
+
   host.style.removeProperty("height");
   host.style.height = "auto";
   return true;
@@ -277,6 +383,7 @@ export async function mountArchitectureDiagram(host, opts = {}) {
 
 export function clearArchitectureMount(host) {
   if (!host) return;
+  host._archify = null;
   if (host.shadowRoot) host.shadowRoot.innerHTML = "";
   host.removeAttribute("data-arch-url");
   host.removeAttribute("data-arch-key");
@@ -287,3 +394,9 @@ export function clearArchitectureMount(host) {
 export function architectureKeyFromArchitectureUrl(url) {
   return architectureKeyFromUrl(url);
 }
+
+/** Test helpers (Node / unit). */
+export const __test = {
+  scopeArchifyCss,
+  architectureKeyFromUrl,
+};
