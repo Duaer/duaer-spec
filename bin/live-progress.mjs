@@ -73,7 +73,7 @@ export function buildDetailedProductTasksMd({
   }
   push("Risk-based verification per testing.md");
   push(
-    "Stamp delivery.json accepted（必须写入 preview.url：页面路径或 http://localhost:… 服务地址）",
+    "启动可打开的服务（如 npm start），确认能打开后再 stamp delivery.json accepted，并必须写入 preview.url（页面路径或 http://localhost:…）",
   );
   if (deployNeeded) {
     push(
@@ -99,13 +99,13 @@ ${items.join("\n")}
 
 **必须**在 delivery.json 写入 preview（页面或本地/公网服务地址均可）：
 \`\`\`json
-"preview": { "url": "index.html", "label": "查看结果" }
+"preview": { "url": "index.html", "label": "打开看看" }
 \`\`\`
 或服务：
 \`\`\`json
-"preview": { "url": "http://localhost:8788", "label": "查看结果" }
+"preview": { "url": "http://localhost:8788", "label": "打开看看" }
 \`\`\`
-（相对路径相对 worktree 根目录；有公网部署时优先写公网 URL。不要因「没有 index.html」而省略。）
+（相对路径相对 worktree 根目录；有公网部署时优先写公网 URL。不要因「没有 index.html」而省略；服务须先启动。）
 `;
 }
 
@@ -135,7 +135,7 @@ export function buildDetailedRevisionTasksMd({
   }
   push("Verify against revision acceptance");
   push(
-    "Stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
+    "启动/更新可打开的服务，并 stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
   );
   while (items.length < 5) {
     push(`Complete remaining revision scope (atomic step ${i})`);
