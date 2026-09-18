@@ -763,8 +763,67 @@ function parseChatResult(content) {
   };
 }
 
+/** Flat SSE done payload — never spread deep IR trees (stringify stack overflow). */
+function chatDoneSsePayload(parsed) {
+  const base = {
+    type: "done",
+    reply: String(parsed?.reply || ""),
+    goal: String(parsed?.goal || ""),
+    outOfScope: String(parsed?.outOfScope || ""),
+    acceptance: String(parsed?.acceptance || ""),
+    assumptions: String(parsed?.assumptions || ""),
+    ready: Boolean(parsed?.ready),
+    options: Array.isArray(parsed?.options) ? parsed.options.slice(0, 6) : [],
+  };
+  if (parsed?.diagram_type === "architecture") {
+    return {
+      ...base,
+      diagram_type: "architecture",
+      schema_version: parsed.schema_version,
+      meta: parsed.meta,
+      components: parsed.components,
+      boundaries: parsed.boundaries,
+      connections: parsed.connections,
+      cards: parsed.cards,
+      title: parsed.title,
+    };
+  }
+  return base;
+}
+
 function writeSse(res, payload) {
-  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  try {
+    res.write(`data: ${JSON.stringify(payload)}\n\n`);
+  } catch (err) {
+    // Deep/circular model JSON must not kill the stream — send a flat fallback.
+    const reply =
+      typeof payload?.reply === "string"
+        ? payload.reply
+        : payload?.type === "error"
+          ? String(payload.error || "chat failed")
+          : "";
+    if (payload?.type === "done") {
+      res.write(
+        `data: ${JSON.stringify({
+          type: "done",
+          reply,
+          goal: String(payload.goal || ""),
+          outOfScope: String(payload.outOfScope || ""),
+          acceptance: String(payload.acceptance || ""),
+          assumptions: String(payload.assumptions || ""),
+          ready: Boolean(payload.ready),
+          options: [],
+        })}\n\n`,
+      );
+      return;
+    }
+    res.write(
+      `data: ${JSON.stringify({
+        type: "error",
+        error: err instanceof Error ? err.message : "sse write failed",
+      })}\n\n`,
+    );
+  }
 }
 
 async function streamChatResponse(cfg, messages, res, systemPrompt = SYSTEM_PROMPT) {
@@ -804,7 +863,7 @@ async function streamChatResponse(cfg, messages, res, systemPrompt = SYSTEM_PROM
         text: parsed.reply.slice(emitted),
       });
     }
-    writeSse(res, { type: "done", ...parsed });
+    writeSse(res, chatDoneSsePayload(parsed));
   } catch (err) {
     writeSse(res, {
       type: "error",

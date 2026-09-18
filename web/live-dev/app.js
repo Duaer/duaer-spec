@@ -1409,6 +1409,8 @@ function startStreamingBubble() {
   const { div, textNode } = addBubble("bot", "");
   div.classList.add("streaming");
   return {
+    div,
+    textNode,
     append(chunk) {
       textNode.textContent += chunk;
       scrollChatToLatest();
@@ -1416,6 +1418,9 @@ function startStreamingBubble() {
     set(text) {
       textNode.textContent = text;
       scrollChatToLatest();
+    },
+    getText() {
+      return textNode.textContent || "";
     },
     finish(options) {
       div.classList.remove("streaming");
@@ -2047,7 +2052,7 @@ function applyCard(data, { skipValidate = false } = {}) {
     if (isReviseDraftFocus()) {
       applyReviseFieldsFromCard(state.reviseDraft);
     }
-    syncReviseCardChrome();
+    syncReviseCardChrome({ rebuildAccordion: false });
   } else if (state.locked) {
     // Confirmed Brief stays frozen; chat remains conversational only.
     syncConfirmEnabled();
@@ -4770,6 +4775,7 @@ async function kickoffReviseDialogue() {
   const streamBubble = startStreamingBubble();
   const kick =
     "（系统）用户已点继续改进并看过成品。请只问一个最关键问题：哪里不满意、为什么。先说话，再 <<<JSON>>> 更新改进卡（可先空着）。不要派工。";
+  let gotReply = false;
   try {
     state.reviseMessages.push({ role: "user", content: kick });
     const res = await fetch("/api/chat", {
@@ -4791,36 +4797,69 @@ async function kickoffReviseDialogue() {
       let final = null;
       let streamError = null;
       await readChatStream(res, (evt) => {
-        if (evt.type === "delta" && evt.text) streamBubble.append(evt.text);
-        else if (evt.type === "done") final = evt;
+        if (evt.type === "delta" && evt.text) {
+          streamBubble.append(evt.text);
+          gotReply = true;
+        } else if (evt.type === "done") final = evt;
         else if (evt.type === "error") {
           streamError = new Error(evt.error || t("err.chat"));
         }
       });
-      if (streamError) throw streamError;
-      if (!final) throw new Error(t("err.streamIncomplete"));
-      applyCard(final);
-      if (final.reply) streamBubble.set(final.reply);
-      streamBubble.finish(final.options);
-      state.reviseMessages.push({ role: "assistant", content: final.reply });
+      // Prefer already-streamed model text over a late done/error failure
+      // (e.g. deep JSON stringify stack overflow on the server).
+      const streamed = String(streamBubble.getText() || "").trim();
+      if (streamError && !final && !streamed) throw streamError;
+      if (!final && !streamed) throw new Error(t("err.streamIncomplete"));
+      if (final) {
+        try {
+          applyCard(final, { skipValidate: true });
+        } catch {
+          /* card apply must not wipe the spoken reply */
+        }
+        if (final.reply) {
+          streamBubble.set(final.reply);
+          gotReply = true;
+        }
+        streamBubble.finish(final.options);
+        state.reviseMessages.push({
+          role: "assistant",
+          content: final.reply || streamed,
+        });
+      } else {
+        streamBubble.finish();
+        state.reviseMessages.push({ role: "assistant", content: streamed });
+      }
       void persistProjectChat();
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
-      applyCard(data);
+      try {
+        applyCard(data, { skipValidate: true });
+      } catch {
+        /* ignore */
+      }
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
+      gotReply = Boolean(data.reply);
       state.reviseMessages.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
     }
   } catch (err) {
     state.reviseMessages.pop();
-    streamBubble.set(
-      t("bot.reviseKickoffFail", {
-        msg: err instanceof Error ? err.message : err,
-      }),
-    );
-    streamBubble.finish();
+    const streamed = String(streamBubble.getText() || "").trim();
+    if (gotReply || streamed) {
+      // Model already spoke — keep that text; do not replace with fail copy.
+      streamBubble.set(streamed);
+      streamBubble.finish();
+      state.reviseMessages.push({ role: "assistant", content: streamed });
+    } else {
+      streamBubble.set(
+        err instanceof Error && err.message
+          ? String(err.message)
+          : t("err.reviseKickoff"),
+      );
+      streamBubble.finish();
+    }
   } finally {
     state.reviseKickoffInFlight = false;
     setBusy(false);

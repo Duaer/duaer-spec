@@ -309,8 +309,7 @@ const zhCN = {
   "bot.chatReviseBusy": "正在续派改进，请稍候。",
   "bot.chatLockedHint":
     "需求卡已确认锁定，对话不会改卡内容。要改 Brief 请点「再改一版」。",
-  "bot.reviseKickoffFail":
-    "改进对话没启动起来：{msg}。你也可以直接在左侧输入哪里不满意。",
+  "bot.reviseKickoffFail": "改进对话暂时没接上：{msg}",
   "update.notice":
     "新版本 {latest}（当前 {current}）。终端执行：npm i -g duaer-spec@latest（或 duaer self-update）；业务仓再跑 npx duaer-spec@latest update",
   "update.noticeHtml":
@@ -721,8 +720,7 @@ const en = {
   "bot.chatReviseBusy": "Revise dispatch is in progress — please wait.",
   "bot.chatLockedHint":
     "The requirements card is locked. Chat will not change it — tap Revise again to edit the Brief.",
-  "bot.reviseKickoffFail":
-    "Revise chat failed to start: {msg}. You can type what is wrong on the left.",
+  "bot.reviseKickoffFail": "Revise chat hiccup: {msg}",
   "update.notice":
     "Update {latest} (current {current}). Run: npm i -g duaer-spec@latest (or duaer self-update); in product repos: npx duaer-spec@latest update",
   "update.noticeHtml":
