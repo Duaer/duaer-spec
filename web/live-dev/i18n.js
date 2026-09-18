@@ -52,6 +52,9 @@ const zhCN = {
   "project.emptyList": "还没有项目，先新建或浏览",
   "project.active": "当前：{name}",
   "project.activated": "已选中项目 {name}",
+  "project.kickoff":
+    "项目「{name}」已选好。{background}请开始帮我梳理需求：用大白话问清楚要做什么、验收标准。",
+  "project.kickoffBackground": "背景：{description}。",
   "project.needName": "请填写项目名或路径",
   "project.fail": "无法打开项目",
   "project.jobCount": "{n} 条对话",
@@ -371,6 +374,9 @@ const en = {
   "project.emptyList": "No projects yet — create or browse",
   "project.active": "Current: {name}",
   "project.activated": "Project selected: {name}",
+  "project.kickoff":
+    "Project \"{name}\" is selected. {background}Please start clarifying the requirements in plain language: goal and checkable acceptance.",
+  "project.kickoffBackground": "Background: {description}. ",
   "project.needName": "Enter a project name or path",
   "project.fail": "Could not open project",
   "project.jobCount": "{n} chats",
