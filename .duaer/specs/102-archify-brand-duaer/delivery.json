@@ -1,0 +1,5 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T03:20:00.000Z",
+  "verification": { "commands": ["rg -n 'Archify 渲染|Archify render' web/live-dev/i18n.js"], "result": "no matches expected" }
+}
