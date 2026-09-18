@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Auto-start chat after project select
+
+- Choosing / creating the current project immediately kicks off the
+  requirements dialogue (includes project name + background)
+
 ### Harden project-before-chat gate
 
 - Composer starts disabled; `sendChat` refuses without a current project

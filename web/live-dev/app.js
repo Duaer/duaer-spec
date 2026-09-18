@@ -3107,11 +3107,21 @@ async function activateProjectPath(pathOrName, meta = {}) {
     }
     renderProjectList();
     renderProjectConversations();
-    addBubble(
-      "bot",
-      t("project.activated", { name: data.title || data.name || data.path }),
-    );
     setHistoryOpen(false);
+    syncComposerEnabled();
+    const name = data.title || data.name || data.path;
+    const desc = String(data.description || "").trim();
+    const background = desc
+      ? t("project.kickoffBackground", { description: desc })
+      : "";
+    // Selecting a project starts the requirements dialogue immediately.
+    void sendChat(
+      t("project.kickoff", {
+        name,
+        background,
+      }),
+    );
+    if (el.input) el.input.focus();
   } catch (err) {
     if (el.historyErr) {
       el.historyErr.hidden = false;

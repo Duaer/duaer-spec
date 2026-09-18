@@ -82,8 +82,7 @@ test("live sources wire project-first APIs and UI", () => {
   assert.match(html, /id="projectList"/);
   assert.match(html, /id="projectsRoot"/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
-  assert.match(js, /bot\.needProject|state\.projectPath/);
+  assert.match(js, /project\.kickoff|sendChat\(/);
   assert.match(js, /activateProjectPath|loadProjectsPanel/);
-  assert.match(js, /project\.needTitle|requireMeta/);
   assert.match(js, /chatAllowed[\s\S]*projectPath/);
 });

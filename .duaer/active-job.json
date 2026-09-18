@@ -1,5 +1,5 @@
 {
-  "featureDir": ".duaer/specs/092-project-chat-gate",
-  "slug": "092-project-chat-gate",
-  "branch": "fix/project-chat-gate"
+  "featureDir": ".duaer/specs/093-project-auto-chat",
+  "slug": "093-project-auto-chat",
+  "branch": "feat/project-auto-chat"
 }
