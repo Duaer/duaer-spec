@@ -5285,6 +5285,7 @@ async function handleApi(req, res) {
         locked: body.locked,
         mode: body.mode,
         reviseLocked: body.reviseLocked,
+        revisePlanConfirmed: body.revisePlanConfirmed,
         lastRevision: body.lastRevision,
         deployTarget: body.deployTarget,
         agentId: body.agentId,

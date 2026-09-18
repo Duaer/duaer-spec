@@ -167,6 +167,15 @@ const zhCN = {
   "arch.hintConfirmed": "架构已确认；数字员工将按此图开发。",
   "arch.hintStale": "改版默认沿用原架构。仅当架构变化时，确认下方新图后再派工。",
   "arch.hintReviseKeep": "改版沿用已确认架构；若结构有变，点「架构有变，重新设计」。",
+  "arch.afterRevisePlan":
+    "改进方案已确认。接下来确认系统架构是否仍适用；有变化则重新设计后再确认。",
+  "arch.hintAfterRevisePlan":
+    "改进方案已确认。请确认架构是否仍适用；有变化则点「架构有变，重新设计」。",
+  "arch.needConfirmAfterPlan": "请先确认架构，再派这一版",
+  "arch.enterDesignRevise":
+    "改进方案已确认。架构可能有变——在左侧对话里一起定新架构，或点选项继续。",
+  "arch.kickoffInternalRevise":
+    "（系统）改进方案已确认。计划托管：{target}。请根据改进卡判断架构是否变化；若有变只问一个最关键架构问题，并在 JSON 里给 ready=false 与 2～5 个 options。不要派工。",
   "arch.confirm": "确认架构，可派工",
   "arch.confirmed": "架构已确认",
   "arch.enterDesign": "需求已确认。接下来在左侧对话里一起定系统架构——请点选项或直接回复。",
@@ -564,6 +573,15 @@ const en = {
   "arch.hintConfirmed": "Architecture confirmed — the digital employee will follow this map.",
   "arch.hintStale": "Revise keeps the prior architecture. Re-confirm only when the new diagram below changes it.",
   "arch.hintReviseKeep": "Revise keeps the confirmed architecture; tap redesign only if structure changes.",
+  "arch.afterRevisePlan":
+    "Revise plan confirmed. Next, confirm whether the architecture still applies — redesign if it changed.",
+  "arch.hintAfterRevisePlan":
+    "Revise plan confirmed. Confirm the architecture still applies, or tap redesign if structure changed.",
+  "arch.needConfirmAfterPlan": "Confirm architecture, then dispatch this revision",
+  "arch.enterDesignRevise":
+    "Revise plan confirmed. Architecture may change — design it in the left chat, or tap an option.",
+  "arch.kickoffInternalRevise":
+    "(system) Revise plan confirmed. Planned host: {target}. Using the revise card, decide if architecture changed; if so ask exactly one key architecture question and return ready=false with 2–5 options in JSON. Do not dispatch.",
   "arch.confirm": "Confirm architecture",
   "arch.confirmed": "Architecture confirmed",
   "arch.enterDesign": "Requirements confirmed. Design the architecture in the left chat — tap an option or type a reply.",

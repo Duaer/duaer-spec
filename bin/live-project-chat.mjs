@@ -181,6 +181,7 @@ function emptySession(projectPath = "") {
     locked: false,
     mode: "specify",
     reviseLocked: false,
+    revisePlanConfirmed: false,
     lastRevision: null,
     deployTarget: "none",
     agentId: "",
@@ -221,6 +222,7 @@ export function readProjectChat(liveRoot, projectPath) {
       locked: Boolean(raw.locked),
       mode: clipDeskMode(raw.mode),
       reviseLocked: Boolean(raw.reviseLocked),
+      revisePlanConfirmed: Boolean(raw.revisePlanConfirmed),
       lastRevision:
         raw.lastRevision && typeof raw.lastRevision === "object"
           ? raw.lastRevision
@@ -267,6 +269,7 @@ export function writeProjectChat(liveRoot, payload) {
     locked: Boolean(payload.locked),
     mode: clipDeskMode(payload.mode),
     reviseLocked: Boolean(payload.reviseLocked),
+    revisePlanConfirmed: Boolean(payload.revisePlanConfirmed),
     lastRevision:
       payload.lastRevision && typeof payload.lastRevision === "object"
         ? payload.lastRevision

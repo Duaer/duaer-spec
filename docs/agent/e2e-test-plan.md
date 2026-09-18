@@ -66,7 +66,7 @@ the table for their app.
 | E2E-083 | After refresh, previously passed auto-validate keeps Confirm enabled | `npm test` + `npm run test:live` |
 | E2E-084 | Requirements fields edit as structured rows (add/remove), not raw textarea | `npm test` + `npm run test:live` |
 | E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model/Settings reopens it; setup.hint names Duaer desk model; guideDoc links locale-specific GitHub worker-models | `npm test` + `npm run test:live` |
-| E2E-086 | After Confirm, architecture dialogue + Archify HTML under hosting (no diagram-container height clip; every node click zooms in embed); gate dispatch; revise must re-confirm; ready chat says diagram is under hosting; Confirm architecture clickable after render | `npm test` + `npm run test:live` |
+| E2E-086 | After Confirm, architecture dialogue + Archify HTML under hosting (no diagram-container height clip; every node click zooms in embed); gate dispatch; revise confirms plan then re-confirms architecture before dispatch; ready chat says diagram is under hosting; Confirm architecture clickable after render | `npm test` + `npm run test:live` |
 | E2E-087 | After「派工并用…启动」succeeds, button stays「已派工」(persisted + restored from status); refresh / client timeout does not re-enable first launch | `npm test` + `npm run test:live` |
 | E2E-088 | After accept, Result panel always visible (查看结果 and/or 打开项目目录); progress column mirrors CTA; no-page jobs still show open-folder | `npm test` + `npm run test:live` |
 | E2E-089 | Revise keeps confirmed architecture; re-confirm only when architecture changes; prior diagram stays above new | `npm test` + `npm run test:live` |
@@ -79,6 +79,7 @@ the table for their app.
 | E2E-097 | Result bar is one compact row (heading + actions; listen/start only for localhost) | `npm run test:live` + manual |
 | E2E-098 | Result bar buttons stay horizontal; heading/current chip follow latest revision | `npm run test:live` + manual |
 | E2E-099 | 改进卡 is versioned: each dispatched revision keeps its card; 再改一版 opens next empty card; chips browse history without overwrite | `npm test` + `npm run test:live` + manual |
+| E2E-100 | Revise: confirm 改进方案 first, then re-confirm architecture (keep or redesign), then dispatch | `npm test` + `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -209,3 +210,4 @@ the table for their app.
 | E2E-097 | `129-result-one-line` | result panel one-line bar |
 | E2E-098 | `130-result-bar-layout` | result buttons + follow-latest version |
 | E2E-099 | `131-revise-card-versions` | versioned 改进卡 history + next draft |
+| E2E-100 | `132-revise-arch-after-plan` | architecture confirm after revise plan |

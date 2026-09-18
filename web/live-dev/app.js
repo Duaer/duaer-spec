@@ -62,6 +62,11 @@ const state = {
   reviseDraft: null, // { revision, goal, outOfScope, acceptance, assumptions }
   /** Which revision's card is shown in the panel. */
   reviseCardFocus: null,
+  /**
+   * After「改进方案确认」and before architecture re-confirm / dispatch.
+   * Architecture gate runs only after this is true.
+   */
+  revisePlanConfirmed: false,
   originalCard: null, // snapshot after first confirm
   lastStatus: null,
   lastDeliveryAccepted: false,
@@ -1057,14 +1062,15 @@ function syncReviseDispatchButton(ready) {
   }
   const showDispatch = dialoguing && !state.reviseLocked;
   el.doReviseDispatch.hidden = !showDispatch;
+  // Architecture is gated *after* plan confirm — do not block this button on arch.
   el.doReviseDispatch.disabled =
     !ready ||
     state.busy ||
     state.reviseDispatching ||
-    !state.architecture.confirmed;
+    state.revisePlanConfirmed;
   if (showDispatch) {
-    el.doReviseDispatch.textContent = !state.architecture.confirmed
-      ? t("arch.needConfirm")
+    el.doReviseDispatch.textContent = state.revisePlanConfirmed
+      ? t("arch.needConfirmAfterPlan")
       : state.reviseDispatching
         ? t("revise.dispatching")
         : t("revise.dispatch");
@@ -1072,7 +1078,9 @@ function syncReviseDispatchButton(ready) {
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
   } else if (dialoguing) {
-    setReviseFieldsReadonly(!isReviseDraftFocus());
+    setReviseFieldsReadonly(
+      state.revisePlanConfirmed || !isReviseDraftFocus(),
+    );
   }
   syncReviseCardChrome();
   const status = state.lastStatus;
@@ -1312,6 +1320,7 @@ async function persistProjectChat() {
         locked: state.locked,
         mode: state.mode,
         reviseLocked: state.reviseLocked,
+        revisePlanConfirmed: state.revisePlanConfirmed,
         lastRevision: state.lastRevision,
         deployTarget: state.deployTarget || "none",
         agentId: state.agentId || "",
@@ -1433,6 +1442,7 @@ function clearDeskWorkspace() {
   state.reviseCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
+  state.revisePlanConfirmed = false;
   state.dispatchPhase = null;
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
@@ -1551,6 +1561,7 @@ async function loadProjectChatIntoUi(projectPath) {
         : null;
     state.reviseCardFocus =
       data.reviseCardFocus != null ? Number(data.reviseCardFocus) || null : null;
+    state.revisePlanConfirmed = Boolean(data.revisePlanConfirmed);
     // Migrate: single reviseCard + lastRevision → version list when empty
     if (
       !state.reviseCards.length &&
@@ -1605,6 +1616,7 @@ async function loadProjectChatIntoUi(projectPath) {
     setConfirmFieldsReadonly(state.locked);
     setReviseFieldsReadonly(
       state.reviseLocked ||
+        state.revisePlanConfirmed ||
         (Boolean(state.reviseCardFocus) &&
           !isReviseDraftFocus() &&
           Boolean(getStoredReviseCard(state.reviseCardFocus))),
@@ -1624,10 +1636,15 @@ async function loadProjectChatIntoUi(projectPath) {
     if (
       state.architecture.url ||
       state.architecture.status !== "idle" ||
-      (state.locked && !state.architecture.confirmed)
+      (state.locked && !state.architecture.confirmed) ||
+      (state.revisePlanConfirmed && !state.architecture.confirmed)
     ) {
       syncArchitecturePanel(
-        state.locked && !state.architecture.confirmed ? "stale" : undefined,
+        state.revisePlanConfirmed && !state.architecture.confirmed
+          ? undefined
+          : state.locked && !state.architecture.confirmed
+            ? "stale"
+            : undefined,
       );
     }
     syncConfirmEnabled();
@@ -2480,9 +2497,10 @@ function syncArchitecturePanel(kind) {
   }
   if (el.architectureRedesign) {
     const canRedesign =
-      a.confirmed &&
       Boolean(a.url) &&
+      (a.confirmed || state.revisePlanConfirmed) &&
       (state.mode === "revise" ||
+        state.mode === "architecture" ||
         state.reviseLocked ||
         state.lastDeliveryAccepted ||
         state.lastStatus === "accepted" ||
@@ -2493,6 +2511,8 @@ function syncArchitecturePanel(kind) {
   if (el.architectureHint) {
     if (kind === "stale") {
       el.architectureHint.textContent = t("arch.hintStale");
+    } else if (state.revisePlanConfirmed && !a.confirmed) {
+      el.architectureHint.textContent = t("arch.hintAfterRevisePlan");
     } else if (
       a.confirmed &&
       (state.mode === "revise" || state.lastDeliveryAccepted)
@@ -2627,12 +2647,17 @@ async function kickoffArchitectureDialogue() {
     (m) => !isArchitectureSystemKick(m),
   );
   const target = t(`dispatch.deploy.${state.deployTarget || "none"}`);
-  addBubble("bot", t("arch.enterDesign"));
+  addBubble(
+    "bot",
+    state.revisePlanConfirmed ? t("arch.enterDesignRevise") : t("arch.enterDesign"),
+  );
   scrollChatToLatest();
   el.input?.focus();
   setBusy(true);
   const streamBubble = startStreamingBubble();
-  const kick = t("arch.kickoffInternal", { target });
+  const kick = state.revisePlanConfirmed
+    ? t("arch.kickoffInternalRevise", { target })
+    : t("arch.kickoffInternal", { target });
   state.architectureMessages.push({ role: "user", content: kick });
   void persistProjectChat();
   try {
@@ -2641,7 +2666,7 @@ async function kickoffArchitectureDialogue() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         messages: state.architectureMessages.slice(-16),
-        card: cardValues(),
+        card: state.revisePlanConfirmed ? reviseCardValues() : cardValues(),
         mode: "architecture",
         deployTarget: state.deployTarget || "none",
         stream: true,
@@ -2803,13 +2828,19 @@ function confirmArchitecture() {
   state.architecture.confirmed = true;
   state.architecture.status = "confirmed";
   const revisePending = Boolean(
-    (el.revGoal?.value || "").trim() || (el.revAccept?.value || "").trim(),
+    state.revisePlanConfirmed ||
+      (el.revGoal?.value || "").trim() ||
+      (el.revAccept?.value || "").trim(),
   );
   state.mode = revisePending && !state.reviseLocked ? "revise" : "specify";
   syncArchitecturePanel();
   syncChatPlaceholder();
   schedulePersistProjectDesk();
   addBubble("bot", t("arch.hintConfirmed"));
+  // Revise path: architecture confirm comes *after* 改进方案确认 → then dispatch.
+  if (state.revisePlanConfirmed && !state.reviseLocked && state.jobId) {
+    void dispatchReviseAgent();
+  }
 }
 
 async function autoFixAccept(btn, issues, kind = "confirm") {
@@ -4392,6 +4423,7 @@ function enterReviseMode() {
   state.mode = "revise";
   state.reviseLocked = false;
   state.reviseDispatching = false;
+  state.revisePlanConfirmed = false;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Keep confirmed architecture; only redesign when structure changes.
   // Advance to the next iteration card — never overwrite prior reviseCards.
@@ -4498,6 +4530,7 @@ function lockReviseCard(data, card) {
   state.mode = "specify"; // leave dialogue; chrome via reviseLocked
   state.reviseLocked = true;
   state.reviseDispatching = false;
+  state.revisePlanConfirmed = false;
   const rev = Number(data.revision) || 0;
   upsertReviseCardEntry(rev, card);
   state.reviseDraft = null;
@@ -4541,6 +4574,44 @@ function lockReviseCard(data, card) {
   void persistProjectChat();
 }
 
+/** Lock 改进卡 contents, then open architecture confirm/redesign gate. */
+function confirmRevisePlan() {
+  stashReviseDraftFromFields();
+  state.revisePlanConfirmed = true;
+  setReviseFieldsReadonly(true);
+  syncConfirmEnabled();
+  addBubble("bot", t("arch.afterRevisePlan"));
+  void persistProjectChat();
+  openReviseArchitectureGate();
+}
+
+/**
+ * After 改进方案确认: require architecture confirm again (keep diagram as
+ * preview, or redesign). Dispatch runs only after confirmArchitecture.
+ */
+function openReviseArchitectureGate() {
+  if (state.architecture.url && state.architecture.ir) {
+    state.architecture.confirmed = false;
+    state.architecture.status = "preview";
+    state.mode = "architecture";
+    syncArchitecturePanel();
+    syncChatPlaceholder();
+    syncComposerEnabled();
+    schedulePersistProjectDesk();
+    focusRightPanel({ force: true });
+    try {
+      el.architecturePanel?.scrollIntoView({
+        block: "nearest",
+        behavior: "smooth",
+      });
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+  beginArchitectureDesign({ kickoff: true });
+}
+
 async function confirmReviseAndDispatch() {
   if (!state.jobId || state.busy || state.reviseDispatching) return;
   const v = reviseCardValues();
@@ -4556,15 +4627,28 @@ async function confirmReviseAndDispatch() {
     addBubble("bot", t("bot.needValidate"));
     return;
   }
+  if (el.reviseErr) el.reviseErr.hidden = true;
+  // Order: confirm 改进方案 → confirm architecture → dispatch.
+  if (!state.revisePlanConfirmed) {
+    confirmRevisePlan();
+    return;
+  }
   if (!state.architecture.confirmed) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
-      el.reviseErr.textContent = t("arch.needConfirm");
+      el.reviseErr.textContent = t("arch.needConfirmAfterPlan");
     }
-    beginArchitectureDesign({ kickoff: true });
+    openReviseArchitectureGate();
     return;
   }
-  if (el.reviseErr) el.reviseErr.hidden = true;
+  await dispatchReviseAgent();
+}
+
+async function dispatchReviseAgent() {
+  if (!state.jobId || state.busy || state.reviseDispatching) return;
+  if (!state.revisePlanConfirmed || !state.architecture.confirmed) return;
+  const v = reviseCardValues();
+  if (!v.goal || !v.acceptance) return;
   state.reviseDispatching = true;
   syncReviseDispatchButton(false);
   try {
@@ -4671,9 +4755,8 @@ async function confirmReviseAndDispatch() {
         : msg;
     }
     addBubble("bot", msg);
-    // Keep card unlocked so Confirm revise stays available.
-    state.reviseLocked = false;
-    setReviseFieldsReadonly(false);
+    // Keep plan confirmed; unlock fields only if validation failed path above.
+    // Architecture stays confirmed so retry can re-dispatch.
   } finally {
     state.reviseDispatching = false;
     syncConfirmEnabled();
@@ -5122,6 +5205,7 @@ async function restoreHistoryJob() {
   state.reviseCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
+  state.revisePlanConfirmed = false;
   clearRunTimeline();
   const card = data.card || {};
   el.goal.value = card.goal || "";
