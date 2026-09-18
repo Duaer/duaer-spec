@@ -67,6 +67,10 @@ const state = {
    * Architecture gate runs only after this is true.
    */
   revisePlanConfirmed: false,
+  /** True while the left chat is in an active revise dialogue (CTA → lock). */
+  reviseDialogueOpen: false,
+  /** In-flight revise kickoff (prevents double-start on rapid re-clicks). */
+  reviseKickoffInFlight: false,
   /** First confirmed architecture (初版), for accordion + change detection. */
   initialArchitecture: null,
   /** Accordion open state keyed by "0" | "1" | "2" | "draft". Default: open. */
@@ -1349,14 +1353,18 @@ function appendOptionChips(host, options) {
   scrollChatToLatest();
 }
 
-/** Keep focus in chat while designing architecture; otherwise follow card stage. */
+/** Keep focus in chat while designing architecture or revising; otherwise follow card stage. */
 function afterChatBubbleUi({ forceRight = false } = {}) {
   scrollChatToLatest();
-  if (state.mode === "architecture" && !forceRight) {
+  if (forceRight) {
+    focusRightPanel({ force: true });
+    return;
+  }
+  if (state.mode === "architecture" || state.reviseDialogueOpen) {
     el.input?.focus();
     return;
   }
-  focusRightPanel({ force: forceRight });
+  focusRightPanel({ force: false });
 }
 
 function architectureContinueOptions(parsed) {
@@ -1606,6 +1614,8 @@ function clearDeskWorkspace() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseStuckHint = false;
+  state.reviseDialogueOpen = false;
+  state.reviseKickoffInFlight = false;
   state.originalCard = null;
   state.lastRevision = null;
   state.reviseCards = [];
@@ -1727,6 +1737,8 @@ async function loadProjectChatIntoUi(projectPath) {
       data.mode === "revise" || data.mode === "architecture"
         ? data.mode
         : "specify";
+    state.reviseDialogueOpen =
+      state.mode === "revise" && !Boolean(data.reviseLocked);
     state.reviseLocked = Boolean(data.reviseLocked);
     state.originalCard = data.originalCard || null;
     state.lastRevision = data.lastRevision || null;
@@ -4644,9 +4656,18 @@ function postReviseAgainUserMessage() {
   return text;
 }
 
+function reviseDialogueHasAssistantReply() {
+  return (state.reviseMessages || []).some(
+    (m) => m?.role === "assistant" && String(m.content || "").trim(),
+  );
+}
+
+/**
+ * Enter / resume revise dialogue from「再改一版」.
+ * Order matters: switch chat → visible user message → kickoff → then chrome.
+ */
 function enterReviseMode() {
   maybeClearStaleBusy();
-  // CTA click must free a stuck stream so kickoff can post to chat.
   if (state.busy) setBusy(false);
   if (!state.jobId) {
     if (el.reviseErr) {
@@ -4658,14 +4679,23 @@ function enterReviseMode() {
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
 
-  // Mid-dialogue (CTA hidden): just focus the revise thread — do not
-  // advance revision or re-kick. After accept, mode is specify/architecture.
-  if (state.mode === "revise" && !state.lastDeliveryAccepted) {
+  // Already in revise dialogue: keep chat focused; re-kick only if idle
+  // and the employee never answered (first click may have aborted).
+  if (state.reviseDialogueOpen && state.mode === "revise" && !state.reviseLocked) {
     switchChatLogForMode("revise");
-    el.input.focus();
-    focusRightPanel({ force: true });
-    addBubble("bot", t("bot.continueRevise"));
+    el.input?.focus();
     scrollChatToLatest();
+    if (
+      !state.busy &&
+      !state.reviseKickoffInFlight &&
+      !reviseDialogueHasAssistantReply()
+    ) {
+      postReviseAgainUserMessage();
+      void kickoffReviseDialogue();
+    } else {
+      addBubble("bot", t("bot.continueRevise"));
+      scrollChatToLatest();
+    }
     return;
   }
 
@@ -4675,12 +4705,11 @@ function enterReviseMode() {
   }
 
   state.mode = "revise";
+  state.reviseDialogueOpen = true;
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
-  state.lastDeliveryAccepted = false;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
-  // Keep confirmed architecture; only redesign when structure changes.
   // Advance to the next iteration card — never overwrite prior reviseCards.
   const nextRev = nextReviseRevisionNumber();
   state.reviseDraft = {
@@ -4691,43 +4720,51 @@ function enterReviseMode() {
     assumptions: "",
   };
   state.reviseCardFocus = nextRev;
+
+  // 1) Show revise thread + visible user turn immediately (first-click feedback)
+  switchChatLogForMode("revise");
+  postReviseAgainUserMessage();
+  syncChatPlaceholder();
+  el.input?.focus();
+  scrollChatToLatest();
+
+  // 2) Kick off employee reply before heavy chrome work
+  void kickoffReviseDialogue();
+
+  // 3) Card chrome / accordion (must not flip lastDeliveryAccepted)
   syncArchitecturePanel();
   resetValidateGate();
-  // Keep top confirm card as original requirements — do not clear it
   restoreConfirmCardFromOriginal();
   applyReviseFieldsFromCard(state.reviseDraft);
   setReviseFieldsReadonly(false);
   syncReqSections();
   applyCardChrome();
   syncReviseCardChrome({ rebuildAccordion: true });
-  // Switch left chat to revise thread so user-sent revise content is visible.
-  switchChatLogForMode("revise");
-  // Visible user message in the dialogue (system kick stays filtered).
-  postReviseAgainUserMessage();
-  syncChatPlaceholder();
   syncConfirmEnabled();
-  el.input.focus();
-  scrollChatToLatest();
   void persistProjectChat();
   renderRevisePanel({
     canRevise: true,
-    status: "accepted",
-    delivery: { status: "accepted" },
+    status: "revising",
   });
-  focusRightPanel({ force: true });
-  void kickoffReviseDialogue();
+  // Stay on chat — do not steal focus to the right column on first click.
+  el.input?.focus();
+  scrollChatToLatest();
 }
 
 async function kickoffReviseDialogue() {
   if (state.reviseDispatching || state.mode !== "revise") return;
+  if (state.reviseKickoffInFlight) return;
+  state.reviseKickoffInFlight = true;
   // Wait briefly if another chat stream is finishing.
   for (let i = 0; i < 40 && state.busy; i += 1) {
     await new Promise((r) => setTimeout(r, 50));
   }
   maybeClearStaleBusy();
-  // After CTA cleared busy; if still stuck, force free once for this kickoff.
   if (state.busy) setBusy(false);
-  if (state.mode !== "revise") return;
+  if (state.mode !== "revise") {
+    state.reviseKickoffInFlight = false;
+    return;
+  }
   setBusy(true);
   syncReviseDispatchButton(false);
   const streamBubble = startStreamingBubble();
@@ -4785,10 +4822,11 @@ async function kickoffReviseDialogue() {
     );
     streamBubble.finish();
   } finally {
+    state.reviseKickoffInFlight = false;
     setBusy(false);
     syncConfirmEnabled();
     void persistProjectChat();
-    el.input.focus();
+    el.input?.focus();
     scrollChatToLatest();
   }
 }
@@ -4796,6 +4834,8 @@ async function kickoffReviseDialogue() {
 /** After revise dispatch: keep bottom 改进卡 visible with confirmed values (locked). */
 function lockReviseCard(data, card) {
   state.mode = "specify"; // leave dialogue; chrome via reviseLocked
+  state.reviseDialogueOpen = false;
+  state.reviseKickoffInFlight = false;
   state.reviseLocked = true;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
@@ -5136,6 +5176,7 @@ function startStatusPoll() {
 if (el.startReviseChat) {
   el.startReviseChat.addEventListener("click", (ev) => {
     ev.preventDefault();
+    ev.stopPropagation();
     enterReviseMode();
   });
 }
@@ -5143,6 +5184,7 @@ if (el.startReviseChat) {
 if (el.startReviseChatAlt) {
   el.startReviseChatAlt.addEventListener("click", (ev) => {
     ev.preventDefault();
+    ev.stopPropagation();
     enterReviseMode();
   });
 }

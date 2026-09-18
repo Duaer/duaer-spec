@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "139-revise-first-click",
+  "acceptedAt": "2026-09-18T08:15:00.000Z",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "First-click 再改一版: chat+user msg+kickoff before chrome; reviseDialogueOpen guard; chat stays focused; cache v=revise-first-1"
+}
