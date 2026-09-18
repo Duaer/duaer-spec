@@ -387,8 +387,27 @@ body {
   border-color: var(--lock);
 }
 
+.dispatch-project-summary {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--plate-2);
+}
+
 .dispatch-project-line {
-  margin: 0 0 0.6rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dispatch-project-path {
+  margin: 0.25rem 0 0;
+  word-break: break-all;
+}
+
+.repo-pick-block {
+  margin-bottom: 0.75rem;
 }
 
 .history-list {

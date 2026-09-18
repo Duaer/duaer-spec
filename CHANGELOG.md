@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Dispatch shows current project only
+
+- When a project is already selected, dispatch hides browse/path pickers and
+  shows a short「当前项目」summary instead of「派工到当前项目」re-select UI
+
 ### Auto-start chat after project select
 
 - Choosing / creating the current project immediately kicks off the

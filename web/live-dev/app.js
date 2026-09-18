@@ -134,6 +134,9 @@ const el = {
   projectList: document.getElementById("projectList"),
   projectGateHint: document.getElementById("projectGateHint"),
   dispatchProjectLine: document.getElementById("dispatchProjectLine"),
+  dispatchProjectPath: document.getElementById("dispatchProjectPath"),
+  dispatchProjectSummary: document.getElementById("dispatchProjectSummary"),
+  repoPickBlock: document.getElementById("repoPickBlock"),
   repoPickActions: document.getElementById("repoPickActions"),
   repoFilterField: document.getElementById("repoFilterField"),
   repoFilter: document.getElementById("repoFilter"),
@@ -363,18 +366,23 @@ function setActiveProject(path, name, description) {
 }
 
 function syncDispatchProjectLine() {
-  if (el.dispatchProjectLine) {
-    if (state.projectPath) {
-      el.dispatchProjectLine.hidden = false;
-      el.dispatchProjectLine.textContent = t("project.active", {
-        name: state.projectName || state.projectPath,
-      });
-    } else {
-      el.dispatchProjectLine.hidden = true;
-      el.dispatchProjectLine.textContent = "";
-    }
-  }
   const has = Boolean(state.projectPath);
+  if (el.dispatchProjectSummary) {
+    el.dispatchProjectSummary.hidden = !has;
+  }
+  if (el.dispatchProjectLine) {
+    el.dispatchProjectLine.textContent = has
+      ? t("dispatch.projectSummary", {
+          name: state.projectName || state.projectPath,
+        })
+      : "";
+  }
+  if (el.dispatchProjectPath) {
+    el.dispatchProjectPath.textContent = has ? state.projectPath : "";
+    el.dispatchProjectPath.hidden = !has;
+  }
+  // Project already chosen earlier — do not re-show browse / path pickers.
+  if (el.repoPickBlock) el.repoPickBlock.hidden = has;
   if (el.repoPickActions) el.repoPickActions.hidden = has;
   if (el.repoFilterField) el.repoFilterField.hidden = has;
   if (el.repoList) el.repoList.hidden = has;

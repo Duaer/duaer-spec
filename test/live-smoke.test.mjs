@@ -250,7 +250,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="projectActivate"/);
   assert.match(html, /id="projectTitle"/);
   assert.match(html, /id="projectDescription"/);
-  assert.match(html, /id="projectBadge"|project\.noneBadge/);
+  assert.match(html, /id="dispatchProjectSummary"|dispatch-project-summary/);
+  assert.match(js, /repoPickBlock|dispatch\.projectSummary/);
   assert.match(js, /bot\.needProject|state\.projectPath/);
   assert.match(js, /\/api\/projects/);
   assert.match(js, /if \(!state\.projectPath\)/);

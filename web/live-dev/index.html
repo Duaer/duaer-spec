@@ -134,23 +134,28 @@
           <pre id="result" class="result" hidden></pre>
 
           <section id="dispatch" class="dispatch" hidden>
-            <p class="mark" data-i18n="dispatch.mark">Dispatch · product repo</p>
-            <h3 class="dispatch-title" data-i18n="dispatch.title">派工到当前项目</h3>
-            <p id="dispatchProjectLine" class="hint dispatch-project-line" hidden></p>
-            <div class="repo-actions" id="repoPickActions">
-              <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>
-              <button type="button" class="btn" id="repoScan" data-i18n="dispatch.scan">扫描本机</button>
+            <p class="mark" data-i18n="dispatch.mark">派工</p>
+            <h3 class="dispatch-title" data-i18n="dispatch.title">启动数字员工</h3>
+            <div id="dispatchProjectSummary" class="dispatch-project-summary" hidden>
+              <p id="dispatchProjectLine" class="dispatch-project-line"></p>
+              <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
             </div>
-            <label class="field" id="repoFilterField">
-              <span data-i18n="dispatch.filter">筛选</span>
-              <input id="repoFilter" type="text" data-i18n-placeholder="dispatch.filterPh" placeholder="按名称过滤…" autocomplete="off" />
-            </label>
-            <div id="repoList" class="repo-list"></div>
-            <label class="field">
-              <span data-i18n="dispatch.path">项目路径</span>
-              <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product" readonly />
-            </label>
-            <p class="hint" data-i18n="dispatch.pathHint">默认使用当前项目；要换项目请打开右上角「项目」</p>
+            <div id="repoPickBlock" class="repo-pick-block">
+              <div class="repo-actions" id="repoPickActions">
+                <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>
+                <button type="button" class="btn" id="repoScan" data-i18n="dispatch.scan">扫描本机</button>
+              </div>
+              <label class="field" id="repoFilterField">
+                <span data-i18n="dispatch.filter">筛选</span>
+                <input id="repoFilter" type="text" data-i18n-placeholder="dispatch.filterPh" placeholder="按名称过滤…" autocomplete="off" />
+              </label>
+              <div id="repoList" class="repo-list"></div>
+              <label class="field">
+                <span data-i18n="dispatch.path">项目路径</span>
+                <input id="repoPath" type="text" data-i18n-placeholder="dispatch.pathPh" placeholder="/Users/…/your-product" readonly />
+              </label>
+              <p class="hint" data-i18n="dispatch.pathHint">先在右上角「项目」选好当前项目</p>
+            </div>
             <div class="field deploy-target-field">
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
@@ -300,6 +305,6 @@
       </div>
     </aside>
 
-    <script type="module" src="/app.js?v=project-auto-chat-1"></script>
+    <script type="module" src="/app.js?v=dispatch-simple-1"></script>
   </body>
 </html>
