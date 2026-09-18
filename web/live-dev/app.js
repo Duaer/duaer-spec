@@ -3706,6 +3706,7 @@ function fillRunProgress(block, data) {
       mark.className = "mark";
       mark.textContent = task.done ? "✓" : "·";
       const text = document.createElement("span");
+      text.className = "progress-task-text";
       text.textContent = task.text;
       li.appendChild(mark);
       li.appendChild(text);
