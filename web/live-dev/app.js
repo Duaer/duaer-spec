@@ -1290,6 +1290,7 @@ async function loadProjectChatIntoUi(projectPath) {
     ) {
       appendArchitectureMessagesToLog();
     }
+    restoreReviseDeskUi();
     restoreValidateGate(data.validate);
     syncArchitecturePanel(
       state.locked && !state.architecture.confirmed ? "stale" : undefined,
@@ -2148,6 +2149,42 @@ function appendArchitectureMessagesToLog() {
     const role = m.role === "user" ? "user" : "bot";
     addBubble(role, m.content || "");
   }
+}
+
+function isReviseSystemKick(m) {
+  const c = String(m?.content || "");
+  return (
+    m?.role === "user" &&
+    (c.startsWith("（系统）") || c.startsWith("(system)"))
+  );
+}
+
+function appendReviseMessagesToLog() {
+  for (const m of state.reviseMessages || []) {
+    if (isReviseSystemKick(m)) continue;
+    const role = m.role === "user" ? "user" : "bot";
+    addBubble(role, m.content || "");
+  }
+}
+
+function restoreReviseDeskUi() {
+  const hasRevise =
+    state.mode === "revise" ||
+    state.reviseLocked ||
+    (Array.isArray(state.reviseMessages) && state.reviseMessages.length > 0) ||
+    Boolean(
+      (el.revGoal?.value || "").trim() || (el.revAccept?.value || "").trim(),
+    );
+  if (!hasRevise) return;
+  appendReviseMessagesToLog();
+  renderRevisePanel({
+    canRevise: true,
+    status: state.reviseLocked ? "revising" : "accepted",
+    delivery: { status: "accepted" },
+    revision: state.lastRevision?.revision || 0,
+  });
+  applyCardChrome();
+  syncChatPlaceholder();
 }
 
 function maybeNudgeArchitectureContinue() {
@@ -3841,7 +3878,7 @@ function enterReviseMode() {
   state.mode = "revise";
   state.reviseLocked = false;
   state.reviseDispatching = false;
-  state.reviseMessages = [];
+  // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Keep confirmed architecture; only redesign when structure changes.
   syncArchitecturePanel();
   resetValidateGate();
@@ -3858,6 +3895,7 @@ function enterReviseMode() {
   syncConfirmEnabled();
   el.input.focus();
   addBubble("bot", t("bot.enterRevise"));
+  void persistProjectChat();
   renderRevisePanel({
     canRevise: true,
     status: "accepted",
@@ -3907,6 +3945,7 @@ async function kickoffReviseDialogue() {
       if (final.reply) streamBubble.set(final.reply);
       streamBubble.finish(final.options);
       state.reviseMessages.push({ role: "assistant", content: final.reply });
+      void persistProjectChat();
     } else {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t("err.chat"));
@@ -3914,6 +3953,7 @@ async function kickoffReviseDialogue() {
       streamBubble.set(data.reply || "");
       streamBubble.finish(data.options);
       state.reviseMessages.push({ role: "assistant", content: data.reply });
+      void persistProjectChat();
     }
   } catch (err) {
     state.reviseMessages.pop();
@@ -3926,6 +3966,7 @@ async function kickoffReviseDialogue() {
   } finally {
     setBusy(false);
     syncConfirmEnabled();
+    void persistProjectChat();
     el.input.focus();
   }
 }
@@ -3972,6 +4013,7 @@ function lockReviseCard(data, card) {
     }),
   });
   focusRightPanel({ force: true });
+  void persistProjectChat();
 }
 
 async function confirmReviseAndDispatch() {
