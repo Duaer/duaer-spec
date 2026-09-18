@@ -1833,6 +1833,18 @@ function resetArchitecture({ stale = false } = {}) {
   syncArchitecturePanel(stale ? "stale" : "need");
 }
 
+function architectureEmbedUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, window.location.origin);
+    u.searchParams.set("embed", "1");
+    return `${u.pathname}${u.search}${u.hash}`;
+  } catch {
+    return raw.includes("?") ? `${raw}&embed=1` : `${raw}?embed=1`;
+  }
+}
+
 function syncArchitecturePanel(kind) {
   if (!el.architecturePanel) return;
   el.architecturePanel.hidden = false;
@@ -1844,7 +1856,7 @@ function syncArchitecturePanel(kind) {
   if (el.architectureFrame) {
     if (a.url) {
       el.architectureFrame.hidden = false;
-      el.architectureFrame.src = a.url;
+      el.architectureFrame.src = architectureEmbedUrl(a.url);
       const vb = a.ir?.meta?.viewBox;
       const h =
         Array.isArray(vb) && Number.isFinite(vb[1])

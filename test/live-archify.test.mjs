@@ -130,4 +130,5 @@ test("live sources wire architecture API + desk panel", () => {
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /beginArchitectureDesign|confirmArchitecture|kickoffArchitectureDialogue/);
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
+  assert.match(js, /architectureEmbedUrl|embed=1/);
 });

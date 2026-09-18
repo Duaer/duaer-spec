@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T03:50:00.000Z",
+  "verification": {
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"],
+    "result": "pass"
+  }
+}
