@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: deliverables HTML content structure
+
+- Numbered acceptance / out-of-scope chips / arrow flows parse into lists
+- Task pool as checklist table; confirmation as registry (no duplicate cards)
+- Module cards with clearer field layout
+
 ### Feat: reliable multi-worker task orchestration
 
 - Kickoff / status poll only release ready waves (`dependsOn` satisfied via `[x]`)

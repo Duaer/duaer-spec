@@ -34,6 +34,9 @@ model). A cache file is written under `~/.duaer/live/project-chats/*-deliverable
 The HTML uses a **white client dossier** look (not the desk dark theme).
 Each page includes a **Contents** nav, stage anchors, and labeled field rows
 (goal / out of scope / acceptance / assumptions) for confirmation cards.
+Long acceptance lines (`1)…；2)…`) become ordered lists; out-of-scope lists
+become chips; the task pool renders as a checklist table; confirmation is a
+registry linking into the requirements document (no duplicate full cards).
 
 ## Modular confirm (no early Brief)
 
