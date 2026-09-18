@@ -97,6 +97,8 @@ test("renderDeliverablesHtml escapes XSS and includes stages", () => {
   assert.match(html, /<!DOCTYPE html>/);
   assert.match(html, /Deliverables dossier|hero-project/);
   assert.match(html, /Requirements/);
+  assert.match(html, /class="toc"|目录|Contents/);
+  assert.match(html, /card-dl|struct-p|struct-list/);
   assert.match(html, /--paper:\s*#ffffff/);
   assert.doesNotMatch(html, /fonts\.googleapis|Cormorant Garamond|DM Sans/);
   assert.doesNotMatch(html, /--register:\s*#e05a2b|--steel:\s*#0f1820/);
