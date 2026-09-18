@@ -11,6 +11,7 @@ import {
   applyDomI18n,
 } from "./i18n.js";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
+import { renderChatMarkdown } from "./chat-markdown.mjs";
 import { extractArchitectureIr } from "./architecture-ir.mjs";
 import {
   mountArchitectureDiagram,
@@ -1717,8 +1718,10 @@ function architectureContinueOptions(parsed) {
 function addBubble(role, text, { options, actions } = {}) {
   const div = document.createElement("div");
   div.className = `bubble ${role}`;
-  const textNode = document.createTextNode(text);
-  div.appendChild(textNode);
+  const body = document.createElement("div");
+  body.className = "bubble-body";
+  body.innerHTML = renderChatMarkdown(text);
+  div.appendChild(body);
   if (options?.length) appendOptionChips(div, options);
   if (actions?.length) {
     const row = document.createElement("div");
@@ -1738,25 +1741,29 @@ function addBubble(role, text, { options, actions } = {}) {
   el.log.appendChild(div);
   syncChatEmpty();
   afterChatBubbleUi();
-  return { div, textNode };
+  return { div, body };
 }
 
 function startStreamingBubble() {
-  const { div, textNode } = addBubble("bot", "");
+  const { div, body } = addBubble("bot", "");
   div.classList.add("streaming");
+  let plain = "";
   return {
     div,
-    textNode,
+    body,
     append(chunk) {
-      textNode.textContent += chunk;
+      plain += chunk;
+      // Plain text while streaming (stable cursor); render Markdown on finish.
+      body.textContent = plain;
       scrollChatToLatest();
     },
     set(text) {
-      textNode.textContent = text;
+      plain = String(text || "");
+      body.textContent = plain;
       scrollChatToLatest();
     },
     getText() {
-      return textNode.textContent || "";
+      return plain;
     },
     finish(options) {
       try {
@@ -1764,7 +1771,12 @@ function startStreamingBubble() {
       } catch {
         /* ignore */
       }
-      const reply = textNode.textContent || "";
+      const reply = plain;
+      try {
+        body.innerHTML = renderChatMarkdown(reply);
+      } catch {
+        body.textContent = reply;
+      }
       try {
         const opts = enrichChatOptions(reply, options);
         appendOptionChips(div, opts);

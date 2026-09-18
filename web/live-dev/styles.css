@@ -818,7 +818,7 @@ body.history-open {
 .bubble {
   max-width: 92%;
   padding: 0.7rem 0.9rem;
-  white-space: pre-wrap;
+  white-space: normal;
   word-break: break-word;
   animation: rise 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -852,6 +852,42 @@ body.history-open {
   background: var(--plate-2);
   border: 1px solid var(--line);
   color: var(--ink);
+}
+
+.bubble-body {
+  white-space: normal;
+}
+
+.bubble-body strong {
+  font-weight: 650;
+}
+
+.bubble-body em {
+  font-style: italic;
+}
+
+.bubble-body code.chat-inline-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.bubble-body pre.chat-code {
+  margin: 0.45em 0;
+  padding: 0.5em 0.65em;
+  overflow-x: auto;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  white-space: pre-wrap;
+  font-size: 0.85em;
+}
+
+.bubble-body a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .bubble.streaming::after {

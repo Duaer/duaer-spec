@@ -1,6 +1,1 @@
-{
-  "specDir": ".duaer/specs/170-readme-on-delivery",
-  "branch": "feat/readme-on-delivery",
-  "startedAt": "2026-09-18T20:23:00.000Z",
-  "source": "agent"
-}
+{ "specDir": ".duaer/specs/171-chat-markdown", "branch": "fix/chat-markdown", "source": "agent" }
