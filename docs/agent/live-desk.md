@@ -54,6 +54,9 @@ Kickoff owns Brief creation and dispatch:
   **same** CLI (Cursor Agent or Claude Code — not mixed).
 - Assignment: shared / cross-cutting tasks → worker 1; module-scoped tasks
   round-robin across workers.
+- Progress **派工进度** shows **one lane per worker** when N>1 (per-worker
+  tasks, running/queued state, log tail). Single worker keeps the aggregate
+  checklist.
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 
@@ -69,7 +72,8 @@ Kickoff owns Brief creation and dispatch:
 
 Touching live desk UI / protocol UX: L0 + **`npm run test:live`** (L3) per
 [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md). Catalog rows:
-E2E-135…E2E-139 (modular / pool / README-on-delivery / chat Markdown / lanes).
+E2E-135…E2E-139 (modular / pool / README-on-delivery / chat Markdown / lanes),
+E2E-145 (multi-worker progress lanes).
 
 ## Related
 

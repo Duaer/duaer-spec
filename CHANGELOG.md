@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: multi-worker lanes in 派工进度
+
+- When workerCount > 1, Progress shows one lane per digital employee
+- Status `workers[]` includes tasks, state, and per-lane log tails
+
 ### Feat: structured deliverables page
 
 - Contents TOC with stage / artifact anchors

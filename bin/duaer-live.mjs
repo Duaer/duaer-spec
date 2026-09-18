@@ -24,6 +24,7 @@ import {
 import {
   buildDetailedProductTasksMd,
   buildDetailedRevisionTasksMd,
+  buildWorkersProgress,
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
 import {
@@ -4893,6 +4894,7 @@ function dispatchStatus(jobId) {
       dispatch: null,
       delivery: null,
       progress: null,
+      workers: [],
       activity: null,
       logTail: [],
       preview: null,
@@ -4930,7 +4932,43 @@ function dispatchStatus(jobId) {
     worktreeExists && dispatch.worktreePath
       ? worktreeActivity(dispatch.worktreePath)
       : { files: [], summary: "" };
-  const terminal = terminalQueueSnapshot(dispatch.worktreePath);
+  const launches = Array.isArray(dispatch.launches) ? dispatch.launches : [];
+  const workerCount = Math.max(
+    Number(dispatch.workerCount) || 0,
+    launches.length || 0,
+    1,
+  );
+  const multiWorker = workerCount > 1;
+  let terminal = terminalQueueSnapshot(dispatch.worktreePath);
+  const terminalsByLane = {};
+  const logTailsByLane = {};
+  if (multiWorker && dispatch.worktreePath) {
+    let anyBusy = false;
+    let queueDepth = 0;
+    let anyHealthy = false;
+    for (let w = 1; w <= workerCount; w += 1) {
+      const workerId = `w${w}`;
+      const snap = terminalQueueSnapshot(dispatch.worktreePath, workerId);
+      terminalsByLane[workerId] = snap;
+      if (snap.busy) anyBusy = true;
+      queueDepth += Number(snap.queueDepth) || 0;
+      if (snap.runnerHealthy) anyHealthy = true;
+      const launch =
+        launches.find((l) => l.workerId === workerId) || launches[w - 1];
+      const wLog =
+        launch?.logPath ||
+        (featureDir
+          ? path.join(featureDir, `agent-launch-${workerId}.log`)
+          : null);
+      logTailsByLane[workerId] = wLog ? readLogTail(wLog, 16) : [];
+    }
+    terminal = {
+      busy: anyBusy,
+      queueDepth,
+      runnerHealthy: anyHealthy,
+      lanes: terminalsByLane,
+    };
+  }
   const inferredFromTasks = inferRevisionFromTasksMd(tasksRaw);
   const revisionHint = Math.max(
     Number(live.job.revisionCount || 0),
@@ -5120,6 +5158,15 @@ function dispatchStatus(jobId) {
       ? "accepted"
       : live.job.status;
 
+  const workers = buildWorkersProgress({
+    workerCount,
+    launches,
+    taskPool: dispatch.taskPool || live.job.taskPool || null,
+    progress,
+    terminals: multiWorker ? terminalsByLane : {},
+    logTails: multiWorker ? logTailsByLane : {},
+  });
+
   return {
     jobId: live.id,
     status: statusOut,
@@ -5128,9 +5175,11 @@ function dispatchStatus(jobId) {
       worktreeExists,
       featureDir: featureDir || dispatch.featureDir,
       resolvedFrom: roots.source,
+      workerCount,
     },
     delivery,
     progress,
+    workers,
     activity,
     logTail,
     preview: previewOut,

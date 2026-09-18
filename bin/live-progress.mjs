@@ -207,3 +207,121 @@ export function parseWorktreeActivityFromGit({
     : "";
   return { files: capped, summary };
 }
+
+/**
+ * Per-worker progress for multi-employee dispatch (pure; no fs).
+ * Returns [] when only one worker — callers keep the single-panel UI.
+ *
+ * @param {{
+ *   workerCount?: number,
+ *   launches?: Array<{
+ *     workerId?: string,
+ *     taskIds?: string[],
+ *     agentId?: string,
+ *     kind?: string,
+ *   }>,
+ *   taskPool?: { tasks?: Array<{ id?: string, workerId?: string, title?: string }> } | null,
+ *   progress?: { tasks?: Array<{ id?: string, text?: string, done?: boolean }> } | null,
+ *   terminals?: Record<string, { busy?: boolean, queueDepth?: number, runnerHealthy?: boolean }>,
+ *   logTails?: Record<string, string[]>,
+ * }} input
+ */
+export function buildWorkersProgress(input = {}) {
+  const launches = Array.isArray(input.launches) ? input.launches : [];
+  const poolTasks = Array.isArray(input.taskPool?.tasks)
+    ? input.taskPool.tasks
+    : [];
+  const progressTasks = Array.isArray(input.progress?.tasks)
+    ? input.progress.tasks
+    : [];
+  const resolvedCount = Math.max(
+    Number(input.workerCount) || 0,
+    launches.length || 0,
+  );
+  if (resolvedCount <= 1) return [];
+
+  const progressById = new Map();
+  for (const t of progressTasks) {
+    const id = String(t.id || "")
+      .trim()
+      .toUpperCase();
+    if (id) progressById.set(id, t);
+  }
+
+  const workers = [];
+  for (let w = 1; w <= resolvedCount; w += 1) {
+    const workerId = `w${w}`;
+    const launch =
+      launches.find((l) => String(l.workerId || "") === workerId) ||
+      launches[w - 1] ||
+      null;
+    const fromLaunch = Array.isArray(launch?.taskIds)
+      ? launch.taskIds.map((id) => String(id).trim()).filter(Boolean)
+      : [];
+    const fromPool = poolTasks
+      .filter((t) => String(t.workerId || "") === workerId)
+      .map((t) => String(t.id || "").trim())
+      .filter(Boolean);
+    const assigned = fromLaunch.length ? fromLaunch : fromPool;
+    const seen = new Set();
+    const tasks = [];
+    for (const rawId of assigned) {
+      const id = rawId.toUpperCase();
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const p = progressById.get(id);
+      if (p) {
+        tasks.push({
+          id: String(p.id || id),
+          text: String(p.text || id),
+          done: Boolean(p.done),
+        });
+        continue;
+      }
+      const pool = poolTasks.find(
+        (t) => String(t.id || "").toUpperCase() === id,
+      );
+      tasks.push({
+        id,
+        text: pool
+          ? `${pool.id}${pool.title ? ` ${pool.title}` : ""}`.trim()
+          : id,
+        done: false,
+      });
+    }
+
+    const done = tasks.filter((t) => t.done).length;
+    const total = tasks.length;
+    const next = tasks.find((t) => !t.done) || null;
+    const term = input.terminals?.[workerId] || {
+      busy: false,
+      queueDepth: 0,
+      runnerHealthy: false,
+    };
+    let state = "idle";
+    if (total > 0 && done >= total) state = "done";
+    else if (term.busy) state = "running";
+    else if (Number(term.queueDepth) > 0) state = "queued";
+    else if (next) state = "waiting";
+
+    workers.push({
+      id: workerId,
+      agentId: launch?.agentId || null,
+      kind: launch?.kind || null,
+      state,
+      done,
+      total,
+      current: next?.text || (total > 0 && done >= total ? "done" : ""),
+      tasks,
+      terminal: {
+        busy: Boolean(term.busy),
+        queueDepth: Number(term.queueDepth) || 0,
+        runnerHealthy: Boolean(term.runnerHealthy),
+      },
+      logTail: Array.isArray(input.logTails?.[workerId])
+        ? input.logTails[workerId].slice(-16)
+        : [],
+    });
+  }
+  return workers;
+}
