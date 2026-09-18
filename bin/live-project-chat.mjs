@@ -1,5 +1,6 @@
 /**
- * Persist per-project desk chat transcripts under ~/.duaer/live/project-chats/.
+ * Persist per-project desk session under ~/.duaer/live/project-chats/.
+ * Includes chat, confirm/revise cards, and job binding for progress.
  */
 
 import { createHash } from "node:crypto";
@@ -20,51 +21,77 @@ export function projectChatPath(liveRoot, projectPath) {
   return path.join(liveRoot, "project-chats", `${key}.json`);
 }
 
-/**
- * @returns {{
- *   projectPath: string,
- *   updatedAt: string|null,
- *   messages: Array<{role:string,content:string}>,
- *   reviseMessages: Array<{role:string,content:string}>,
- *   rawAsk: string,
- * }}
- */
-export function readProjectChat(liveRoot, projectPath) {
-  const file = projectChatPath(liveRoot, projectPath);
-  const empty = {
+function clipCard(card) {
+  if (!card || typeof card !== "object") {
+    return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+  }
+  return {
+    goal: String(card.goal || "").slice(0, 8000),
+    outOfScope: String(card.outOfScope || "").slice(0, 8000),
+    acceptance: String(card.acceptance || "").slice(0, 8000),
+    assumptions: String(card.assumptions || "").slice(0, 8000),
+  };
+}
+
+function clipMessages(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+    .map((m) => ({
+      role: m.role,
+      content: String(m.content || "").slice(0, 20000),
+    }))
+    .slice(-200);
+}
+
+function emptySession(projectPath = "") {
+  return {
     projectPath: String(projectPath || "").trim(),
     updatedAt: null,
     messages: [],
     reviseMessages: [],
     rawAsk: "",
+    card: clipCard(null),
+    reviseCard: clipCard(null),
+    originalCard: null,
+    jobId: null,
+    locked: false,
+    mode: "specify",
+    reviseLocked: false,
+    lastRevision: null,
+    deployTarget: "none",
+    agentId: "",
   };
+}
+
+/**
+ * @returns {ReturnType<typeof emptySession>}
+ */
+export function readProjectChat(liveRoot, projectPath) {
+  const file = projectChatPath(liveRoot, projectPath);
+  const empty = emptySession(projectPath);
   if (!file || !fs.existsSync(file)) return empty;
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));
-    const messages = Array.isArray(raw.messages)
-      ? raw.messages
-          .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-          .map((m) => ({
-            role: m.role,
-            content: String(m.content || "").slice(0, 20000),
-          }))
-          .slice(-200)
-      : [];
-    const reviseMessages = Array.isArray(raw.reviseMessages)
-      ? raw.reviseMessages
-          .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-          .map((m) => ({
-            role: m.role,
-            content: String(m.content || "").slice(0, 20000),
-          }))
-          .slice(-200)
-      : [];
     return {
       projectPath: String(raw.projectPath || projectPath || "").trim(),
       updatedAt: raw.updatedAt || null,
-      messages,
-      reviseMessages,
+      messages: clipMessages(raw.messages),
+      reviseMessages: clipMessages(raw.reviseMessages),
       rawAsk: String(raw.rawAsk || "").slice(0, 8000),
+      card: clipCard(raw.card),
+      reviseCard: clipCard(raw.reviseCard),
+      originalCard: raw.originalCard ? clipCard(raw.originalCard) : null,
+      jobId: raw.jobId ? String(raw.jobId).slice(0, 200) : null,
+      locked: Boolean(raw.locked),
+      mode: raw.mode === "revise" ? "revise" : "specify",
+      reviseLocked: Boolean(raw.reviseLocked),
+      lastRevision:
+        raw.lastRevision && typeof raw.lastRevision === "object"
+          ? raw.lastRevision
+          : null,
+      deployTarget: String(raw.deployTarget || "none").slice(0, 40),
+      agentId: String(raw.agentId || "").slice(0, 80),
     };
   } catch {
     return empty;
@@ -80,30 +107,25 @@ export function writeProjectChat(liveRoot, payload) {
     throw e;
   }
   fs.mkdirSync(path.dirname(file), { recursive: true });
-  const messages = Array.isArray(payload.messages)
-    ? payload.messages
-        .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-        .map((m) => ({
-          role: m.role,
-          content: String(m.content || "").slice(0, 20000),
-        }))
-        .slice(-200)
-    : [];
-  const reviseMessages = Array.isArray(payload.reviseMessages)
-    ? payload.reviseMessages
-        .filter((m) => m && (m.role === "user" || m.role === "assistant"))
-        .map((m) => ({
-          role: m.role,
-          content: String(m.content || "").slice(0, 20000),
-        }))
-        .slice(-200)
-    : [];
   const doc = {
     projectPath,
     updatedAt: new Date().toISOString(),
-    messages,
-    reviseMessages,
+    messages: clipMessages(payload.messages),
+    reviseMessages: clipMessages(payload.reviseMessages),
     rawAsk: String(payload.rawAsk || "").slice(0, 8000),
+    card: clipCard(payload.card),
+    reviseCard: clipCard(payload.reviseCard),
+    originalCard: payload.originalCard ? clipCard(payload.originalCard) : null,
+    jobId: payload.jobId ? String(payload.jobId).slice(0, 200) : null,
+    locked: Boolean(payload.locked),
+    mode: payload.mode === "revise" ? "revise" : "specify",
+    reviseLocked: Boolean(payload.reviseLocked),
+    lastRevision:
+      payload.lastRevision && typeof payload.lastRevision === "object"
+        ? payload.lastRevision
+        : null,
+    deployTarget: String(payload.deployTarget || "none").slice(0, 40),
+    agentId: String(payload.agentId || "").slice(0, 80),
   };
   fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
   return doc;

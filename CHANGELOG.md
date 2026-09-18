@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Persist requirements card + task binding
+
+- Project session file also stores confirm/revise card fields, `jobId`, and
+  lock/mode flags
+- Refresh / re-select restores the requirements card and resumes progress poll
+  when a job is bound
+
 ### Persist project chat across refresh
 
 - Desk messages are stored per project under `~/.duaer/live/project-chats/`

@@ -1,5 +1,5 @@
 /**
- * Per-project chat persistence helpers.
+ * Per-project desk session persistence (chat + requirements + job).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -20,7 +20,7 @@ test("projectChatKey is stable and path-based", () => {
   assert.notEqual(a, projectChatKey("/Users/me/Projects/bar"));
 });
 
-test("write/read project chat round-trip", () => {
+test("write/read project desk session round-trip (chat + card + job)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
   const projectPath = path.join(root, "app");
   const saved = writeProjectChat(root, {
@@ -31,20 +31,50 @@ test("write/read project chat round-trip", () => {
     ],
     reviseMessages: [],
     rawAsk: "hello",
+    card: {
+      goal: "Ship login",
+      outOfScope: "SSO",
+      acceptance: "User can sign in",
+      assumptions: "Email auth",
+    },
+    reviseCard: {
+      goal: "Add MFA",
+      outOfScope: "",
+      acceptance: "TOTP works",
+      assumptions: "",
+    },
+    jobId: "job-abc",
+    locked: true,
+    mode: "specify",
+    reviseLocked: false,
+    deployTarget: "github-pages",
+    agentId: "cursor-agent",
   });
   assert.equal(saved.messages.length, 2);
+  assert.equal(saved.card.goal, "Ship login");
+  assert.equal(saved.jobId, "job-abc");
+  assert.equal(saved.locked, true);
   const loaded = readProjectChat(root, projectPath);
   assert.equal(loaded.messages[0].content, "hello");
-  assert.equal(loaded.messages[1].content, "hi");
-  assert.equal(loaded.rawAsk, "hello");
+  assert.equal(loaded.card.acceptance, "User can sign in");
+  assert.equal(loaded.reviseCard.goal, "Add MFA");
+  assert.equal(loaded.jobId, "job-abc");
+  assert.equal(loaded.locked, true);
+  assert.equal(loaded.deployTarget, "github-pages");
+  assert.equal(loaded.agentId, "cursor-agent");
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test("live sources wire project chat API + client persist", () => {
+test("live sources wire project desk session API + client persist", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /\/api\/projects\/chat/);
   assert.match(live, /readProjectChat|writeProjectChat/);
+  assert.match(live, /body\.card/);
+  assert.match(live, /body\.jobId/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /persistProjectChat|loadProjectChatIntoUi/);
+  assert.match(js, /schedulePersistProjectDesk/);
+  assert.match(js, /applySavedCardFields/);
+  assert.match(js, /startStatusPoll/);
 });

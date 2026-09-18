@@ -4915,6 +4915,16 @@ async function handleApi(req, res) {
         messages: body.messages,
         reviseMessages: body.reviseMessages,
         rawAsk: body.rawAsk,
+        card: body.card,
+        reviseCard: body.reviseCard,
+        originalCard: body.originalCard,
+        jobId: body.jobId,
+        locked: body.locked,
+        mode: body.mode,
+        reviseLocked: body.reviseLocked,
+        lastRevision: body.lastRevision,
+        deployTarget: body.deployTarget,
+        agentId: body.agentId,
       });
       send(res, 200, { ok: true, ...saved });
     } catch (err) {

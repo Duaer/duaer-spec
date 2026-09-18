@@ -846,6 +846,7 @@ function applyCardChrome() {
 ["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
+    schedulePersistProjectDesk();
     if (state.locked) return;
     scheduleValidate("confirm");
   });
@@ -854,6 +855,7 @@ function applyCardChrome() {
   if (el[id]) {
     el[id].addEventListener("input", () => {
       autoGrowTextarea(el[id]);
+      schedulePersistProjectDesk();
       if (state.reviseLocked) return;
       scheduleValidate("revise");
     });
@@ -997,6 +999,16 @@ async function persistProjectChat() {
         messages: state.messages,
         reviseMessages: state.reviseMessages,
         rawAsk: state.rawAsk || "",
+        card: cardValues(),
+        reviseCard: reviseCardValues(),
+        originalCard: state.originalCard,
+        jobId: state.jobId,
+        locked: state.locked,
+        mode: state.mode,
+        reviseLocked: state.reviseLocked,
+        lastRevision: state.lastRevision,
+        deployTarget: state.deployTarget || "none",
+        agentId: state.agentId || "",
       }),
     });
   } catch {
@@ -1004,8 +1016,31 @@ async function persistProjectChat() {
   }
 }
 
+let persistDeskTimer = 0;
+function schedulePersistProjectDesk() {
+  if (!state.projectPath) return;
+  clearTimeout(persistDeskTimer);
+  persistDeskTimer = setTimeout(() => {
+    void persistProjectChat();
+  }, 400);
+}
+
+function applySavedCardFields(card, reviseCard) {
+  const c = card || {};
+  if (el.goal) el.goal.value = c.goal || "";
+  if (el.outOfScope) el.outOfScope.value = c.outOfScope || "";
+  if (el.acceptance) el.acceptance.value = c.acceptance || "";
+  if (el.assumptions) el.assumptions.value = c.assumptions || "";
+  const r = reviseCard || {};
+  if (el.revGoal) el.revGoal.value = r.goal || "";
+  if (el.revOut) el.revOut.value = r.outOfScope || "";
+  if (el.revAccept) el.revAccept.value = r.acceptance || "";
+  if (el.revAssume) el.revAssume.value = r.assumptions || "";
+  syncReqSections();
+}
+
 /**
- * Load saved chat for a project into state + UI.
+ * Load saved desk session (chat + 需求卡 + job/任务绑定) for a project.
  * @returns {Promise<number>} message count restored
  */
 async function loadProjectChatIntoUi(projectPath) {
@@ -1014,6 +1049,13 @@ async function loadProjectChatIntoUi(projectPath) {
     state.messages = [];
     state.reviseMessages = [];
     state.rawAsk = "";
+    state.jobId = null;
+    state.locked = false;
+    state.mode = "specify";
+    state.reviseLocked = false;
+    state.originalCard = null;
+    state.lastRevision = null;
+    applySavedCardFields(null, null);
     clearChatLog();
     return 0;
   }
@@ -1028,12 +1070,44 @@ async function loadProjectChatIntoUi(projectPath) {
       ? data.reviseMessages
       : [];
     state.rawAsk = data.rawAsk || "";
+    state.jobId = data.jobId || null;
+    state.locked = Boolean(data.locked);
+    state.mode = data.mode === "revise" ? "revise" : "specify";
+    state.reviseLocked = Boolean(data.reviseLocked);
+    state.originalCard = data.originalCard || null;
+    state.lastRevision = data.lastRevision || null;
+    if (data.deployTarget) state.deployTarget = data.deployTarget;
+    if (data.agentId) state.agentId = data.agentId;
+    applySavedCardFields(data.card, data.reviseCard);
+    setConfirmFieldsReadonly(state.locked);
+    setReviseFieldsReadonly(state.reviseLocked);
+    applyConfirmCardChrome();
+    applyCardChrome();
     renderMessagesToLog(state.messages);
+    syncConfirmEnabled();
+    syncComposerEnabled();
+    if (state.jobId) {
+      if (el.dispatch) el.dispatch.hidden = false;
+      syncDispatchProjectLine();
+      if (state.locked && el.confirm) {
+        el.confirm.textContent = t("card.confirmed");
+        el.confirm.disabled = true;
+      }
+      startStatusPoll();
+      void loadAgents();
+    }
     return state.messages.length;
   } catch {
     state.messages = [];
     state.reviseMessages = [];
     state.rawAsk = "";
+    state.jobId = null;
+    state.locked = false;
+    state.mode = "specify";
+    state.reviseLocked = false;
+    state.originalCard = null;
+    state.lastRevision = null;
+    applySavedCardFields(null, null);
     clearChatLog();
     return 0;
   }
@@ -1250,7 +1324,11 @@ function showDesk(cfg) {
     await hydrateActiveProjectMeta();
     if (state.projectPath) {
       const n = await loadProjectChatIntoUi(state.projectPath);
-      if (!n && !state.messages.length) {
+      const hasDesk =
+        n > 0 ||
+        Boolean(state.jobId) ||
+        Boolean((el.goal?.value || "").trim());
+      if (!hasDesk) {
         addBubble("bot", t("bot.ready"), {
           options: [
             t("chat.optFeature"),
@@ -1515,6 +1593,7 @@ async function applyConfirmSuccess(data) {
     data.fixed ? t("bot.confirmFixed") : t("bot.confirmOk"),
   );
   syncConfirmEnabled();
+  void persistProjectChat();
   await showDispatchPanel();
 }
 
@@ -2220,6 +2299,7 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchStatus.textContent =
       launch.kind === "worker" ? t("status.running") : t("status.waiting");
     beginRunBlock({ revision: 0, note: t("run.note.dispatch") });
+    void persistProjectChat();
     startStatusPoll();
     focusRightPanel({ force: true });
   } catch (err) {
@@ -2845,6 +2925,7 @@ async function confirmReviseAndDispatch() {
       }),
     );
     lockReviseCard(data, v);
+    void persistProjectChat();
     if (el.dispatchStatus) {
       el.dispatchStatus.hidden = false;
       el.dispatchStatus.textContent = t("status.revisingLine", {
@@ -3201,7 +3282,11 @@ async function activateProjectPath(pathOrName, meta = {}) {
       ? t("project.kickoffBackground", { description: desc })
       : "";
     const restored = await loadProjectChatIntoUi(state.projectPath);
-    if (restored > 0) {
+    const hasDesk =
+      restored > 0 ||
+      Boolean(state.jobId) ||
+      Boolean((el.goal?.value || "").trim());
+    if (hasDesk) {
       if (el.input) el.input.focus();
       return;
     }
