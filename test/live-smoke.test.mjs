@@ -299,7 +299,12 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /postReviseAgainUserMessage|user\.reviseAgain/);
   assert.match(js, /reviseDialogueOpen|reviseKickoffInFlight/);
   assert.match(js, /getText\(|gotReply/);
+  assert.match(js, /ir:\s*null/);
   assert.match(liveBin, /chatDoneSsePayload/);
+  assert.doesNotMatch(
+    liveBin,
+    /writeSse\(res, \{ type: "done", \.\.\.parsed \}\)/,
+  );
   assert.match(html, /id="reviseTitle"|id="reviseVersions"|id="reviseVersionList"/);
   assert.match(js, /\/api\/projects/);
   assert.match(liveBin, /\/api\/projects\/chat/);

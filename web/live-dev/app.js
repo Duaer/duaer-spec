@@ -417,8 +417,14 @@ function setBusy(on) {
   state.busy = Boolean(on);
   state.busySince = state.busy ? Date.now() : 0;
   syncComposerEnabled();
-  // Confirm enablement depends on busy; re-sync after render finishes.
-  if (el.architectureConfirm) syncArchitecturePanel();
+  // Confirm enablement depends on busy; never let panel sync crash chat.
+  if (el.architectureConfirm) {
+    try {
+      syncArchitecturePanel();
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 function maybeClearStaleBusy() {
@@ -1479,6 +1485,46 @@ function renderMessagesToLog(messages) {
 async function persistProjectChat() {
   if (!state.projectPath) return;
   try {
+    // Omit deep architecture.ir — stringify can throw Maximum call stack size exceeded.
+    const archLite = {
+      status: state.architecture.status,
+      ir: null,
+      url: state.architecture.url,
+      summary: state.architecture.summary,
+      confirmed: state.architecture.confirmed,
+    };
+    const prevLite = state.architecturePrevious
+      ? {
+          ir: null,
+          url: state.architecturePrevious.url,
+          summary: state.architecturePrevious.summary || "",
+        }
+      : null;
+    const initLite = state.initialArchitecture?.url
+      ? {
+          url: state.initialArchitecture.url,
+          ir: null,
+          summary: state.initialArchitecture.summary || "",
+          changed: Boolean(state.initialArchitecture.changed),
+          fingerprint: String(state.initialArchitecture.fingerprint || ""),
+        }
+      : null;
+    const cardsLite = (state.reviseCards || []).map((e) => ({
+      revision: e.revision,
+      goal: e.goal,
+      outOfScope: e.outOfScope,
+      acceptance: e.acceptance,
+      assumptions: e.assumptions,
+      architecture: e.architecture?.url
+        ? {
+            url: e.architecture.url,
+            ir: null,
+            summary: e.architecture.summary || "",
+            changed: Boolean(e.architecture.changed),
+            fingerprint: String(e.architecture.fingerprint || ""),
+          }
+        : undefined,
+    }));
     await fetch("/api/projects/chat", {
       method: "PUT",
       headers: { "content-type": "application/json" },
@@ -1489,13 +1535,13 @@ async function persistProjectChat() {
         rawAsk: state.rawAsk || "",
         card: cardValues(),
         reviseCard: reviseCardValues(),
-        reviseCards: state.reviseCards,
+        reviseCards: cardsLite,
         reviseDraft: (() => {
           stashReviseDraftFromFields();
           return state.reviseDraft;
         })(),
         reviseCardFocus: state.reviseCardFocus,
-        initialArchitecture: state.initialArchitecture,
+        initialArchitecture: initLite,
         reviseExpanded: state.reviseExpanded,
         originalCard: state.originalCard,
         jobId: state.jobId,
@@ -1506,14 +1552,8 @@ async function persistProjectChat() {
         lastRevision: state.lastRevision,
         deployTarget: state.deployTarget || "none",
         agentId: state.agentId || "",
-        architecture: {
-          status: state.architecture.status,
-          ir: state.architecture.ir,
-          url: state.architecture.url,
-          summary: state.architecture.summary,
-          confirmed: state.architecture.confirmed,
-        },
-        architecturePrevious: state.architecturePrevious,
+        architecture: archLite,
+        architecturePrevious: prevLite,
         architectureMessages: state.architectureMessages,
         dispatchPhase: state.dispatchPhase === "done" ? "done" : null,
         validate: {
@@ -1961,7 +2001,7 @@ async function sendChat(userText) {
       void persistProjectChat();
       if (state.mode === "architecture") {
         const rendered = await maybeRenderArchitectureFromReply(
-          `${final.reply || ""}\n${JSON.stringify(final)}`,
+          `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
         );
         if (rendered) {
           announceArchitectureRendered(streamBubble, bag);
@@ -1994,7 +2034,7 @@ async function sendChat(userText) {
       void persistProjectChat();
       if (state.mode === "architecture") {
         const rendered = await maybeRenderArchitectureFromReply(
-          `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
+          `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
         );
         if (rendered) {
           announceArchitectureRendered(streamBubble, bag);
@@ -2533,10 +2573,11 @@ function architectureFingerprint(ir) {
   if (!ir || typeof ir !== "object") return "";
   try {
     const comps = (Array.isArray(ir.components) ? ir.components : [])
+      .slice(0, 200)
       .map((c) => ({
-        id: c?.id || "",
-        type: c?.type || "",
-        label: c?.label || c?.name || "",
+        id: String(c?.id || "").slice(0, 80),
+        type: String(c?.type || "").slice(0, 40),
+        label: String(c?.label || c?.name || "").slice(0, 120),
       }))
       .sort((a, b) => String(a.id).localeCompare(String(b.id)));
     const links = (
@@ -2546,10 +2587,11 @@ function architectureFingerprint(ir) {
           ? ir.links
           : []
     )
+      .slice(0, 400)
       .map((l) => ({
-        from: l?.from || l?.source || "",
-        to: l?.to || l?.target || "",
-        label: l?.label || "",
+        from: String(l?.from || l?.source || "").slice(0, 80),
+        to: String(l?.to || l?.target || "").slice(0, 80),
+        label: String(l?.label || "").slice(0, 80),
       }))
       .sort((a, b) =>
         `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`),
@@ -2929,7 +2971,7 @@ async function kickoffArchitectureDialogue() {
       });
       void persistProjectChat();
       const rendered = await maybeRenderArchitectureFromReply(
-        `${final.reply || ""}\n${JSON.stringify(final)}`,
+        `${final.reply || ""}\n${typeof final.jsonBlock === "string" ? final.jsonBlock : ""}`,
       );
       if (rendered) {
         announceArchitectureRendered(streamBubble, state.architectureMessages);
@@ -2946,7 +2988,7 @@ async function kickoffArchitectureDialogue() {
       });
       void persistProjectChat();
       const rendered = await maybeRenderArchitectureFromReply(
-        `${data.reply || ""}\n${JSON.stringify(data.architectureIr || data)}`,
+        `${data.reply || ""}\n${typeof data.jsonBlock === "string" ? data.jsonBlock : ""}`,
       );
       if (rendered) {
         announceArchitectureRendered(streamBubble, state.architectureMessages);
@@ -4760,7 +4802,6 @@ async function kickoffReviseDialogue() {
   if (state.reviseDispatching || state.mode !== "revise") return;
   if (state.reviseKickoffInFlight) return;
   state.reviseKickoffInFlight = true;
-  // Wait briefly if another chat stream is finishing.
   for (let i = 0; i < 40 && state.busy; i += 1) {
     await new Promise((r) => setTimeout(r, 50));
   }
@@ -4770,14 +4811,31 @@ async function kickoffReviseDialogue() {
     state.reviseKickoffInFlight = false;
     return;
   }
-  setBusy(true);
-  syncReviseDispatchButton(false);
-  const streamBubble = startStreamingBubble();
-  const kick =
-    "（系统）用户已点继续改进并看过成品。请只问一个最关键问题：哪里不满意、为什么。先说话，再 <<<JSON>>> 更新改进卡（可先空着）。不要派工。";
+
+  let streamBubble = null;
   let gotReply = false;
+  let pushedKick = false;
+  const isStackOverflow = (err) =>
+    /call stack size exceeded|Maximum call stack/i.test(
+      String(err?.message || err || ""),
+    );
+
   try {
-    state.reviseMessages.push({ role: "user", content: kick });
+    setBusy(true);
+    syncReviseDispatchButton(false);
+    streamBubble = startStreamingBubble();
+    // No hidden system kick — visible user.reviseAgain + server followUp is enough.
+    // Keep a short steer only if the bag has no user turn yet.
+    const hasUser =
+      Array.isArray(state.reviseMessages) &&
+      state.reviseMessages.some(
+        (m) => m?.role === "user" && !isReviseSystemKick(m),
+      );
+    if (!hasUser) {
+      const kick = t("user.reviseAgain");
+      state.reviseMessages.push({ role: "user", content: kick });
+      pushedKick = true;
+    }
     const res = await fetch("/api/chat", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -4805,8 +4863,6 @@ async function kickoffReviseDialogue() {
           streamError = new Error(evt.error || t("err.chat"));
         }
       });
-      // Prefer already-streamed model text over a late done/error failure
-      // (e.g. deep JSON stringify stack overflow on the server).
       const streamed = String(streamBubble.getText() || "").trim();
       if (streamError && !final && !streamed) throw streamError;
       if (!final && !streamed) throw new Error(t("err.streamIncomplete"));
@@ -4814,13 +4870,17 @@ async function kickoffReviseDialogue() {
         try {
           applyCard(final, { skipValidate: true });
         } catch {
-          /* card apply must not wipe the spoken reply */
+          /* ignore */
         }
         if (final.reply) {
           streamBubble.set(final.reply);
           gotReply = true;
         }
-        streamBubble.finish(final.options);
+        try {
+          streamBubble.finish(final.options);
+        } catch {
+          streamBubble.finish();
+        }
         state.reviseMessages.push({
           role: "assistant",
           content: final.reply || streamed,
@@ -4839,31 +4899,37 @@ async function kickoffReviseDialogue() {
         /* ignore */
       }
       streamBubble.set(data.reply || "");
-      streamBubble.finish(data.options);
+      try {
+        streamBubble.finish(data.options);
+      } catch {
+        streamBubble.finish();
+      }
       gotReply = Boolean(data.reply);
       state.reviseMessages.push({ role: "assistant", content: data.reply });
       void persistProjectChat();
     }
   } catch (err) {
-    state.reviseMessages.pop();
-    const streamed = String(streamBubble.getText() || "").trim();
+    if (pushedKick) state.reviseMessages.pop();
+    const streamed = String(streamBubble?.getText?.() || "").trim();
     if (gotReply || streamed) {
-      // Model already spoke — keep that text; do not replace with fail copy.
-      streamBubble.set(streamed);
-      streamBubble.finish();
+      streamBubble?.set(streamed);
+      streamBubble?.finish();
       state.reviseMessages.push({ role: "assistant", content: streamed });
-    } else {
+    } else if (streamBubble) {
+      // Never paint raw "Maximum call stack size exceeded" into the chat.
       streamBubble.set(
-        err instanceof Error && err.message
-          ? String(err.message)
-          : t("err.reviseKickoff"),
+        isStackOverflow(err) ? t("err.reviseKickoff") : t("err.reviseKickoff"),
       );
       streamBubble.finish();
     }
   } finally {
     state.reviseKickoffInFlight = false;
     setBusy(false);
-    syncConfirmEnabled();
+    try {
+      syncConfirmEnabled();
+    } catch {
+      /* ignore */
+    }
     void persistProjectChat();
     el.input?.focus();
     scrollChatToLatest();

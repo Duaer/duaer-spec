@@ -721,51 +721,66 @@ function parseModelJson(content) {
 }
 
 function parseChatResult(content) {
-  const raw = String(content || "");
-  const markerIdx = raw.indexOf(CHAT_JSON_MARKER);
-  let reply = "";
-  let obj = {};
-  if (markerIdx >= 0) {
-    reply = raw.slice(0, markerIdx).trim();
-    try {
-      obj = parseModelJson(raw.slice(markerIdx + CHAT_JSON_MARKER.length));
-    } catch {
-      obj = {};
+  try {
+    const raw = String(content || "");
+    const markerIdx = raw.indexOf(CHAT_JSON_MARKER);
+    let reply = "";
+    let obj = {};
+    let jsonBlock = "";
+    if (markerIdx >= 0) {
+      reply = raw.slice(0, markerIdx).trim();
+      jsonBlock = raw.slice(markerIdx).slice(0, 200_000);
+      try {
+        obj = parseModelJson(raw.slice(markerIdx + CHAT_JSON_MARKER.length));
+      } catch {
+        obj = {};
+      }
+    } else {
+      try {
+        obj = parseModelJson(raw);
+        reply = String(obj.reply || "").trim();
+        jsonBlock = raw.slice(0, 200_000);
+      } catch {
+        reply = raw.trim();
+      }
     }
-  } else {
-    try {
-      obj = parseModelJson(raw);
-      reply = String(obj.reply || "").trim();
-    } catch {
-      reply = raw.trim();
-    }
+    const flat = (v) => {
+      if (v == null) return "";
+      if (typeof v === "string") return v.trim();
+      if (typeof v === "number" || typeof v === "boolean") return String(v);
+      return "";
+    };
+    return {
+      reply: reply || "请继续补充。",
+      goal: flat(obj.goal),
+      outOfScope: flat(obj.outOfScope),
+      acceptance: flat(obj.acceptance),
+      assumptions: flat(obj.assumptions),
+      ready: Boolean(obj.ready),
+      options: enrichChatOptions(
+        reply || flat(obj.reply),
+        Array.isArray(obj.options) ? obj.options : [],
+      ),
+      diagram_type: obj.diagram_type === "architecture" ? "architecture" : undefined,
+      // String blob only — never nest the parsed IR object into SSE
+      jsonBlock: jsonBlock || undefined,
+    };
+  } catch {
+    return {
+      reply: String(content || "").trim() || "请继续补充。",
+      goal: "",
+      outOfScope: "",
+      acceptance: "",
+      assumptions: "",
+      ready: false,
+      options: [],
+    };
   }
-  return {
-    reply: reply || "请继续补充。",
-    goal: String(obj.goal || "").trim(),
-    outOfScope: String(obj.outOfScope || "").trim(),
-    acceptance: String(obj.acceptance || "").trim(),
-    assumptions: String(obj.assumptions || "").trim(),
-    ready: Boolean(obj.ready),
-    options: enrichChatOptions(
-      reply || String(obj.reply || ""),
-      Array.isArray(obj.options) ? obj.options : [],
-    ),
-    // Architecture mode may embed a full Archify IR in the JSON block
-    diagram_type: obj.diagram_type || undefined,
-    schema_version: obj.schema_version || undefined,
-    meta: obj.meta || undefined,
-    components: Array.isArray(obj.components) ? obj.components : undefined,
-    boundaries: Array.isArray(obj.boundaries) ? obj.boundaries : undefined,
-    connections: Array.isArray(obj.connections) ? obj.connections : undefined,
-    cards: Array.isArray(obj.cards) ? obj.cards : undefined,
-    title: obj.title || undefined,
-  };
 }
 
-/** Flat SSE done payload — never spread deep IR trees (stringify stack overflow). */
+/** Flat SSE done payload — never embed deep IR (stringify stack overflow). */
 function chatDoneSsePayload(parsed) {
-  const base = {
+  return {
     type: "done",
     reply: String(parsed?.reply || ""),
     goal: String(parsed?.goal || ""),
@@ -773,22 +788,16 @@ function chatDoneSsePayload(parsed) {
     acceptance: String(parsed?.acceptance || ""),
     assumptions: String(parsed?.assumptions || ""),
     ready: Boolean(parsed?.ready),
-    options: Array.isArray(parsed?.options) ? parsed.options.slice(0, 6) : [],
+    options: Array.isArray(parsed?.options)
+      ? parsed.options.slice(0, 6).map(String)
+      : [],
+    diagram_type:
+      parsed?.diagram_type === "architecture" ? "architecture" : undefined,
+    jsonBlock:
+      typeof parsed?.jsonBlock === "string"
+        ? parsed.jsonBlock.slice(0, 200_000)
+        : undefined,
   };
-  if (parsed?.diagram_type === "architecture") {
-    return {
-      ...base,
-      diagram_type: "architecture",
-      schema_version: parsed.schema_version,
-      meta: parsed.meta,
-      components: parsed.components,
-      boundaries: parsed.boundaries,
-      connections: parsed.connections,
-      cards: parsed.cards,
-      title: parsed.title,
-    };
-  }
-  return base;
 }
 
 function writeSse(res, payload) {
