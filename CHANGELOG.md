@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: brand acronym FED → FDE
+
+- Correct desk brand to **Duaer-spec FDE** (Field Development Environment / 现场开发)
+- Rename brand SVG to `docs/assets/duaer-spec-fde.svg`
+
 ### Feat: compact settings with host tutorials
 
 - Settings use collapsible blocks; denser spacing

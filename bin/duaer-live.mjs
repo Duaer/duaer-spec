@@ -1,5 +1,5 @@
 /**
- * Duaer-spec FED (现场开发) — isolated desk (not the user's product repo).
+ * Duaer-spec FDE (现场开发) — isolated desk (not the user's product repo).
  *
  * Workspace: ~/.duaer/live/  (override with DUAER_HOME)
  *   config.json   model settings
@@ -661,7 +661,7 @@ function nextJobDir() {
   return { root, nextNum: max + 1 };
 }
 
-const SYSTEM_PROMPT = `你是「Duaer-spec FED」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
+const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对话把用户随口说的话整理成精确需求，使数字员工能直接交付让人满意的成品。
 
 规则：
 1. 缺关键可执行信息时，每次只问 1 个卡点问题；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
@@ -678,7 +678,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FED」需求助手。通过多轮对�
 
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
-const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
+const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
 
 规则：
 1. 缺关键信息时每次只问 1 个问题；信息够时直接填可执行的四块并 ready=true，不要用「请从 A/B/C/D 风格里选」代替验收标准。
@@ -696,7 +696,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FED」改进对话助手。用�
    - 再输出 JSON（不要 markdown 围栏）：
 {"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
 
-const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
+const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
 
 规则：
 1. 未 ready 前：每次回复必须提出 1 个具体问题，并在 JSON 的 options 给出 2～5 个短选项。禁止只复述需求/主路径而不提问。
@@ -713,7 +713,7 @@ const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FED」架构助手。需�
 6. 可省略 pos/size（服务端会自动排版）。id 用字母开头的短标识。
 7. JSON 里不要再写 goal / outOfScope / acceptance / assumptions / type / reply 等需求卡字段；架构对象只保留 Archify 字段（ready/options/title 可并存，服务端会剥离）。`;
 
-const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
+const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将锁定确认卡并开工。目标是：规范需求，使数字员工能直接交付让人满意的成品。
 
 检查：
 1. goal 是否单一、可执行（一件事，不要堆多个无关功能）
@@ -729,7 +729,7 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FED」需求验收官。用户即将�
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FED」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡四块。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），不要编造用户没提过的大功能。
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
@@ -1223,7 +1223,7 @@ function writeBrief(payload) {
 
 **Created**: ${today}
 
-**Status**: Confirmed (Duaer-spec FED)
+**Status**: Confirmed (Duaer-spec FDE)
 
 **Input**: ${rawAsk || goal}
 
@@ -1245,7 +1245,7 @@ ${assumptions || "- (none)"}
 ${reviewBlock}
 ## Notes
 
-Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product repo worktree from the live desk.
+Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product repo worktree from the live desk.
 `;
 
   const tasks = `# Tasks
@@ -1282,7 +1282,7 @@ Confirmed via Duaer-spec FED after auto-accept. Next: dispatch into a product re
     "utf8",
   );
 
-  const agentPrompt = `Duaer-spec FED 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
+  const agentPrompt = `Duaer-spec FDE 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
@@ -1535,7 +1535,7 @@ function cmdRepoAdd(opts) {
     probe.path,
   );
   console.log(JSON.stringify(probe, null, 2));
-  console.log("Duaer-spec FED 派工时可直接点选。");
+  console.log("Duaer-spec FDE 派工时可直接点选。");
 }
 
 /**
@@ -3161,7 +3161,7 @@ function launchAgent({
     launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
-    // Same consent as 「Yes, I trust this folder」— only for the FED worktree
+    // Same consent as 「Yes, I trust this folder」— only for the FDE worktree
     // the human already dispatched into (mirrors Cursor --trust).
     const trust = markClaudeWorkspacesTrusted(worktreePath);
     if (trust.ok) {
@@ -3312,7 +3312,7 @@ function dispatchToRepo({
 
 **Created**: ${today}
 
-**Status**: Dispatched (Duaer-spec FED)
+**Status**: Dispatched (Duaer-spec FDE)
 
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
@@ -3330,7 +3330,7 @@ ${assumeBody}
 
 ## Notes
 
-Dispatched from Duaer-spec FED into product worktree \`${worktreePath}\`.
+Dispatched from Duaer-spec FDE into product worktree \`${worktreePath}\`.
 ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
@@ -3391,7 +3391,7 @@ ${archUrl ? `架构图（只读参考）：${archUrl}` : ""}
 
   const defaultPrompt = `Duaer
 
-按 Duaer 数字员工流程在本 worktree 开工（Duaer-spec FED 已派工）。
+按 Duaer 数字员工流程在本 worktree 开工（Duaer-spec FDE 已派工）。
 
 工作目录: ${worktreePath}
 Brief: ${featureDir}
@@ -3400,11 +3400,11 @@ Brief: ${featureDir}
 计划托管: ${deployTarget}
 
 要求：
-0. 本 Brief 已在 Duaer-spec FED 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本 Brief 已在 Duaer-spec FDE 自动验收通过。直接执行；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
@@ -3539,7 +3539,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
   };
 }
 
-const REVISE_PROMPT = `你是「Duaer-spec FED」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
+const REVISE_PROMPT = `你是「Duaer-spec FDE」改进助手。用户看过成品后提出不满意之处。请把反馈整理成可执行的改进说明。
 
 规则：
 1. 提炼 change（改什么）、acceptance（怎么算改好）、keep（不要动什么）
@@ -3915,7 +3915,7 @@ ${reasonLine || text}
 
   const defaultPrompt = `Duaer
 
-用户看过成品后不满意，请在同一 worktree 继续改进（Duaer-spec FED Revision ${revN}）。
+用户看过成品后不满意，请在同一 worktree 继续改进（Duaer-spec FDE Revision ${revN}）。
 ${
   recreated
     ? "上一轮 worktree 已在 handoff 时清理；已从 develop 重建新 worktree 并带上 Brief。"
@@ -3941,9 +3941,9 @@ ${restated.acceptance}
 ${restated.keep}
 
 要求：
-0. 本轮 Revision 已在 Duaer-spec FED 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
+0. 本轮 Revision 已在 Duaer-spec FDE 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
-2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
+2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
 2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）；若是服务须先启动并可打开
 4. 按 testing.md 做风险验证（若有）
@@ -6076,7 +6076,7 @@ function serve(port) {
 
   server.listen(port, "127.0.0.1", () => {
     const cfg = publicConfig();
-    console.log(`Duaer-spec FED  http://127.0.0.1:${port}`);
+    console.log(`Duaer-spec FDE  http://127.0.0.1:${port}`);
     console.log(`隔离目录  ${liveRoot()}`);
     console.log(`Brief 写入 ${jobsRoot()}  （不会写入你当前业务仓库）`);
     if (!cfg.ready) {

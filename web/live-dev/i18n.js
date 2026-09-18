@@ -1,5 +1,5 @@
 /**
- * Duaer-spec FED (live desk) i18n — zh-CN (default) + en.
+ * Duaer-spec FDE (live desk) i18n — zh-CN (default) + en.
  */
 
 export const LOCALES = ["zh-CN", "en"];
@@ -7,11 +7,11 @@ export const LOCALES = ["zh-CN", "en"];
 const STORAGE_KEY = "duaer.live.locale";
 
 const zhCN = {
-  "doc.title": "Duaer-spec FED",
+  "doc.title": "Duaer-spec FDE",
   "header.mark": "现场开发",
-  "header.brand": "Duaer-spec FED",
+  "header.brand": "Duaer-spec FDE",
   "header.brandProduct": "Duaer-spec",
-  "header.brandFed": "FED",
+  "header.brandFde": "FDE",
   "header.tag": "规范需求 → 可检查验收 → 派工 → 满意成品 → 可继续改进",
   "lang.label": "语言",
   "github.label": "GitHub",
@@ -61,7 +61,7 @@ const zhCN = {
   "project.jobCount": "{n} 条对话",
   "project.unassigned": "未归入项目的对话（选项目后确认会挂上）",
   "bot.needProject": "请先点右上角「项目」选择或新建产品目录，再开始对话。",
-  "setup.mark": "Duaer-spec FED · model",
+  "setup.mark": "Duaer-spec FDE · model",
   "setup.title": "配置模型",
   "setup.hint": "先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json",
   "setup.provider": "服务商",
@@ -133,7 +133,7 @@ const zhCN = {
   "setup.guideOtherTitle": "其它模型怎么接",
   "setup.guideOther1": "Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名",
   "setup.guideOther2": "写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code",
-  "setup.guideOther3": "Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent",
+  "setup.guideOther3": "Cursor Agent 的模型在 Cursor 账号/设置里选；FDE 只负责启动 agent",
   "setup.guideDoc":
     '完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a>',
   "provider.custom": "自定义",
@@ -143,7 +143,7 @@ const zhCN = {
   "chat.revisePlaceholder": "说说哪里不满意、为什么…",
   "chat.archPlaceholder": "回答架构问题，或补充组件与边界…",
   "chat.send": "发送",
-  "chat.emptyMark": "Duaer-spec FED",
+  "chat.emptyMark": "Duaer-spec FDE",
   "chat.emptyHint": "用大白话说想要什么，不用学术语；确认后派工，数字员工按验收去做",
   "chat.emptyStep1": "先点「项目」选择或新建产品目录",
   "chat.emptyStep2": "用大白话说想要什么",
@@ -465,11 +465,11 @@ const zhCN = {
 };
 
 const en = {
-  "doc.title": "Duaer-spec FED",
-  "header.mark": "Field Engineering Desk",
-  "header.brand": "Duaer-spec FED",
+  "doc.title": "Duaer-spec FDE",
+  "header.mark": "Field Development Environment",
+  "header.brand": "Duaer-spec FDE",
   "header.brandProduct": "Duaer-spec",
-  "header.brandFed": "FED",
+  "header.brandFde": "FDE",
   "header.tag": "Norms → checkable acceptance → dispatch → satisfactory preview → revise",
   "lang.label": "Language",
   "github.label": "GitHub",
@@ -519,7 +519,7 @@ const en = {
   "project.jobCount": "{n} chats",
   "project.unassigned": "Unassigned chats (confirm after picking a project to attach)",
   "bot.needProject": "Open Projects (top right) and select or create a product folder before chatting.",
-  "setup.mark": "Duaer-spec FED · model",
+  "setup.mark": "Duaer-spec FDE · model",
   "setup.title": "Configure model",
   "setup.hint": "Connect a Duaer desk model first, then state the job. Saved to ~/.duaer/live/config.json",
   "setup.provider": "Provider",
@@ -591,7 +591,7 @@ const en = {
   "setup.guideOtherTitle": "Other models",
   "setup.guideOther1": "Other Duaer desk models: choose Custom and fill that provider’s Base URL / Key / Model",
   "setup.guideOther2": "To code with DeepSeek (etc.): point Claude Code at that API (~/.claude/settings.json ANTHROPIC_*), then pick Claude Code on dispatch",
-  "setup.guideOther3": "Cursor Agent models are chosen in Cursor account/settings; FED only launches agent",
+  "setup.guideOther3": "Cursor Agent models are chosen in Cursor account/settings; FDE only launches agent",
   "setup.guideDoc":
     'Full steps: <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.md" target="_blank" rel="noopener">GitHub · worker-models.md</a>',
   "provider.custom": "Custom",
@@ -601,7 +601,7 @@ const en = {
   "chat.revisePlaceholder": "What is wrong and why…",
   "chat.archPlaceholder": "Answer architecture questions or add components…",
   "chat.send": "Send",
-  "chat.emptyMark": "Duaer-spec FED",
+  "chat.emptyMark": "Duaer-spec FDE",
   "chat.emptyHint": "Say what you want in plain words — no jargon. Confirm, dispatch, and the digital employee delivers to acceptance",
   "chat.emptyStep1": "Tap Projects to select or create a product folder",
   "chat.emptyStep2": "Say what you want in plain words",

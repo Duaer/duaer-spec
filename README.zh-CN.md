@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/duaer-spec-fed.svg" alt="Duaer-spec FED" width="420" />
+  <img src="docs/assets/duaer-spec-fde.svg" alt="Duaer-spec FDE" width="420" />
 </p>
 
 # duaer-spec
@@ -27,7 +27,7 @@ npm i -g duaer-spec@latest   # 任意旧版都可用（含没有 self-update 的
 duaer self-update            # CLI ≥ 0.13 后与上一行等价
 ```
 
-有新版本时 CLI / Duaer-spec FED 会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
+有新版本时 CLI / Duaer-spec FDE 会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
 
 **业务仓适配文件**（`init` 之后）：
 
@@ -50,10 +50,10 @@ npx duaer-spec update
 
 合并后：`duaer handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.duaer/handoff.json`）。
 
-## Duaer-spec FED（现场开发）
+## Duaer-spec FDE（现场开发）
 
 与业务仓库隔离。配置与 Brief 写在本机 `~/.duaer/live/`。
-**Duaer-spec FED** = Field Engineering Desk（现场工程台）。
+**Duaer-spec FDE** = Field Development Environment（现场开发）。
 
 ```bash
 # DeepSeek（推荐）
@@ -72,7 +72,7 @@ duaer live
 浏览器打开提示地址（默认 `http://127.0.0.1:8787`）。台面**全屏宽**，三列：
 **对话** | **需求 / 确认 / 派工 / 改进** | **任务进度**。
 
-**验收（维护者 / 数字员工）：** 改 Duaer-spec FED UI 或确认校验门禁后，跑
+**验收（维护者 / 数字员工）：** 改 Duaer-spec FDE UI 或确认校验门禁后，跑
 `npm run test:live`（L3 冒烟：台面结构标记 + `/api/validate`，内置 mock 模型，
 不产生付费 API 调用）。
 
@@ -83,7 +83,7 @@ duaer live
 3. 只选 **CLI 数字员工**：**Cursor Agent** 或 **Claude Code**  
    - Cursor：`curl https://cursor.com/install -fsS | bash`  
    - Claude Code：`npm install -g @anthropic-ai/claude-code`（或 `curl -fsSL https://claude.ai/install.sh | bash`）  
-   - 要用 **DeepSeek 等其它模型**写代码：把 Claude Code 接到对应 API，见 [`docs/agent/worker-models.zh-CN.md`](docs/agent/worker-models.zh-CN.md)。FED「配置模型」页下方也有同样说明。  
+   - 要用 **DeepSeek 等其它模型**写代码：把 Claude Code 接到对应 API，见 [`docs/agent/worker-models.zh-CN.md`](docs/agent/worker-models.zh-CN.md)。FDE「配置模型」页下方也有同样说明。  
 4. 编辑「启动命令」（须以 `Duaer` 开头）→ 派工建 `.worktree/feat-*`，并打开 **Terminal** 跑对应 CLI  
 5. 右侧进度列轮询 `tasks.md`；`delivery.json` 为 `accepted` 后出现 **结果**（有页面时 **查看结果**；否则 **打开项目目录**）  
 6. 成品不满意：点 **继续改进（左侧对话）**，说清原因与期望，确认改进卡（同样须校验通过）后续派（先清残留 Agent 再入队）。进度跟本轮 `R{n}-*` 任务。启动失败会回滚本轮 Brief Revision，并可再点「再派一版」；状态行显示 Terminal 忙闲/队列。  

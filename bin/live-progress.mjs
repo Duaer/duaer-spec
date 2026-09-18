@@ -90,7 +90,7 @@ export function buildDetailedProductTasksMd({
 
 ${items.join("\n")}
 
-做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FED 显示进度。
+做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 显示进度。
 
 **拆任务规则（无条数上限）：**
 - 每个任务只做一个可独立验收的功能点；不要把多个验收项揉进同一条

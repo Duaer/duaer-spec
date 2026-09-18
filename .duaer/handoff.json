@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "onWorktreeRemove": {
-    "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs). Also stop the FED desk if it was started from a worktree copy of duaer-live.",
+    "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs). Also stop the FDE desk if it was started from a worktree copy of duaer-live.",
     "restartFromPrimary": true,
     "commands": [
       "launchctl kickstart -k \"gui/$(id -u)/com.duaer.live8787\" 2>/dev/null || (lsof -t -iTCP:8787 -sTCP:LISTEN | xargs kill 2>/dev/null; sleep 1; node bin/duaer-live.mjs --port 8787)"
     ]
   },
-  "notes": "After merge to develop: remove worktree, then restart Duaer-spec FED (LaunchAgent com.duaer.live8787) so /api/projects and other new routes load from primary checkout."
+  "notes": "After merge to develop: remove worktree, then restart Duaer-spec FDE (LaunchAgent com.duaer.live8787) so /api/projects and other new routes load from primary checkout."
 }

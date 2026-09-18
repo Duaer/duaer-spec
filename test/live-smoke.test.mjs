@@ -235,10 +235,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
-  assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FED/);
+  assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
-  assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FED|Beginners can do FED too|chat\.emptyTitle/);
+  assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);
   assert.doesNotMatch(
