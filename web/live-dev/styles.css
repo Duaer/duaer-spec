@@ -1362,6 +1362,12 @@ input:focus {
   border-top: 1px solid var(--line);
 }
 
+.architecture-previous {
+  margin-bottom: 0.85rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px dashed var(--line);
+}
+
 .architecture-title {
   margin: 0 0 0.35rem;
   font-size: 0.82rem;
@@ -1396,8 +1402,15 @@ input:focus {
   background: transparent;
 }
 
+.architecture-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.35rem;
+}
+
 #architectureConfirm {
-  width: 100%;
+  min-width: 10rem;
 }
 
 .deploy-target-chip {

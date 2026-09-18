@@ -25,7 +25,9 @@ Archify-quality rendering matches the visual language users already trust.
 2. Dialogue produces Archify architecture JSON → rendered HTML preview
 3. Confirm architecture locks the diagram under「计划托管平台」
 4. Dispatch / revise-dispatch blocked until architecture is confirmed
-5. Revise (requirements change) clears confirmation and requires update
+5. Revise keeps confirmed architecture by default; re-confirm only when a
+   new/changed diagram is produced (prior stays above; new below) — see
+   `119-arch-revise-keep`
 6. Architecture persists with the project desk session
 7. Worker prompt includes architecture summary + IR path/HTML note
 8. `npm test` + `npm run test:live` pass
