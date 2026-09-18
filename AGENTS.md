@@ -127,6 +127,12 @@ copy limited to the information and actions users need to complete the task:
 * Put rationale and implementation detail in documentation or code comments,
   not in the page UI, unless the user explicitly requests explanatory content.
 
+**Duaer brand (site-wide):** Visible live-desk / FED copy that names the
+product surface must include **Duaer** (or **Duaer-spec FED** where that full
+mark is already used). Do not write anonymous「台面」/ “desk” alone for this
+product’s chat surface or model setup — prefer「Duaer 台面」/ “Duaer desk”.
+Branding is a short name signal, not a slogan paragraph.
+
 ## Mandatory branch model
 
 Repositories that adopt this agent-ops contract **must** use:

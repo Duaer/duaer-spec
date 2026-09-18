@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "112-duaer-brand-copy",
+  "summary": "Setup desk-model copy names Duaer; site-wide brand rule in agent ops.",
+  "verification": {
+    "L0": "node --check web/live-dev/i18n.js — pass",
+    "L1": "node --test test/duaer-fed-brand.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

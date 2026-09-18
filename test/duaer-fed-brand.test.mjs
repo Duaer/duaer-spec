@@ -16,6 +16,10 @@ test("Duaer-spec FED brand appears in desk UI and CLI", () => {
   assert.match(i18n, /"doc\.title":\s*"Duaer-spec FED"/);
   assert.match(i18n, /"header\.mark":\s*"Field Engineering Desk"/);
   assert.match(i18n, /"header\.mark":\s*"现场开发"/);
+  assert.match(i18n, /"setup\.hint":\s*"先接好 Duaer 台面模型/);
+  assert.match(i18n, /"setup\.hint":\s*"Connect a Duaer desk model first/);
+  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer 台面模型/);
+  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer desk model/);
 
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /<title>Duaer-spec FED<\/title>/);

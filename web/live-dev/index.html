@@ -309,7 +309,7 @@
         </button>
       </div>
       <div class="settings-body" id="setup">
-        <p class="hint" data-i18n="setup.hint">先接好台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
+        <p class="hint" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
         <div class="field">
           <span data-i18n="setup.provider">服务商</span>
           <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
@@ -331,9 +331,9 @@
 
         <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
           <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
-          <p class="setup-guide-lead" data-i18n="setup.guideLead">台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+          <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
 
-          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">台面模型（本页）</h4>
+          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">Duaer 台面模型（本页）</h4>
           <ul class="setup-guide-list">
             <li data-i18n="setup.guideDesk1">选 DeepSeek / OpenAI 预设，或 Custom 填任意 OpenAI 兼容 Base URL + Key + Model</li>
             <li data-i18n="setup.guideDesk2">也可用命令行：duaer live config --provider deepseek --api-key &lt;key&gt;</li>
@@ -349,7 +349,7 @@
 
           <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
           <ul class="setup-guide-list">
-            <li data-i18n="setup.guideOther1">台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+            <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
             <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
             <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
           </ul>

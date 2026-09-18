@@ -65,9 +65,9 @@ the table for their app.
 | E2E-082 | Project desk session also restores requirements card + jobId/progress after refresh | `npm test` + `npm run test:live` |
 | E2E-083 | After refresh, previously passed auto-validate keeps Confirm enabled | `npm test` + `npm run test:live` |
 | E2E-084 | Requirements fields edit as structured rows (add/remove), not raw textarea | `npm test` + `npm run test:live` |
-| E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model reopens it | `npm test` + `npm run test:live` |
+| E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model/Settings reopens it; setup.hint names Duaer desk model | `npm test` + `npm run test:live` |
 | E2E-086 | After Confirm, architecture dialogue + Archify HTML under hosting; gate dispatch; revise must re-confirm; ready chat says diagram is under hosting (not “confirm JSON”); Confirm architecture is clickable after render (busy cleared) | `npm test` + `npm run test:live` |
-| E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
