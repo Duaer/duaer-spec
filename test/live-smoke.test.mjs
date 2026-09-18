@@ -288,6 +288,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /\/api\/preview\/status|probeLocalPreviewStatus/);
   assert.match(js, /ensureAndOpenPreview|refreshPreviewServiceStatus/);
   assert.match(js, /appendReviseMessagesToLog|restoreReviseDeskUi/);
+  assert.match(js, /reviseCards|reviseDraft|nextReviseRevisionNumber|focusReviseCardVersion/);
+  assert.match(html, /id="reviseTitle"|id="reviseVersions"/);
   assert.match(js, /\/api\/projects/);
   assert.match(liveBin, /\/api\/projects\/chat/);
   assert.match(liveBin, /NEED_PROJECT/);

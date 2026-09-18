@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T07:00:00.000Z",
+  "verification": {
+    "L0": "node --check bin/live-project-chat.mjs web/live-dev/app.js i18n.js",
+    "L1": "node --test test/live-project-chat.test.mjs (8 pass)",
+    "L3": "npm run test:live (pass)"
+  }
+}

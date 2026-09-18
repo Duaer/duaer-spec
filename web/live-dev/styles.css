@@ -1955,6 +1955,44 @@ input:focus {
   color: var(--ink);
 }
 
+.revise-versions {
+  list-style: none;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.revise-version-link {
+  display: inline-block;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.2;
+  padding: 0.2rem 0.45rem;
+  color: var(--mute);
+  text-decoration: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.revise-version-link:hover {
+  color: var(--register);
+  border-color: var(--register);
+}
+
+.revise-version-link.is-current {
+  font-weight: 700;
+  color: var(--ink);
+  border-color: var(--lock);
+  background: rgba(47, 158, 143, 0.16);
+}
+
 .revise-panel .hint {
   margin: 0 0 0.85rem;
   color: var(--mute);

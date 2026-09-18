@@ -56,6 +56,12 @@ const state = {
   /** Revising but Terminal busy with no task progress — offer retry CTA. */
   reviseStuckHint: false,
   lastRevision: null, // { revision, change, keep, acceptance, reason }
+  /** Dispatched 改进卡 history — one entry per revision (never overwrite). */
+  reviseCards: [],
+  /** In-progress draft for the next revision number (before dispatch). */
+  reviseDraft: null, // { revision, goal, outOfScope, acceptance, assumptions }
+  /** Which revision's card is shown in the panel. */
+  reviseCardFocus: null,
   originalCard: null, // snapshot after first confirm
   lastStatus: null,
   lastDeliveryAccepted: false,
@@ -212,6 +218,8 @@ const el = {
   progressOpenFolder: document.getElementById("progressOpenFolder"),
   progressResultMeta: document.getElementById("progressResultMeta"),
   revisePanel: document.getElementById("revisePanel"),
+  reviseTitle: document.getElementById("reviseTitle"),
+  reviseVersions: document.getElementById("reviseVersions"),
   reviseHint: document.getElementById("reviseHint"),
   reviseCardFields: document.getElementById("reviseCardFields"),
   startReviseChat: document.getElementById("startReviseChat"),
@@ -558,12 +566,171 @@ function cardValues() {
 }
 
 function reviseCardValues() {
-  return {
+  const fromFields = () => ({
     goal: (el.revGoal?.value || "").trim(),
     outOfScope: (el.revOut?.value || "").trim(),
     acceptance: (el.revAccept?.value || "").trim(),
     assumptions: (el.revAssume?.value || "").trim(),
+  });
+  // Dispatch / validate always target the active draft, even when browsing
+  // a prior version chip.
+  if (state.mode === "revise" && !state.reviseLocked && state.reviseDraft) {
+    stashReviseDraftFromFields();
+    return {
+      goal: String(state.reviseDraft.goal || "").trim(),
+      outOfScope: String(state.reviseDraft.outOfScope || "").trim(),
+      acceptance: String(state.reviseDraft.acceptance || "").trim(),
+      assumptions: String(state.reviseDraft.assumptions || "").trim(),
+    };
+  }
+  return fromFields();
+}
+
+function nextReviseRevisionNumber() {
+  let max = 0;
+  for (const entry of state.reviseCards || []) {
+    const n = Number(entry?.revision) || 0;
+    if (n > max) max = n;
+  }
+  const last = Number(state.lastRevision?.revision) || 0;
+  if (last > max) max = last;
+  if (state.reviseDraft) {
+    const d = Number(state.reviseDraft.revision) || 0;
+    if (d > max) return d;
+  }
+  return max + 1;
+}
+
+function getStoredReviseCard(revision) {
+  const rev = Number(revision) || 0;
+  return (state.reviseCards || []).find((e) => Number(e.revision) === rev) || null;
+}
+
+function upsertReviseCardEntry(revision, card) {
+  const rev = Number(revision) || 0;
+  if (rev < 1 || !card) return;
+  const entry = {
+    revision: rev,
+    goal: String(card.goal || ""),
+    outOfScope: String(card.outOfScope || ""),
+    acceptance: String(card.acceptance || ""),
+    assumptions: String(card.assumptions || ""),
   };
+  const list = Array.isArray(state.reviseCards) ? [...state.reviseCards] : [];
+  const idx = list.findIndex((e) => Number(e.revision) === rev);
+  if (idx >= 0) list[idx] = entry;
+  else list.push(entry);
+  list.sort((a, b) => Number(a.revision) - Number(b.revision));
+  state.reviseCards = list;
+}
+
+function applyReviseFieldsFromCard(card) {
+  const c = card || {};
+  if (el.revGoal) el.revGoal.value = c.goal || "";
+  if (el.revOut) el.revOut.value = c.outOfScope || "";
+  if (el.revAccept) el.revAccept.value = c.acceptance || "";
+  if (el.revAssume) el.revAssume.value = c.assumptions || "";
+  syncReqSections();
+}
+
+function stashReviseDraftFromFields() {
+  if (!state.reviseDraft || state.reviseLocked) return;
+  const focus = Number(state.reviseCardFocus) || 0;
+  const draftRev = Number(state.reviseDraft.revision) || 0;
+  if (focus !== draftRev) return;
+  state.reviseDraft = {
+    revision: draftRev,
+    ...reviseCardValues(),
+  };
+}
+
+function reviseCardTitleText(revision) {
+  const rev = Number(revision) || 0;
+  if (rev > 0) return t("revise.titleRev", { revision: rev });
+  return t("revise.title");
+}
+
+function syncReviseCardChrome() {
+  const focus =
+    Number(state.reviseCardFocus) ||
+    Number(state.reviseDraft?.revision) ||
+    Number(state.lastRevision?.revision) ||
+    0;
+  if (el.reviseTitle) el.reviseTitle.textContent = reviseCardTitleText(focus);
+  renderReviseVersionChips();
+}
+
+function isReviseDraftFocus() {
+  const focus = Number(state.reviseCardFocus) || 0;
+  const draftRev = Number(state.reviseDraft?.revision) || 0;
+  return Boolean(draftRev && focus === draftRev && !state.reviseLocked);
+}
+
+function focusReviseCardVersion(revision) {
+  const rev = Number(revision) || 0;
+  if (rev < 1) return;
+  stashReviseDraftFromFields();
+  state.reviseCardFocus = rev;
+  const draftRev = Number(state.reviseDraft?.revision) || 0;
+  const editingDraft =
+    Boolean(state.reviseDraft) &&
+    draftRev === rev &&
+    state.mode === "revise" &&
+    !state.reviseLocked;
+  if (editingDraft) {
+    applyReviseFieldsFromCard(state.reviseDraft);
+    setReviseFieldsReadonly(false);
+  } else {
+    const stored = getStoredReviseCard(rev);
+    if (stored) {
+      applyReviseFieldsFromCard(stored);
+      setReviseFieldsReadonly(true);
+    } else if (state.reviseDraft && draftRev === rev) {
+      applyReviseFieldsFromCard(state.reviseDraft);
+      setReviseFieldsReadonly(state.mode !== "revise" || state.reviseLocked);
+    }
+  }
+  syncReviseCardChrome();
+  syncConfirmEnabled();
+  void persistProjectChat();
+}
+
+function renderReviseVersionChips() {
+  if (!el.reviseVersions) return;
+  el.reviseVersions.replaceChildren();
+  const chips = [];
+  for (const entry of state.reviseCards || []) {
+    const rev = Number(entry.revision) || 0;
+    if (rev >= 1) chips.push(rev);
+  }
+  const draftRev = Number(state.reviseDraft?.revision) || 0;
+  if (draftRev >= 1 && !chips.includes(draftRev)) chips.push(draftRev);
+  const focus =
+    Number(state.reviseCardFocus) ||
+    draftRev ||
+    Number(state.lastRevision?.revision) ||
+    0;
+  if (focus >= 1 && !chips.includes(focus)) chips.push(focus);
+  chips.sort((a, b) => a - b);
+  if (chips.length <= 1) {
+    el.reviseVersions.hidden = true;
+    return;
+  }
+  el.reviseVersions.hidden = false;
+  for (const rev of chips) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "revise-version-link";
+    if (rev === focus) btn.classList.add("is-current");
+    const isDraft = draftRev === rev && !getStoredReviseCard(rev);
+    btn.textContent = isDraft
+      ? t("revise.versionDraft", { revision: rev })
+      : t("revise.versionRev", { revision: rev });
+    btn.addEventListener("click", () => focusReviseCardVersion(rev));
+    li.appendChild(btn);
+    el.reviseVersions.appendChild(li);
+  }
 }
 
 function setConfirmFieldsReadonly(ro) {
@@ -880,7 +1047,11 @@ function syncReviseDispatchButton(ready) {
   if (!el.doReviseDispatch) return;
   const dialoguing = state.mode === "revise";
   const showCard =
-    dialoguing || state.reviseLocked || Boolean(state.lastRevision);
+    dialoguing ||
+    state.reviseLocked ||
+    Boolean(state.lastRevision) ||
+    (Array.isArray(state.reviseCards) && state.reviseCards.length > 0) ||
+    Boolean(state.reviseDraft);
   if (el.reviseCardFields) {
     el.reviseCardFields.hidden = !showCard && !dialoguing;
   }
@@ -901,8 +1072,9 @@ function syncReviseDispatchButton(ready) {
   if (state.reviseLocked && !dialoguing) {
     setReviseFieldsReadonly(true);
   } else if (dialoguing) {
-    setReviseFieldsReadonly(false);
+    setReviseFieldsReadonly(!isReviseDraftFocus());
   }
+  syncReviseCardChrome();
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
@@ -963,8 +1135,9 @@ function applyCardChrome() {
   if (el[id]) {
     el[id].addEventListener("input", () => {
       autoGrowTextarea(el[id]);
+      if (isReviseDraftFocus()) stashReviseDraftFromFields();
       schedulePersistProjectDesk();
-      if (state.reviseLocked) return;
+      if (state.reviseLocked || !isReviseDraftFocus()) return;
       scheduleValidate("revise");
     });
   }
@@ -1128,6 +1301,12 @@ async function persistProjectChat() {
         rawAsk: state.rawAsk || "",
         card: cardValues(),
         reviseCard: reviseCardValues(),
+        reviseCards: state.reviseCards,
+        reviseDraft: (() => {
+          stashReviseDraftFromFields();
+          return state.reviseDraft;
+        })(),
+        reviseCardFocus: state.reviseCardFocus,
         originalCard: state.originalCard,
         jobId: state.jobId,
         locked: state.locked,
@@ -1251,6 +1430,9 @@ function clearDeskWorkspace() {
   state.reviseStuckHint = false;
   state.originalCard = null;
   state.lastRevision = null;
+  state.reviseCards = [];
+  state.reviseDraft = null;
+  state.reviseCardFocus = null;
   state.dispatchPhase = null;
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
@@ -1304,6 +1486,11 @@ function clearDeskWorkspace() {
     el.previewVersions.replaceChildren();
     el.previewVersions.hidden = true;
   }
+  if (el.reviseVersions) {
+    el.reviseVersions.replaceChildren();
+    el.reviseVersions.hidden = true;
+  }
+  if (el.reviseTitle) el.reviseTitle.textContent = t("revise.title");
   if (el.previewLink) el.previewLink.hidden = true;
   if (el.previewOpenFolder) el.previewOpenFolder.hidden = true;
   if (el.startReviseChat) el.startReviseChat.hidden = true;
@@ -1357,6 +1544,28 @@ async function loadProjectChatIntoUi(projectPath) {
     state.reviseLocked = Boolean(data.reviseLocked);
     state.originalCard = data.originalCard || null;
     state.lastRevision = data.lastRevision || null;
+    state.reviseCards = Array.isArray(data.reviseCards) ? data.reviseCards : [];
+    state.reviseDraft =
+      data.reviseDraft && typeof data.reviseDraft === "object"
+        ? data.reviseDraft
+        : null;
+    state.reviseCardFocus =
+      data.reviseCardFocus != null ? Number(data.reviseCardFocus) || null : null;
+    // Migrate: single reviseCard + lastRevision → version list when empty
+    if (
+      !state.reviseCards.length &&
+      state.lastRevision &&
+      Number(state.lastRevision.revision) > 0
+    ) {
+      upsertReviseCardEntry(state.lastRevision.revision, {
+        goal: state.lastRevision.change || data.reviseCard?.goal || "",
+        outOfScope: state.lastRevision.keep || data.reviseCard?.outOfScope || "",
+        acceptance:
+          state.lastRevision.acceptance || data.reviseCard?.acceptance || "",
+        assumptions:
+          state.lastRevision.reason || data.reviseCard?.assumptions || "",
+      });
+    }
     if (data.deployTarget) state.deployTarget = data.deployTarget;
     if (data.agentId) state.agentId = data.agentId;
     if (data.architecture && typeof data.architecture === "object") {
@@ -1381,10 +1590,28 @@ async function loadProjectChatIntoUi(projectPath) {
       : [];
     state.dispatchPhase = data.dispatchPhase === "done" ? "done" : null;
     applySavedCardFields(data.card, data.reviseCard);
+    // Prefer focused version card over flat reviseCard when history exists
+    if (state.reviseCardFocus) {
+      focusReviseCardVersion(state.reviseCardFocus);
+    } else if (state.reviseDraft) {
+      state.reviseCardFocus = Number(state.reviseDraft.revision) || null;
+      applyReviseFieldsFromCard(state.reviseDraft);
+      setReviseFieldsReadonly(state.mode !== "revise" || state.reviseLocked);
+    } else if (state.lastRevision && Number(state.lastRevision.revision) > 0) {
+      state.reviseCardFocus = Number(state.lastRevision.revision);
+      const stored = getStoredReviseCard(state.reviseCardFocus);
+      if (stored) applyReviseFieldsFromCard(stored);
+    }
     setConfirmFieldsReadonly(state.locked);
-    setReviseFieldsReadonly(state.reviseLocked);
+    setReviseFieldsReadonly(
+      state.reviseLocked ||
+        (Boolean(state.reviseCardFocus) &&
+          !isReviseDraftFocus() &&
+          Boolean(getStoredReviseCard(state.reviseCardFocus))),
+    );
     applyConfirmCardChrome();
     applyCardChrome();
+    syncReviseCardChrome();
     renderMessagesToLog(state.messages);
     if (
       state.mode === "architecture" ||
@@ -1585,10 +1812,25 @@ function applyCard(data, { skipValidate = false } = {}) {
       syncConfirmEnabled();
       return;
     }
-    if (data.goal && el.revGoal) el.revGoal.value = data.goal;
-    if (data.outOfScope && el.revOut) el.revOut.value = data.outOfScope;
-    if (data.acceptance && el.revAccept) el.revAccept.value = data.acceptance;
-    if (data.assumptions && el.revAssume) el.revAssume.value = data.assumptions;
+    if (!state.reviseDraft) {
+      state.reviseDraft = {
+        revision: nextReviseRevisionNumber(),
+        goal: "",
+        outOfScope: "",
+        acceptance: "",
+        assumptions: "",
+      };
+      state.reviseCardFocus =
+        state.reviseCardFocus || state.reviseDraft.revision;
+    }
+    if (data.goal) state.reviseDraft.goal = data.goal;
+    if (data.outOfScope) state.reviseDraft.outOfScope = data.outOfScope;
+    if (data.acceptance) state.reviseDraft.acceptance = data.acceptance;
+    if (data.assumptions) state.reviseDraft.assumptions = data.assumptions;
+    if (isReviseDraftFocus()) {
+      applyReviseFieldsFromCard(state.reviseDraft);
+    }
+    syncReviseCardChrome();
   } else if (state.locked) {
     // Confirmed Brief stays frozen; chat remains conversational only.
     syncConfirmEnabled();
@@ -2323,6 +2565,7 @@ function restoreReviseDeskUi() {
     revision: state.lastRevision?.revision || 0,
   });
   applyCardChrome();
+  syncReviseCardChrome();
   syncChatPlaceholder();
 }
 
@@ -4151,17 +4394,25 @@ function enterReviseMode() {
   state.reviseDispatching = false;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Keep confirmed architecture; only redesign when structure changes.
+  // Advance to the next iteration card — never overwrite prior reviseCards.
+  const nextRev = nextReviseRevisionNumber();
+  state.reviseDraft = {
+    revision: nextRev,
+    goal: "",
+    outOfScope: "",
+    acceptance: "",
+    assumptions: "",
+  };
+  state.reviseCardFocus = nextRev;
   syncArchitecturePanel();
   resetValidateGate();
   // Keep top confirm card as original requirements — do not clear it
   restoreConfirmCardFromOriginal();
-  if (el.revGoal) el.revGoal.value = "";
-  if (el.revOut) el.revOut.value = "";
-  if (el.revAccept) el.revAccept.value = "";
-  if (el.revAssume) el.revAssume.value = "";
+  applyReviseFieldsFromCard(state.reviseDraft);
   setReviseFieldsReadonly(false);
   syncReqSections();
   applyCardChrome();
+  syncReviseCardChrome();
   syncChatPlaceholder();
   syncConfirmEnabled();
   el.input.focus();
@@ -4247,6 +4498,10 @@ function lockReviseCard(data, card) {
   state.mode = "specify"; // leave dialogue; chrome via reviseLocked
   state.reviseLocked = true;
   state.reviseDispatching = false;
+  const rev = Number(data.revision) || 0;
+  upsertReviseCardEntry(rev, card);
+  state.reviseDraft = null;
+  state.reviseCardFocus = rev > 0 ? rev : state.reviseCardFocus;
   state.lastRevision = {
     revision: data.revision,
     change: card.goal,
@@ -4254,10 +4509,7 @@ function lockReviseCard(data, card) {
     acceptance: card.acceptance,
     reason: card.assumptions,
   };
-  if (el.revGoal) el.revGoal.value = card.goal;
-  if (el.revOut) el.revOut.value = card.outOfScope;
-  if (el.revAccept) el.revAccept.value = card.acceptance;
-  if (el.revAssume) el.revAssume.value = card.assumptions;
+  applyReviseFieldsFromCard(card);
   restoreConfirmCardFromOriginal();
   syncReqSections();
   syncChatPlaceholder();
@@ -4269,7 +4521,9 @@ function lockReviseCard(data, card) {
       acceptance: card.acceptance,
     });
   }
+  setReviseFieldsReadonly(true);
   applyCardChrome();
+  syncReviseCardChrome();
   if (el.chatPanel) el.chatPanel.classList.remove("revise-active");
   renderRevisePanel({
     canRevise: true,
@@ -4865,6 +5119,9 @@ async function restoreHistoryJob() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.lastRevision = null;
+  state.reviseCards = [];
+  state.reviseDraft = null;
+  state.reviseCardFocus = null;
   clearRunTimeline();
   const card = data.card || {};
   el.goal.value = card.goal || "";
@@ -4985,6 +5242,7 @@ el.projectBrowse?.addEventListener("click", async () => {
 
 onLocaleChange(() => {
   syncDynamicI18n();
+  syncReviseCardChrome();
   if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
     renderPreview(state.lastStatus);
   } else {

@@ -177,4 +177,84 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /startStatusPoll/);
   assert.match(js, /dispatchPhase|markDispatchDone|applyDispatchStateFromStatus/);
   assert.match(js, /appendReviseMessagesToLog|restoreReviseDeskUi/);
+  assert.match(js, /reviseCards|reviseDraft|upsertReviseCardEntry/);
+});
+
+test("reviseCards round-trip and legacy lastRevision migrate", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    messages: [],
+    reviseMessages: [],
+    card: { goal: "A", outOfScope: "", acceptance: "B", assumptions: "" },
+    reviseCard: {
+      goal: "lighter",
+      outOfScope: "",
+      acceptance: "ok",
+      assumptions: "dark",
+    },
+    reviseCards: [
+      {
+        revision: 1,
+        goal: "lighter",
+        outOfScope: "copy",
+        acceptance: "ok",
+        assumptions: "dark",
+      },
+    ],
+    reviseDraft: {
+      revision: 2,
+      goal: "bigger title",
+      outOfScope: "",
+      acceptance: "title 24px",
+      assumptions: "",
+    },
+    reviseCardFocus: 2,
+    lastRevision: {
+      revision: 1,
+      change: "lighter",
+      keep: "copy",
+      acceptance: "ok",
+      reason: "dark",
+    },
+    locked: true,
+    reviseLocked: false,
+    mode: "revise",
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.reviseCards.length, 1);
+  assert.equal(loaded.reviseCards[0].revision, 1);
+  assert.equal(loaded.reviseCards[0].goal, "lighter");
+  assert.equal(loaded.reviseDraft.revision, 2);
+  assert.equal(loaded.reviseDraft.goal, "bigger title");
+  assert.equal(loaded.reviseCardFocus, 2);
+
+  const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-leg-"));
+  const legacyPath = path.join(legacyRoot, "app");
+  writeProjectChat(legacyRoot, {
+    projectPath: legacyPath,
+    messages: [],
+    reviseCard: {
+      goal: "legacy change",
+      outOfScope: "keep",
+      acceptance: "done",
+      assumptions: "why",
+    },
+    lastRevision: {
+      revision: 3,
+      change: "legacy change",
+      keep: "keep",
+      acceptance: "done",
+      reason: "why",
+    },
+    locked: true,
+    reviseLocked: true,
+  });
+  const migrated = readProjectChat(legacyRoot, legacyPath);
+  assert.equal(migrated.reviseCards.length, 1);
+  assert.equal(migrated.reviseCards[0].revision, 3);
+  assert.equal(migrated.reviseCards[0].goal, "legacy change");
+  fs.rmSync(root, { recursive: true, force: true });
+  fs.rmSync(legacyRoot, { recursive: true, force: true });
 });

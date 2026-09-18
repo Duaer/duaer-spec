@@ -33,6 +33,66 @@ function clipCard(card) {
   };
 }
 
+/** One locked/dispatched 改进卡 per revision number (iteration line). */
+function clipReviseCardEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const revision = Number(entry.revision);
+  if (!Number.isFinite(revision) || revision < 1) return null;
+  const card = clipCard(entry);
+  return {
+    revision: Math.floor(revision),
+    goal: card.goal,
+    outOfScope: card.outOfScope,
+    acceptance: card.acceptance,
+    assumptions: card.assumptions,
+  };
+}
+
+function clipReviseCards(list) {
+  if (!Array.isArray(list)) return [];
+  const byRev = new Map();
+  for (const raw of list) {
+    const entry = clipReviseCardEntry(raw);
+    if (entry) byRev.set(entry.revision, entry);
+  }
+  return [...byRev.values()].sort((a, b) => a.revision - b.revision).slice(-40);
+}
+
+function clipReviseDraft(draft) {
+  const entry = clipReviseCardEntry(draft);
+  return entry;
+}
+
+function clipReviseCardFocus(focus) {
+  if (focus == null || focus === "") return null;
+  const n = Number(focus);
+  if (!Number.isFinite(n) || n < 1) return null;
+  return Math.floor(n);
+}
+
+/**
+ * Seed version list from legacy single reviseCard + lastRevision.
+ * @param {unknown[]} cards
+ * @param {object|null} lastRevision
+ * @param {ReturnType<typeof clipCard>} reviseCard
+ */
+function migrateReviseCards(cards, lastRevision, reviseCard) {
+  const list = clipReviseCards(cards);
+  if (list.length) return list;
+  const rev = Number(lastRevision?.revision);
+  if (!Number.isFinite(rev) || rev < 1) return list;
+  const fromLast = {
+    revision: Math.floor(rev),
+    goal: String(lastRevision?.change || reviseCard?.goal || ""),
+    outOfScope: String(lastRevision?.keep || reviseCard?.outOfScope || ""),
+    acceptance: String(
+      lastRevision?.acceptance || reviseCard?.acceptance || "",
+    ),
+    assumptions: String(lastRevision?.reason || reviseCard?.assumptions || ""),
+  };
+  return clipReviseCards([fromLast]);
+}
+
 function clipMessages(list) {
   if (!Array.isArray(list)) return [];
   return list
@@ -113,6 +173,9 @@ function emptySession(projectPath = "") {
     rawAsk: "",
     card: clipCard(null),
     reviseCard: clipCard(null),
+    reviseCards: [],
+    reviseDraft: null,
+    reviseCardFocus: null,
     originalCard: null,
     jobId: null,
     locked: false,
@@ -146,6 +209,13 @@ export function readProjectChat(liveRoot, projectPath) {
       rawAsk: String(raw.rawAsk || "").slice(0, 8000),
       card: clipCard(raw.card),
       reviseCard: clipCard(raw.reviseCard),
+      reviseCards: migrateReviseCards(
+        raw.reviseCards,
+        raw.lastRevision,
+        clipCard(raw.reviseCard),
+      ),
+      reviseDraft: clipReviseDraft(raw.reviseDraft),
+      reviseCardFocus: clipReviseCardFocus(raw.reviseCardFocus),
       originalCard: raw.originalCard ? clipCard(raw.originalCard) : null,
       jobId: raw.jobId ? String(raw.jobId).slice(0, 200) : null,
       locked: Boolean(raw.locked),
@@ -185,6 +255,13 @@ export function writeProjectChat(liveRoot, payload) {
     rawAsk: String(payload.rawAsk || "").slice(0, 8000),
     card: clipCard(payload.card),
     reviseCard: clipCard(payload.reviseCard),
+    reviseCards: migrateReviseCards(
+      payload.reviseCards,
+      payload.lastRevision,
+      clipCard(payload.reviseCard),
+    ),
+    reviseDraft: clipReviseDraft(payload.reviseDraft),
+    reviseCardFocus: clipReviseCardFocus(payload.reviseCardFocus),
     originalCard: payload.originalCard ? clipCard(payload.originalCard) : null,
     jobId: payload.jobId ? String(payload.jobId).slice(0, 200) : null,
     locked: Boolean(payload.locked),

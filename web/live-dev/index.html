@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=result-bar-layout-1" />
+    <link rel="stylesheet" href="/styles.css?v=revise-card-versions-1" />
   </head>
   <body>
     <div class="shell">
@@ -229,7 +229,8 @@
             </div>
             <div id="revisePanel" class="revise-panel" hidden>
               <p class="mark" data-i18n="revise.mark">Revise card</p>
-              <p class="revise-title" data-i18n="revise.title">改进卡</p>
+              <p id="reviseTitle" class="revise-title">改进卡</p>
+              <ul id="reviseVersions" class="revise-versions" hidden></ul>
               <p id="reviseHint" class="hint" data-i18n="revise.hint">左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。</p>
               <div id="reviseCardFields" class="revise-card-fields">
                 <div class="req-section field" data-req="revGoal">
@@ -397,6 +398,6 @@
       </div>
     </aside>
 
-    <script type="module" src="/app.js?v=result-bar-layout-1"></script>
+    <script type="module" src="/app.js?v=revise-card-versions-1"></script>
   </body>
 </html>
