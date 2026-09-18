@@ -19,7 +19,7 @@ test("live source has result version helpers and /api/result route", () => {
   assert.match(LIVE, /function snapshotResultArtifact\b/);
   assert.match(LIVE, /function resolveResultSnapshotFile\b/);
   assert.match(LIVE, /\/api\/result\//);
-  assert.match(LIVE, /查看结果/);
+  assert.match(LIVE, /打开看看|\/api\/preview\/ensure/);
   assert.doesNotMatch(LIVE, /label:\s*"查看成品"/);
 });
 
@@ -30,19 +30,21 @@ test("activelyRevising requires worktree + open R work when delivery accepted", 
   );
 });
 
-test("desk UI: 查看结果 + version list + clear 续派中 on accept", () => {
-  assert.match(HTML, /查看结果/);
+test("desk UI: 打开看看 + version list + clear 续派中 on accept", () => {
+  assert.match(HTML, /打开看看|preview\.view/);
   assert.match(HTML, /id="previewVersions"/);
   assert.match(HTML, /id="previewOpenFolder"|id="progressResult"/);
-  assert.match(I18N, /"preview\.view":\s*"查看结果"/);
-  assert.match(I18N, /"preview\.view":\s*"View result"/);
+  assert.match(I18N, /"preview\.view":\s*"打开看看"/);
+  assert.match(I18N, /"preview\.view":\s*"Open it"/);
   assert.match(I18N, /"preview\.openFolder"/);
   assert.match(APP, /function renderPreviewVersions\b/);
   assert.match(APP, /function openResultFolder\b/);
+  assert.match(APP, /ensureAndOpenPreview|\/api\/preview\/ensure/);
   assert.match(APP, /state\.reviseDispatching\s*=\s*false/);
   assert.match(APP, /data\?\.results/);
   assert.match(APP, /!productReady/);
   assert.match(LIVE, /\/api\/reveal/);
+  assert.match(LIVE, /\/api\/preview\/ensure/);
 });
 
 test("snapshot + prune keeps only previewable files after worktree gone", () => {

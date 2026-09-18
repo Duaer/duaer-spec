@@ -75,6 +75,7 @@ const state = {
   /** null | "working" | "done" — dispatch button phase */
   dispatchPhase: null,
   lastDispatch: null,
+  lastPreviewUrl: null,
   lastCfg: null,
   lastUpdate: null,
   historyJobs: [],
@@ -3606,6 +3607,57 @@ async function openResultFolder(data) {
   }
 }
 
+function setPreviewMeta(text) {
+  if (el.previewMeta) el.previewMeta.textContent = text || "";
+  if (el.progressResultMeta) el.progressResultMeta.textContent = text || "";
+}
+
+function setPreviewOpenBusy(busy) {
+  for (const btn of [el.previewLink, el.progressPreviewLink]) {
+    if (!btn) continue;
+    btn.disabled = Boolean(busy);
+  }
+}
+
+async function ensureAndOpenPreview({ open = true } = {}) {
+  if (!state.jobId) {
+    addBubble("bot", t("preview.startFail", { msg: t("err.noJob") }));
+    return null;
+  }
+  setPreviewOpenBusy(true);
+  setPreviewMeta(t("preview.starting"));
+  try {
+    const res = await fetch("/api/preview/ensure", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jobId: state.jobId }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error || "ensure failed");
+    const url = body.preview?.url || state.lastPreviewUrl || "";
+    if (url) state.lastPreviewUrl = url;
+    setPreviewMeta(
+      body.started || body.alreadyRunning
+        ? t("preview.ready")
+        : url || "",
+    );
+    if (open && url) {
+      const abs = /^https?:\/\//i.test(url)
+        ? url
+        : new URL(url, window.location.origin).href;
+      window.open(abs, "_blank", "noopener");
+    }
+    return body;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    setPreviewMeta("");
+    addBubble("bot", t("preview.startFail", { msg }));
+    return null;
+  } finally {
+    setPreviewOpenBusy(false);
+  }
+}
+
 function renderPreview(data) {
   if (!el.previewPanel) return;
   const wasHidden = el.previewPanel.hidden;
@@ -3633,6 +3685,7 @@ function renderPreview(data) {
   const latest =
     versions.length > 0 ? versions[versions.length - 1] : null;
   const openUrl = preview?.url || latest?.url || "";
+  if (openUrl) state.lastPreviewUrl = openUrl;
   const folder = resultFolderPath(data);
   if (!productReady) {
     el.previewPanel.hidden = true;
@@ -3640,27 +3693,16 @@ function renderPreview(data) {
   } else {
     el.previewPanel.hidden = false;
     if (el.progressResult) el.progressResult.hidden = false;
-    const label =
-      preview?.label || latest?.label || t("preview.view");
+    const label = t("preview.view");
     if (el.previewLink) {
-      if (openUrl) {
-        el.previewLink.hidden = false;
-        el.previewLink.href = openUrl;
-        el.previewLink.textContent = label;
-      } else {
-        el.previewLink.hidden = true;
-        el.previewLink.removeAttribute("href");
-      }
+      el.previewLink.hidden = !openUrl;
+      el.previewLink.textContent = label;
+      el.previewLink.disabled = false;
     }
     if (el.progressPreviewLink) {
-      if (openUrl) {
-        el.progressPreviewLink.hidden = false;
-        el.progressPreviewLink.href = openUrl;
-        el.progressPreviewLink.textContent = label;
-      } else {
-        el.progressPreviewLink.hidden = true;
-        el.progressPreviewLink.removeAttribute("href");
-      }
+      el.progressPreviewLink.hidden = !openUrl;
+      el.progressPreviewLink.textContent = label;
+      el.progressPreviewLink.disabled = false;
     }
     const canOpenFolder = Boolean(folder && state.jobId);
     if (el.previewOpenFolder) {
@@ -3682,8 +3724,9 @@ function renderPreview(data) {
             ? t("preview.auto")
             : preview.source === "auto-service"
               ? t("preview.autoService")
-              : "delivery.preview",
+              : openUrl,
         );
+      else if (/^https?:\/\//i.test(openUrl)) bits.push(openUrl);
       if (data?.revision > 0) bits.push(`r${data.revision}`);
       else if (latest && Number(latest.revision) > 0)
         bits.push(`r${latest.revision}`);
@@ -3703,6 +3746,10 @@ function renderPreview(data) {
       el.previewPanel.scrollIntoView({ block: "nearest", behavior: "smooth" });
     } catch {
       /* ignore */
+    }
+    // Warm up localhost services so「打开看看」is ready.
+    if (openUrl && /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(openUrl)) {
+      void ensureAndOpenPreview({ open: false });
     }
   }
 }
@@ -4178,6 +4225,12 @@ el.previewOpenFolder?.addEventListener("click", () => {
 });
 el.progressOpenFolder?.addEventListener("click", () => {
   void onOpenResultFolder();
+});
+el.previewLink?.addEventListener("click", () => {
+  void ensureAndOpenPreview({ open: true });
+});
+el.progressPreviewLink?.addEventListener("click", () => {
+  void ensureAndOpenPreview({ open: true });
 });
 
 if (el.doReviseDispatch) {

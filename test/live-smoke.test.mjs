@@ -273,6 +273,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /architecturePrevious|architectureFingerprint|architectureRedesign/);
   assert.match(html, /architecturePreviousBlock|architectureRedesign/);
   assert.match(liveBin, /resolvePreviewPayload|live-preview/);
+  assert.match(liveBin, /\/api\/preview\/ensure|ensureLocalPreviewService/);
+  assert.match(js, /ensureAndOpenPreview/);
   assert.match(js, /\/api\/projects/);
   assert.match(liveBin, /\/api\/projects\/chat/);
   assert.match(liveBin, /NEED_PROJECT/);

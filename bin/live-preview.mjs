@@ -4,7 +4,9 @@
  */
 
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
+import { spawn } from "node:child_process";
 
 const PREVIEW_CANDIDATES = [
   "index.html",
@@ -134,7 +136,7 @@ export function resolvePreviewPayload({ delivery, worktreePath, jobId }) {
     d.preview?.label ||
     d.previewLabel ||
     d.artifact?.label ||
-    "查看结果";
+    "打开看看";
 
   if (raw && /^https?:\/\//i.test(String(raw).trim())) {
     return {
@@ -195,6 +197,135 @@ export function resolvePreviewPayload({ delivery, worktreePath, jobId }) {
   }
 
   return null;
+}
+
+export function parseLocalPreviewPort(url) {
+  try {
+    const u = new URL(String(url || "").trim());
+    if (!/^(localhost|127\.0\.0\.1)$/i.test(u.hostname)) return null;
+    const port = Number(u.port || (u.protocol === "https:" ? 443 : 80));
+    return Number.isFinite(port) && port > 0 ? port : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isLocalPreviewUrl(url) {
+  return parseLocalPreviewPort(url) != null;
+}
+
+export function probePortOpen(port, host = "127.0.0.1", timeoutMs = 500) {
+  const p = Number(port);
+  if (!Number.isFinite(p) || p <= 0) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const socket = net.connect({ port: p, host }, () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.on("error", () => resolve(false));
+    socket.setTimeout(timeoutMs, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+export async function waitForPort(
+  port,
+  { timeoutMs = 25000, intervalMs = 350 } = {},
+) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    if (await probePortOpen(port)) return true;
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+  return false;
+}
+
+export function pickStartCommand(worktreePath) {
+  const root = String(worktreePath || "").trim();
+  if (!root) return null;
+  const pkgPath = path.join(root, "package.json");
+  if (!fs.existsSync(pkgPath)) return null;
+  try {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
+    const s = pkg.scripts && typeof pkg.scripts === "object" ? pkg.scripts : {};
+    if (s.start) return { cmd: "npm", args: ["start"], script: "start" };
+    if (s.dev) return { cmd: "npm", args: ["run", "dev"], script: "dev" };
+    if (s.serve) return { cmd: "npm", args: ["run", "serve"], script: "serve" };
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Start local preview service if the URL is localhost and the port is closed.
+ * @returns {Promise<{ ok: boolean, started: boolean, alreadyRunning: boolean, url: string, port?: number, pid?: number }>}
+ */
+export async function ensureLocalPreviewService({
+  worktreePath,
+  previewUrl,
+  logPath = null,
+}) {
+  const url = String(previewUrl || "").trim();
+  const port = parseLocalPreviewPort(url);
+  if (!port) {
+    return { ok: true, started: false, alreadyRunning: false, url };
+  }
+  if (await probePortOpen(port)) {
+    return {
+      ok: true,
+      started: false,
+      alreadyRunning: true,
+      url,
+      port,
+    };
+  }
+  const root = String(worktreePath || "").trim();
+  if (!root || !fs.existsSync(root)) {
+    const e = new Error("project folder not found");
+    e.code = "NOT_FOUND";
+    throw e;
+  }
+  const start = pickStartCommand(root);
+  if (!start) {
+    const e = new Error("package.json has no start/dev/serve script");
+    e.code = "NO_START";
+    throw e;
+  }
+  let stdio = "ignore";
+  if (logPath) {
+    try {
+      fs.mkdirSync(path.dirname(logPath), { recursive: true });
+      const fd = fs.openSync(logPath, "a");
+      stdio = ["ignore", fd, fd];
+    } catch {
+      stdio = "ignore";
+    }
+  }
+  const child = spawn(start.cmd, start.args, {
+    cwd: root,
+    detached: true,
+    stdio,
+    env: { ...process.env, PORT: String(port) },
+  });
+  child.unref();
+  const up = await waitForPort(port, { timeoutMs: 25000 });
+  if (!up) {
+    const e = new Error("service did not become ready in time");
+    e.code = "START_TIMEOUT";
+    throw e;
+  }
+  return {
+    ok: true,
+    started: true,
+    alreadyRunning: false,
+    url,
+    port,
+    pid: child.pid || undefined,
+    script: start.script,
+  };
 }
 
 export { PREVIEW_CANDIDATES };

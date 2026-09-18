@@ -195,12 +195,12 @@
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
             <div id="previewPanel" class="preview-panel" hidden>
-              <p class="preview-title" data-i18n="preview.title">结果</p>
+              <p class="preview-title" data-i18n="preview.title">成品</p>
               <div class="preview-actions">
-                <a id="previewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" data-i18n="preview.view" hidden>查看结果</a>
-                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开项目目录</button>
+                <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
+                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开文件夹</button>
               </div>
-              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">没有可打开的页面；可打开项目目录查看交付物。</p>
+              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开文件夹看看。</p>
               <p id="previewMeta" class="hint"></p>
               <ul id="previewVersions" class="preview-versions" hidden></ul>
               <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
@@ -255,10 +255,10 @@
             <p id="dispatchStatus" class="meta progress-status" hidden></p>
           </header>
           <div id="progressResult" class="progress-result" hidden>
-            <p class="progress-result-title" data-i18n="preview.title">结果</p>
+            <p class="progress-result-title" data-i18n="preview.title">成品</p>
             <div class="preview-actions">
-              <a id="progressPreviewLink" class="preview-link btn confirm" href="#" target="_blank" rel="noopener" hidden data-i18n="preview.view">查看结果</a>
-              <button type="button" class="btn" id="progressOpenFolder" hidden data-i18n="preview.openFolder">打开项目目录</button>
+              <button type="button" class="btn confirm" id="progressPreviewLink" hidden data-i18n="preview.view">打开看看</button>
+              <button type="button" class="btn" id="progressOpenFolder" hidden data-i18n="preview.openFolder">打开文件夹</button>
             </div>
             <p id="progressResultMeta" class="hint"></p>
           </div>

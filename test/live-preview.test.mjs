@@ -8,8 +8,11 @@ import path from "node:path";
 import test from "node:test";
 import {
   inferLocalServiceUrl,
+  parseLocalPreviewPort,
+  pickStartCommand,
   resolvePreviewPayload,
 } from "../bin/live-preview.mjs";
+import { fileURLToPath } from "node:url";
 
 test("inferLocalServiceUrl reads localhost from README", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
@@ -77,17 +80,39 @@ test("resolvePreviewPayload serves index.html artifact", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test("live prompts require preview.url for services too", () => {
-  const live = fs.readFileSync(
-    path.resolve(path.dirname(new URL(import.meta.url).pathname), "../bin/duaer-live.mjs"),
-    "utf8",
+test("live prompts require starting the service before accept", () => {
+  const ROOT = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "..",
   );
+  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   const progress = fs.readFileSync(
-    path.resolve(path.dirname(new URL(import.meta.url).pathname), "../bin/live-progress.mjs"),
+    path.join(ROOT, "bin/live-progress.mjs"),
     "utf8",
   );
   assert.match(live, /必须在 delivery\.json 写入 preview\.url/);
-  assert.match(live, /http:\/\/localhost:8788/);
-  assert.match(progress, /必须写入 preview\.url/);
-  assert.doesNotMatch(progress, /若交付物是页面\/静态文件，在 delivery\.json 增加/);
+  assert.match(live, /必须先把服务跑起来|npm start/);
+  assert.match(live, /\/api\/preview\/ensure/);
+  assert.match(progress, /启动可打开的服务/);
+  assert.doesNotMatch(
+    progress,
+    /若交付物是页面\/静态文件，在 delivery\.json 增加/,
+  );
+});
+
+test("parseLocalPreviewPort and pickStartCommand", () => {
+  assert.equal(parseLocalPreviewPort("http://localhost:8788/"), 8788);
+  assert.equal(parseLocalPreviewPort("https://example.com"), null);
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  fs.writeFileSync(
+    path.join(root, "package.json"),
+    JSON.stringify({ scripts: { start: "node server.mjs" } }),
+    "utf8",
+  );
+  assert.deepEqual(pickStartCommand(root), {
+    cmd: "npm",
+    args: ["start"],
+    script: "start",
+  });
+  fs.rmSync(root, { recursive: true, force: true });
 });

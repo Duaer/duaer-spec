@@ -55,7 +55,7 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
-import { resolvePreviewPayload } from "./live-preview.mjs";
+import { resolvePreviewPayload, ensureLocalPreviewService } from "./live-preview.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -3041,6 +3041,7 @@ Brief: ${featureDir}
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
+6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 ${deployPrompt}${architecturePrompt}`;
@@ -3577,7 +3578,7 @@ ${restated.keep}
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FED 靠此显示细粒度进度）
 2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
-3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）
+3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）；若是服务须先启动并可打开
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
 `;
@@ -4838,6 +4839,82 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "launch failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/preview/ensure") {
+    try {
+      const body = await readJson(req);
+      const live = readLiveJob(body.jobId);
+      const dispatch = live.job.dispatch || {};
+      const roots = resolveDispatchRoots(dispatch);
+      const featureDir = roots.featureDir;
+      const deliveryPath = featureDir
+        ? path.join(featureDir, "delivery.json")
+        : null;
+      let delivery = null;
+      if (deliveryPath && fs.existsSync(deliveryPath)) {
+        try {
+          delivery = JSON.parse(fs.readFileSync(deliveryPath, "utf8"));
+        } catch {
+          delivery = null;
+        }
+      }
+      const preview = resolvePreview({
+        delivery: delivery || { status: "open" },
+        worktreePath: roots.root,
+        jobId: live.id,
+      });
+      if (!preview?.url) {
+        const e = new Error("还没有可打开的地址");
+        e.code = "NO_PREVIEW";
+        throw e;
+      }
+      if (preview.kind === "artifact" || !/^https?:\/\//i.test(preview.url)) {
+        send(res, 200, {
+          ok: true,
+          preview,
+          started: false,
+          alreadyRunning: false,
+        });
+        return;
+      }
+      const worktreePath =
+        roots.root ||
+        dispatch.worktreePath ||
+        dispatch.repoPath ||
+        live.job.repoPath ||
+        live.job.projectPath;
+      const logPath = featureDir
+        ? path.join(featureDir, "preview-service.log")
+        : null;
+      const ensured = await ensureLocalPreviewService({
+        worktreePath,
+        previewUrl: preview.url,
+        logPath,
+      });
+      send(res, 200, {
+        ok: true,
+        preview,
+        started: Boolean(ensured.started),
+        alreadyRunning: Boolean(ensured.alreadyRunning),
+        port: ensured.port,
+        pid: ensured.pid,
+      });
+    } catch (err) {
+      const code =
+        err?.code === "NOT_FOUND"
+          ? 404
+          : err?.code === "NO_PREVIEW"
+            ? 404
+            : err?.code === "NO_START" || err?.code === "START_TIMEOUT"
+              ? 504
+              : 400;
+      send(res, code, {
+        error: err instanceof Error ? err.message : "preview ensure failed",
+        code: err?.code,
       });
     }
     return;
