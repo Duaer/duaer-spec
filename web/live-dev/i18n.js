@@ -436,7 +436,7 @@ const zhCN = {
     "Revision {revision} 已续派\n要改：{goal}\n怎么算好：{acceptance}",
   "startCmd.goalFallback": "（在此写清要做什么）",
   "startCmd.body":
-    "按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后必须先把可打开的服务跑起来（如 npm start），再 stamp delivery.json 为 accepted，并写入 preview.url（网页路径或 http://localhost:…）；不要推远程除非明确要求。",
+    "按 Duaer 数字员工流程开工：只做 Brief 范围；边做边勾选 tasks.md；完成后更新产品 README（说明文档与交付一致），先把可打开的服务跑起来（如 npm start），再 stamp delivery.json 为 accepted，并写入 preview.url（网页路径或 http://localhost:…）；不要推远程除非明确要求。",
   "err.noRepo": "先点选仓库，或浏览 / 扫描",
   "err.noJob": "没有可改进的工单",
   "err.reviseFields": "先在下方改进卡补全「要改什么」和「怎么算改好」",
@@ -921,7 +921,7 @@ const en = {
     "Revision {revision} enqueued\nChange: {goal}\nDone when: {acceptance}",
   "startCmd.goalFallback": "(describe the goal here)",
   "startCmd.body":
-    "Follow the Duaer digital-employee flow: stay in Brief scope; check off tasks.md as you go; before accept, start the openable service (e.g. npm start), then stamp delivery.json accepted with preview.url (page path or http://localhost:…); do not push remote unless asked.",
+    "Follow the Duaer digital-employee flow: stay in Brief scope; check off tasks.md as you go; before accept, update the product README to match delivered behavior, start the openable service (e.g. npm start), then stamp delivery.json accepted with preview.url (page path or http://localhost:…); do not push remote unless asked.",
   "err.noRepo": "Pick a repo via browse / scan first",
   "err.noJob": "No job to revise",
   "err.reviseFields": "Fill What to change and Done when on the revise card below",

@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T20:25:00.000Z",
+  "verification": {
+    "L0": "node --check bin/live-modules.mjs bin/live-progress.mjs bin/duaer-live.mjs",
+    "L1": "node --test test/live-modules.test.mjs test/detailed-progress.test.mjs",
+    "L3": "npm run test:live"
+  }
+}

@@ -73,6 +73,9 @@ export function buildDetailedProductTasksMd({
   }
   push("Risk-based verification per testing.md");
   push(
+    "Update product README to match delivered requirements (what it does, modules/acceptance highlights, how to run/open)",
+  );
+  push(
     "启动可打开的服务（如 npm start），确认能打开后再 stamp delivery.json accepted，并必须写入 preview.url（页面路径或 http://localhost:…）",
   );
   if (deployNeeded) {
@@ -134,6 +137,9 @@ export function buildDetailedRevisionTasksMd({
     push("Wire one change needed for revision acceptance");
   }
   push("Verify against revision acceptance");
+  push(
+    "Update product README for this revision (reflect what changed / current behavior)",
+  );
   push(
     "启动/更新可打开的服务，并 stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
   );

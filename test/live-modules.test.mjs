@@ -130,6 +130,7 @@ test("buildTaskPoolFromModules has dependsOn chain", () => {
   assert.ok(pool.tasks.length >= 6);
   const md = taskPoolToMarkdown(pool);
   assert.match(md, /depends:/);
+  assert.match(md, /Update product README/);
   const assigned = assignTasksToWorkers(pool, 2);
   assert.equal(assigned.workerCount, 2);
   const workers = new Set(assigned.tasks.map((t) => t.workerId));
@@ -224,6 +225,7 @@ test("live sources wire modular confirm and late kickoff", () => {
   assert.match(live, /buildTaskPoolFromModules/);
   assert.match(live, /workerCount/);
   assert.match(live, /task-pool\.json/);
+  assert.match(live, /Update product README|更新产品仓 README/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /modulesAllConfirmedLocal|renderModuleTabs/);
   assert.match(js, /modulesAllConfirmed/);

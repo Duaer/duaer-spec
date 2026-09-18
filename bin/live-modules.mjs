@@ -285,11 +285,17 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
     title: "Risk-based verification per testing.md",
     dependsOn: [...moduleVerifyId.values()],
   });
+  const readme = push({
+    moduleId: null,
+    title:
+      "Update product README to match delivered requirements (modules/goal/acceptance/how to run)",
+    dependsOn: [verifyAll.id],
+  });
   push({
     moduleId: null,
     title:
       "Start preview service; stamp delivery.json accepted with preview.url",
-    dependsOn: [verifyAll.id],
+    dependsOn: [readme.id],
   });
   if (deployNeeded) {
     push({
