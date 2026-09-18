@@ -58,6 +58,7 @@ the table for their app.
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
 | E2E-044 | Duaer-spec FED history: header row has Duaer-spec FED + flow tag; History lists past jobs; restore loads job | manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk | `npm test` + manual |
+| E2E-074 | Missing git: auto-install then init; worker CLIs versioned; 10-day auto-upgrade stamp under `~/.duaer/cli-tools-check.json` (opt-out `DUAER_NO_CLI_UPGRADE=1`) | `npm test` + manual |
 | E2E-073 | Progress column: run cards + meter + checklist styling; empty state title/hint | `npm run test:live` + manual |
 | E2E-072 | Sticky top nav; three desk columns equal height; card-panel (middle) and siblings scroll internally | `npm run test:live` + manual |
 | E2E-071 | Choice chips use muted (non-orange) styling; still clickable | `npm run test:live` + manual |
@@ -155,3 +156,4 @@ the table for their app.
 | E2E-061 | `064-cli-install-show` | missing CLI install cmds |
 | E2E-062 | `065-detailed-progress` | fine tasks + worktree activity |
 | E2E-063 | `066-duaer-fed` | Duaer-spec FED brand |
+| E2E-074 | `082-git-cli-ensure` | git auto-install + 10d CLI upgrade |

@@ -1,6 +1,6 @@
 {
-  "featureDir": ".duaer/specs/081-beginner-copy",
-  "slug": "081-beginner-copy",
-  "branch": "fix/beginner-copy",
-  "worktree": ".worktree/fix-beginner-copy"
+  "featureDir": ".duaer/specs/082-git-cli-ensure",
+  "slug": "082-git-cli-ensure",
+  "branch": "feat/git-cli-ensure",
+  "worktree": ".worktree/feat-git-cli-ensure"
 }

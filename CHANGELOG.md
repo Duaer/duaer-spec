@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Git ensure + worker CLI 10-day upgrade
+
+- Before product-repo `git init` / probe: verify `git` is installed; best-effort
+  auto-install (`brew` / non-interactive `apt`/`dnf`/`yum`) then continue
+- Worker CLIs (Cursor Agent / Claude Code / DeepSeek): version on `/api/agents`;
+  every 10 days auto-check and best-effort upgrade (live start + before launch);
+  stamp `~/.duaer/cli-tools-check.json`; opt-out `DUAER_NO_CLI_UPGRADE=1`
+
 ### Beginner slogan
 
 - Header line: 「小白也能做FED」 (was 「小白也能用 FED」)

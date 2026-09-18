@@ -28,6 +28,12 @@ import {
 } from "./live-progress.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
+import {
+  ensureGitInstalled,
+  ensureWorkerClisFresh,
+  CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
+  DEEPSEEK_INSTALL_CMD as TOOLING_DEEPSEEK_INSTALL,
+} from "./live-tooling.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -1297,6 +1303,7 @@ function bootstrapGitRepo(repoPath) {
   if (abs === home || abs === path.parse(abs).root) {
     throw new Error("不能在用户主目录或磁盘根目录自动 git init，请选具体项目文件夹");
   }
+  ensureGitInstalled(whichCmd, runChildSync);
   if (hasGitDir(abs) || tryGitTop(abs)) {
     return abs;
   }
@@ -1389,6 +1396,7 @@ function probeRepo(
   repoPath,
   { bootstrap = false, exact = false, ensureDuaer = false } = {},
 ) {
+  ensureGitInstalled(whichCmd, runChildSync);
   let bootstrapped = false;
   let top;
   try {
@@ -1648,8 +1656,8 @@ function whichCmd(cmd) {
 }
 
 /** CLI-only digital-employee launchers (Terminal). */
-const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
-const DEEPSEEK_INSTALL_CMD = "npm install -g deepseek-tui";
+const CURSOR_INSTALL_CMD = TOOLING_CURSOR_INSTALL;
+const DEEPSEEK_INSTALL_CMD = TOOLING_DEEPSEEK_INSTALL;
 
 const AGENT_CATALOG = [
   {
@@ -1665,7 +1673,7 @@ const AGENT_CATALOG = [
     kind: "worker",
     hint: "Terminal 执行 claude CLI",
     installCommand:
-      "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI",
+      "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI；已安装可执行 claude update",
   },
   {
     id: "deepseek",
@@ -1716,6 +1724,39 @@ function deepseekCliVersion() {
     .slice(0, 120);
 }
 
+function claudeCliVersion() {
+  const bin = whichCmd("claude");
+  if (!bin) return null;
+  let r;
+  try {
+    r = runChildSync("读取 Claude CLI 版本", bin, ["--version"], {
+      encoding: "utf8",
+      timeout: 5000,
+    });
+  } catch {
+    return null;
+  }
+  if (r.status !== 0) return null;
+  return String(r.stdout || r.stderr || "")
+    .trim()
+    .split("\n")[0]
+    .slice(0, 120);
+}
+
+function maybeRefreshWorkerClis({ force = false } = {}) {
+  try {
+    return ensureWorkerClisFresh(whichCmd, runChildSync, { force });
+  } catch (err) {
+    return {
+      skipped: true,
+      due: false,
+      checkedAt: new Date().toISOString(),
+      results: [],
+      reason: err instanceof Error ? err.message : String(err),
+    };
+  }
+}
+
 function detectAgents() {
   const preferredRaw = readConfig().preferredAgentId || "";
   const preferredMeta = AGENT_CATALOG.find((a) => a.id === preferredRaw);
@@ -1726,6 +1767,7 @@ function detectAgents() {
   const deepseekBin = whichCmd("deepseek");
   const version = cursorCliVersion();
   const deepseekVersion = deepseekCliVersion();
+  const claudeVersion = claudeCliVersion();
 
   const installed = [];
   if (agentBin || cursorBin) {
@@ -1743,6 +1785,7 @@ function detectAgents() {
       available: true,
       command: "claude",
       path: claudeBin,
+      version: claudeVersion,
     });
   }
   if (deepseekBin) {
@@ -1775,6 +1818,7 @@ function detectAgents() {
       deepseek: deepseekBin,
       version,
       deepseekVersion,
+      claudeVersion,
     },
   };
 }
@@ -2566,6 +2610,23 @@ function launchAgent({
   reviseLaunch = false,
 }) {
   const id = String(agentId || "none").trim() || "none";
+  // 10-day worker CLI check/upgrade before launching a digital employee
+  try {
+    const refresh = maybeRefreshWorkerClis({ force: false });
+    if (refresh.due && !refresh.skipped && Array.isArray(refresh.results)) {
+      const summary = refresh.results
+        .map((r) => `${r.id}:${r.ok ? "ok" : "fail"}`)
+        .join(", ");
+      if (summary) {
+        console.log(`Worker CLI 10d check: ${summary}`);
+      }
+    }
+  } catch (err) {
+    console.warn(
+      "Worker CLI check failed:",
+      err instanceof Error ? err.message : err,
+    );
+  }
   const detected = detectAgents();
   const meta = detected.agents.find((a) => a.id === id);
   if (!meta?.available) {
@@ -4599,6 +4660,25 @@ function serve(port) {
     }
     scheduleUpdateHint();
     void refreshUpdateInfo({ force: false });
+    // Background: every 10 days check/upgrade Cursor Agent / Claude / DeepSeek CLIs
+    setTimeout(() => {
+      try {
+        const refresh = maybeRefreshWorkerClis({ force: false });
+        if (refresh.due && !refresh.skipped) {
+          const summary = (refresh.results || [])
+            .map((r) => `${r.id}:${r.ok ? "ok" : "fail"}`)
+            .join(", ");
+          console.log(
+            `Worker CLI 10d check${summary ? `: ${summary}` : " (no CLIs)"}`,
+          );
+        }
+      } catch (err) {
+        console.warn(
+          "Worker CLI check failed:",
+          err instanceof Error ? err.message : err,
+        );
+      }
+    }, 2500);
   });
 }
 
