@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: architecture layout hang freezes desk
+
+- Cyclic architecture connections no longer infinite-loop layout BFS
+- Deliverables HTML uses local fonts (no Google Fonts fetch)
+
 ### Fix: architecture panel visibility
 
 - Move「系统架构」out of planned-hosting chips into the middle column

@@ -400,15 +400,18 @@ export function layoutArchitectureIr(raw) {
     layerOf.set(components[0].id, 0);
     queue.push(components[0].id);
   }
-  while (queue.length) {
+  // BFS once per node. Re-relaxing longer paths + cycles used to spin forever
+  // and freeze the whole live desk (deliverables / chat / architecture).
+  const maxSteps = Math.max(8, components.length * components.length + 8);
+  let steps = 0;
+  while (queue.length && steps < maxSteps) {
+    steps += 1;
     const id = queue.shift();
     const base = layerOf.get(id) || 0;
     for (const to of outs.get(id) || []) {
-      const next = base + 1;
-      if (!layerOf.has(to) || layerOf.get(to) < next) {
-        layerOf.set(to, next);
-        queue.push(to);
-      }
+      if (layerOf.has(to)) continue;
+      layerOf.set(to, base + 1);
+      queue.push(to);
     }
   }
   for (const c of components) {
@@ -474,22 +477,27 @@ export function normalizeArchitectureIr(raw) {
  * Extract Archify architecture JSON from model reply text.
  */
 export function extractArchitectureIr(text) {
-  const s = String(text || "");
-  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  const s = String(text || "").slice(0, 400_000);
   const candidates = [];
-  if (fence) candidates.push(fence[1]);
-  const brace = s.match(/\{[\s\S]*"diagram_type"\s*:\s*"architecture"[\s\S]*\}/);
-  if (brace) candidates.push(brace[0]);
-  const ready = s.match(
-    /\{[\s\S]*"ready"\s*:\s*true[\s\S]*"components"\s*:\s*\[[\s\S]*\}/,
-  );
-  if (ready) candidates.push(ready[0]);
-  // Prefer last <<<JSON>>> block when present (chat envelope).
   const marker = s.lastIndexOf("<<<JSON>>>");
   if (marker >= 0) {
-    const after = s.slice(marker + "<<<JSON>>>".length).trim();
-    const m = after.match(/\{[\s\S]*\}/);
-    if (m) candidates.unshift(m[0]);
+    const after = s.slice(marker + "<<<JSON>>>".length).trim().slice(0, 350_000);
+    const start = after.indexOf("{");
+    const end = after.lastIndexOf("}");
+    if (start >= 0 && end > start) candidates.push(after.slice(start, end + 1));
+  }
+  const fence = s.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fence) candidates.push(fence[1].slice(0, 350_000));
+  if (!candidates.length) {
+    const dt = s.indexOf('"diagram_type"');
+    const ready = s.indexOf('"ready"');
+    const anchor = dt >= 0 ? dt : ready;
+    if (anchor >= 0) {
+      const windowStart = Math.max(0, s.lastIndexOf("{", anchor));
+      const window = s.slice(windowStart, windowStart + 350_000);
+      const end = window.lastIndexOf("}");
+      if (end > 0) candidates.push(window.slice(0, end + 1));
+    }
   }
   for (const chunk of candidates) {
     try {

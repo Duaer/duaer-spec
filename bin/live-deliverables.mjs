@@ -403,9 +403,6 @@ export function renderDeliverablesHtml(model) {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>${esc(L.pageTitle)} · ${esc(model.projectTitle)}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
 <style>
 :root {
   --paper: #ffffff;
@@ -415,8 +412,8 @@ export function renderDeliverablesHtml(model) {
   --mute: #6b6b6b;
   --line: #e4e1da;
   --accent: #1c2b3a;
-  --font-d: "Cormorant Garamond", "Songti SC", "Times New Roman", serif;
-  --font-b: "DM Sans", "PingFang SC", "Hiragino Sans GB", sans-serif;
+  --font-d: "Iowan Old Style", "Palatino Linotype", "Songti SC", "Songti TC", Palatino, serif;
+  --font-b: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body {
