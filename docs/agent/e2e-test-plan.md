@@ -76,6 +76,7 @@ the table for their app.
 | E2E-094 | Result panel: one heading + listen status + start when down; open/folder/revise in one row; no Progress duplicate | `npm test` + `npm run test:live` + manual |
 | E2E-095 | New/empty project clears full desk (chat + 需求 + 运行/结果); prior project session still restores | `npm run test:live` + manual |
 | E2E-096 | Progress/运行 column long status and task lines wrap inside the panel (no horizontal spill) | `npm run test:live` + manual |
+| E2E-097 | Result bar is one compact row (heading + actions; listen/start only for localhost) | `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -203,3 +204,4 @@ the table for their app.
 | E2E-094 | `125-result-service-status` | result panel listen status + one-click start |
 | E2E-095 | `126-new-project-full-reset` | new project resets chat + requirements + run |
 | E2E-096 | `127-progress-text-overflow` | progress column text stays inside panel |
+| E2E-097 | `129-result-one-line` | result panel one-line bar |

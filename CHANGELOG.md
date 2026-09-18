@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Result panel one-line bar
+
+- Heading + open / folder / revise on one row; no stacked meta or history label
+
 ### Claude FED launch: pre-accept folder trust
 
 - Before Claude Terminal start, set `hasTrustDialogAccepted` for the worktree
