@@ -55,6 +55,11 @@ import {
   writeProjectChat,
 } from "./live-project-chat.mjs";
 import {
+  buildDeliverablesModel,
+  renderDeliverablesHtml,
+  writeDeliverablesHtmlFile,
+} from "./live-deliverables.mjs";
+import {
   clipModules,
   clipActiveModuleId,
   modulesAllConfirmed,
@@ -6116,6 +6121,51 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "chat load failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/projects/deliverables") {
+    try {
+      const projectPath = String(url.searchParams.get("path") || "").trim();
+      if (!projectPath) {
+        send(res, 400, { error: "path required", code: "EMPTY_PATH" });
+        return;
+      }
+      const lang =
+        String(url.searchParams.get("lang") || "").toLowerCase() === "en"
+          ? "en"
+          : "zh";
+      const asJson = String(url.searchParams.get("format") || "") === "json";
+      const session = readProjectChat(liveRoot(), projectPath);
+      let job = null;
+      if (session.jobId) {
+        try {
+          job = liveJobDetail(session.jobId);
+        } catch {
+          job = null;
+        }
+      }
+      const model = buildDeliverablesModel(session, {
+        job,
+        lang,
+        projectTitle: path.basename(projectPath),
+      });
+      if (asJson) {
+        send(res, 200, model);
+        return;
+      }
+      const html = renderDeliverablesHtml(model);
+      try {
+        writeDeliverablesHtmlFile(liveRoot(), projectPath, html);
+      } catch {
+        /* best-effort cache file */
+      }
+      send(res, 200, html, "text/html; charset=utf-8");
+    } catch (err) {
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "deliverables failed",
       });
     }
     return;

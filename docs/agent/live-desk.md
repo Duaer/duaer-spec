@@ -14,7 +14,23 @@ Three columns:
 |---|---|
 | Chat | Project dialogue; Markdown bubbles; messy multi-topic talk |
 | Center | Module tabs + confirm cards → architecture → kickoff / revise |
-| Progress | `tasks.md` polling, result bar, Terminal status per worker lane |
+| Progress | **View deliverables** (opens generated HTML) · `tasks.md` polling · result bar |
+
+## Stage deliverables page
+
+Above task progress, **View deliverables** opens a new tab with a standalone
+HTML page generated from the project session:
+
+| Stage | Artifacts |
+|---|---|
+| Requirements | Requirements document (version timeline) · confirmation of modules |
+| Architecture | Diagram link · confirmation note |
+| Kickoff & implementation | Brief/job id · task pool |
+| Delivery | Delivery stamp · preview URL |
+| Revisions | Each revise plan card (when present) |
+
+API: `GET /api/projects/deliverables?path=…&lang=zh|en` (`format=json` for the
+model). A cache file is written under `~/.duaer/live/project-chats/*-deliverables.html`.
 
 ## Modular confirm (no early Brief)
 

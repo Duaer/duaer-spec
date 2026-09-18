@@ -1205,6 +1205,26 @@ a.btn[hidden] {
   border-bottom: 1px solid rgba(63, 86, 108, 0.55);
 }
 
+.deliverables-open {
+  display: block;
+  width: 100%;
+  margin: 0.45rem 0 0.15rem;
+  font-size: 0.82rem;
+  background: rgba(47, 158, 143, 0.12);
+  border-color: var(--lock);
+  color: #9fe8dc;
+}
+
+.deliverables-open:not(:disabled):hover,
+.deliverables-open:not(:disabled):focus-visible {
+  background: rgba(47, 158, 143, 0.24);
+  color: var(--ink);
+}
+
+.deliverables-open[hidden] {
+  display: none !important;
+}
+
 .progress-col .card-title {
   font-size: 1.2rem;
   letter-spacing: 0.03em;

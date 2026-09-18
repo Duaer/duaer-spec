@@ -104,10 +104,12 @@ mock LLM — no paid API).
    - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FDE setup page guide covers the same.  
 6. Edit the start command (must begin with `Duaer`) → kickoff creates
    `.worktree/feat-*` and opens **Terminal** for each worker lane.  
-7. Watch progress in the right column (`tasks.md`). On delivery, workers update
-   the product **README** before `delivery.json` is `accepted`. Then open
-   **Results** (**View result** when a page exists, otherwise **Open project
-   folder**).  
+7. Watch progress in the right column (`tasks.md`). **View deliverables** (above
+   progress) opens a generated HTML page of stage artifacts (requirements doc
+   timeline, confirmation, architecture, task pool, delivery). On delivery,
+   workers update the product **README** before `delivery.json` is `accepted`.
+   Then open **Results** (**View result** when a page exists, otherwise **Open
+   project folder**).  
 8. If the result is not right: **Continue improving (left chat)** → confirm the
    revise card (same validate gate) → re-confirm architecture (keep or redesign)
    → relaunch on the same worktree (preempt leftover Agents before enqueue).

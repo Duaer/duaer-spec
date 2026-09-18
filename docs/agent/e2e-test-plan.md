@@ -120,6 +120,7 @@ the table for their app.
 | E2E-138 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
 | E2E-139 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
 | E2E-140 | Confirm button state: no tab rebuild on validate; tab switch re-validates; busy clear re-enables | `npm run test:live` + manual |
+| E2E-141 | Progress column「查看交付物」opens generated stage deliverables HTML (req doc timeline + confirmation) | `npm test` + `npm run test:live` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -285,3 +286,4 @@ the table for their app.
 | E2E-138 | `171-chat-markdown` | safe chat Markdown bubbles |
 | E2E-139 | `173-parallel-terminal-lanes` | per-worker Terminal queue lanes |
 | E2E-140 | `175-confirm-btn-state` | confirm enablement / tab switch validate |
+| E2E-141 | `176-deliverables-page` | stage deliverables HTML page |

@@ -212,6 +212,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="confirm"/);
   assert.match(html, /id="moduleTabs"/);
+  assert.match(html, /id="openDeliverables"/);
   assert.match(html, /id="workerCount"/);
   const cssText = await (await fetch(`${live.base}/styles.css`)).text();
   assert.match(cssText, /\.module-tab\.is-active/);
@@ -231,6 +232,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
+  assert.match(js, /openDeliverablesPage|\/api\/projects\/deliverables/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
   assert.match(js, /card\.lockHintModuleDone/);

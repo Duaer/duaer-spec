@@ -253,6 +253,7 @@ const el = {
   doDispatch: document.getElementById("doDispatch"),
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
+  openDeliverables: document.getElementById("openDeliverables"),
   progressCol: document.querySelector(".progress-col"),
   progressEmpty: document.getElementById("progressEmpty"),
   runTimeline: document.getElementById("runTimeline"),
@@ -580,7 +581,24 @@ function setActiveProject(path, name, description) {
   state.projectDescription = description || null;
   if (el.repoPath && abs) el.repoPath.value = abs;
   syncDispatchProjectLine();
+  syncDeliverablesEntry();
   syncComposerEnabled();
+}
+
+function syncDeliverablesEntry() {
+  if (!el.openDeliverables) return;
+  el.openDeliverables.hidden = !state.projectPath;
+}
+
+function openDeliverablesPage() {
+  const abs = String(state.projectPath || "").trim();
+  if (!abs) {
+    addBubble("bot", t("bot.needProject"));
+    return;
+  }
+  const lang = getLocale() === "en" ? "en" : "zh";
+  const url = `/api/projects/deliverables?path=${encodeURIComponent(abs)}&lang=${lang}`;
+  window.open(url, "_blank", "noopener,noreferrer");
 }
 
 function syncDispatchProjectLine() {
@@ -2178,6 +2196,7 @@ function clearDeskWorkspace() {
   if (el.progressEmpty) el.progressEmpty.hidden = false;
 
   syncDispatchProjectLine();
+  syncDeliverablesEntry();
   syncConfirmEnabled();
   syncComposerEnabled();
   syncChatEmpty();
@@ -6886,6 +6905,9 @@ if (el.historyToggle) {
     setHistoryOpen(open);
   });
 }
+el.openDeliverables?.addEventListener("click", () => {
+  openDeliverablesPage();
+});
 if (el.historyClose) {
   el.historyClose.addEventListener("click", () => setHistoryOpen(false));
 }

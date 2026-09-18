@@ -51,7 +51,7 @@ real Cursor/Claude session, or full multi-worker Terminal orchestration.
 Those stay manual E2E catalog rows (E2E-055, E2E-136, E2E-139) or future suites.
 
 Modular desk behavior (per-module confirm, late kickoff, README-on-delivery,
-chat Markdown, parallel lanes): see E2E-135…E2E-139 and
+chat Markdown, parallel lanes, deliverables page): see E2E-135…E2E-141 and
 [`docs/agent/live-desk.md`](../../docs/agent/live-desk.md).
 
 ## Opt-in (still need an explicit ask or Spec note)

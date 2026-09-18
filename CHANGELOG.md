@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: stage deliverables HTML page
+
+- Progress column **查看交付物** opens a generated standalone HTML page
+- Stages: requirements (doc timeline + confirmation), architecture, kickoff, delivery, revise
+- `GET /api/projects/deliverables?path=…&lang=zh|en`
+
 ### Fix: confirm button state for modular modules
 
 - Stop rebuilding module tabs on every validate/input tick
