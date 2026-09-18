@@ -50,6 +50,8 @@ const state = {
     summary: "",
     confirmed: false,
   },
+  /** Prior confirmed diagram kept above when a new one is designed. */
+  architecturePrevious: null,
   architectureMessages: [],
   /** Revising but Terminal busy with no task progress — offer retry CTA. */
   reviseStuckHint: false,
@@ -165,10 +167,15 @@ const el = {
   agentList: document.getElementById("agentList"),
   deployTargetList: document.getElementById("deployTargetList"),
   architecturePanel: document.getElementById("architecturePanel"),
+  architecturePreviousBlock: document.getElementById("architecturePreviousBlock"),
+  architecturePreviousSummary: document.getElementById("architecturePreviousSummary"),
+  architecturePreviousFrame: document.getElementById("architecturePreviousFrame"),
+  architectureCurrentTitle: document.getElementById("architectureCurrentTitle"),
   architectureHint: document.getElementById("architectureHint"),
   architectureSummary: document.getElementById("architectureSummary"),
   architectureFrame: document.getElementById("architectureFrame"),
   architectureConfirm: document.getElementById("architectureConfirm"),
+  architectureRedesign: document.getElementById("architectureRedesign"),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -1126,6 +1133,7 @@ async function persistProjectChat() {
           summary: state.architecture.summary,
           confirmed: state.architecture.confirmed,
         },
+        architecturePrevious: state.architecturePrevious,
         architectureMessages: state.architectureMessages,
         dispatchPhase: state.dispatchPhase === "done" ? "done" : null,
         validate: {
@@ -1257,6 +1265,14 @@ async function loadProjectChatIntoUi(projectPath) {
         confirmed: Boolean(data.architecture.confirmed),
       };
     }
+    state.architecturePrevious =
+      data.architecturePrevious && data.architecturePrevious.url
+        ? {
+            ir: data.architecturePrevious.ir || null,
+            url: data.architecturePrevious.url,
+            summary: data.architecturePrevious.summary || "",
+          }
+        : null;
     state.architectureMessages = Array.isArray(data.architectureMessages)
       ? data.architectureMessages
       : [];
@@ -1895,14 +1911,76 @@ async function applyConfirmSuccess(data) {
 
 function resetArchitecture({ stale = false } = {}) {
   state.architecture = {
-    status: stale ? "idle" : "idle",
+    status: "idle",
     ir: null,
     url: null,
     summary: "",
     confirmed: false,
   };
+  state.architecturePrevious = null;
   state.architectureMessages = [];
   syncArchitecturePanel(stale ? "stale" : "need");
+}
+
+/** Structural fingerprint — ignore layout coords so redraws of the same map match. */
+function architectureFingerprint(ir) {
+  if (!ir || typeof ir !== "object") return "";
+  try {
+    const comps = (Array.isArray(ir.components) ? ir.components : [])
+      .map((c) => ({
+        id: c?.id || "",
+        type: c?.type || "",
+        label: c?.label || c?.name || "",
+      }))
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    const links = (
+      Array.isArray(ir.connections)
+        ? ir.connections
+        : Array.isArray(ir.links)
+          ? ir.links
+          : []
+    )
+      .map((l) => ({
+        from: l?.from || l?.source || "",
+        to: l?.to || l?.target || "",
+        label: l?.label || "",
+      }))
+      .sort((a, b) =>
+        `${a.from}:${a.to}`.localeCompare(`${b.from}:${b.to}`),
+      );
+    return JSON.stringify({
+      diagram_type: ir.diagram_type || "architecture",
+      comps,
+      links,
+    });
+  } catch {
+    return "";
+  }
+}
+
+function snapshotArchitectureAsPrevious() {
+  if (!state.architecture?.url) return;
+  state.architecturePrevious = {
+    ir: state.architecture.ir,
+    url: state.architecture.url,
+    summary: state.architecture.summary || "",
+  };
+}
+
+function showArchitecturePreviousBlock() {
+  const prev = state.architecturePrevious;
+  const cur = state.architecture;
+  if (!prev?.url) return false;
+  // Hide when current is the same confirmed diagram (no redesign in flight).
+  if (
+    cur?.confirmed &&
+    cur.url &&
+    architectureFingerprint(cur.ir) === architectureFingerprint(prev.ir) &&
+    cur.url === prev.url
+  ) {
+    return false;
+  }
+  return true;
 }
 
 function architectureEmbedUrl(url) {
@@ -1961,6 +2039,34 @@ function syncArchitecturePanel(kind) {
   if (!el.architecturePanel) return;
   el.architecturePanel.hidden = false;
   const a = state.architecture;
+  const showPrev = showArchitecturePreviousBlock();
+  if (el.architecturePreviousBlock) {
+    el.architecturePreviousBlock.hidden = !showPrev;
+  }
+  if (showPrev && state.architecturePrevious) {
+    const prev = state.architecturePrevious;
+    if (el.architecturePreviousSummary) {
+      el.architecturePreviousSummary.hidden = !prev.summary;
+      el.architecturePreviousSummary.textContent = prev.summary || "";
+    }
+    if (el.architecturePreviousFrame) {
+      el.architecturePreviousFrame.hidden = false;
+      el.architecturePreviousFrame.src = architectureEmbedUrl(prev.url);
+      el.architecturePreviousFrame.style.height = `${architectureFrameHeightPx(
+        prev.ir,
+        el.architecturePreviousFrame,
+      )}px`;
+    }
+  } else if (el.architecturePreviousFrame) {
+    el.architecturePreviousFrame.hidden = true;
+    el.architecturePreviousFrame.removeAttribute("src");
+    el.architecturePreviousFrame.style.removeProperty("height");
+  }
+  if (el.architectureCurrentTitle) {
+    el.architectureCurrentTitle.textContent = showPrev
+      ? t("arch.titleNew")
+      : t("arch.title");
+  }
   if (el.architectureSummary) {
     el.architectureSummary.hidden = !(a.url && a.summary);
     el.architectureSummary.textContent = a.url ? a.summary || "" : "";
@@ -1989,11 +2095,28 @@ function syncArchitecturePanel(kind) {
       el.architectureConfirm.textContent = t("arch.confirm");
     }
   }
+  if (el.architectureRedesign) {
+    const canRedesign =
+      a.confirmed &&
+      Boolean(a.url) &&
+      (state.mode === "revise" ||
+        state.reviseLocked ||
+        state.lastDeliveryAccepted ||
+        state.lastStatus === "accepted" ||
+        state.lastStatus === "revising");
+    el.architectureRedesign.hidden = !canRedesign;
+    el.architectureRedesign.disabled = state.busy;
+  }
   if (el.architectureHint) {
-    if (kind === "stale" || (a.status === "idle" && state.locked && !a.confirmed)) {
-      el.architectureHint.textContent = t(
-        kind === "stale" ? "arch.hintStale" : "arch.hintNeed",
-      );
+    if (kind === "stale") {
+      el.architectureHint.textContent = t("arch.hintStale");
+    } else if (
+      a.confirmed &&
+      (state.mode === "revise" || state.lastDeliveryAccepted)
+    ) {
+      el.architectureHint.textContent = t("arch.hintReviseKeep");
+    } else if (a.status === "idle" && state.locked && !a.confirmed) {
+      el.architectureHint.textContent = t("arch.hintNeed");
     } else if (a.confirmed) {
       el.architectureHint.textContent = t("arch.hintConfirmed");
     } else if (a.status === "preview") {
@@ -2046,8 +2169,16 @@ function maybeNudgeArchitectureContinue() {
 }
 
 function beginArchitectureDesign({ kickoff = false } = {}) {
-  state.architecture.confirmed = false;
-  state.architecture.status = "designing";
+  if (state.architecture.confirmed && state.architecture.url) {
+    snapshotArchitectureAsPrevious();
+  }
+  state.architecture = {
+    status: "designing",
+    ir: null,
+    url: null,
+    summary: "",
+    confirmed: false,
+  };
   state.mode = "architecture";
   syncArchitecturePanel();
   syncChatPlaceholder();
@@ -2163,6 +2294,35 @@ async function kickoffArchitectureDialogue() {
 
 async function renderArchitectureFromIr(ir) {
   if (!ir) return false;
+  const fp = architectureFingerprint(ir);
+  const prevFp = architectureFingerprint(state.architecturePrevious?.ir);
+  const curFp = architectureFingerprint(state.architecture.ir);
+  // Same structure as prior / current confirmed → keep confirmed, no re-gate.
+  if (
+    fp &&
+    ((state.architecturePrevious?.url && fp === prevFp) ||
+      (state.architecture.confirmed && fp === curFp))
+  ) {
+    if (fp === prevFp && state.architecturePrevious) {
+      state.architecture = {
+        status: "confirmed",
+        ir: state.architecturePrevious.ir,
+        url: state.architecturePrevious.url,
+        summary: state.architecturePrevious.summary || "",
+        confirmed: true,
+      };
+      state.architecturePrevious = null;
+    } else {
+      state.architecture.status = "confirmed";
+      state.architecture.confirmed = true;
+    }
+    syncArchitecturePanel();
+    schedulePersistProjectDesk();
+    return true;
+  }
+  if (state.architecture.confirmed && state.architecture.url && fp !== curFp) {
+    snapshotArchitectureAsPrevious();
+  }
   try {
     const res = await fetch("/api/architecture/render", {
       method: "POST",
@@ -2996,6 +3156,12 @@ el.architectureConfirm?.addEventListener("click", () => {
   confirmArchitecture();
 });
 
+el.architectureRedesign?.addEventListener("click", () => {
+  if (state.busy) return;
+  beginArchitectureDesign({ kickoff: true });
+  addBubble("bot", t("arch.enterDesign"));
+});
+
 el.saveProjectsRoot?.addEventListener("click", async () => {
   if (el.historyErr) el.historyErr.hidden = true;
   if (el.dispatchErr) el.dispatchErr.hidden = true;
@@ -3625,7 +3791,8 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseMessages = [];
-  resetArchitecture({ stale: true });
+  // Keep confirmed architecture; only redesign when structure changes.
+  syncArchitecturePanel();
   resetValidateGate();
   // Keep top confirm card as original requirements — do not clear it
   restoreConfirmCardFromOriginal();

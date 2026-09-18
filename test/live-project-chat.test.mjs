@@ -122,6 +122,32 @@ test("architecture mode and messages round-trip", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test("architecturePrevious round-trips in project chat", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    locked: true,
+    architecture: {
+      status: "preview",
+      ir: { diagram_type: "architecture", components: [{ id: "a" }] },
+      url: "/api/architecture/new.html",
+      summary: "new",
+      confirmed: false,
+    },
+    architecturePrevious: {
+      ir: { diagram_type: "architecture", components: [{ id: "old" }] },
+      url: "/api/architecture/old.html",
+      summary: "old",
+    },
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.architecturePrevious.url, "/api/architecture/old.html");
+  assert.equal(loaded.architecturePrevious.summary, "old");
+  assert.equal(loaded.architecture.url, "/api/architecture/new.html");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("checking validate status is not restored (stored as idle)", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
   const projectPath = path.join(root, "app");

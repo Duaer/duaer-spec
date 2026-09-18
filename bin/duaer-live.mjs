@@ -5110,6 +5110,7 @@ async function handleApi(req, res) {
         agentId: body.agentId,
         validate: body.validate,
         architecture: body.architecture,
+        architecturePrevious: body.architecturePrevious,
         architectureMessages: body.architectureMessages,
         dispatchPhase: body.dispatchPhase,
       });
