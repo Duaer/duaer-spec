@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: structured deliverables page
+
+- Contents TOC with stage / artifact anchors
+- Confirmation cards as labeled field rows; bullets become lists
+
 ### Fix: architecture layout hang freezes desk
 
 - Cyclic architecture connections no longer infinite-loop layout BFS

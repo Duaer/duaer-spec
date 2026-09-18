@@ -32,6 +32,27 @@ function fmtAt(iso, lang) {
   }
 }
 
+function structuredBody(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  const lines = raw
+    .split(/\n+/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const bullets = lines.every((l) => /^[-*•·]|\d+[\.、)]/.test(l));
+  if (bullets && lines.length > 1) {
+    const items = lines
+      .map((l) => l.replace(/^[-*•·]\s*/, "").replace(/^\d+[\.、)]\s*/, ""))
+      .map((l) => `<li>${esc(l)}</li>`)
+      .join("");
+    return `<ul class="struct-list">${items}</ul>`;
+  }
+  if (lines.length > 1) {
+    return lines.map((l) => `<p class="struct-p">${esc(l)}</p>`).join("");
+  }
+  return `<p class="struct-p">${esc(raw)}</p>`;
+}
+
 function cardBlock(card, labels) {
   const c = card || {};
   const rows = [
@@ -41,12 +62,12 @@ function cardBlock(card, labels) {
     [labels.assume, c.assumptions],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
-  return rows
+  return `<dl class="card-dl">${rows
     .map(
       ([k, v]) =>
-        `<div class="field"><h4>${esc(k)}</h4><pre>${esc(v)}</pre></div>`,
+        `<div class="card-row"><dt>${esc(k)}</dt><dd>${structuredBody(v)}</dd></div>`,
     )
-    .join("");
+    .join("")}</dl>`;
 }
 
 /**
@@ -274,6 +295,8 @@ function labelsFor(lang) {
       statusPartial: "In progress",
       statusEmpty: "Pending",
       timeline: "Version timeline",
+      toc: "Contents",
+      artifacts: "Artifacts",
       openArch: "Open diagram",
       openLink: "Open",
       confirmed: "Confirmed",
@@ -297,6 +320,8 @@ function labelsFor(lang) {
     statusPartial: "进行中",
     statusEmpty: "未开始",
     timeline: "版本时间线",
+    toc: "目录",
+    artifacts: "交付物",
     openArch: "打开架构图",
     openLink: "打开",
     confirmed: "已确认",
@@ -312,8 +337,9 @@ function statusLabel(status, L) {
 }
 
 function renderArtifact(art, L, lang) {
+  const artId = `art-${esc(art.id || "x")}`;
   if (!art.ready) {
-    return `<article class="artifact is-empty"><h3>${esc(art.title)}</h3><p class="empty">${esc(L.emptyStage)}</p></article>`;
+    return `<article class="artifact is-empty" id="${artId}"><h3>${esc(art.title)}</h3><p class="empty">${esc(L.emptyStage)}</p></article>`;
   }
   if (art.kind === "timeline") {
     const versions = Array.isArray(art.versions) ? art.versions : [];
@@ -330,46 +356,46 @@ function renderArtifact(art, L, lang) {
         } else if (v.revise) {
           body = cardBlock(v.revise, L);
         }
-        return `<li class="tl-item"><div class="tl-meta"><span class="tl-label">${esc(v.label)}</span><time>${esc(fmtAt(v.at, lang))}</time></div><div class="tl-body">${body}</div></li>`;
+        return `<li class="tl-item" id="${esc(v.id)}"><div class="tl-meta"><span class="tl-label">${esc(v.label)}</span><time>${esc(fmtAt(v.at, lang))}</time></div><div class="tl-body">${body}</div></li>`;
       })
       .join("");
-    return `<article class="artifact"><h3>${esc(art.title)}</h3><p class="eyebrow">${esc(L.timeline)}</p><ol class="timeline">${items}</ol></article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><p class="eyebrow">${esc(L.timeline)}</p><ol class="timeline">${items}</ol></article>`;
   }
   if (art.kind === "confirmations") {
     const list = (art.confirmations || [])
       .map(
         (c) =>
-          `<div class="mod"><h5>${esc(c.title)} · ${esc(L.confirmed)}</h5>${cardBlock(c.card, L)}</div>`,
+          `<div class="mod" id="confirm-${esc(c.moduleId || c.title)}"><h5>${esc(c.title)} · ${esc(L.confirmed)}</h5>${cardBlock(c.card, L)}</div>`,
       )
       .join("");
-    return `<article class="artifact"><h3>${esc(art.title)}</h3>${list}</article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${list}</article>`;
   }
   if (art.kind === "architecture") {
     const link = art.url
       ? `<p><a class="btn" href="${esc(art.url)}" target="_blank" rel="noopener">${esc(L.openArch)}</a></p>`
       : "";
     const sum = art.summary
-      ? `<pre class="summary">${esc(art.summary)}</pre>`
+      ? `<div class="summary">${structuredBody(art.summary)}</div>`
       : "";
     const conf = art.confirmed
       ? `<p class="badge ok">${esc(L.confirmed)}</p>`
       : "";
-    return `<article class="artifact"><h3>${esc(art.title)}</h3>${conf}${sum}${link}</article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${conf}${sum}${link}</article>`;
   }
   if (art.kind === "link") {
-    return `<article class="artifact"><h3>${esc(art.title)}</h3><p><a class="btn" href="${esc(art.url)}" target="_blank" rel="noopener">${esc(L.openLink)}</a></p><p class="path">${esc(art.url)}</p></article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><p><a class="btn" href="${esc(art.url)}" target="_blank" rel="noopener">${esc(L.openLink)}</a></p><p class="path">${esc(art.url)}</p></article>`;
   }
   if (art.kind === "pre") {
     const meta = art.meta ? `<p class="meta">${esc(art.meta)}</p>` : "";
-    return `<article class="artifact"><h3>${esc(art.title)}</h3>${meta}<pre>${esc(art.body)}</pre></article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${meta}<div class="summary">${structuredBody(art.body)}</div></article>`;
   }
   if (art.kind === "card") {
     const time = art.at
       ? `<p class="meta"><time>${esc(fmtAt(art.at, lang))}</time></p>`
       : "";
-    return `<article class="artifact"><h3>${esc(art.title)}</h3>${time}${cardBlock(art.card, L)}</article>`;
+    return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3>${time}${cardBlock(art.card, L)}</article>`;
   }
-  return `<article class="artifact"><h3>${esc(art.title)}</h3><pre>${esc(art.body || "")}</pre></article>`;
+  return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><div class="summary">${structuredBody(art.body || "")}</div></article>`;
 }
 
 /**
@@ -378,7 +404,30 @@ function renderArtifact(art, L, lang) {
 export function renderDeliverablesHtml(model) {
   const lang = model.lang === "en" ? "en" : "zh";
   const L = labelsFor(lang);
-  const stagesHtml = (model.stages || [])
+  const stages = model.stages || [];
+  const tocHtml = `<nav class="toc" aria-label="${esc(L.toc)}">
+  <p class="toc-title">${esc(L.toc)}</p>
+  <ol class="toc-list">
+    ${stages
+      .map((stage, idx) => {
+        const num = String(idx + 1).padStart(2, "0");
+        const readyN = (stage.artifacts || []).filter((a) => a.ready).length;
+        const totalN = (stage.artifacts || []).length;
+        return `<li class="toc-item status-${esc(stage.status)}">
+  <a href="#stage-${esc(stage.id)}"><span class="toc-num">${esc(num)}</span><span class="toc-name">${esc(stage.title)}</span><span class="toc-meta">${esc(statusLabel(stage.status, L))} · ${readyN}/${totalN}</span></a>
+  <ul class="toc-arts">${(stage.artifacts || [])
+    .map(
+      (a) =>
+        `<li><a href="#art-${esc(a.id)}">${esc(a.title)}${a.ready ? "" : ` · ${esc(L.emptyStage)}`}</a></li>`,
+    )
+    .join("")}</ul>
+</li>`;
+      })
+      .join("\n")}
+  </ol>
+</nav>`;
+
+  const stagesHtml = stages
     .map((stage, idx) => {
       const arts = (stage.artifacts || [])
         .map((a) => renderArtifact(a, L, lang))
@@ -392,6 +441,7 @@ export function renderDeliverablesHtml(model) {
       <span class="pill">${esc(statusLabel(stage.status, L))}</span>
     </div>
   </header>
+  <p class="stage-label">${esc(L.artifacts)}</p>
   <div class="stage-body">${arts || `<p class="empty">${esc(L.emptyStage)}</p>`}</div>
 </section>`;
     })
@@ -483,6 +533,61 @@ h1.page-title {
   justify-content: center;
   gap: 0.5rem 1.5rem;
 }
+.toc {
+  margin: 0 0 3rem;
+  padding: 1.25rem 1.35rem 1.35rem;
+  border: 1px solid var(--line);
+  background: var(--paper-soft);
+}
+.toc-title {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 0.85rem;
+}
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.85rem;
+}
+.toc-item > a {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem 0.85rem;
+  align-items: baseline;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: var(--font-d);
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.toc-num { color: var(--accent); font-variant-numeric: tabular-nums; }
+.toc-meta {
+  font-family: var(--font-b);
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--mute);
+  letter-spacing: 0.04em;
+}
+.toc-arts {
+  list-style: none;
+  margin: 0.35rem 0 0 1.85rem;
+  padding: 0;
+  display: grid;
+  gap: 0.2rem;
+}
+.toc-arts a {
+  font-family: var(--font-b);
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.toc-arts a:hover,
+.toc-item > a:hover { color: var(--accent); }
 .stage {
   margin: 0 0 3.25rem;
   padding: 0;
@@ -494,7 +599,7 @@ h1.page-title {
   grid-template-columns: auto 1fr;
   gap: 1rem 1.35rem;
   align-items: end;
-  margin-bottom: 1.65rem;
+  margin-bottom: 1.15rem;
   padding-bottom: 0.85rem;
   border-bottom: 1px solid var(--line);
 }
@@ -542,10 +647,19 @@ h1.page-title {
   color: #5c4a2e;
   background: #f7f1e6;
 }
+.stage-label {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--mute);
+  margin: 0 0 0.85rem;
+}
 .artifact {
   margin: 0 0 1.85rem;
-  padding: 0;
-  border: none;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
 }
 .artifact h3 {
   font-family: var(--font-d);
@@ -568,6 +682,37 @@ h1.page-title {
   margin: 0.5rem 0;
   font-size: 0.95rem;
 }
+.card-dl { margin: 0; }
+.card-row {
+  margin: 0 0 0.95rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+}
+.card-row:last-child { border-bottom: 0; padding-bottom: 0; margin-bottom: 0; }
+.card-row dt {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mute);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0 0 0.35rem;
+}
+.card-row dd { margin: 0; }
+.struct-list {
+  margin: 0;
+  padding: 0 0 0 1.15rem;
+}
+.struct-list li { margin: 0.2rem 0; color: var(--ink-soft); }
+.struct-p {
+  margin: 0 0 0.45rem;
+  color: var(--ink-soft);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.struct-p:last-child { margin-bottom: 0; }
+.summary .struct-p,
+.summary .struct-list { font-size: 0.95rem; }
 .field { margin: 0.55rem 0 0.95rem; }
 .field h4 {
   font-family: var(--font-b);
@@ -590,6 +735,7 @@ pre, .summary {
   border: 1px solid var(--line);
   padding: 1rem 1.1rem;
 }
+.summary { white-space: normal; }
 .timeline { list-style: none; margin: 0; padding: 0; }
 .tl-item {
   position: relative;
@@ -686,6 +832,7 @@ pre, .summary {
       <span>${esc(L.generated)} · ${esc(fmtAt(model.generatedAt, lang))}</span>
     </div>
   </header>
+  ${tocHtml}
   ${stagesHtml}
   <p class="footer-note">${esc(L.brand)}</p>
 </main>

@@ -396,6 +396,7 @@ const zhCN = {
   "progress.title": "任务进度",
   "progress.aria": "任务进度",
   "deliverables.open": "查看交付物",
+  "deliverables.openHint": "新标签打开结构化交付物档案（需求文档 / 确认书 / 架构…）",
   "progress.emptyTitle": "还没有进度",
   "progress.empty": "派工后显示各轮任务与改动文件",
   "run.mark": "Run",
@@ -888,6 +889,7 @@ const en = {
   "progress.title": "Task progress",
   "progress.aria": "Task progress",
   "deliverables.open": "View deliverables",
+  "deliverables.openHint": "Opens a structured deliverables dossier in a new tab",
   "progress.emptyTitle": "No progress yet",
   "progress.empty": "Task steps and changed files appear here after dispatch",
   "run.mark": "Run",
@@ -1052,6 +1054,10 @@ export function applyDomI18n(root = document) {
   root.querySelectorAll("[data-i18n-aria]").forEach((node) => {
     const key = node.getAttribute("data-i18n-aria");
     if (key) node.setAttribute("aria-label", t(key));
+  });
+  root.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    const key = node.getAttribute("data-i18n-title");
+    if (key) node.setAttribute("title", t(key));
   });
   const title = t("doc.title");
   if (title) document.title = title;

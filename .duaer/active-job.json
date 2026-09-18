@@ -1,1 +1,4 @@
-{ "specDir": ".duaer/specs/173-parallel-terminal-lanes", "branch": "fix/parallel-terminal-lanes", "source": "agent" }
+{
+  "featureDir": ".duaer/specs/180-deliverables-structure",
+  "slug": "180-deliverables-structure"
+}

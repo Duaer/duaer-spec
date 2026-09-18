@@ -123,6 +123,7 @@ the table for their app.
 | E2E-141 | Progress column「查看交付物」opens generated stage deliverables HTML (req doc timeline + confirmation) | `npm test` + `npm run test:live` + manual |
 | E2E-142 | Architecture panel visible in middle column; server URL + regenerate when IR missing | `npm test` + `npm run test:live` + manual |
 | E2E-143 | Cyclic architecture IR does not freeze live desk; deliverables page opens without Google Fonts | `npm test` + manual |
+| E2E-144 | Deliverables HTML has Contents TOC + structured card fields (dl/dt/dd) | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -291,3 +292,4 @@ the table for their app.
 | E2E-141 | `176-deliverables-page` | stage deliverables HTML page |
 | E2E-142 | `178-arch-panel-visible` | architecture panel visibility + server render |
 | E2E-143 | `179-arch-layout-hang` | cyclic IR layout must not freeze desk |
+| E2E-144 | `180-deliverables-structure` | structured TOC + card fields |
