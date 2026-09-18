@@ -815,6 +815,13 @@ input:focus {
 }
 
 .btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  appearance: none;
+  -webkit-appearance: none;
   border: 1px solid var(--line);
   border-radius: 0;
   padding: 0.65rem 1.1rem;
@@ -823,13 +830,22 @@ input:focus {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  line-height: 1.2;
   cursor: pointer;
   background: var(--plate);
   color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
   transition:
     border-color 180ms ease,
     background-color 180ms ease,
     color 180ms ease;
+}
+
+.btn[hidden],
+button.btn[hidden],
+a.btn[hidden] {
+  display: none !important;
 }
 
 .btn:hover,
@@ -1420,13 +1436,19 @@ input:focus {
 
 .architecture-actions .btn,
 .architecture-actions .btn.confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   flex: 1 1 auto;
   min-width: 8rem;
   margin-top: 0;
   height: auto;
+  min-height: 2.4rem;
+  padding: 0.55rem 0.9rem;
   white-space: normal;
   text-align: center;
+  line-height: 1.25;
 }
 
 #architectureConfirm {
@@ -1435,6 +1457,18 @@ input:focus {
 
 #architectureRedesign {
   flex: 0 1 auto;
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-size: 0.82rem;
+}
+
+#architectureRedesign:hover,
+#architectureRedesign:focus-visible {
+  border-color: var(--register);
+  color: var(--register);
 }
 
 .deploy-target-chip {
@@ -1796,19 +1830,45 @@ input:focus {
 .preview-actions .btn,
 .preview-actions .btn.confirm,
 .preview-actions .btn.revise-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   max-width: none;
   flex: 0 0 auto;
   height: 1.85rem;
+  min-height: 1.85rem;
   margin: 0;
   padding: 0 0.65rem;
   font-size: 0.72rem;
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.02em;
   text-transform: none;
   white-space: nowrap;
   writing-mode: horizontal-tb;
   overflow: visible;
+  background: var(--plate);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.preview-actions .btn.confirm {
+  background: rgba(47, 158, 143, 0.18);
+  border-color: var(--lock);
+  color: #9fe8dc;
+}
+
+.preview-actions .btn.revise-cta {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+.preview-actions .btn.revise-cta:hover,
+.preview-actions .btn.revise-cta:focus-visible {
+  border-color: var(--register);
+  color: var(--register);
 }
 
 .preview-title {
@@ -1869,17 +1929,25 @@ input:focus {
 }
 
 .preview-service .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
   width: auto;
   min-width: auto;
   height: 1.55rem;
+  min-height: 1.55rem;
   margin: 0;
   padding: 0 0.4rem;
   font-size: 0.68rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: none;
   white-space: nowrap;
   line-height: 1;
+  background: var(--plate);
+  border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .preview-link {
@@ -1938,19 +2006,27 @@ input:focus {
 
 .revise-cta {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-top: 0.65rem;
   margin-left: 0;
   min-width: auto;
   padding: 0.45rem 0.85rem;
   font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  line-height: 1.2;
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ink);
 }
 
-.revise-cta:hover {
+.revise-cta:hover,
+.revise-cta:focus-visible {
   border-color: var(--register);
   color: var(--register);
+  outline: none;
 }
 
 .revise-panel {
@@ -2127,13 +2203,15 @@ input:focus {
 }
 
 .revise-panel .btn.confirm {
+  display: inline-flex;
   width: 100%;
   margin-top: 0.85rem;
-  display: block;
 }
 
 .revise-panel .btn.revise-cta {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: auto;
   margin-top: 0.65rem;
   margin-left: 0;

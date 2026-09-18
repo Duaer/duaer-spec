@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "137-btn-chrome",
+  "acceptedAt": "2026-09-18T08:00:00.000Z",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "Complete .btn chrome: flex center, appearance reset, [hidden] display:none; preview/revise/arch action styles restored; cache v=btn-chrome-1"
+}
