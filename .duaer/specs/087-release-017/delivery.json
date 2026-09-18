@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-18T00:56:00.000Z",
+  "verification": {
+    "levels": [],
+    "commands": ["gh release create v0.17.0", "npm publish via Actions"],
+    "result": "pass"
+  }
+}
