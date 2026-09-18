@@ -56,6 +56,7 @@ import {
   writeProjectChat,
 } from "./live-project-chat.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
+import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PACKAGE_ROOT = path.resolve(__dirname, "..");
@@ -2916,6 +2917,20 @@ function launchAgent({
     launch.command = `${resolved?.display || "agent"}${continueSession ? " --continue" : ""} --workspace --trust --force (${queueNote})`;
   } else if (id === "claude") {
     if (!whichCmd("claude")) throw new Error("未找到 claude CLI");
+    // Same consent as 「Yes, I trust this folder」— only for the FED worktree
+    // the human already dispatched into (mirrors Cursor --trust).
+    const trust = markClaudeWorkspacesTrusted(worktreePath);
+    if (trust.ok) {
+      appendLaunchLog(
+        outLog,
+        `[${new Date().toISOString()}] claude trust stamped keys=${(trust.keys || []).join(",")}`,
+      );
+    } else {
+      appendLaunchLog(
+        outLog,
+        `[${new Date().toISOString()}] claude trust stamp skipped: ${trust.error || "unknown"}`,
+      );
+    }
     const cont = continueSession ? "--continue " : "";
     // Digital-employee mode: auto-approve tools (like Cursor --force --trust).
     const line = `claude --permission-mode bypassPermissions ${cont}"$(cat ${shellSingleQuote(promptFile)})"`;

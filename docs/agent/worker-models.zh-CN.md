@@ -58,7 +58,9 @@ claude -p "Reply with exactly: pong"
 升级（npm）：`npm install -g @anthropic-ai/claude-code@latest`  
 文档：<https://code.claude.com/docs/en/installation>
 
-FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令。
+FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令；
+并会为该 worktree（及产品根目录）写入 `~/.claude.json` 的 `hasTrustDialogAccepted`
+（对齐 Cursor `--trust`），避免卡在「信任此文件夹」提示。
 
 ## 数字员工：Claude Code + DeepSeek 模型（官方）
 
