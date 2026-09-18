@@ -31,6 +31,7 @@ HTML page generated from the project session:
 
 API: `GET /api/projects/deliverables?path=…&lang=zh|en` (`format=json` for the
 model). A cache file is written under `~/.duaer/live/project-chats/*-deliverables.html`.
+The HTML uses a **white client dossier** look (not the desk dark theme).
 
 ## Modular confirm (no early Brief)
 

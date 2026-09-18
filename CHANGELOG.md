@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: client-facing deliverables page (white dossier)
+
+- Deliverables HTML uses a white, spacious client document look
+- Drop FDE desk dark/orange palette from the customer-facing page
+
 ### Feat: stage deliverables HTML page
 
 - Progress column **查看交付物** opens a generated standalone HTML page

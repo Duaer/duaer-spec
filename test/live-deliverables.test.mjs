@@ -95,8 +95,10 @@ test("renderDeliverablesHtml escapes XSS and includes stages", () => {
   );
   const html = renderDeliverablesHtml(model);
   assert.match(html, /<!DOCTYPE html>/);
-  assert.match(html, /Deliverables/);
+  assert.match(html, /Deliverables dossier|hero-project/);
   assert.match(html, /Requirements/);
+  assert.match(html, /--paper:\s*#ffffff/);
+  assert.doesNotMatch(html, /--register:\s*#e05a2b|--steel:\s*#0f1820/);
   assert.doesNotMatch(html, /<script>/);
   assert.match(html, /&lt;img/);
   assert.match(html, /Version timeline|Initial/);

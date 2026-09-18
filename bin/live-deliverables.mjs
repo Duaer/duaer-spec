@@ -259,9 +259,9 @@ export function buildDeliverablesModel(session, opts = {}) {
 function labelsFor(lang) {
   if (lang === "en") {
     return {
-      brand: "Duaer-spec FDE",
-      pageTitle: "Deliverables",
-      subtitle: "Artifacts by development stage",
+      brand: "Project deliverables",
+      pageTitle: "Deliverables dossier",
+      subtitle: "A clear record of what each stage produced",
       generated: "Generated",
       project: "Project",
       emptyStage: "No artifacts yet",
@@ -282,9 +282,9 @@ function labelsFor(lang) {
     };
   }
   return {
-    brand: "Duaer-spec FDE",
-    pageTitle: "交付物",
-    subtitle: "按开发阶段查看已产出的交付物",
+    brand: "项目交付物",
+    pageTitle: "交付物档案",
+    subtitle: "按开发阶段整理，便于客户查阅与确认",
     generated: "生成时间",
     project: "项目",
     emptyStage: "尚未产出",
@@ -379,14 +379,18 @@ export function renderDeliverablesHtml(model) {
   const lang = model.lang === "en" ? "en" : "zh";
   const L = labelsFor(lang);
   const stagesHtml = (model.stages || [])
-    .map((stage) => {
+    .map((stage, idx) => {
       const arts = (stage.artifacts || [])
         .map((a) => renderArtifact(a, L, lang))
         .join("\n");
+      const num = String(idx + 1).padStart(2, "0");
       return `<section class="stage status-${esc(stage.status)}" id="stage-${esc(stage.id)}">
   <header class="stage-head">
-    <h2>${esc(stage.title)}</h2>
-    <span class="pill">${esc(statusLabel(stage.status, L))}</span>
+    <p class="stage-num">${esc(num)}</p>
+    <div class="stage-titles">
+      <h2>${esc(stage.title)}</h2>
+      <span class="pill">${esc(statusLabel(stage.status, L))}</span>
+    </div>
   </header>
   <div class="stage-body">${arts || `<p class="empty">${esc(L.emptyStage)}</p>`}</div>
 </section>`;
@@ -401,204 +405,276 @@ export function renderDeliverablesHtml(model) {
 <title>${esc(L.pageTitle)} · ${esc(model.projectTitle)}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;650;750&family=Source+Serif+4:opsz,wght@8..60,500;8..60,650&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
 <style>
 :root {
-  --steel: #0f1820;
-  --plate: #162230;
-  --ink: #f3ebe1;
-  --mute: #8aa0b4;
-  --line: #3a5166;
-  --register: #e05a2b;
-  --lock: #2f9e8f;
-  --font-d: "Outfit", "Avenir Next", sans-serif;
-  --font-b: "Source Serif 4", "Songti SC", serif;
+  --paper: #ffffff;
+  --paper-soft: #f7f6f3;
+  --ink: #1a1a1a;
+  --ink-soft: #3d3d3d;
+  --mute: #6b6b6b;
+  --line: #e4e1da;
+  --accent: #1c2b3a;
+  --font-d: "Cormorant Garamond", "Songti SC", "Times New Roman", serif;
+  --font-b: "DM Sans", "PingFang SC", "Hiragino Sans GB", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
   min-height: 100%;
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(224,90,43,0.16), transparent 55%),
-    radial-gradient(900px 500px at 90% 0%, rgba(47,158,143,0.12), transparent 50%),
-    linear-gradient(165deg, #0c141c 0%, var(--steel) 45%, #152433 100%);
+    radial-gradient(900px 420px at 50% -8%, rgba(28, 43, 58, 0.05), transparent 58%),
+    linear-gradient(180deg, #faf9f7 0%, var(--paper) 28%, var(--paper) 100%);
   color: var(--ink);
   font-family: var(--font-b);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
 }
 .wrap {
-  max-width: 52rem;
+  max-width: 44rem;
   margin: 0 auto;
-  padding: 2.5rem 1.35rem 4rem;
+  padding: 4.5rem 1.75rem 5.5rem;
 }
 .hero {
-  margin-bottom: 2.25rem;
-  padding-bottom: 1.5rem;
+  margin-bottom: 3.75rem;
+  padding-bottom: 2.5rem;
   border-bottom: 1px solid var(--line);
+  text-align: center;
 }
 .brand {
-  font-family: var(--font-d);
-  font-weight: 650;
-  letter-spacing: 0.04em;
+  font-family: var(--font-b);
+  font-weight: 500;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
-  font-size: 0.72rem;
-  color: var(--register);
-  margin: 0 0 0.65rem;
+  font-size: 0.68rem;
+  color: var(--mute);
+  margin: 0 0 1.35rem;
 }
-h1 {
+.hero-project {
   font-family: var(--font-d);
-  font-weight: 750;
-  font-size: clamp(1.85rem, 4vw, 2.55rem);
-  margin: 0 0 0.4rem;
+  font-weight: 600;
+  font-size: clamp(2.6rem, 7vw, 3.85rem);
+  line-height: 1.08;
   letter-spacing: -0.02em;
+  margin: 0 0 0.85rem;
+  color: var(--ink);
 }
-.sub { margin: 0; color: var(--mute); font-size: 1.05rem; }
+h1.page-title {
+  font-family: var(--font-b);
+  font-weight: 500;
+  font-size: 0.95rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0 0 0.75rem;
+  color: var(--ink-soft);
+}
+.sub {
+  margin: 0 auto;
+  max-width: 28rem;
+  color: var(--mute);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.5;
+}
 .meta-line {
-  margin: 1rem 0 0;
-  font-family: var(--font-d);
+  margin: 1.75rem 0 0;
   font-size: 0.78rem;
   color: var(--mute);
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
+  justify-content: center;
+  gap: 0.5rem 1.5rem;
 }
 .stage {
-  margin: 0 0 1.75rem;
-  padding: 1.15rem 1.2rem 1.25rem;
-  background: color-mix(in srgb, var(--plate) 88%, transparent);
-  border: 1px solid var(--line);
-  border-radius: 2px;
+  margin: 0 0 3.25rem;
+  padding: 0;
+  background: transparent;
+  border: none;
 }
 .stage-head {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem 1.35rem;
+  align-items: end;
+  margin-bottom: 1.65rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--line);
+}
+.stage-num {
+  font-family: var(--font-d);
+  font-size: 2.75rem;
+  font-weight: 600;
+  line-height: 0.9;
+  margin: 0;
+  color: var(--accent);
+  letter-spacing: -0.03em;
+}
+.stage-titles {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
+  gap: 0.5rem 1rem;
+  min-width: 0;
 }
 .stage-head h2 {
   font-family: var(--font-d);
-  font-size: 1.15rem;
-  font-weight: 650;
+  font-size: clamp(1.55rem, 3.5vw, 1.95rem);
+  font-weight: 600;
   margin: 0;
+  letter-spacing: -0.01em;
 }
 .pill {
-  font-family: var(--font-d);
+  font-family: var(--font-b);
   font-size: 0.68rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 0.2rem 0.5rem;
-  border: 1px solid var(--line);
-  color: var(--mute);
-}
-.status-done .pill { border-color: var(--lock); color: #9fe8dc; }
-.status-partial .pill { border-color: var(--register); color: #f0b39a; }
-.artifact {
-  margin: 0 0 1.1rem;
-  padding-top: 0.85rem;
-  border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent);
-}
-.artifact:first-child { border-top: 0; padding-top: 0; }
-.artifact h3 {
-  font-family: var(--font-d);
-  font-size: 0.95rem;
-  font-weight: 650;
-  margin: 0 0 0.55rem;
-}
-.eyebrow {
-  font-family: var(--font-d);
-  font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid var(--line);
   color: var(--mute);
-  margin: 0 0 0.65rem;
+  background: var(--paper-soft);
 }
-.empty { color: var(--mute); font-style: italic; margin: 0.35rem 0; }
-.field { margin: 0.45rem 0 0.7rem; }
-.field h4 {
+.status-done .pill {
+  border-color: #c8d4c4;
+  color: #2f4a34;
+  background: #eef4ec;
+}
+.status-partial .pill {
+  border-color: #ddd4c4;
+  color: #5c4a2e;
+  background: #f7f1e6;
+}
+.artifact {
+  margin: 0 0 1.85rem;
+  padding: 0;
+  border: none;
+}
+.artifact h3 {
   font-family: var(--font-d);
-  font-size: 0.72rem;
-  font-weight: 650;
+  font-size: 1.28rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.01em;
+}
+.eyebrow {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
   color: var(--mute);
-  margin: 0 0 0.25rem;
-  letter-spacing: 0.04em;
+  margin: 0 0 1rem;
+}
+.empty {
+  color: var(--mute);
+  font-style: italic;
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+.field { margin: 0.55rem 0 0.95rem; }
+.field h4 {
+  font-family: var(--font-b);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--mute);
+  margin: 0 0 0.35rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 pre, .summary {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: ui-monospace, "Chivo Mono", monospace;
-  font-size: 0.82rem;
-  line-height: 1.45;
-  color: var(--ink);
-  background: rgba(0,0,0,0.22);
+  font-family: var(--font-b);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  background: var(--paper-soft);
   border: 1px solid var(--line);
-  padding: 0.65rem 0.75rem;
-  border-radius: 2px;
+  padding: 1rem 1.1rem;
 }
 .timeline { list-style: none; margin: 0; padding: 0; }
 .tl-item {
   position: relative;
-  padding: 0 0 1.1rem 1.15rem;
-  border-left: 2px solid color-mix(in srgb, var(--lock) 55%, var(--line));
+  padding: 0 0 1.75rem 1.5rem;
+  border-left: 1px solid var(--line);
   margin-left: 0.35rem;
 }
 .tl-item:last-child { padding-bottom: 0; }
 .tl-item::before {
   content: "";
   position: absolute;
-  left: -5px;
-  top: 0.35rem;
-  width: 8px;
-  height: 8px;
+  left: -4px;
+  top: 0.45rem;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--lock);
-  box-shadow: 0 0 0 3px rgba(47,158,143,0.25);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px rgba(28, 43, 58, 0.08);
 }
 .tl-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  gap: 0.45rem 1.1rem;
   align-items: baseline;
-  margin-bottom: 0.45rem;
-  font-family: var(--font-d);
+  margin-bottom: 0.65rem;
 }
-.tl-label { font-weight: 650; }
-.tl-meta time { color: var(--mute); font-size: 0.78rem; }
-.mod { margin: 0.65rem 0 0.9rem; }
-.mod h5 {
+.tl-label {
   font-family: var(--font-d);
-  font-size: 0.82rem;
-  margin: 0 0 0.35rem;
-  color: #c5d4e0;
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+.tl-meta time { color: var(--mute); font-size: 0.82rem; }
+.mod { margin: 0.85rem 0 1.15rem; }
+.mod h5 {
+  font-family: var(--font-b);
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 0.45rem;
+  color: var(--ink);
 }
 .btn {
   display: inline-block;
-  font-family: var(--font-d);
-  font-size: 0.8rem;
-  font-weight: 650;
+  font-family: var(--font-b);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
   text-decoration: none;
-  color: var(--ink);
-  background: rgba(224,90,43,0.18);
-  border: 1px solid var(--register);
-  padding: 0.4rem 0.75rem;
-  border-radius: 2px;
+  color: #fff;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.55rem 1.05rem;
 }
-.btn:hover { background: rgba(224,90,43,0.3); }
+.btn:hover { background: #0f1822; border-color: #0f1822; }
 .badge.ok {
   display: inline-block;
-  font-family: var(--font-d);
+  font-family: var(--font-b);
   font-size: 0.68rem;
-  color: #9fe8dc;
-  border: 1px solid var(--lock);
-  padding: 0.15rem 0.45rem;
-  margin: 0 0 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2f4a34;
+  border: 1px solid #c8d4c4;
+  background: #eef4ec;
+  padding: 0.2rem 0.5rem;
+  margin: 0 0 0.65rem;
 }
-.path, .meta { color: var(--mute); font-size: 0.8rem; font-family: var(--font-d); }
+.path, .meta {
+  color: var(--mute);
+  font-size: 0.82rem;
+}
+.footer-note {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--mute);
+  letter-spacing: 0.06em;
+}
 @media print {
-  html, body { background: #fff; color: #111; }
-  .stage { break-inside: avoid; border-color: #ccc; background: #fff; }
-  .btn { border-color: #333; color: #111; background: #eee; }
+  html, body { background: #fff; }
+  .wrap { padding: 1.5rem 0; max-width: none; }
+  .btn { color: #111; background: #fff; border-color: #111; }
 }
 </style>
 </head>
@@ -606,14 +682,15 @@ pre, .summary {
 <main class="wrap">
   <header class="hero">
     <p class="brand">${esc(L.brand)}</p>
-    <h1>${esc(L.pageTitle)}</h1>
+    <p class="hero-project">${esc(model.projectTitle)}</p>
+    <h1 class="page-title">${esc(L.pageTitle)}</h1>
     <p class="sub">${esc(L.subtitle)}</p>
     <div class="meta-line">
-      <span>${esc(L.project)}: ${esc(model.projectTitle)}</span>
-      <span>${esc(L.generated)}: ${esc(fmtAt(model.generatedAt, lang))}</span>
+      <span>${esc(L.generated)} · ${esc(fmtAt(model.generatedAt, lang))}</span>
     </div>
   </header>
   ${stagesHtml}
+  <p class="footer-note">${esc(L.brand)}</p>
 </main>
 </body>
 </html>
