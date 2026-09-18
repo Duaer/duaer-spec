@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "140-revise-kickoff-stack",
+  "acceptedAt": "2026-09-18T08:20:00.000Z",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "Safe chatDoneSsePayload; keep streamed model reply if done fails; remove manual-input kickoff fail copy; cache v=revise-kickoff-1"
+}
