@@ -255,7 +255,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /setupCmdCursor|cursor\.com\/install/);
   assert.match(html, /@anthropic-ai\/claude-code/);
   assert.match(html, /id="cfgOpen"/);
-  assert.match(js, /setup\.guideOther|cfgOpen|allowBack/);
+  assert.match(html, /id="settingsPanel"|settings-drawer/);
+  assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);
   assert.match(html, /architecturePanel|architectureFrame/);
   assert.match(js, /beginArchitectureDesign|\/api\/architecture\/render/);
   assert.match(html, /id="projectTitle"/);

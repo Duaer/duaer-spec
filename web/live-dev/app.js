@@ -106,6 +106,8 @@ const state = {
 
 const el = {
   setup: document.getElementById("setup"),
+  settingsPanel: document.getElementById("settingsPanel"),
+  settingsClose: document.getElementById("settingsClose"),
   desk: document.getElementById("desk"),
   log: document.getElementById("log"),
   chatEmpty: document.getElementById("chatEmpty"),
@@ -422,7 +424,7 @@ function syncDynamicI18n() {
   for (const p of state.providers) {
     if (p.id === "custom") p.label = t("provider.custom");
   }
-  if (el.setup && !el.setup.hidden) {
+  if (el.settingsPanel && !el.settingsPanel.hidden) {
     renderProviders();
     applyProvider(state.providerId, { fillEmptyOnly: true });
     if (el.cfgKey && state.lastCfg) {
@@ -1418,9 +1420,39 @@ function renderProviders() {
   }
 }
 
-function showSetup(cfg, { allowBack = false } = {}) {
-  el.setup.hidden = false;
-  el.desk.hidden = true;
+function syncDrawerBackdrop() {
+  if (!el.historyBackdrop) return;
+  const open =
+    (el.historyPanel && !el.historyPanel.hidden) ||
+    (el.settingsPanel && !el.settingsPanel.hidden);
+  el.historyBackdrop.hidden = !open;
+  document.body.classList.toggle("history-open", Boolean(open));
+}
+
+function setSettingsOpen(open) {
+  if (!el.settingsPanel) return;
+  const want = Boolean(open);
+  if (!want && !state.ready) {
+    // First-time config: keep drawer open until saved.
+    return;
+  }
+  if (want && el.historyPanel && !el.historyPanel.hidden) {
+    el.historyPanel.hidden = true;
+    if (el.historyToggle) {
+      el.historyToggle.setAttribute("aria-expanded", "false");
+    }
+  }
+  el.settingsPanel.hidden = !want;
+  if (el.cfgOpen) {
+    el.cfgOpen.setAttribute("aria-expanded", want ? "true" : "false");
+  }
+  if (el.settingsClose) {
+    el.settingsClose.hidden = !state.ready;
+  }
+  syncDrawerBackdrop();
+}
+
+function showSetup(cfg) {
   state.lastCfg = { ...(cfg || {}), ready: Boolean(cfg?.ready) };
   if (Array.isArray(cfg?.providers) && cfg.providers.length) {
     state.providers = cfg.providers.map((p) => ({ ...p }));
@@ -1432,15 +1464,17 @@ function showSetup(cfg, { allowBack = false } = {}) {
   el.cfgKey.placeholder = cfg?.hasApiKey ? t("setup.keySaved") : "sk-…";
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
-  if (el.cfgBack) el.cfgBack.hidden = !allowBack;
+  if (!state.ready) {
+    if (el.desk) el.desk.hidden = true;
+  }
+  setSettingsOpen(true);
 }
 
 function showDesk(cfg) {
-  el.setup.hidden = true;
-  el.desk.hidden = false;
-  if (el.cfgBack) el.cfgBack.hidden = true;
+  if (el.desk) el.desk.hidden = false;
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
+  setSettingsOpen(false);
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
@@ -1539,20 +1573,20 @@ el.saveCfg.addEventListener("click", async () => {
 });
 
 el.cfgOpen?.addEventListener("click", () => {
-  showSetup(
-    {
+  const open = el.settingsPanel?.hidden !== false;
+  if (open) {
+    showSetup({
       ...(state.lastCfg || {}),
       providers: state.providers,
       provider: state.providerId || state.lastCfg?.provider,
-    },
-    { allowBack: Boolean(state.ready) },
-  );
+    });
+  } else if (state.ready) {
+    setSettingsOpen(false);
+  }
 });
 
-el.cfgBack?.addEventListener("click", () => {
-  if (state.ready || state.lastCfg?.ready) {
-    showDesk({ ...(state.lastCfg || {}), ready: true });
-  }
+el.settingsClose?.addEventListener("click", () => {
+  if (state.ready) setSettingsOpen(false);
 });
 
 el.form.addEventListener("submit", (e) => {
@@ -3653,13 +3687,21 @@ function formatHistoryTime(iso) {
 
 function setHistoryOpen(open) {
   if (!el.historyPanel) return;
-  el.historyPanel.hidden = !open;
-  if (el.historyBackdrop) el.historyBackdrop.hidden = !open;
-  document.body.classList.toggle("history-open", Boolean(open));
-  if (el.historyToggle) {
-    el.historyToggle.setAttribute("aria-expanded", open ? "true" : "false");
+  const want = Boolean(open);
+  if (want && el.settingsPanel && !el.settingsPanel.hidden) {
+    if (!state.ready) {
+      // Cannot open projects over mandatory first-time settings.
+      return;
+    }
+    el.settingsPanel.hidden = true;
+    if (el.cfgOpen) el.cfgOpen.setAttribute("aria-expanded", "false");
   }
-  if (open) void loadProjectsPanel();
+  el.historyPanel.hidden = !want;
+  if (el.historyToggle) {
+    el.historyToggle.setAttribute("aria-expanded", want ? "true" : "false");
+  }
+  syncDrawerBackdrop();
+  if (want) void loadProjectsPanel();
 }
 
 function normalizePathKey(p) {
@@ -4000,7 +4042,13 @@ if (el.historyClose) {
   el.historyClose.addEventListener("click", () => setHistoryOpen(false));
 }
 if (el.historyBackdrop) {
-  el.historyBackdrop.addEventListener("click", () => setHistoryOpen(false));
+  el.historyBackdrop.addEventListener("click", () => {
+    if (el.settingsPanel && !el.settingsPanel.hidden) {
+      if (state.ready) setSettingsOpen(false);
+      return;
+    }
+    setHistoryOpen(false);
+  });
 }
 if (el.historyRestore) {
   el.historyRestore.addEventListener("click", () => {

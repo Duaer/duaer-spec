@@ -33,8 +33,8 @@
             <button type="button" class="history-btn" id="historyToggle" data-i18n="project.toggle">
               项目
             </button>
-            <button type="button" class="history-btn" id="cfgOpen" data-i18n="setup.open">
-              模型
+            <button type="button" class="history-btn" id="cfgOpen" data-i18n="setup.open" aria-expanded="false">
+              设置
             </button>
             <label class="lang-switch">
               <span class="sr-only" data-i18n="lang.label">语言</span>
@@ -48,58 +48,6 @@
       </header>
 
       <p id="updateNotice" class="update-notice" hidden role="status"></p>
-
-      <section id="setup" class="panel setup-panel" hidden>
-        <p class="mark" data-i18n="setup.mark">Model · OpenAI-compatible</p>
-        <h2 class="card-title" data-i18n="setup.title">配置模型</h2>
-        <p class="hint" data-i18n="setup.hint">先接好台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
-        <div class="field">
-          <span data-i18n="setup.provider">服务商</span>
-          <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
-        </div>
-        <label class="field">
-          <span>Base URL</span>
-          <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
-        </label>
-        <label class="field">
-          <span>API Key</span>
-          <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
-        </label>
-        <label class="field">
-          <span>Model</span>
-          <input id="cfgModel" type="text" placeholder="deepseek-flash" />
-        </label>
-        <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
-        <button type="button" class="btn" id="cfgBack" hidden data-i18n="setup.back">返回台面</button>
-        <p id="cfgErr" class="hint" hidden></p>
-
-        <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
-          <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
-          <p class="setup-guide-lead" data-i18n="setup.guideLead">台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
-
-          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">台面模型（本页）</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideDesk1">选 DeepSeek / OpenAI 预设，或 Custom 填任意 OpenAI 兼容 Base URL + Key + Model</li>
-            <li data-i18n="setup.guideDesk2">也可用命令行：duaer live config --provider deepseek --api-key &lt;key&gt;</li>
-          </ul>
-
-          <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
-          <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
-          <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
-          <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
-          <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
-          <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
-          <p class="hint" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
-
-          <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
-          <ul class="setup-guide-list">
-            <li data-i18n="setup.guideOther1">台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
-            <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
-            <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
-          </ul>
-          <p class="hint" data-i18n="setup.guideDoc">完整步骤见 docs/agent/worker-models.zh-CN.md（英文 worker-models.md）</p>
-        </aside>
-      </section>
 
       <main id="desk" class="layout" hidden>
         <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
@@ -350,6 +298,66 @@
       </div>
     </aside>
 
-    <script type="module" src="/app.js?v=chat-persist-1"></script>
+    <aside id="settingsPanel" class="history-drawer panel settings-drawer" hidden>
+      <div class="history-head">
+        <div>
+          <p class="mark" data-i18n="setup.mark">Duaer-spec FED · model</p>
+          <h2 class="history-title" data-i18n="setup.title">配置模型</h2>
+        </div>
+        <button type="button" class="btn history-close" id="settingsClose" data-i18n="setup.close" hidden>
+          关闭
+        </button>
+      </div>
+      <div class="settings-body" id="setup">
+        <p class="hint" data-i18n="setup.hint">先接好台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
+        <div class="field">
+          <span data-i18n="setup.provider">服务商</span>
+          <div id="cfgProviders" class="provider-row" role="group" data-i18n-aria="setup.providerAria" aria-label="服务商预设"></div>
+        </div>
+        <label class="field">
+          <span>Base URL</span>
+          <input id="cfgBase" type="url" placeholder="https://api.deepseek.com" />
+        </label>
+        <label class="field">
+          <span>API Key</span>
+          <input id="cfgKey" type="password" placeholder="sk-…" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>Model</span>
+          <input id="cfgModel" type="text" placeholder="deepseek-flash" />
+        </label>
+        <button type="button" class="btn confirm" id="saveCfg" data-i18n="setup.save">保存并开始</button>
+        <p id="cfgErr" class="hint" hidden></p>
+
+        <aside class="setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
+          <h3 class="setup-guide-title" data-i18n="setup.guideTitle">说明</h3>
+          <p class="setup-guide-lead" data-i18n="setup.guideLead">台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+
+          <h4 class="setup-guide-h" data-i18n="setup.guideDeskTitle">台面模型（本页）</h4>
+          <ul class="setup-guide-list">
+            <li data-i18n="setup.guideDesk1">选 DeepSeek / OpenAI 预设，或 Custom 填任意 OpenAI 兼容 Base URL + Key + Model</li>
+            <li data-i18n="setup.guideDesk2">也可用命令行：duaer live config --provider deepseek --api-key &lt;key&gt;</li>
+          </ul>
+
+          <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
+          <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
+          <p class="setup-guide-label" data-i18n="setup.guideCursorLabel">Cursor Agent</p>
+          <pre class="setup-guide-cmd" id="setupCmdCursor">curl https://cursor.com/install -fsS | bash</pre>
+          <p class="setup-guide-label" data-i18n="setup.guideClaudeLabel">Claude Code</p>
+          <pre class="setup-guide-cmd" id="setupCmdClaude">npm install -g @anthropic-ai/claude-code</pre>
+          <p class="hint" data-i18n="setup.guideClaudeAlt">或官方安装脚本：curl -fsSL https://claude.ai/install.sh | bash</p>
+
+          <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
+          <ul class="setup-guide-list">
+            <li data-i18n="setup.guideOther1">台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+            <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
+            <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FED 只负责启动 agent</li>
+          </ul>
+          <p class="hint" data-i18n="setup.guideDoc">完整步骤见 docs/agent/worker-models.zh-CN.md（英文 worker-models.md）</p>
+        </aside>
+      </div>
+    </aside>
+
+    <script type="module" src="/app.js?v=settings-drawer-1"></script>
   </body>
 </html>

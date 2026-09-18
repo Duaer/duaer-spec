@@ -1,5 +1,5 @@
 {
-  "featureDir": ".duaer/specs/103-arch-chat-kickoff",
-  "slug": "103-arch-chat-kickoff",
-  "branch": "fix/arch-chat-kickoff"
+  "featureDir": ".duaer/specs/104-settings-modal",
+  "slug": "104-settings-modal",
+  "branch": "feat/settings-modal"
 }
