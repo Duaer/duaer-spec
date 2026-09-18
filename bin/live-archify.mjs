@@ -513,6 +513,8 @@ export function architectureSummary(ir) {
 
 /** CSS id used when patching Archify HTML for the Duaer desk embed. */
 export const DUAER_EMBED_FIT_STYLE_ID = "duaer-embed-fit";
+/** Script id: force single-node zoom on click inside the desk iframe. */
+export const DUAER_EMBED_ZOOM_SCRIPT_ID = "duaer-embed-node-zoom";
 
 /**
  * Archify's .diagram-container uses overflow:hidden (one-screen reader).
@@ -542,11 +544,76 @@ html[data-embed="true"] .diagram-container svg {
   height: auto !important;
   max-height: none !important;
 }
+html[data-embed="true"] .diagram-container svg [data-node-id] {
+  cursor: zoom-in;
+}
 </style>`;
   if (/<\/head>/i.test(src)) {
     return src.replace(/<\/head>/i, `${style}\n</head>`);
   }
   return `${style}\n${src}`;
+}
+
+/**
+ * Archify reveal() skips real zoom when iframe width ≤720, and neighbor framing
+ * often keeps scale at 1 for hub nodes. Force desktop single-node framing in
+ * the Duaer embed so every component click enlarges.
+ */
+export function injectDuaerEmbedNodeZoom(html) {
+  const src = String(html || "");
+  if (src.includes(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`)) return src;
+  const script = `<script id="${DUAER_EMBED_ZOOM_SCRIPT_ID}">
+(function () {
+  if (!document.documentElement || document.documentElement.getAttribute("data-embed") !== "true") return;
+  function install() {
+    if (!window.Archify || !Archify.view || typeof Archify.view.reveal !== "function") return false;
+    if (Archify.view.__duaerEmbedZoom) return true;
+    var original = Archify.view.reveal;
+    Archify.view.reveal = function (ids, options) {
+      var opts = Object.assign({}, options || {}, {
+        includeNeighbors: false,
+        maxScale: 2.6,
+        padding: 28
+      });
+      var forced = false;
+      var desc = Object.getOwnPropertyDescriptor(window, "innerWidth");
+      try {
+        if ((window.innerWidth || 0) <= 720) {
+          Object.defineProperty(window, "innerWidth", {
+            configurable: true,
+            get: function () { return 1280; }
+          });
+          forced = true;
+        }
+        return original.call(Archify.view, ids, opts);
+      } finally {
+        if (forced) {
+          try {
+            if (desc) Object.defineProperty(window, "innerWidth", desc);
+            else delete window.innerWidth;
+          } catch (_) {}
+        }
+      }
+    };
+    Archify.view.__duaerEmbedZoom = true;
+    return true;
+  }
+  if (install()) return;
+  var n = 0;
+  var timer = setInterval(function () {
+    if (install() || ++n > 60) clearInterval(timer);
+  }, 50);
+})();
+</script>`;
+  if (/<\/body>/i.test(src)) {
+    return src.replace(/<\/body>/i, `${script}\n</body>`);
+  }
+  return `${src}\n${script}`;
+}
+
+/** Apply all Duaer desk patches to Archify HTML (idempotent). */
+export function injectDuaerEmbedPatches(html) {
+  return injectDuaerEmbedNodeZoom(injectDuaerEmbedFitCss(html));
 }
 
 /**
@@ -603,7 +670,7 @@ export function renderArchitectureHtml(liveRoot, irInput) {
     e.code = "ARCHIFY_DELIVER";
     throw e;
   }
-  const patched = injectDuaerEmbedFitCss(fs.readFileSync(htmlPath, "utf8"));
+  const patched = injectDuaerEmbedPatches(fs.readFileSync(htmlPath, "utf8"));
   fs.writeFileSync(htmlPath, patched, "utf8");
   return {
     key,

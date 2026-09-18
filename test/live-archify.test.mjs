@@ -9,10 +9,13 @@ import test from "node:test";
 import {
   extractArchitectureIr,
   injectDuaerEmbedFitCss,
+  injectDuaerEmbedNodeZoom,
+  injectDuaerEmbedPatches,
   layoutArchitectureIr,
   renderArchitectureHtml,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
+  DUAER_EMBED_ZOOM_SCRIPT_ID,
 } from "../bin/live-archify.mjs";
 import {
   extractArchitectureIr as extractBrowser,
@@ -179,7 +182,9 @@ test("renderArchitectureHtml produces HTML via Archify", () => {
   assert.ok(fs.statSync(out.htmlPath).size > 1000);
   const html = fs.readFileSync(out.htmlPath, "utf8");
   assert.match(html, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
+  assert.match(html, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
   assert.match(html, /\.diagram-container\s*\{[^}]*max-height:\s*none/s);
+  assert.match(html, /__duaerEmbedZoom|includeNeighbors:\s*false/);
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -193,6 +198,22 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
   const twice = injectDuaerEmbedFitCss(once);
   assert.equal(
     twice.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
+    1,
+  );
+});
+
+test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
+  const raw = `<!doctype html><html data-embed="true"><head></head><body></body></html>`;
+  const once = injectDuaerEmbedNodeZoom(raw);
+  assert.match(once, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.match(once, /includeNeighbors:\s*false/);
+  assert.match(once, /innerWidth/);
+  const patched = injectDuaerEmbedPatches(raw);
+  assert.match(patched, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
+  assert.match(patched, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.equal(
+    injectDuaerEmbedPatches(patched).split(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`)
+      .length - 1,
     1,
   );
 });
@@ -220,5 +241,5 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(i18n, /可渲染的架构 JSON/);
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
-  assert.match(live, /injectDuaerEmbedFitCss/);
+  assert.match(live, /injectDuaerEmbedPatches/);
 });

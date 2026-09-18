@@ -33,7 +33,7 @@ import {
 } from "./deploy-targets.mjs";
 import {
   extractArchitectureIr,
-  injectDuaerEmbedFitCss,
+  injectDuaerEmbedPatches,
   renderArchitectureHtml,
   architectureStoreDir,
 } from "./live-archify.mjs";
@@ -4865,7 +4865,7 @@ async function handleApi(req, res) {
       send(res, 404, { error: "architecture not found" });
       return;
     }
-    const html = injectDuaerEmbedFitCss(fs.readFileSync(file, "utf8"));
+    const html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));
     res.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",

@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "116-arch-node-zoom",
+  "summary": "Force every Archify node click to zoom in the Duaer desk embed.",
+  "verification": {
+    "L0": "node --check bin/live-archify.mjs bin/duaer-live.mjs — pass",
+    "L1": "node --test test/live-archify.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}
