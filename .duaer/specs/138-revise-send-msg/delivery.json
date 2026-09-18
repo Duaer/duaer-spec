@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "138-revise-send-msg",
+  "acceptedAt": "2026-09-18T08:05:00.000Z",
+  "verification": {
+    "levels": ["L3"],
+    "commands": ["npm run test:live"],
+    "results": "pass"
+  },
+  "notes": "再改一版 posts visible user.reviseAgain into reviseMessages/chat; clears busy so kickoff runs; cache v=revise-send-1"
+}
