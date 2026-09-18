@@ -1121,23 +1121,36 @@ a.btn[hidden] {
 
 .module-tab {
   appearance: none;
-  border: 1px solid var(--border, #c9c4b8);
+  border: 1px solid var(--line);
   background: transparent;
-  color: inherit;
+  color: var(--mute);
   font: inherit;
   font-size: 0.8rem;
   padding: 0.25rem 0.55rem;
   border-radius: 4px;
   cursor: pointer;
+  opacity: 0.72;
 }
 
-.module-tab.is-active {
-  border-color: var(--fg, #1a1a1a);
-  font-weight: 600;
+.module-tab:hover,
+.module-tab:focus-visible {
+  color: var(--ink);
+  opacity: 0.9;
+  outline: none;
 }
 
-.module-tab.is-confirmed {
-  opacity: 0.85;
+.module-tab.is-active,
+.module-tab[aria-selected="true"] {
+  border-color: var(--register);
+  background: color-mix(in srgb, var(--register) 18%, transparent);
+  color: var(--ink);
+  font-weight: 650;
+  opacity: 1;
+}
+
+.module-tab.is-confirmed:not(.is-active):not([aria-selected="true"]) {
+  border-style: dashed;
+  opacity: 0.78;
 }
 
 .module-meta {

@@ -213,6 +213,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="confirm"/);
   assert.match(html, /id="moduleTabs"/);
   assert.match(html, /id="workerCount"/);
+  const cssText = await (await fetch(`${live.base}/styles.css`)).text();
+  assert.match(cssText, /\.module-tab\.is-active/);
+  assert.match(cssText, /module-tab\.is-active[^{]*\{[^}]*--register/s);
+  assert.doesNotMatch(cssText, /module-tab\.is-active[^{]*\{[^}]*--fg,\s*#1a1a1a/s);
 
   const css = await (await fetch(`${live.base}/styles.css`)).text();
   assert.match(css, /grid-template-columns/);
