@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Progress column text containment
+
+- Long 运行 status / paths / tasks wrap inside the panel (no spill)
+
 ### New project resets full desk
 
 - Switching to an empty project clears 需求 / 运行 / 结果, not only chat

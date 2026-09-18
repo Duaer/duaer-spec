@@ -219,6 +219,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
   assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
+  assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
+  assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
   assert.match(css, /progress-meter|progress-empty-title/);
   assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 

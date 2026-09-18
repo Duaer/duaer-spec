@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "feature": "127-progress-text-overflow",
+  "summary": "Contain long progress/run text inside the panel",
+  "verification": {
+    "L3": "npm run test:live — pass"
+  }
+}
