@@ -71,6 +71,8 @@ const state = {
   initialArchitecture: null,
   /** Accordion open state keyed by "0" | "1" | "2" | "draft". Default: open. */
   reviseExpanded: {},
+  /** Fingerprint to avoid rebuilding accordion DOM on every status poll. */
+  reviseAccordionFp: "",
   originalCard: null, // snapshot after first confirm
   lastStatus: null,
   lastDeliveryAccepted: false,
@@ -713,8 +715,47 @@ function renderReviseVersionBody(card, { baselineArch = false } = {}) {
   </dl>${renderReviseArchBlock(card.architecture, { baseline: baselineArch })}`;
 }
 
-function renderReviseVersionAccordion() {
+function reviseAccordionFingerprint() {
+  return JSON.stringify({
+    original: state.originalCard
+      ? {
+          g: state.originalCard.goal,
+          o: state.originalCard.outOfScope,
+          a: state.originalCard.acceptance,
+          s: state.originalCard.assumptions,
+        }
+      : null,
+    initArch: state.initialArchitecture?.url || "",
+    cards: (state.reviseCards || []).map((e) => ({
+      r: e.revision,
+      g: e.goal,
+      o: e.outOfScope,
+      a: e.acceptance,
+      s: e.assumptions,
+      au: e.architecture?.url || "",
+      ac: Boolean(e.architecture?.changed),
+    })),
+    expanded: state.reviseExpanded,
+    locale: typeof getLocale === "function" ? getLocale() : "",
+  });
+}
+
+function renderReviseVersionAccordion({ force = false } = {}) {
   if (!el.reviseVersionList) return;
+  const fp = reviseAccordionFingerprint();
+  if (!force && fp === state.reviseAccordionFp && el.reviseVersionList.childElementCount) {
+    // Only refresh current highlight without destroying open details.
+    const focus = String(
+      Number(state.reviseCardFocus) ||
+        Number(state.lastRevision?.revision) ||
+        "",
+    );
+    for (const d of el.reviseVersionList.querySelectorAll(".revise-version-item")) {
+      d.classList.toggle("is-current", d.dataset.revKey === focus);
+    }
+    return;
+  }
+  state.reviseAccordionFp = fp;
   el.reviseVersionList.replaceChildren();
   const items = [];
 
@@ -744,9 +785,14 @@ function renderReviseVersionAccordion() {
   }
   el.reviseVersionList.hidden = false;
 
+  const focus = String(
+    Number(state.reviseCardFocus) || Number(state.lastRevision?.revision) || "",
+  );
+
   for (const item of items) {
     const details = document.createElement("details");
     details.className = "revise-version-item";
+    if (item.key === focus) details.classList.add("is-current");
     details.open = isReviseExpanded(item.key);
     details.dataset.revKey = item.key;
     details.addEventListener("toggle", () => {
@@ -757,9 +803,11 @@ function renderReviseVersionAccordion() {
     const summary = document.createElement("summary");
     summary.className = "revise-version-summary";
     summary.textContent = item.title;
+    // Do not call focusReviseCardVersion here — it used to rebuild this list
+    // mid-click and swallow the expand/collapse.
     if (Number(item.key) > 0) {
       summary.addEventListener("click", () => {
-        focusReviseCardVersion(Number(item.key));
+        focusReviseCardVersion(Number(item.key), { rebuildAccordion: false });
       });
     }
     details.appendChild(summary);
@@ -800,7 +848,7 @@ function reviseCardTitleText(revision) {
   return t("revise.title");
 }
 
-function syncReviseCardChrome() {
+function syncReviseCardChrome({ rebuildAccordion = true } = {}) {
   const focus =
     Number(state.reviseCardFocus) ||
     Number(state.reviseDraft?.revision) ||
@@ -808,7 +856,8 @@ function syncReviseCardChrome() {
     0;
   if (el.reviseTitle) el.reviseTitle.textContent = reviseCardTitleText(focus);
   renderReviseVersionChips();
-  renderReviseVersionAccordion();
+  if (rebuildAccordion) renderReviseVersionAccordion();
+  else renderReviseVersionAccordion({ force: false });
 }
 
 function isReviseDraftFocus() {
@@ -817,7 +866,7 @@ function isReviseDraftFocus() {
   return Boolean(draftRev && focus === draftRev && !state.reviseLocked);
 }
 
-function focusReviseCardVersion(revision) {
+function focusReviseCardVersion(revision, { rebuildAccordion = false } = {}) {
   const rev = Number(revision) || 0;
   if (rev < 1) return;
   stashReviseDraftFromFields();
@@ -841,8 +890,10 @@ function focusReviseCardVersion(revision) {
       setReviseFieldsReadonly(state.mode !== "revise" || state.reviseLocked);
     }
   }
-  syncReviseCardChrome();
-  syncConfirmEnabled();
+  syncReviseCardChrome({ rebuildAccordion });
+  // Avoid syncConfirmEnabled → syncReviseDispatchButton → full chrome churn on
+  // every accordion header click.
+  if (el.reviseTitle) el.reviseTitle.textContent = reviseCardTitleText(rev);
   void persistProjectChat();
 }
 
@@ -1197,7 +1248,7 @@ function syncReviseDispatchButton(ready) {
       state.revisePlanConfirmed || !isReviseDraftFocus(),
     );
   }
-  syncReviseCardChrome();
+  syncReviseCardChrome({ rebuildAccordion: false });
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
@@ -1226,12 +1277,13 @@ function syncReviseDispatchButton(ready) {
     const previewVisible = el.previewPanel && !el.previewPanel.hidden;
     if (el.startReviseChat) {
       el.startReviseChat.hidden = !(showCta && previewVisible);
-      el.startReviseChat.disabled = state.reviseDispatching || state.busy;
+      // Keep clickable while chat is busy — disabled buttons swallow clicks.
+      el.startReviseChat.disabled = state.reviseDispatching;
       el.startReviseChat.textContent = t("revise.again");
     }
     if (el.startReviseChatAlt) {
       el.startReviseChatAlt.hidden = !(showCta && !previewVisible);
-      el.startReviseChatAlt.disabled = state.reviseDispatching || state.busy;
+      el.startReviseChatAlt.disabled = state.reviseDispatching;
       el.startReviseChatAlt.textContent = t("revise.again");
     }
   }
@@ -1562,6 +1614,7 @@ function clearDeskWorkspace() {
   state.revisePlanConfirmed = false;
   state.initialArchitecture = null;
   state.reviseExpanded = {};
+  state.reviseAccordionFp = "";
   state.dispatchPhase = null;
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
@@ -4572,11 +4625,17 @@ function renderRevisePanel(data) {
 }
 
 function enterReviseMode() {
+  maybeClearStaleBusy();
+  // If a hung stream left busy on, free the desk so kickoff can run.
+  if (state.busy && state.busySince && Date.now() - state.busySince > 8_000) {
+    setBusy(false);
+  }
   if (!state.jobId) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
       el.reviseErr.textContent = t("err.noJob");
     }
+    addBubble("bot", t("err.noJob"));
     return;
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
@@ -4587,6 +4646,7 @@ function enterReviseMode() {
     el.input.focus();
     focusRightPanel({ force: true });
     addBubble("bot", t("bot.continueRevise"));
+    scrollChatToLatest();
     return;
   }
 
@@ -4619,13 +4679,14 @@ function enterReviseMode() {
   setReviseFieldsReadonly(false);
   syncReqSections();
   applyCardChrome();
-  syncReviseCardChrome();
+  syncReviseCardChrome({ rebuildAccordion: true });
   // Switch left chat to revise thread so user-sent revise content is visible.
   switchChatLogForMode("revise");
   syncChatPlaceholder();
   syncConfirmEnabled();
   el.input.focus();
   addBubble("bot", t("bot.enterRevise"));
+  scrollChatToLatest();
   void persistProjectChat();
   renderRevisePanel({
     canRevise: true,
@@ -4637,7 +4698,19 @@ function enterReviseMode() {
 }
 
 async function kickoffReviseDialogue() {
-  if (state.busy || state.reviseDispatching || state.mode !== "revise") return;
+  if (state.reviseDispatching || state.mode !== "revise") return;
+  // Wait briefly if another chat stream is finishing.
+  for (let i = 0; i < 40 && state.busy; i += 1) {
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  maybeClearStaleBusy();
+  if (state.busy || state.mode !== "revise") {
+    if (state.busy) {
+      addBubble("bot", t("bot.chatBusy"));
+      scrollChatToLatest();
+    }
+    return;
+  }
   setBusy(true);
   syncReviseDispatchButton(false);
   const streamBubble = startStreamingBubble();
@@ -4699,6 +4772,7 @@ async function kickoffReviseDialogue() {
     syncConfirmEnabled();
     void persistProjectChat();
     el.input.focus();
+    scrollChatToLatest();
   }
 }
 
@@ -5043,13 +5117,15 @@ function startStatusPoll() {
 }
 
 if (el.startReviseChat) {
-  el.startReviseChat.addEventListener("click", () => {
+  el.startReviseChat.addEventListener("click", (ev) => {
+    ev.preventDefault();
     enterReviseMode();
   });
 }
 
 if (el.startReviseChatAlt) {
-  el.startReviseChatAlt.addEventListener("click", () => {
+  el.startReviseChatAlt.addEventListener("click", (ev) => {
+    ev.preventDefault();
     enterReviseMode();
   });
 }
