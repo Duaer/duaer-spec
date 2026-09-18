@@ -183,6 +183,17 @@ const el = {
   saveAliyunCfg: document.getElementById("saveAliyunCfg"),
   clearAliyunCfg: document.getElementById("clearAliyunCfg"),
   aliyunCfgMsg: document.getElementById("aliyunCfgMsg"),
+  cfgCfToken: document.getElementById("cfgCfToken"),
+  cfgCfAccount: document.getElementById("cfgCfAccount"),
+  saveCfCfg: document.getElementById("saveCfCfg"),
+  clearCfCfg: document.getElementById("clearCfCfg"),
+  cfCfgMsg: document.getElementById("cfCfgMsg"),
+  cfgAwsId: document.getElementById("cfgAwsId"),
+  cfgAwsSecret: document.getElementById("cfgAwsSecret"),
+  cfgAwsRegion: document.getElementById("cfgAwsRegion"),
+  saveAwsCfg: document.getElementById("saveAwsCfg"),
+  clearAwsCfg: document.getElementById("clearAwsCfg"),
+  awsCfgMsg: document.getElementById("awsCfgMsg"),
   saveCfg: document.getElementById("saveCfg"),
   cfgOpen: document.getElementById("cfgOpen"),
   githubStars: document.getElementById("githubStars"),
@@ -2325,6 +2336,53 @@ function fillAliyunFields(cfg) {
   if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
 }
 
+function fillCloudflareFields(cfg) {
+  if (el.cfgCfToken) {
+    el.cfgCfToken.value = "";
+    el.cfgCfToken.placeholder = cfg?.hasCloudflareCredentials
+      ? t("setup.cloudflareTokenSaved")
+      : "";
+  }
+  if (el.cfgCfAccount) {
+    el.cfgCfAccount.value = "";
+    el.cfgCfAccount.placeholder = cfg?.hasCloudflareCredentials
+      ? t("setup.cloudflareAccountSaved")
+      : "";
+  }
+  if (el.cfCfgMsg) el.cfCfgMsg.hidden = true;
+}
+
+function fillAwsFields(cfg) {
+  if (el.cfgAwsId) {
+    el.cfgAwsId.value = "";
+    el.cfgAwsId.placeholder = cfg?.hasAwsCredentials
+      ? t("setup.awsIdSaved")
+      : "AKIA…";
+  }
+  if (el.cfgAwsSecret) {
+    el.cfgAwsSecret.value = "";
+    el.cfgAwsSecret.placeholder = cfg?.hasAwsCredentials
+      ? t("setup.keySaved")
+      : "";
+  }
+  if (el.cfgAwsRegion) {
+    el.cfgAwsRegion.value = "";
+    el.cfgAwsRegion.placeholder = "us-east-1";
+  }
+  if (el.awsCfgMsg) el.awsCfgMsg.hidden = true;
+}
+
+function syncGatedDeployTarget(cfg) {
+  const gated = {
+    aliyun: Boolean(cfg?.hasAliyunCredentials),
+    cloudflare: Boolean(cfg?.hasCloudflareCredentials),
+    aws: Boolean(cfg?.hasAwsCredentials),
+  };
+  if (gated[state.deployTarget] === false) {
+    state.deployTarget = "none";
+  }
+}
+
 function showSetup(cfg) {
   state.lastCfg = { ...(cfg || {}), ready: Boolean(cfg?.ready) };
   if (Array.isArray(cfg?.providers) && cfg.providers.length) {
@@ -2336,6 +2394,8 @@ function showSetup(cfg) {
   el.cfgKey.value = "";
   el.cfgKey.placeholder = cfg?.hasApiKey ? t("setup.keySaved") : "sk-…";
   fillAliyunFields(cfg);
+  fillCloudflareFields(cfg);
+  fillAwsFields(cfg);
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
   if (!state.ready) {
@@ -2349,9 +2409,7 @@ function showDesk(cfg) {
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
   setSettingsOpen(false);
-  if (state.deployTarget === "aliyun" && !cfg?.hasAliyunCredentials) {
-    state.deployTarget = "none";
-  }
+  syncGatedDeployTarget(cfg);
   renderDeployTargetList();
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
@@ -2573,6 +2631,172 @@ el.saveAliyunCfg?.addEventListener("click", () => {
 });
 el.clearAliyunCfg?.addEventListener("click", () => {
   void saveAliyunCredentials({ clear: true });
+});
+
+async function saveCloudflareCredentials({ clear = false } = {}) {
+  if (el.cfCfgMsg) el.cfCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearCloudflareCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillCloudflareFields(data);
+      syncGatedDeployTarget(data);
+      renderDeployTargetList();
+      if (el.cfCfgMsg) {
+        el.cfCfgMsg.hidden = false;
+        el.cfCfgMsg.textContent = t("setup.cloudflareCleared");
+      }
+    } catch (err) {
+      if (el.cfCfgMsg) {
+        el.cfCfgMsg.hidden = false;
+        el.cfCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+  const token = el.cfgCfToken?.value.trim() || "";
+  const account = el.cfgCfAccount?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasCloudflareCredentials);
+  if (!token && !account) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = had
+        ? t("setup.cloudflareSaved")
+        : t("setup.cloudflareNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!token || !account)) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = t("setup.cloudflareNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (token) body.cloudflareApiToken = token;
+  if (account) body.cloudflareAccountId = account;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillCloudflareFields(data);
+    syncGatedDeployTarget(data);
+    renderDeployTargetList();
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent = t("setup.cloudflareSaved");
+    }
+  } catch (err) {
+    if (el.cfCfgMsg) {
+      el.cfCfgMsg.hidden = false;
+      el.cfCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveCfCfg?.addEventListener("click", () => {
+  void saveCloudflareCredentials({ clear: false });
+});
+el.clearCfCfg?.addEventListener("click", () => {
+  void saveCloudflareCredentials({ clear: true });
+});
+
+async function saveAwsCredentials({ clear = false } = {}) {
+  if (el.awsCfgMsg) el.awsCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearAwsCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillAwsFields(data);
+      syncGatedDeployTarget(data);
+      renderDeployTargetList();
+      if (el.awsCfgMsg) {
+        el.awsCfgMsg.hidden = false;
+        el.awsCfgMsg.textContent = t("setup.awsCleared");
+      }
+    } catch (err) {
+      if (el.awsCfgMsg) {
+        el.awsCfgMsg.hidden = false;
+        el.awsCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+  const id = el.cfgAwsId?.value.trim() || "";
+  const secret = el.cfgAwsSecret?.value.trim() || "";
+  const region = el.cfgAwsRegion?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasAwsCredentials);
+  if (!id && !secret && !region) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = had
+        ? t("setup.awsSaved")
+        : t("setup.awsNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!id || !secret)) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = t("setup.awsNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (id) body.awsAccessKeyId = id;
+  if (secret) body.awsSecretAccessKey = secret;
+  if (region || had) body.awsRegion = region;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillAwsFields(data);
+    syncGatedDeployTarget(data);
+    renderDeployTargetList();
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent = t("setup.awsSaved");
+    }
+  } catch (err) {
+    if (el.awsCfgMsg) {
+      el.awsCfgMsg.hidden = false;
+      el.awsCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveAwsCfg?.addEventListener("click", () => {
+  void saveAwsCredentials({ clear: false });
+});
+el.clearAwsCfg?.addEventListener("click", () => {
+  void saveAwsCredentials({ clear: true });
 });
 
 el.cfgOpen?.addEventListener("click", () => {
@@ -3634,6 +3858,9 @@ const DEPLOY_TARGET_IDS = [
 function visibleDeployTargetIds() {
   return DEPLOY_TARGET_IDS.filter((id) => {
     if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    if (id === "cloudflare")
+      return Boolean(state.lastCfg?.hasCloudflareCredentials);
+    if (id === "aws") return Boolean(state.lastCfg?.hasAwsCredentials);
     return true;
   });
 }
@@ -3642,7 +3869,7 @@ function renderDeployTargetList() {
   if (!el.deployTargetList) return;
   el.deployTargetList.replaceChildren();
   const ids = visibleDeployTargetIds();
-  if (state.deployTarget === "aliyun" && !ids.includes("aliyun")) {
+  if (!ids.includes(state.deployTarget)) {
     state.deployTarget = "none";
   }
   for (const id of ids) {
@@ -5675,6 +5902,9 @@ const DEPLOY_HOST_IDS = ["cloudflare", "aliyun", "aws", "github-pages"];
 function visibleDeployHostIds() {
   return DEPLOY_HOST_IDS.filter((id) => {
     if (id === "aliyun") return Boolean(state.lastCfg?.hasAliyunCredentials);
+    if (id === "cloudflare")
+      return Boolean(state.lastCfg?.hasCloudflareCredentials);
+    if (id === "aws") return Boolean(state.lastCfg?.hasAwsCredentials);
     return true;
   });
 }

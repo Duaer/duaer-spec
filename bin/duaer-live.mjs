@@ -302,7 +302,20 @@ function emptyLiveConfig() {
     activeProjectPath: "",
     aliyunAccessKeyId: "",
     aliyunAccessKeySecret: "",
+    cloudflareApiToken: "",
+    cloudflareAccountId: "",
+    awsAccessKeyId: "",
+    awsSecretAccessKey: "",
+    awsRegion: "",
   };
+}
+
+function envPick(...keys) {
+  for (const k of keys) {
+    const v = String(process.env[k] || "").trim();
+    if (v) return v;
+  }
+  return "";
 }
 
 function readConfig() {
@@ -314,16 +327,19 @@ function readConfig() {
       baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
-      aliyunAccessKeyId: String(
-        process.env.ALIBABA_CLOUD_ACCESS_KEY_ID ||
-          process.env.ALIYUN_ACCESS_KEY_ID ||
-          "",
-      ).trim(),
-      aliyunAccessKeySecret: String(
-        process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET ||
-          process.env.ALIYUN_ACCESS_KEY_SECRET ||
-          "",
-      ).trim(),
+      aliyunAccessKeyId: envPick(
+        "ALIBABA_CLOUD_ACCESS_KEY_ID",
+        "ALIYUN_ACCESS_KEY_ID",
+      ),
+      aliyunAccessKeySecret: envPick(
+        "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
+        "ALIYUN_ACCESS_KEY_SECRET",
+      ),
+      cloudflareApiToken: envPick("CLOUDFLARE_API_TOKEN"),
+      cloudflareAccountId: envPick("CLOUDFLARE_ACCOUNT_ID"),
+      awsAccessKeyId: envPick("AWS_ACCESS_KEY_ID"),
+      awsSecretAccessKey: envPick("AWS_SECRET_ACCESS_KEY"),
+      awsRegion: envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
     };
   }
   try {
@@ -337,15 +353,29 @@ function readConfig() {
       activeProjectPath: String(raw.activeProjectPath || "").trim(),
       aliyunAccessKeyId: String(
         raw.aliyunAccessKeyId ||
-          process.env.ALIBABA_CLOUD_ACCESS_KEY_ID ||
-          process.env.ALIYUN_ACCESS_KEY_ID ||
-          "",
+          envPick("ALIBABA_CLOUD_ACCESS_KEY_ID", "ALIYUN_ACCESS_KEY_ID"),
       ).trim(),
       aliyunAccessKeySecret: String(
         raw.aliyunAccessKeySecret ||
-          process.env.ALIBABA_CLOUD_ACCESS_KEY_SECRET ||
-          process.env.ALIYUN_ACCESS_KEY_SECRET ||
-          "",
+          envPick(
+            "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
+            "ALIYUN_ACCESS_KEY_SECRET",
+          ),
+      ).trim(),
+      cloudflareApiToken: String(
+        raw.cloudflareApiToken || envPick("CLOUDFLARE_API_TOKEN"),
+      ).trim(),
+      cloudflareAccountId: String(
+        raw.cloudflareAccountId || envPick("CLOUDFLARE_ACCOUNT_ID"),
+      ).trim(),
+      awsAccessKeyId: String(
+        raw.awsAccessKeyId || envPick("AWS_ACCESS_KEY_ID"),
+      ).trim(),
+      awsSecretAccessKey: String(
+        raw.awsSecretAccessKey || envPick("AWS_SECRET_ACCESS_KEY"),
+      ).trim(),
+      awsRegion: String(
+        raw.awsRegion || envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
       ).trim(),
     };
   } catch {
@@ -356,14 +386,13 @@ function readConfig() {
 function writeConfig(partial) {
   ensureLiveDirs();
   const cur = readConfig();
+  const pick = (key) =>
+    partial[key] !== undefined ? String(partial[key]).trim() : cur[key];
   const next = {
-    baseUrl: partial.baseUrl !== undefined ? String(partial.baseUrl).trim() : cur.baseUrl,
-    apiKey: partial.apiKey !== undefined ? String(partial.apiKey).trim() : cur.apiKey,
-    model: partial.model !== undefined ? String(partial.model).trim() : cur.model,
-    preferredAgentId:
-      partial.preferredAgentId !== undefined
-        ? String(partial.preferredAgentId).trim()
-        : cur.preferredAgentId,
+    baseUrl: pick("baseUrl"),
+    apiKey: pick("apiKey"),
+    model: pick("model"),
+    preferredAgentId: pick("preferredAgentId"),
     projectsRoot:
       partial.projectsRoot !== undefined
         ? String(partial.projectsRoot).trim().replace(/[\\/]+$/, "")
@@ -372,14 +401,13 @@ function writeConfig(partial) {
       partial.activeProjectPath !== undefined
         ? String(partial.activeProjectPath).trim().replace(/[\\/]+$/, "")
         : cur.activeProjectPath,
-    aliyunAccessKeyId:
-      partial.aliyunAccessKeyId !== undefined
-        ? String(partial.aliyunAccessKeyId).trim()
-        : cur.aliyunAccessKeyId,
-    aliyunAccessKeySecret:
-      partial.aliyunAccessKeySecret !== undefined
-        ? String(partial.aliyunAccessKeySecret).trim()
-        : cur.aliyunAccessKeySecret,
+    aliyunAccessKeyId: pick("aliyunAccessKeyId"),
+    aliyunAccessKeySecret: pick("aliyunAccessKeySecret"),
+    cloudflareApiToken: pick("cloudflareApiToken"),
+    cloudflareAccountId: pick("cloudflareAccountId"),
+    awsAccessKeyId: pick("awsAccessKeyId"),
+    awsSecretAccessKey: pick("awsSecretAccessKey"),
+    awsRegion: pick("awsRegion"),
   };
   fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
   try {
@@ -402,6 +430,20 @@ function hasAliyunCredentials(cfg = readConfig()) {
   );
 }
 
+function hasCloudflareCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.cloudflareApiToken || "").trim() &&
+      String(cfg.cloudflareAccountId || "").trim(),
+  );
+}
+
+function hasAwsCredentials(cfg = readConfig()) {
+  return Boolean(
+    String(cfg.awsAccessKeyId || "").trim() &&
+      String(cfg.awsSecretAccessKey || "").trim(),
+  );
+}
+
 /** Env map for Alibaba Cloud CLIs / SDKs (never log values). */
 function aliyunDeployEnv(cfg = readConfig()) {
   if (!hasAliyunCredentials(cfg)) return null;
@@ -413,6 +455,53 @@ function aliyunDeployEnv(cfg = readConfig()) {
     ALIYUN_ACCESS_KEY_ID: id,
     ALIYUN_ACCESS_KEY_SECRET: secret,
   };
+}
+
+function cloudflareDeployEnv(cfg = readConfig()) {
+  if (!hasCloudflareCredentials(cfg)) return null;
+  return {
+    CLOUDFLARE_API_TOKEN: String(cfg.cloudflareApiToken).trim(),
+    CLOUDFLARE_ACCOUNT_ID: String(cfg.cloudflareAccountId).trim(),
+  };
+}
+
+function awsDeployEnv(cfg = readConfig()) {
+  if (!hasAwsCredentials(cfg)) return null;
+  const env = {
+    AWS_ACCESS_KEY_ID: String(cfg.awsAccessKeyId).trim(),
+    AWS_SECRET_ACCESS_KEY: String(cfg.awsSecretAccessKey).trim(),
+  };
+  const region = String(cfg.awsRegion || "").trim();
+  if (region) {
+    env.AWS_DEFAULT_REGION = region;
+    env.AWS_REGION = region;
+  }
+  return env;
+}
+
+function deployEnvForTarget(target, cfg = readConfig()) {
+  if (target === "aliyun") return aliyunDeployEnv(cfg);
+  if (target === "cloudflare") return cloudflareDeployEnv(cfg);
+  if (target === "aws") return awsDeployEnv(cfg);
+  return null;
+}
+
+function assertDeployCredentials(target) {
+  if (target === "aliyun" && !hasAliyunCredentials()) {
+    throw new Error(
+      "未配置阿里云 AccessKey。请在设置中填写 AccessKey ID 与 AccessKey Secret。",
+    );
+  }
+  if (target === "cloudflare" && !hasCloudflareCredentials()) {
+    throw new Error(
+      "未配置 Cloudflare。请在设置中填写 API Token 与 Account ID。",
+    );
+  }
+  if (target === "aws" && !hasAwsCredentials()) {
+    throw new Error(
+      "未配置 AWS。请在设置中填写 Access Key ID 与 Secret Access Key。",
+    );
+  }
 }
 
 function publicUpdate() {
@@ -442,6 +531,8 @@ function publicConfig(cfg = readConfig()) {
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
     hasAliyunCredentials: hasAliyunCredentials(cfg),
+    hasCloudflareCredentials: hasCloudflareCredentials(cfg),
+    hasAwsCredentials: hasAwsCredentials(cfg),
     provider: inferProviderId(cfg),
     preferredAgentId: cfg.preferredAgentId || "",
     projectsRoot: cfg.projectsRoot || "",
@@ -3958,11 +4049,7 @@ async function deployDispatchedJob({ jobId, agentId, deployTarget: deployTargetR
   );
   const defaultedFromNone = deployTarget === "none";
   if (defaultedFromNone) deployTarget = "github-pages";
-  if (deployTarget === "aliyun" && !hasAliyunCredentials()) {
-    throw new Error(
-      "未配置阿里云 AccessKey。请在设置中填写 AccessKey ID 与 AccessKey Secret。",
-    );
-  }
+  assertDeployCredentials(deployTarget);
   const deployPlan = deployPromptForTarget(deployTarget);
 
   const revN = Number(live.job.revisionCount || 0) + 1;
@@ -4102,7 +4189,11 @@ ${deployPlan.promptBlock}
 ${
   deployTarget === "aliyun"
     ? "5. 阿里云凭证已注入环境变量 ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET（及 ALIYUN_* 别名）；禁止打印密钥、禁止写入产品仓"
-    : ""
+    : deployTarget === "cloudflare"
+      ? "5. Cloudflare 凭证已注入 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID；禁止打印密钥、禁止写入产品仓"
+      : deployTarget === "aws"
+        ? "5. AWS 凭证已注入 AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY（及可选 AWS_DEFAULT_REGION）；禁止打印密钥、禁止写入产品仓"
+        : ""
 }
 `;
 
@@ -4122,7 +4213,7 @@ ${
       featureDir,
       continueSession,
       reviseLaunch: true,
-      envExtra: deployTarget === "aliyun" ? aliyunDeployEnv() : null,
+      envExtra: deployEnvForTarget(deployTarget),
     });
   } catch (err) {
     restoreTextFile(specPath, snapSpec);
@@ -4860,6 +4951,19 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/config") {
     try {
       const body = await readJson(req);
+      const hostCredKeys = [
+        "aliyunAccessKeyId",
+        "aliyunAccessKeySecret",
+        "clearAliyunCredentials",
+        "cloudflareApiToken",
+        "cloudflareAccountId",
+        "clearCloudflareCredentials",
+        "awsAccessKeyId",
+        "awsSecretAccessKey",
+        "awsRegion",
+        "clearAwsCredentials",
+      ];
+      const noHostCreds = hostCredKeys.every((k) => body[k] === undefined);
       const onlyProjectsRoot =
         body.projectsRoot !== undefined &&
         body.baseUrl === undefined &&
@@ -4867,9 +4971,7 @@ async function handleApi(req, res) {
         body.model === undefined &&
         body.preferredAgentId === undefined &&
         body.activeProjectPath === undefined &&
-        body.aliyunAccessKeyId === undefined &&
-        body.aliyunAccessKeySecret === undefined &&
-        body.clearAliyunCredentials === undefined;
+        noHostCreds;
       const onlyActiveProject =
         body.activeProjectPath !== undefined &&
         body.baseUrl === undefined &&
@@ -4877,13 +4979,9 @@ async function handleApi(req, res) {
         body.model === undefined &&
         body.preferredAgentId === undefined &&
         body.projectsRoot === undefined &&
-        body.aliyunAccessKeyId === undefined &&
-        body.aliyunAccessKeySecret === undefined &&
-        body.clearAliyunCredentials === undefined;
-      const onlyAliyun =
-        (body.aliyunAccessKeyId !== undefined ||
-          body.aliyunAccessKeySecret !== undefined ||
-          body.clearAliyunCredentials) &&
+        noHostCreds;
+      const onlyHostCreds =
+        !noHostCreds &&
         body.baseUrl === undefined &&
         body.apiKey === undefined &&
         body.model === undefined &&
@@ -4906,18 +5004,45 @@ async function handleApi(req, res) {
         const raw = String(activeProjectPath || "").trim();
         activeProjectPath = raw ? path.resolve(raw).replace(/[\\/]+$/, "") : "";
       }
-      const aliyunPartial = {};
+      const hostPartial = {};
       if (body.clearAliyunCredentials) {
-        aliyunPartial.aliyunAccessKeyId = "";
-        aliyunPartial.aliyunAccessKeySecret = "";
+        hostPartial.aliyunAccessKeyId = "";
+        hostPartial.aliyunAccessKeySecret = "";
       } else {
         if (body.aliyunAccessKeyId !== undefined) {
-          aliyunPartial.aliyunAccessKeyId = body.aliyunAccessKeyId;
+          hostPartial.aliyunAccessKeyId = body.aliyunAccessKeyId;
         }
         if (body.aliyunAccessKeySecret !== undefined) {
           const secret = String(body.aliyunAccessKeySecret || "").trim();
-          // Empty secret field keeps the previous secret (same as API Key).
-          if (secret) aliyunPartial.aliyunAccessKeySecret = secret;
+          if (secret) hostPartial.aliyunAccessKeySecret = secret;
+        }
+      }
+      if (body.clearCloudflareCredentials) {
+        hostPartial.cloudflareApiToken = "";
+        hostPartial.cloudflareAccountId = "";
+      } else {
+        if (body.cloudflareApiToken !== undefined) {
+          const token = String(body.cloudflareApiToken || "").trim();
+          if (token) hostPartial.cloudflareApiToken = token;
+        }
+        if (body.cloudflareAccountId !== undefined) {
+          hostPartial.cloudflareAccountId = body.cloudflareAccountId;
+        }
+      }
+      if (body.clearAwsCredentials) {
+        hostPartial.awsAccessKeyId = "";
+        hostPartial.awsSecretAccessKey = "";
+        hostPartial.awsRegion = "";
+      } else {
+        if (body.awsAccessKeyId !== undefined) {
+          hostPartial.awsAccessKeyId = body.awsAccessKeyId;
+        }
+        if (body.awsSecretAccessKey !== undefined) {
+          const secret = String(body.awsSecretAccessKey || "").trim();
+          if (secret) hostPartial.awsSecretAccessKey = secret;
+        }
+        if (body.awsRegion !== undefined) {
+          hostPartial.awsRegion = body.awsRegion;
         }
       }
       const next = writeConfig({
@@ -4927,10 +5052,9 @@ async function handleApi(req, res) {
         preferredAgentId: body.preferredAgentId,
         projectsRoot,
         activeProjectPath,
-        ...aliyunPartial,
+        ...hostPartial,
       });
-      if (onlyProjectsRoot || onlyActiveProject || onlyAliyun) {
-        // Allow saving parent / active project / aliyun without re-submitting model credentials
+      if (onlyProjectsRoot || onlyActiveProject || onlyHostCreds) {
         send(res, 200, publicConfig(next));
         return;
       }
