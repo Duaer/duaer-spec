@@ -1220,27 +1220,118 @@ function restoreValidateGate(saved) {
 }
 
 /**
+ * Wipe chat / 需求 / 运行 / 结果 surfaces before loading another project's desk.
+ * Saved session data is applied on top by loadProjectChatIntoUi.
+ */
+function stopStatusPoll() {
+  if (state.statusTimer) {
+    clearInterval(state.statusTimer);
+    state.statusTimer = null;
+  }
+}
+
+function clearDeskWorkspace() {
+  stopStatusPoll();
+  if (typeof stopPreviewStatusPoll === "function") stopPreviewStatusPoll();
+  clearRunTimeline();
+  clearChatLog();
+
+  state.messages = [];
+  state.reviseMessages = [];
+  state.architectureMessages = [];
+  state.rawAsk = "";
+  state.jobId = null;
+  state.locked = false;
+  state.mode = "specify";
+  state.reviseLocked = false;
+  state.reviseDispatching = false;
+  state.reviseStuckHint = false;
+  state.originalCard = null;
+  state.lastRevision = null;
+  state.dispatchPhase = null;
+  state.lastDeliveryAccepted = false;
+  state.lastPreviewUrl = null;
+  state.lastDispatch = null;
+  state.lastStatus = null;
+  state.lastChatBlockMsg = "";
+  state.progressFocusKey = "";
+  state.architecture = {
+    status: "idle",
+    ir: null,
+    url: null,
+    summary: "",
+    confirmed: false,
+  };
+  state.architecturePrevious = null;
+
+  applySavedCardFields(null, null);
+  setConfirmFieldsReadonly(false);
+  setReviseFieldsReadonly(false);
+  resetValidateGate();
+  applyConfirmCardChrome();
+  applyCardChrome();
+
+  if (el.confirm) {
+    el.confirm.disabled = true;
+    el.confirm.textContent = t("card.confirm");
+  }
+  if (el.lockHint) el.lockHint.textContent = "";
+  if (el.result) {
+    el.result.hidden = true;
+    el.result.textContent = "";
+  }
+  if (el.dispatch) el.dispatch.hidden = true;
+  if (el.dispatchStatus) {
+    el.dispatchStatus.hidden = true;
+    el.dispatchStatus.textContent = "";
+  }
+  if (el.dispatchErr) {
+    el.dispatchErr.hidden = true;
+    el.dispatchErr.textContent = "";
+  }
+  if (el.doDispatch) {
+    el.doDispatch.disabled = false;
+    el.doDispatch.textContent = t("dispatch.do");
+  }
+  if (el.previewPanel) el.previewPanel.hidden = true;
+  if (el.previewService) el.previewService.hidden = true;
+  if (el.previewVersions) {
+    el.previewVersions.replaceChildren();
+    el.previewVersions.hidden = true;
+  }
+  if (el.previewLink) el.previewLink.hidden = true;
+  if (el.previewOpenFolder) el.previewOpenFolder.hidden = true;
+  if (el.startReviseChat) el.startReviseChat.hidden = true;
+  if (el.revisePanel) el.revisePanel.hidden = true;
+  if (el.startReviseChatAlt) el.startReviseChatAlt.hidden = true;
+  if (el.doReviseDispatch) el.doReviseDispatch.hidden = true;
+  if (el.architecturePanel) el.architecturePanel.hidden = true;
+  if (el.architectureFrame) {
+    el.architectureFrame.hidden = true;
+    el.architectureFrame.removeAttribute("src");
+  }
+  if (el.architecturePreviousFrame) {
+    el.architecturePreviousFrame.hidden = true;
+    el.architecturePreviousFrame.removeAttribute("src");
+  }
+  if (el.architecturePreviousBlock) el.architecturePreviousBlock.hidden = true;
+  if (el.progressEmpty) el.progressEmpty.hidden = false;
+
+  syncDispatchProjectLine();
+  syncConfirmEnabled();
+  syncComposerEnabled();
+  syncChatEmpty();
+}
+
+/**
  * Load saved desk session (chat + 需求卡 + job/任务绑定) for a project.
+ * Always clears the previous project's surfaces first.
  * @returns {Promise<number>} message count restored
  */
 async function loadProjectChatIntoUi(projectPath) {
   const abs = String(projectPath || "").trim();
-  if (!abs) {
-    state.messages = [];
-    state.reviseMessages = [];
-    state.rawAsk = "";
-    state.jobId = null;
-    state.locked = false;
-    state.mode = "specify";
-    state.reviseLocked = false;
-    state.originalCard = null;
-    state.lastRevision = null;
-    state.dispatchPhase = null;
-    applySavedCardFields(null, null);
-    resetValidateGate();
-    clearChatLog();
-    return 0;
-  }
+  clearDeskWorkspace();
+  if (!abs) return 0;
   try {
     const res = await fetch(
       `/api/projects/chat?path=${encodeURIComponent(abs)}`,
@@ -1298,9 +1389,15 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     restoreReviseDeskUi();
     restoreValidateGate(data.validate);
-    syncArchitecturePanel(
-      state.locked && !state.architecture.confirmed ? "stale" : undefined,
-    );
+    if (
+      state.architecture.url ||
+      state.architecture.status !== "idle" ||
+      (state.locked && !state.architecture.confirmed)
+    ) {
+      syncArchitecturePanel(
+        state.locked && !state.architecture.confirmed ? "stale" : undefined,
+      );
+    }
     syncConfirmEnabled();
     syncComposerEnabled();
     if (state.jobId) {
@@ -1309,6 +1406,9 @@ async function loadProjectChatIntoUi(projectPath) {
       if (state.locked && el.confirm) {
         el.confirm.textContent = t("card.confirmed");
         el.confirm.disabled = true;
+      }
+      if (state.dispatchPhase === "done") {
+        syncDispatchButton();
       }
       startStatusPoll();
       void loadAgents();
@@ -1327,19 +1427,7 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     return state.messages.length;
   } catch {
-    state.messages = [];
-    state.reviseMessages = [];
-    state.rawAsk = "";
-    state.jobId = null;
-    state.locked = false;
-    state.mode = "specify";
-    state.reviseLocked = false;
-    state.originalCard = null;
-    state.lastRevision = null;
-    state.dispatchPhase = null;
-    applySavedCardFields(null, null);
-    resetValidateGate();
-    clearChatLog();
+    clearDeskWorkspace();
     return 0;
   }
 }
@@ -4336,7 +4424,7 @@ function formatTerminalStatus(term) {
 }
 
 function startStatusPoll() {
-  if (state.statusTimer) clearInterval(state.statusTimer);
+  stopStatusPoll();
   let acceptedNotified = false;
   let lastRevision = -1;
   const tick = async () => {
