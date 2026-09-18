@@ -1100,12 +1100,70 @@ input:focus {
   line-height: 1.55;
 }
 
+/* Textareas stay as the data store; edit UI is structured rows. */
 .req-section.is-editing .req-structured {
-  display: none;
+  display: block;
 }
 
 .req-section.is-editing .req-edit {
-  display: block;
+  display: none;
+}
+
+.req-edit-list {
+  margin-bottom: 0.55rem;
+}
+
+.req-item-edit {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.req-item-edit .req-item-input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  resize: none;
+  overflow: hidden;
+  field-sizing: content;
+  min-height: 1.35em;
+}
+
+.req-item-edit .req-item-input:focus {
+  outline: none;
+}
+
+.req-item-remove {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0 0.35rem;
+  border: 0;
+  background: transparent;
+  color: var(--mute);
+  font-size: 1.1rem;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.req-item-remove:hover {
+  color: var(--ink);
+}
+
+.req-add-item {
+  margin-top: 0.15rem;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.65rem;
+}
+
+.req-section.is-editing .req-structured {
+  cursor: default;
 }
 
 .req-section.is-readonly {

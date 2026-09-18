@@ -1,5 +1,5 @@
 /**
- * Structured display for confirm / revise card fields.
+ * Structured display + edit helpers for confirm / revise card fields.
  */
 
 export function escapeHtml(s) {
@@ -65,38 +65,40 @@ export function normalizeReqText(text) {
   return s;
 }
 
-/** Render card field text as paragraphs / lists for the structured view. */
-export function structuredHtml(text, emptyLabel) {
+/**
+ * Parse field text into editable blocks.
+ * @returns {{ kind: 'ul' | 'ol' | 'para', items: string[] }[]}
+ */
+export function parseReqBlocks(text) {
   const raw = normalizeReqText(text);
-  if (!raw.trim()) {
-    return `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
-  }
+  if (!raw.trim()) return [];
+
   const lines = raw.split("\n");
-  let html = "";
+  const blocks = [];
   let i = 0;
   while (i < lines.length) {
     const bullet = lines[i].match(BULLET_RE);
     const numbered = lines[i].match(NUMBERED_RE);
     if (bullet) {
-      html += '<ul class="req-list">';
+      const items = [];
       while (i < lines.length) {
         const m = lines[i].match(BULLET_RE);
         if (!m) break;
-        html += `<li class="req-item">${escapeHtml(m[1])}</li>`;
+        items.push(m[1]);
         i += 1;
       }
-      html += "</ul>";
+      blocks.push({ kind: "ul", items });
       continue;
     }
     if (numbered) {
-      html += '<ol class="req-list req-list-num">';
+      const items = [];
       while (i < lines.length) {
         const m = lines[i].match(NUMBERED_RE);
         if (!m) break;
-        html += `<li class="req-item">${escapeHtml(m[1])}</li>`;
+        items.push(m[1]);
         i += 1;
       }
-      html += "</ol>";
+      blocks.push({ kind: "ol", items });
       continue;
     }
     if (!lines[i].trim()) {
@@ -108,13 +110,94 @@ export function structuredHtml(text, emptyLabel) {
       const line = lines[i];
       if (!line.trim()) break;
       if (BULLET_RE.test(line) || NUMBERED_RE.test(line)) break;
-      parts.push(escapeHtml(line.trim()));
+      parts.push(line.trim());
       i += 1;
     }
-    if (parts.length === 1) {
-      html += `<p class="req-para">${parts[0]}</p>`;
+    if (parts.length) blocks.push({ kind: "para", items: parts });
+  }
+  return blocks;
+}
+
+/**
+ * Flatten blocks into a single editable item list for the UI.
+ * Lists stay bullets/numbers; plain paragraphs become one editable row each.
+ * @returns {{ mode: 'ul' | 'ol' | 'para', items: string[] }}
+ */
+export function reqEditModel(text) {
+  const blocks = parseReqBlocks(text);
+  if (!blocks.length) return { mode: "ul", items: [""] };
+
+  const kinds = new Set(blocks.map((b) => b.kind));
+  if (kinds.size === 1 && kinds.has("ol")) {
+    return {
+      mode: "ol",
+      items: blocks.flatMap((b) => b.items),
+    };
+  }
+  if (kinds.size === 1 && kinds.has("ul")) {
+    return {
+      mode: "ul",
+      items: blocks.flatMap((b) => b.items),
+    };
+  }
+  if (kinds.size === 1 && kinds.has("para")) {
+    const items = blocks.flatMap((b) => b.items);
+    // Single short goal-style paragraph → one para row
+    if (items.length === 1) return { mode: "para", items };
+    // Multiple para lines → edit as bullets (clearer structure)
+    return { mode: "ul", items };
+  }
+  // Mixed → prefer bullets
+  return {
+    mode: "ul",
+    items: blocks.flatMap((b) => b.items),
+  };
+}
+
+/** Serialize editor items back to card field text. */
+export function serializeReqEdit(mode, items) {
+  const list = (Array.isArray(items) ? items : [])
+    .map((x) => String(x ?? "").trim())
+    .filter((x, i, arr) => x || arr.length === 1);
+  const cleaned = list.filter((x) => x);
+  if (!cleaned.length) return "";
+  if (mode === "ol") {
+    return cleaned.map((x, i) => `${i + 1}. ${x}`).join("\n");
+  }
+  if (mode === "para" && cleaned.length === 1) {
+    return cleaned[0];
+  }
+  return cleaned.map((x) => `- ${x}`).join("\n");
+}
+
+/** Render card field text as paragraphs / lists for the structured view. */
+export function structuredHtml(text, emptyLabel) {
+  const blocks = parseReqBlocks(text);
+  if (!blocks.length) {
+    return `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;
+  }
+  let html = "";
+  for (const block of blocks) {
+    if (block.kind === "ul") {
+      html += '<ul class="req-list">';
+      for (const item of block.items) {
+        html += `<li class="req-item">${escapeHtml(item)}</li>`;
+      }
+      html += "</ul>";
+      continue;
+    }
+    if (block.kind === "ol") {
+      html += '<ol class="req-list req-list-num">';
+      for (const item of block.items) {
+        html += `<li class="req-item">${escapeHtml(item)}</li>`;
+      }
+      html += "</ol>";
+      continue;
+    }
+    if (block.items.length === 1) {
+      html += `<p class="req-para">${escapeHtml(block.items[0])}</p>`;
     } else {
-      html += `<p class="req-para">${parts.join("<br>")}</p>`;
+      html += `<p class="req-para">${block.items.map(escapeHtml).join("<br>")}</p>`;
     }
   }
   return html || `<p class="req-empty">${escapeHtml(emptyLabel || "…")}</p>`;

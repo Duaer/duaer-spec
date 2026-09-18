@@ -94,6 +94,8 @@ const zhCN = {
   "card.acceptHint": "写可核对结果：打开何处、看到什么、哪条命令通过（勿写「更好用」）",
   "card.assume": "假设",
   "card.placeholder": "待确认",
+  "card.reqAdd": "添加一条",
+  "card.reqRemove": "删除这条",
   "card.lockHint": "确认前自动校验；通过后才能发出",
   "card.lockHintLocked": "已确认。选择产品仓库派工，Brief 才会进入业务仓 worktree。",
   "card.lockHintReady": "校验已通过，可以确认发出。",
@@ -418,6 +420,8 @@ const en = {
     "Checkable outcome: open where / see what / which command passes (not “looks better”)",
   "card.assume": "Assumptions",
   "card.placeholder": "Pending",
+  "card.reqAdd": "Add item",
+  "card.reqRemove": "Remove item",
   "card.lockHint": "Validated before confirm; only then can you send",
   "card.lockHintLocked":
     "Confirmed. Pick a product repo so the Brief enters that worktree.",

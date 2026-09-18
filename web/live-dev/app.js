@@ -10,7 +10,7 @@ import {
   setLocale,
   applyDomI18n,
 } from "./i18n.js";
-import { structuredHtml, escapeHtml } from "./structured-html.mjs";
+import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
 
 const FALLBACK_PROVIDERS = [
@@ -2083,13 +2083,11 @@ function syncReqSection(pair) {
   const view = el[pair.view];
   if (!ta || !view) return;
   const section = reqSectionFor(ta);
+  if (section?.classList.contains("is-editing")) return;
   const empty = t(pair.emptyKey) || ta.placeholder || "…";
   view.innerHTML = structuredHtml(ta.value, empty);
   if (section) {
     section.classList.toggle("is-readonly", isReqReadonly(pair.ta));
-    if (!section.classList.contains("is-editing")) {
-      autoGrowTextarea(ta);
-    }
   }
 }
 
@@ -2097,27 +2095,96 @@ function syncReqSections() {
   for (const pair of REQ_FIELD_PAIRS) syncReqSection(pair);
 }
 
+function readReqEditorItems(view) {
+  return [...view.querySelectorAll(".req-item-input")].map((n) => n.value);
+}
+
+function commitReqEditorToTextarea(pair) {
+  const ta = el[pair.ta];
+  const view = el[pair.view];
+  if (!ta || !view) return;
+  const mode = view.dataset.editMode || "ul";
+  ta.value = serializeReqEdit(mode, readReqEditorItems(view));
+}
+
+function paintReqEditor(pair, focusIndex = 0, override = null) {
+  const ta = el[pair.ta];
+  const view = el[pair.view];
+  if (!ta || !view) return;
+  const model = override || reqEditModel(ta.value);
+  view.dataset.editMode = model.mode;
+  const listClass =
+    model.mode === "ol"
+      ? "req-list req-list-num req-edit-list"
+      : model.mode === "para"
+        ? "req-list req-edit-list req-edit-para"
+        : "req-list req-edit-list";
+  const tag = model.mode === "ol" ? "ol" : "ul";
+  const items = model.items.length ? model.items : [""];
+  view.innerHTML = `
+    <${tag} class="${listClass}">
+      ${items
+        .map(
+          (item, i) => `
+        <li class="req-item req-item-edit">
+          <textarea class="req-item-input" rows="1" data-idx="${i}" aria-label="${escapeHtml(t(pair.emptyKey) || "")}">${escapeHtml(item)}</textarea>
+          <button type="button" class="req-item-remove" data-idx="${i}" title="${escapeHtml(t("card.reqRemove"))}" aria-label="${escapeHtml(t("card.reqRemove"))}">×</button>
+        </li>`,
+        )
+        .join("")}
+    </${tag}>
+    <button type="button" class="btn req-add-item">${escapeHtml(t("card.reqAdd"))}</button>
+  `;
+  for (const input of view.querySelectorAll(".req-item-input")) {
+    autoGrowTextarea(input);
+  }
+  const focusEl =
+    view.querySelector(`.req-item-input[data-idx="${focusIndex}"]`) ||
+    view.querySelector(".req-item-input");
+  if (focusEl) {
+    focusEl.focus();
+    const len = focusEl.value.length;
+    try {
+      focusEl.setSelectionRange(len, len);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function onReqEditorChanged(pair) {
+  commitReqEditorToTextarea(pair);
+  const kind = ["revGoal", "revOut", "revAccept", "revAssume"].includes(pair.ta)
+    ? "revise"
+    : "confirm";
+  if (kind === "confirm" && !state.locked) scheduleValidate("confirm");
+  if (kind === "revise" && !state.reviseLocked) scheduleValidate("revise");
+  schedulePersistProjectDesk();
+}
+
 function enterReqEdit(pair) {
   const ta = el[pair.ta];
   const section = reqSectionFor(ta);
   if (!ta || !section || isReqReadonly(pair.ta)) return;
+  if (section.classList.contains("is-editing")) return;
+  const model = reqEditModel(ta.value);
+  ta.value = serializeReqEdit(model.mode, model.items);
   section.classList.add("is-editing");
-  autoGrowTextarea(ta);
-  ta.focus();
-  const len = ta.value.length;
-  try {
-    ta.setSelectionRange(len, len);
-  } catch {
-    /* ignore */
-  }
+  paintReqEditor(pair, 0);
 }
 
 function exitReqEdit(pair) {
   const ta = el[pair.ta];
+  const view = el[pair.view];
   const section = reqSectionFor(ta);
-  if (!section) return;
+  if (!section?.classList.contains("is-editing")) return;
+  commitReqEditorToTextarea(pair);
   section.classList.remove("is-editing");
+  if (view) {
+    delete view.dataset.editMode;
+  }
   syncReqSection(pair);
+  onReqEditorChanged(pair);
 }
 
 function wireReqSections() {
@@ -2125,14 +2192,93 @@ function wireReqSections() {
     const ta = el[pair.ta];
     const view = el[pair.view];
     if (!ta || !view) continue;
-    view.addEventListener("click", () => enterReqEdit(pair));
+    view.addEventListener("click", (ev) => {
+      if (isReqReadonly(pair.ta)) return;
+      const section = reqSectionFor(ta);
+      if (section?.classList.contains("is-editing")) {
+        // clicks inside editor are handled by item controls
+        return;
+      }
+      enterReqEdit(pair);
+    });
     view.addEventListener("keydown", (ev) => {
       if (ev.key === "Enter" || ev.key === " ") {
+        const section = reqSectionFor(ta);
+        if (section?.classList.contains("is-editing")) return;
         ev.preventDefault();
         enterReqEdit(pair);
       }
     });
-    ta.addEventListener("blur", () => exitReqEdit(pair));
+    view.addEventListener("input", (ev) => {
+      if (!ev.target?.classList?.contains("req-item-input")) return;
+      autoGrowTextarea(ev.target);
+      onReqEditorChanged(pair);
+    });
+    view.addEventListener("keydown", (ev) => {
+      if (!ev.target?.classList?.contains("req-item-input")) return;
+      const input = ev.target;
+      const idx = Number(input.dataset.idx || 0);
+      if (ev.key === "Enter" && !ev.shiftKey) {
+        ev.preventDefault();
+        commitReqEditorToTextarea(pair);
+        const items = readReqEditorItems(view);
+        items.splice(idx + 1, 0, "");
+        let mode = view.dataset.editMode || "ul";
+        if (mode === "para") mode = "ul";
+        paintReqEditor(pair, idx + 1, { mode, items });
+        onReqEditorChanged(pair);
+        return;
+      }
+      if (ev.key === "Backspace" && input.value === "" && readReqEditorItems(view).length > 1) {
+        ev.preventDefault();
+        const items = readReqEditorItems(view);
+        items.splice(idx, 1);
+        const mode = view.dataset.editMode || "ul";
+        paintReqEditor(pair, Math.max(0, idx - 1), {
+          mode,
+          items: items.length ? items : [""],
+        });
+        onReqEditorChanged(pair);
+      }
+    });
+    view.addEventListener("click", (ev) => {
+      const add = ev.target?.closest?.(".req-add-item");
+      const remove = ev.target?.closest?.(".req-item-remove");
+      if (add) {
+        ev.preventDefault();
+        const items = readReqEditorItems(view);
+        items.push("");
+        let mode = view.dataset.editMode || "ul";
+        if (mode === "para") mode = "ul";
+        paintReqEditor(pair, items.length - 1, { mode, items });
+        onReqEditorChanged(pair);
+        return;
+      }
+      if (remove) {
+        ev.preventDefault();
+        const idx = Number(remove.dataset.idx || 0);
+        const items = readReqEditorItems(view);
+        items.splice(idx, 1);
+        const mode = view.dataset.editMode || "ul";
+        paintReqEditor(pair, Math.max(0, idx - 1), {
+          mode,
+          items: items.length ? items : [""],
+        });
+        onReqEditorChanged(pair);
+      }
+    });
+    const section = reqSectionFor(ta);
+    section?.addEventListener("focusout", (ev) => {
+      if (!section.classList.contains("is-editing")) return;
+      const next = ev.relatedTarget;
+      if (next && section.contains(next)) return;
+      // Defer so click on add/remove can run first
+      queueMicrotask(() => {
+        if (!section.classList.contains("is-editing")) return;
+        if (section.contains(document.activeElement)) return;
+        exitReqEdit(pair);
+      });
+    });
   }
   syncReqSections();
 }

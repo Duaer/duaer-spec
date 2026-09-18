@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Structured requirements editing
+
+- Clicking a requirements field edits as structured rows (same look as display)
+- Add / remove items; no more raw full-field textarea while editing
+
 ### Persist validate gate across refresh
 
 - Auto-validate passed/failed state is stored with the project desk session

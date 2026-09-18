@@ -240,6 +240,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
     /\.choice-chip\s*\{[^}]*var\(--register\)/,
   );
   assert.match(js, /structuredHtml/);
+  assert.match(js, /paintReqEditor|reqEditModel|serializeReqEdit|req-item-input/);
+  assert.match(js, /card\.reqAdd/);
+  assert.match(css, /req-item-edit|req-add-item/);
   assert.match(js, /\/api\/validate/);
   assert.match(js, /card\.acceptHint|acceptHint/);
   assert.match(js, /agentRedetect|is-missing|agent-chip-cmd/);
@@ -263,7 +266,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const mjsType = mjsRes.headers.get("content-type") || "";
   assert.match(mjsType, /javascript/);
   const mjsBody = await mjsRes.text();
-  assert.match(mjsBody, /structuredHtml|normalizeReqText/);
+  assert.match(mjsBody, /structuredHtml|normalizeReqText|reqEditModel/);
 
   const health = await (await fetch(`${live.base}/api/health`)).json();
   assert.equal(health.ready, true);

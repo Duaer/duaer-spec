@@ -6,6 +6,9 @@ import test from "node:test";
 import {
   normalizeReqText,
   structuredHtml,
+  reqEditModel,
+  serializeReqEdit,
+  parseReqBlocks,
 } from "../web/live-dev/structured-html.mjs";
 
 test("normalizeReqText splits semicolon acceptance into bullets", () => {
@@ -40,4 +43,25 @@ test("structuredHtml structures jammed acceptance line", () => {
 test("structuredHtml keeps empty placeholder", () => {
   assert.match(structuredHtml("", "待确认"), /req-empty/);
   assert.match(structuredHtml("", "待确认"), /待确认/);
+});
+
+test("reqEditModel + serializeReqEdit round-trip bullets", () => {
+  const model = reqEditModel("- A\n- B");
+  assert.equal(model.mode, "ul");
+  assert.deepEqual(model.items, ["A", "B"]);
+  assert.equal(serializeReqEdit(model.mode, model.items), "- A\n- B");
+});
+
+test("reqEditModel treats single paragraph as para", () => {
+  const model = reqEditModel("Ship a login page");
+  assert.equal(model.mode, "para");
+  assert.deepEqual(model.items, ["Ship a login page"]);
+  assert.equal(serializeReqEdit("para", model.items), "Ship a login page");
+});
+
+test("parseReqBlocks reads numbered lists", () => {
+  const blocks = parseReqBlocks("1. One\n2. Two");
+  assert.equal(blocks.length, 1);
+  assert.equal(blocks[0].kind, "ol");
+  assert.deepEqual(blocks[0].items, ["One", "Two"]);
 });
