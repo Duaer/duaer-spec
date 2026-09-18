@@ -3678,7 +3678,11 @@ function renderPreview(data) {
         bits.push(preview?.path || latest?.path);
       if (preview?.source)
         bits.push(
-          preview.source === "auto" ? t("preview.auto") : "delivery.preview",
+          preview.source === "auto"
+            ? t("preview.auto")
+            : preview.source === "auto-service"
+              ? t("preview.autoService")
+              : "delivery.preview",
         );
       if (data?.revision > 0) bits.push(`r${data.revision}`);
       else if (latest && Number(latest.revision) > 0)

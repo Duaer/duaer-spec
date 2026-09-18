@@ -73,7 +73,7 @@ export function buildDetailedProductTasksMd({
   }
   push("Risk-based verification per testing.md");
   push(
-    "Stamp delivery.json accepted（若有可打开结果，写入 preview.url）",
+    "Stamp delivery.json accepted（必须写入 preview.url：页面路径或 http://localhost:… 服务地址）",
   );
   if (deployNeeded) {
     push(
@@ -97,11 +97,15 @@ ${items.join("\n")}
 - 若清单仍偏粗：开工后先按 Acceptance / Goal 扩成「一条功能一勾选」（仍用 T00x），保存后再做
 - 不要为了凑数合并无关步骤；也不要人为卡在 12 条以内
 
-若交付物是页面/静态文件，在 delivery.json 增加：
+**必须**在 delivery.json 写入 preview（页面或本地/公网服务地址均可）：
 \`\`\`json
 "preview": { "url": "index.html", "label": "查看结果" }
 \`\`\`
-（也可用 http(s) 地址；相对路径相对 worktree 根目录；若已公网部署，优先写公网 URL）
+或服务：
+\`\`\`json
+"preview": { "url": "http://localhost:8788", "label": "查看结果" }
+\`\`\`
+（相对路径相对 worktree 根目录；有公网部署时优先写公网 URL。不要因「没有 index.html」而省略。）
 `;
 }
 
@@ -130,7 +134,9 @@ export function buildDetailedRevisionTasksMd({
     push("Wire one change needed for revision acceptance");
   }
   push("Verify against revision acceptance");
-  push("Stamp delivery.json accepted（更新 preview.url）");
+  push(
+    "Stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
+  );
   while (items.length < 5) {
     push(`Complete remaining revision scope (atomic step ${i})`);
   }
