@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "144-arch-popup-offset",
+  "acceptedAt": "2026-09-18T09:30:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"],
+    "results": "pass"
+  }
+}

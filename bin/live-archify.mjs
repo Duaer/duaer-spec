@@ -549,12 +549,13 @@ html[data-embed="true"] .diagram-container svg {
 html[data-embed="true"] .diagram-container svg [data-node-id] {
   cursor: pointer;
 }
-/* Archify embed mode hides the node passport; restore it for the desk. */
+/* Archify embed mode hides the node passport; restore it for the desk.
+   Desk ask: shift 100px left and 100px up from the default inset. */
 html[data-embed="true"] .focus-chip {
   display: block !important;
   position: absolute !important;
-  left: 0.75rem !important;
-  top: 0.75rem !important;
+  left: calc(0.75rem - 100px) !important;
+  top: calc(0.75rem - 100px) !important;
   z-index: 40 !important;
   width: min(22rem, calc(100% - 1.5rem)) !important;
   max-width: calc(100% - 1.5rem) !important;

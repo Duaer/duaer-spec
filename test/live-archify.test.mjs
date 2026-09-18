@@ -198,6 +198,14 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
   assert.match(once, /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*display:\s*block\s*!important/s);
   assert.match(
     once,
+    /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*left:\s*calc\(0\.75rem - 100px\)\s*!important/s,
+  );
+  assert.match(
+    once,
+    /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*top:\s*calc\(0\.75rem - 100px\)\s*!important/s,
+  );
+  assert.match(
+    once,
     /html\[data-embed="true"\] \.focus-chip\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s,
   );
   const twice = injectDuaerEmbedFitCss(once);
