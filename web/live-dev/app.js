@@ -2492,25 +2492,55 @@ el.saveCfg.addEventListener("click", async () => {
 
 async function saveAliyunCredentials({ clear = false } = {}) {
   if (el.aliyunCfgMsg) el.aliyunCfgMsg.hidden = true;
-  const body = clear
-    ? { clearAliyunCredentials: true }
-    : {
-        aliyunAccessKeyId: el.cfgAliyunId?.value.trim() || "",
-        aliyunAccessKeySecret: el.cfgAliyunSecret?.value.trim() || "",
-      };
-  if (!clear) {
-    const id = body.aliyunAccessKeyId;
-    const secret = body.aliyunAccessKeySecret;
-    const had = Boolean(state.lastCfg?.hasAliyunCredentials);
-    if (!id || (!secret && !had)) {
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearAliyunCredentials: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillAliyunFields(data);
+      if (state.deployTarget === "aliyun") state.deployTarget = "none";
+      renderDeployTargetList();
       if (el.aliyunCfgMsg) {
         el.aliyunCfgMsg.hidden = false;
-        el.aliyunCfgMsg.textContent = t("setup.aliyunNeedBoth");
+        el.aliyunCfgMsg.textContent = t("setup.aliyunCleared");
       }
-      return;
+    } catch (err) {
+      if (el.aliyunCfgMsg) {
+        el.aliyunCfgMsg.hidden = false;
+        el.aliyunCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
     }
-    if (!secret) delete body.aliyunAccessKeySecret;
+    return;
   }
+
+  const id = el.cfgAliyunId?.value.trim() || "";
+  const secret = el.cfgAliyunSecret?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasAliyunCredentials);
+  if (!id && !secret) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = had
+        ? t("setup.aliyunSaved")
+        : t("setup.aliyunNeedBoth");
+    }
+    return;
+  }
+  if (!had && (!id || !secret)) {
+    if (el.aliyunCfgMsg) {
+      el.aliyunCfgMsg.hidden = false;
+      el.aliyunCfgMsg.textContent = t("setup.aliyunNeedBoth");
+    }
+    return;
+  }
+  const body = {};
+  if (id) body.aliyunAccessKeyId = id;
+  if (secret) body.aliyunAccessKeySecret = secret;
   try {
     const res = await fetch("/api/config", {
       method: "POST",
@@ -2527,9 +2557,7 @@ async function saveAliyunCredentials({ clear = false } = {}) {
     renderDeployTargetList();
     if (el.aliyunCfgMsg) {
       el.aliyunCfgMsg.hidden = false;
-      el.aliyunCfgMsg.textContent = clear
-        ? t("setup.aliyunCleared")
-        : t("setup.aliyunSaved");
+      el.aliyunCfgMsg.textContent = t("setup.aliyunSaved");
     }
   } catch (err) {
     if (el.aliyunCfgMsg) {
