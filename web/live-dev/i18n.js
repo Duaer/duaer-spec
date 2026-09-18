@@ -267,6 +267,8 @@ const zhCN = {
   "bot.cardReady": "右侧确认卡可再改。满意后点「需求无误，开始干活」。",
   "bot.reviseCardReady":
     "下方改进卡已更新。看「要改什么 / 怎么算改好」，满意就点「改进方案确认，再派一版」。",
+  "user.reviseAgain":
+    "再改一版：我对当前成品还不满意，请先问我哪里要改、为什么。",
   "bot.enterRevise":
     "已进入改进。上方确认卡仍是原需求；请在左侧对话，在下方改进卡填写改动。填齐后点「再派一版」。",
   "bot.continueRevise":
@@ -678,6 +680,8 @@ const en = {
     "You can edit the confirm card. When ready, tap Looks good — start work.",
   "bot.reviseCardReady":
     "Revise card updated below. Check What to change / Done when, then confirm dispatch.",
+  "user.reviseAgain":
+    "Revise again: I am not satisfied with this build — ask what is wrong and why.",
   "bot.enterRevise":
     "Revise mode. Top card stays the original brief; fill the revise card below after left chat.",
   "bot.continueRevise":

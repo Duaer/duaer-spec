@@ -4624,12 +4624,30 @@ function renderRevisePanel(data) {
   if (show) focusRightPanel();
 }
 
+/**
+ * Post the visible user turn for「再改一版」into the revise thread.
+ * Must run after switchChatLogForMode("revise") so the bubble is not wiped.
+ */
+function postReviseAgainUserMessage() {
+  const text = t("user.reviseAgain");
+  const last = state.reviseMessages[state.reviseMessages.length - 1];
+  if (
+    last?.role === "user" &&
+    String(last.content || "") === text &&
+    !isReviseSystemKick(last)
+  ) {
+    return text;
+  }
+  state.reviseMessages.push({ role: "user", content: text });
+  addBubble("user", text);
+  void persistProjectChat();
+  return text;
+}
+
 function enterReviseMode() {
   maybeClearStaleBusy();
-  // If a hung stream left busy on, free the desk so kickoff can run.
-  if (state.busy && state.busySince && Date.now() - state.busySince > 8_000) {
-    setBusy(false);
-  }
+  // CTA click must free a stuck stream so kickoff can post to chat.
+  if (state.busy) setBusy(false);
   if (!state.jobId) {
     if (el.reviseErr) {
       el.reviseErr.hidden = false;
@@ -4640,8 +4658,9 @@ function enterReviseMode() {
   }
   if (el.reviseErr) el.reviseErr.hidden = true;
 
-  // Already revising: show revise thread (with user turns) and focus chat
-  if (state.mode === "revise") {
+  // Mid-dialogue (CTA hidden): just focus the revise thread — do not
+  // advance revision or re-kick. After accept, mode is specify/architecture.
+  if (state.mode === "revise" && !state.lastDeliveryAccepted) {
     switchChatLogForMode("revise");
     el.input.focus();
     focusRightPanel({ force: true });
@@ -4659,6 +4678,7 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
+  state.lastDeliveryAccepted = false;
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Keep confirmed architecture; only redesign when structure changes.
   // Advance to the next iteration card — never overwrite prior reviseCards.
@@ -4682,10 +4702,11 @@ function enterReviseMode() {
   syncReviseCardChrome({ rebuildAccordion: true });
   // Switch left chat to revise thread so user-sent revise content is visible.
   switchChatLogForMode("revise");
+  // Visible user message in the dialogue (system kick stays filtered).
+  postReviseAgainUserMessage();
   syncChatPlaceholder();
   syncConfirmEnabled();
   el.input.focus();
-  addBubble("bot", t("bot.enterRevise"));
   scrollChatToLatest();
   void persistProjectChat();
   renderRevisePanel({
@@ -4704,13 +4725,9 @@ async function kickoffReviseDialogue() {
     await new Promise((r) => setTimeout(r, 50));
   }
   maybeClearStaleBusy();
-  if (state.busy || state.mode !== "revise") {
-    if (state.busy) {
-      addBubble("bot", t("bot.chatBusy"));
-      scrollChatToLatest();
-    }
-    return;
-  }
+  // After CTA cleared busy; if still stuck, force free once for this kickoff.
+  if (state.busy) setBusy(false);
+  if (state.mode !== "revise") return;
   setBusy(true);
   syncReviseDispatchButton(false);
   const streamBubble = startStreamingBubble();
