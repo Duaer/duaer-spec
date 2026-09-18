@@ -38,7 +38,7 @@ that deployment (still do not push unrelated branches or force-push).
 6. Watch: `gh run watch` / `gh run list --workflow=deploy.yml`
 7. Put the public URL into `delivery.json`:
    ```json
-   "preview": { "url": "https://<owner>.github.io/<repo>/", "label": "View product" }
+   "preview": { "url": "https://<owner>.github.io/<repo>/", "label": "View result" }
    ```
 
 ## Non-static apps
