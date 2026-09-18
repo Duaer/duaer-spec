@@ -72,6 +72,13 @@ import {
   assignTasksToWorkers,
   clipWorkerCount,
 } from "./live-modules.mjs";
+import {
+  doneIdsFromProgress,
+  fingerprintWave,
+  orchestrationSummary,
+  pendingWaveReleases,
+  waveForWorker,
+} from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
@@ -3603,7 +3610,8 @@ Brief: ${featureDir}
 1. 只在上述工作目录开工；Duaer 已安装在本目录（AGENTS.md / .duaer）。不要去其它仓库或全局找 Duaer / duaer-spec 源码仓
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
-4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）；尊重 dependsOn，未满足依赖的任务不要提前勾完
+4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
+4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波全部勾完后停止等待下一波（编排器会 continue）
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
@@ -3654,20 +3662,51 @@ Brief: ${featureDir}
   }
 
   const logPath = path.join(featureDir, "agent-launch.log");
+  const doneSet = new Set();
+  const releasedWaves = {};
   const launches = [];
   for (let w = 1; w <= assigned.workerCount; w += 1) {
     const workerId = `w${w}`;
     const workerTasks = assigned.tasks.filter((t) => t.workerId === workerId);
-    const taskIds = workerTasks.map((t) => t.id).join(", ");
+    const ownedIds = workerTasks.map((t) => t.id);
+    const wave = waveForWorker(taskPool, workerId, doneSet);
+    const waveIds = wave.map((t) => t.id);
+    if (!waveIds.length) {
+      launches.push({
+        workerId,
+        taskIds: ownedIds,
+        waveTaskIds: [],
+        skipped: true,
+        reason: "waiting_deps",
+        agentId: chosen,
+        kind: "deferred",
+      });
+      continue;
+    }
+    const fp = fingerprintWave(waveIds);
+    releasedWaves[workerId] = [fp];
+    const waveList = wave
+      .map((t) => `- ${t.id}: ${t.title || t.id}`)
+      .join("\n");
     const workerPrompt =
       assigned.workerCount === 1
-        ? agentPrompt
+        ? `${agentPrompt}
+
+——
+编排波次（只做这些已放行任务）：
+${waveList}
+
+本波全部改成 - [x] 后停止；不要开始未放行 / 未满足 dependsOn 的任务。编排器会在依赖就绪后继续派发。
+`
         : `${agentPrompt}
 
 ——
 你是并行数字员工 ${workerId}/${assigned.workerCount}（同一 CLI：${chosen}）。
-你主要负责任务：${taskIds || "(shared)"}。
-其他任务由同事负责；有 dependsOn 的请等待依赖完成后在同一 worktree 继续。不要改 Brief 范围外的东西。
+你负责的全部任务：${ownedIds.join(", ") || "(none)"}。
+当前编排波次（只做这些）：
+${waveList}
+
+本波全部改成 - [x] 后停止；不要开始未放行 / 未满足 dependsOn 的任务。其他任务由同事或后续波次负责。不要改 Brief 范围外的东西。
 `;
     const wLog =
       assigned.workerCount === 1
@@ -3681,10 +3720,21 @@ Brief: ${featureDir}
       featureDir,
       queueLane: assigned.workerCount > 1 ? workerId : null,
     });
-    launches.push({ workerId, ...launch, taskIds: workerTasks.map((t) => t.id) });
+    launches.push({
+      workerId,
+      ...launch,
+      taskIds: ownedIds,
+      waveTaskIds: waveIds,
+    });
   }
-  const launch = launches[0] || null;
+  const launch = launches.find((l) => !l.skipped) || launches[0] || null;
   rememberPreferredAgent(chosen);
+
+  const orchestration = {
+    version: 1,
+    releasedWaves,
+    updatedAt: new Date().toISOString(),
+  };
 
   const dispatch = {
     repoPath: probe.path,
@@ -3700,6 +3750,7 @@ Brief: ${featureDir}
     launches,
     workerCount: assigned.workerCount,
     taskPool,
+    orchestration,
     startCommand: agentPrompt,
     duaerInstall: {
       repo: probe.duaer || { action: "already", path: probe.path },
@@ -3716,6 +3767,7 @@ Brief: ${featureDir}
     agentPrompt,
     modules: confirmedModules,
     taskPool,
+    orchestration,
   };
   fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
@@ -4884,6 +4936,160 @@ function contentTypeFor(filePath) {
   return map[ext] || "application/octet-stream";
 }
 
+/**
+ * Release next ready waves to idle Terminal lanes (continueSession).
+ * Idempotent via orchestration.releasedWaves fingerprints.
+ */
+function advanceOrchestration(live, {
+  progress,
+  worktreePath,
+  featureDir,
+  terminalsByLane = {},
+  accepted = false,
+} = {}) {
+  if (accepted) {
+    return live.job.orchestration || live.job.dispatch?.orchestration || null;
+  }
+  const dispatch = live.job.dispatch || {};
+  const pool = dispatch.taskPool || live.job.taskPool || null;
+  if (!pool?.tasks?.length || !worktreePath) {
+    return live.job.orchestration || dispatch.orchestration || null;
+  }
+  const workerCount = Math.max(
+    Number(dispatch.workerCount) || 0,
+    Array.isArray(dispatch.launches) ? dispatch.launches.length : 0,
+    1,
+  );
+  const doneSet = doneIdsFromProgress(progress);
+  const prev =
+    live.job.orchestration ||
+    dispatch.orchestration ||
+    { version: 1, releasedWaves: {} };
+  const releasedWaves = {
+    ...(prev.releasedWaves && typeof prev.releasedWaves === "object"
+      ? prev.releasedWaves
+      : {}),
+  };
+  const pending = pendingWaveReleases({
+    pool,
+    workerCount,
+    doneSet,
+    releasedWaves,
+    terminals:
+      workerCount > 1
+        ? terminalsByLane
+        : { w1: terminalsByLane.w1 || terminalsByLane.default || {} },
+  });
+
+  const agentId =
+    dispatch.launch?.agentId ||
+    dispatch.launches?.find((l) => l?.agentId)?.agentId ||
+    null;
+  let changed = false;
+  const errors = [];
+
+  for (const item of pending) {
+    if (item.reason !== "ready") continue;
+    if (!agentId) {
+      errors.push(`${item.workerId}: missing agentId`);
+      continue;
+    }
+    const waveIds = item.wave.map((t) => t.id);
+    const waveList = item.wave
+      .map((t) => `- ${t.id}: ${t.title || t.id}`)
+      .join("\n");
+    const owned = (pool.tasks || [])
+      .filter((t) => String(t.workerId || "") === item.workerId)
+      .map((t) => t.id);
+    const prompt = `Duaer
+
+编排器放行下一波任务（continue）。工作目录: ${worktreePath}
+Brief: ${featureDir || dispatch.featureDir || ""}
+
+你是数字员工 ${item.workerId}/${workerCount}。
+你负责的全部任务：${owned.join(", ") || "(none)"}。
+当前编排波次（只做这些）：
+${waveList}
+
+要求：
+1. 只做本波已放行任务；立刻把完成项改成 tasks.md 的 - [x]
+2. 不要开始未放行 / 未满足 dependsOn 的任务
+3. 本波全部勾完后停止；编排器会继续派发
+4. 只在上述 worktree 内改动；不要推远程除非明确要求
+`;
+    const wLog =
+      workerCount === 1
+        ? path.join(featureDir || dispatch.featureDir, "agent-launch.log")
+        : path.join(
+            featureDir || dispatch.featureDir,
+            `agent-launch-${item.workerId}.log`,
+          );
+    try {
+      launchAgent({
+        agentId,
+        worktreePath,
+        agentPrompt: prompt,
+        logPath: wLog,
+        featureDir: featureDir || dispatch.featureDir,
+        continueSession: true,
+        queueLane: workerCount > 1 ? item.workerId : null,
+      });
+      const prior = Array.isArray(releasedWaves[item.workerId])
+        ? releasedWaves[item.workerId]
+        : [];
+      releasedWaves[item.workerId] = [...prior, item.fingerprint];
+      changed = true;
+    } catch (err) {
+      errors.push(
+        `${item.workerId}: ${err?.message || String(err || "launch failed")}`,
+      );
+    }
+  }
+
+  const summary = orchestrationSummary({
+    pool,
+    doneSet,
+    workerCount,
+    releasedWaves,
+  });
+  const nextOrch = {
+    version: 1,
+    releasedWaves,
+    updatedAt: new Date().toISOString(),
+    summary,
+    pending: pending.map((p) => ({
+      workerId: p.workerId,
+      reason: p.reason,
+      fingerprint: p.fingerprint,
+      taskIds: p.wave.map((t) => t.id),
+    })),
+    errors: errors.length ? errors : undefined,
+  };
+
+  if (changed || JSON.stringify(prev.releasedWaves || {}) !== JSON.stringify(releasedWaves)) {
+    try {
+      const nextDispatch = { ...dispatch, orchestration: nextOrch };
+      const nextJob = {
+        ...live.job,
+        dispatch: nextDispatch,
+        orchestration: nextOrch,
+      };
+      fs.writeFileSync(
+        live.jobPath,
+        `${JSON.stringify(nextJob, null, 2)}\n`,
+        "utf8",
+      );
+      live.job = nextJob;
+    } catch {
+      // ignore persist errors; still return computed orch
+    }
+  } else if (!prev.summary) {
+    // Attach summary without forcing write when nothing released
+    return { ...prev, summary, pending: nextOrch.pending };
+  }
+  return nextOrch;
+}
+
 function dispatchStatus(jobId) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch || null;
@@ -5158,28 +5364,47 @@ function dispatchStatus(jobId) {
       ? "accepted"
       : live.job.status;
 
+  const orchTerminals =
+    multiWorker
+      ? terminalsByLane
+      : {
+          w1: terminal,
+        };
+  const orchestration = advanceOrchestration(live, {
+    progress,
+    worktreePath: dispatch.worktreePath,
+    featureDir,
+    terminalsByLane: orchTerminals,
+    accepted,
+  });
+
   const workers = buildWorkersProgress({
     workerCount,
-    launches,
-    taskPool: dispatch.taskPool || live.job.taskPool || null,
+    launches: Array.isArray(live.job.dispatch?.launches)
+      ? live.job.dispatch.launches
+      : launches,
+    taskPool: live.job.dispatch?.taskPool || live.job.taskPool || dispatch.taskPool || null,
     progress,
     terminals: multiWorker ? terminalsByLane : {},
     logTails: multiWorker ? logTailsByLane : {},
+    orchestration,
   });
 
   return {
     jobId: live.id,
     status: statusOut,
     dispatch: {
-      ...dispatch,
+      ...(live.job.dispatch || dispatch),
       worktreeExists,
       featureDir: featureDir || dispatch.featureDir,
       resolvedFrom: roots.source,
       workerCount,
+      orchestration,
     },
     delivery,
     progress,
     workers,
+    orchestration,
     activity,
     logTail,
     preview: previewOut,

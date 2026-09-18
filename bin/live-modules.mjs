@@ -337,7 +337,7 @@ export function assignTasksToWorkers(pool, workerCount = 1) {
     return { workerCount: 1, tasks };
   }
 
-  // Partition by moduleId for parallel modules; shared tasks go to w1.
+  // Seed: partition by moduleId for parallel modules; shared → w1.
   const moduleIds = [
     ...new Set(tasks.map((t) => t.moduleId).filter(Boolean)),
   ];
@@ -348,6 +348,22 @@ export function assignTasksToWorkers(pool, workerCount = 1) {
   for (const t of tasks) {
     t.workerId = t.moduleId ? modWorker.get(t.moduleId) || "w1" : "w1";
   }
+
+  // Inherit first dependency's worker so cross-module dependsOn stays on-lane
+  // when possible (walk in pool order so deps are assigned first).
+  const byId = new Map(tasks.map((t) => [String(t.id || "").toUpperCase(), t]));
+  for (const t of tasks) {
+    const firstDep = Array.isArray(t.dependsOn) ? t.dependsOn[0] : null;
+    if (!firstDep) continue;
+    const dep = byId.get(String(firstDep).toUpperCase());
+    if (dep?.workerId) t.workerId = dep.workerId;
+  }
+
+  // Shared / null-moduleId stay on w1 (re-assert after inherit).
+  for (const t of tasks) {
+    if (!t.moduleId) t.workerId = "w1";
+  }
+
   return { workerCount: count, tasks };
 }
 

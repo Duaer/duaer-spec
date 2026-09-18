@@ -133,9 +133,48 @@ test("buildTaskPoolFromModules has dependsOn chain", () => {
   assert.match(md, /Update product README/);
   const assigned = assignTasksToWorkers(pool, 2);
   assert.equal(assigned.workerCount, 2);
-  const workers = new Set(assigned.tasks.map((t) => t.workerId));
-  assert.ok(workers.has("w1"));
-  assert.ok(workers.has("w2"));
+  // Default pool chains module N → N-1 verify; inherit pulls dependents onto
+  // the dependency's worker (reliable same-lane), so often one lane owns all.
+  const byId = Object.fromEntries(assigned.tasks.map((t) => [t.id, t]));
+  const authImpl = assigned.tasks.find(
+    (t) => /Auth/.test(t.title) && t.dependsOn.length === 0,
+  );
+  const authAccept = assigned.tasks.find(
+    (t) => t.dependsOn?.[0] === authImpl?.id,
+  );
+  assert.ok(authImpl && authAccept);
+  assert.equal(authAccept.workerId, authImpl.workerId);
+  const authVerify = assigned.tasks.find(
+    (t) => /Verify/.test(t.title) && /Auth/.test(t.title),
+  );
+  const dashImpl = assigned.tasks.find(
+    (t) => /Dash/.test(t.title) && /Implement/.test(t.title),
+  );
+  assert.ok(authVerify && dashImpl);
+  assert.ok(dashImpl.dependsOn.includes(authVerify.id));
+  assert.equal(dashImpl.workerId, authVerify.workerId);
+  const shared = assigned.tasks.filter((t) => !t.moduleId);
+  assert.ok(shared.length > 0);
+  assert.ok(shared.every((t) => t.workerId === "w1"));
+});
+
+test("assignTasksToWorkers keeps independent modules on separate workers", () => {
+  const pool = {
+    tasks: [
+      { id: "T001", moduleId: "a", title: "A1", dependsOn: [] },
+      { id: "T002", moduleId: "a", title: "A2", dependsOn: ["T001"] },
+      { id: "T003", moduleId: "b", title: "B1", dependsOn: [] },
+      { id: "T004", moduleId: "b", title: "B2", dependsOn: ["T003"] },
+      { id: "T005", moduleId: null, title: "shared", dependsOn: ["T002", "T004"] },
+    ],
+  };
+  const assigned = assignTasksToWorkers(pool, 2);
+  const byId = Object.fromEntries(assigned.tasks.map((t) => [t.id, t]));
+  assert.equal(byId.T001.workerId, "w1");
+  assert.equal(byId.T002.workerId, "w1");
+  assert.equal(byId.T003.workerId, "w2");
+  assert.equal(byId.T004.workerId, "w2");
+  assert.equal(byId.T005.workerId, "w1");
 });
 
 test("mergeModulesFromChat preserves confirmed cards", () => {
