@@ -5004,13 +5004,21 @@ async function handleApi(req, res) {
     const name = decodeURIComponent(
       url.pathname.slice("/api/architecture/".length).split("/")[0] || "",
     );
-    if (!/^[a-f0-9]{8,32}\.html$/i.test(name)) {
+    if (!/^[a-f0-9]{8,32}\.(html|json)$/i.test(name)) {
       send(res, 400, { error: "invalid architecture id" });
       return;
     }
     const file = path.join(architectureStoreDir(liveRoot()), name);
     if (!fs.existsSync(file)) {
       send(res, 404, { error: "architecture not found" });
+      return;
+    }
+    if (/\.json$/i.test(name)) {
+      res.writeHead(200, {
+        "content-type": "application/json; charset=utf-8",
+        "cache-control": "no-store",
+      });
+      res.end(fs.readFileSync(file));
       return;
     }
     const html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));

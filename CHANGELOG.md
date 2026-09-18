@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: architecture diagram without iframe
+
+- Mount Archify SVG in Shadow DOM (`architecture-mount`); same canvas + node passport
+- Serve `/api/architecture/<key>.json` for passport data
+- Accordion / previous / current diagrams share the same mount
+
 ### Fix: revise kickoff error visibility + focus race
 
 - 「再改一版」shows the real failure reason (not only generic 启动失败)

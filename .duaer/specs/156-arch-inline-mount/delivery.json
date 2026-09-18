@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "feature": "156-arch-inline-mount",
+  "acceptedAt": "2026-09-18T14:45:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3-live"],
+    "commands": [
+      "node --test test/live-smoke.test.mjs test/live-archify.test.mjs",
+      "live smoke: architecture-mount (no iframe)"
+    ],
+    "notes": "Shadow DOM mount + GET .json; same canvas/passport without iframe"
+  }
+}

@@ -1415,7 +1415,7 @@ a.btn[hidden] {
   line-height: 1.45;
 }
 
-.architecture-frame {
+.architecture-mount {
   display: block;
   width: 100%;
   min-height: 0;
@@ -1423,11 +1423,11 @@ a.btn[hidden] {
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
   background: #0b1118;
-  /* Grow to canvas — never show an inner iframe scrollbar. */
-  overflow: hidden;
+  /* Content-driven height — no iframe, no inner scrollbar. */
+  overflow: visible;
 }
 
-.architecture-frame[hidden] {
+.architecture-mount[hidden] {
   display: none !important;
   height: 0 !important;
   margin: 0 !important;
@@ -2164,7 +2164,7 @@ a.btn[hidden] {
   color: var(--mute);
 }
 
-.revise-arch-frame {
+.revise-arch-frame.architecture-mount {
   margin: 0.25rem 0 0;
   min-height: 180px;
 }

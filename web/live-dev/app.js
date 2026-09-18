@@ -12,6 +12,11 @@ import {
 } from "./i18n.js";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
 import { extractArchitectureIr } from "./architecture-ir.mjs";
+import {
+  mountArchitectureDiagram,
+  clearArchitectureMount,
+  architectureKeyFromArchitectureUrl,
+} from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
 
 const FALLBACK_PROVIDERS = [
@@ -739,17 +744,53 @@ function escapeReviseText(s) {
 function renderReviseArchBlock(arch, { baseline = false } = {}) {
   if (!arch?.url) return "";
   if (!baseline && !arch.changed) return "";
-  const src = architectureEmbedUrl(arch.url);
+  const url = String(arch.url || "").trim();
   const summary = arch.summary
     ? `<p class="revise-arch-summary">${escapeReviseText(arch.summary)}</p>`
     : "";
-  const h = architectureFrameHeightPx(arch.viewBox || arch, null) || 280;
   const label = baseline ? t("revise.archBaseline") : t("revise.archChanged");
   return `<div class="revise-arch-block">
     <p class="revise-arch-label">${escapeHtml(label)}</p>
     ${summary}
-    <iframe class="architecture-frame revise-arch-frame" src="${escapeHtml(src)}" title="architecture" scrolling="no" style="height:${h}px"></iframe>
+    <div class="architecture-mount revise-arch-frame" data-arch-url="${escapeHtml(url)}" title="architecture"></div>
   </div>`;
+}
+
+function hydrateArchitectureMounts(root) {
+  const hosts = root?.querySelectorAll?.(".architecture-mount[data-arch-url]");
+  if (!hosts?.length) return;
+  for (const host of hosts) {
+    const url = host.getAttribute("data-arch-url") || "";
+    if (!url) continue;
+    mountArchitectureDiagram(host, { url }).catch(() => {
+      clearArchitectureMount(host);
+    });
+  }
+}
+
+async function bindArchitectureMount(host, arch) {
+  if (!host) return;
+  if (!arch?.url) {
+    clearArchitectureMount(host);
+    return;
+  }
+  const key = architectureKeyFromArchitectureUrl(arch.url);
+  if (
+    key &&
+    host.dataset.archKey === key &&
+    host.shadowRoot?.querySelector("svg")
+  ) {
+    host.hidden = false;
+    return;
+  }
+  try {
+    await mountArchitectureDiagram(host, {
+      url: arch.url,
+      ir: arch.ir || null,
+    });
+  } catch {
+    clearArchitectureMount(host);
+  }
 }
 
 function renderReviseVersionBody(card, { baselineArch = false } = {}) {
@@ -865,6 +906,7 @@ function renderReviseVersionAccordion({ force = false } = {}) {
     });
     details.appendChild(body);
     el.reviseVersionList.appendChild(details);
+    hydrateArchitectureMounts(body);
   }
 }
 
@@ -1806,14 +1848,8 @@ function clearDeskWorkspace() {
   if (el.startReviseChatAlt) el.startReviseChatAlt.hidden = true;
   if (el.doReviseDispatch) el.doReviseDispatch.hidden = true;
   if (el.architecturePanel) el.architecturePanel.hidden = true;
-  if (el.architectureFrame) {
-    el.architectureFrame.hidden = true;
-    el.architectureFrame.removeAttribute("src");
-  }
-  if (el.architecturePreviousFrame) {
-    el.architecturePreviousFrame.hidden = true;
-    el.architecturePreviousFrame.removeAttribute("src");
-  }
+  clearArchitectureMount(el.architectureFrame);
+  clearArchitectureMount(el.architecturePreviousFrame);
   if (el.architecturePreviousBlock) el.architecturePreviousBlock.hidden = true;
   if (el.progressEmpty) el.progressEmpty.hidden = false;
 
@@ -2740,99 +2776,9 @@ function showArchitecturePreviousBlock() {
   return true;
 }
 
-function architectureEmbedUrl(url) {
-  const raw = String(url || "").trim();
-  if (!raw) return "";
-  try {
-    const u = new URL(raw, window.location.origin);
-    u.searchParams.set("embed", "1");
-    return `${u.pathname}${u.search}${u.hash}`;
-  } catch {
-    return raw.includes("?") ? `${raw}&embed=1` : `${raw}?embed=1`;
-  }
-}
-
-/** Frame height from canvas viewBox × width + embed gutters (no inner scroll). */
+/** Inline mount gutters (Shadow DOM canvas padding — matches prior embed). */
 const ARCH_EMBED_GUTTER_TOP = 100;
 const ARCH_EMBED_GUTTER_LEFT = 100;
-const ARCH_EMBED_PAD_BOTTOM = 28;
-
-function architectureFrameHeightPx(viewBoxOrIr, frameEl) {
-  const vb = architectureViewBoxOf(viewBoxOrIr);
-  if (vb) {
-    const frameW = Math.max(
-      1,
-      frameEl?.clientWidth || frameEl?.offsetWidth || 640,
-    );
-    // border-box left gutter shrinks the SVG content box.
-    const contentW = Math.max(1, frameW - ARCH_EMBED_GUTTER_LEFT);
-    const svgH = Math.ceil((contentW * vb[1]) / vb[0]);
-    return Math.max(
-      240,
-      svgH + ARCH_EMBED_GUTTER_TOP + ARCH_EMBED_PAD_BOTTOM,
-    );
-  }
-  return 480;
-}
-
-let architectureFrameResizeObserver = null;
-
-function syncArchitectureFrameSize() {
-  const frame = el.architectureFrame;
-  const a = state.architecture;
-  if (!frame || !a?.url) return;
-  const fromIr = architectureFrameHeightPx(a.viewBox || a, frame);
-  const fromEmbed = Number(frame.dataset.embedHeight || 0);
-  frame.style.height = `${Math.max(fromIr, fromEmbed || 0)}px`;
-}
-
-function onArchitectureEmbedMessage(ev) {
-  const data = ev?.data;
-  if (!data || data.source !== "duaer-arch-embed" || data.type !== "height") {
-    return;
-  }
-  const height = Number(data.height);
-  if (!Number.isFinite(height) || height < 120) return;
-  const frames = [el.architectureFrame, el.architecturePreviousFrame].filter(
-    (f) => f && !f.hidden && f.contentWindow === ev.source,
-  );
-  for (const frame of frames) {
-    frame.dataset.embedHeight = String(Math.ceil(height));
-    const meta =
-      frame === el.architectureFrame
-        ? state.architecture
-        : state.architecturePrevious;
-    const fromIr = architectureFrameHeightPx(meta?.viewBox || meta, frame);
-    frame.style.height = `${Math.max(fromIr, Math.ceil(height))}px`;
-  }
-}
-
-let architectureEmbedMessageBound = false;
-function ensureArchitectureEmbedMessageListener() {
-  if (architectureEmbedMessageBound) return;
-  architectureEmbedMessageBound = true;
-  window.addEventListener("message", onArchitectureEmbedMessage);
-}
-
-function ensureArchitectureFrameObserver() {
-  if (!el.architectureFrame || typeof ResizeObserver === "undefined") return;
-  ensureArchitectureEmbedMessageListener();
-  if (architectureFrameResizeObserver) return;
-  let resizing = false;
-  architectureFrameResizeObserver = new ResizeObserver(() => {
-    if (resizing) return;
-    resizing = true;
-    try {
-      syncArchitectureFrameSize();
-    } finally {
-      // Defer unlock so nested observer notifications cannot re-enter.
-      queueMicrotask(() => {
-        resizing = false;
-      });
-    }
-  });
-  architectureFrameResizeObserver.observe(el.architectureFrame);
-}
 
 /**
  * UX order after 改进方案确认:
@@ -2882,18 +2828,9 @@ function syncArchitecturePanel(kind) {
       el.architecturePreviousSummary.hidden = !prev.summary;
       el.architecturePreviousSummary.textContent = prev.summary || "";
     }
-    if (el.architecturePreviousFrame) {
-      el.architecturePreviousFrame.hidden = false;
-      el.architecturePreviousFrame.src = architectureEmbedUrl(prev.url);
-      el.architecturePreviousFrame.style.height = `${architectureFrameHeightPx(
-        prev.viewBox || prev,
-        el.architecturePreviousFrame,
-      )}px`;
-    }
-  } else if (el.architecturePreviousFrame) {
-    el.architecturePreviousFrame.hidden = true;
-    el.architecturePreviousFrame.removeAttribute("src");
-    el.architecturePreviousFrame.style.removeProperty("height");
+    void bindArchitectureMount(el.architecturePreviousFrame, prev);
+  } else {
+    clearArchitectureMount(el.architecturePreviousFrame);
   }
   if (el.architectureCurrentTitle) {
     el.architectureCurrentTitle.textContent = showPrev
@@ -2904,18 +2841,7 @@ function syncArchitecturePanel(kind) {
     el.architectureSummary.hidden = !(a.url && a.summary);
     el.architectureSummary.textContent = a.url ? a.summary || "" : "";
   }
-  if (el.architectureFrame) {
-    if (a.url) {
-      el.architectureFrame.hidden = false;
-      el.architectureFrame.src = architectureEmbedUrl(a.url);
-      ensureArchitectureFrameObserver();
-      syncArchitectureFrameSize();
-    } else {
-      el.architectureFrame.hidden = true;
-      el.architectureFrame.removeAttribute("src");
-      el.architectureFrame.style.removeProperty("height");
-    }
-  }
+  void bindArchitectureMount(el.architectureFrame, a.url ? a : null);
   if (el.architectureConfirm) {
     const canConfirm = a.status === "preview" && a.url && !a.confirmed;
     el.architectureConfirm.hidden = !canConfirm && a.status !== "confirmed";

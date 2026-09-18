@@ -295,8 +295,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /revisePlanConfirmed|confirmRevisePlan|openReviseArchitectureGate|dispatchReviseAgent/);
   assert.match(js, /placeArchitecturePanelForFlow|architectureSlotRevise|architectureBelongsAfterReviseCta/);
   assert.match(html, /architectureSlotDeploy|architectureSlotRevise/);
-  assert.match(js, /ARCH_EMBED_GUTTER_TOP|scrolling="no"/);
-  assert.match(html, /scrolling="no"/);
+  assert.match(js, /ARCH_EMBED_GUTTER_TOP|mountArchitectureDiagram/);
+  assert.match(html, /architecture-mount/);
+  assert.doesNotMatch(html, /<iframe[^>]*architecture/i);
   assert.match(js, /reviseVersionList|renderReviseVersionAccordion|initialArchitecture/);
   assert.match(js, /switchChatLogForMode|appendReviseMessagesToLog/);
   assert.match(js, /reviseAccordionFp|rebuildAccordion/);

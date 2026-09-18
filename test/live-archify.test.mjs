@@ -292,14 +292,14 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(live, /ARCHITECTURE_CHAT_PROMPT/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /architecturePanel|architectureFrame/);
-  assert.match(html, /scrolling="no"/);
+  assert.match(html, /architecture-mount/);
+  assert.doesNotMatch(html, /<iframe[^>]*id="architecture/i);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /beginArchitectureDesign|confirmArchitecture|kickoffArchitectureDialogue/);
   assert.match(js, /architectureContinueOptions|arch\.nudgeContinue|afterChatBubbleUi/);
-  assert.match(js, /architectureEmbedUrl|embed=1/);
-  assert.match(js, /architectureFrameHeightPx|syncArchitectureFrameSize|ResizeObserver/);
+  assert.match(js, /mountArchitectureDiagram|bindArchitectureMount|architecture-mount\.mjs/);
   assert.match(js, /ARCH_EMBED_GUTTER_TOP|ARCH_EMBED_GUTTER_LEFT/);
-  assert.match(js, /duaer-arch-embed|onArchitectureEmbedMessage|embedHeight/);
+  assert.match(js, /hydrateArchitectureMounts|clearArchitectureMount/);
   assert.match(js, /announceArchitectureRendered|arch\.renderedReady/);
   assert.match(
     js,
@@ -312,4 +312,10 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
   assert.match(live, /injectDuaerEmbedPatches/);
+  assert.match(live, /\.json\$\/i|architecture\/.*\.json/);
+  const mount = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/architecture-mount.mjs"),
+    "utf8",
+  );
+  assert.match(mount, /attachShadow|arch-passport|data-node-id/);
 });
