@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "146-arch-popup-gutter",
+  "acceptedAt": "2026-09-18T09:55:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --test test/live-archify.test.mjs", "npm run test:live"],
+    "results": "pass"
+  }
+}

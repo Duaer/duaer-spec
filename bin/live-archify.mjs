@@ -540,6 +540,13 @@ html[data-embed="true"] .diagram-container {
   overflow: visible !important;
   position: relative !important;
 }
+/* 100px upper-left gutter: chip stays in-view while sitting 100px
+   up/left relative to the diagram nodes (no negative inset clip). */
+html[data-embed="true"] .diagram-container {
+  padding-top: 100px !important;
+  padding-left: 100px !important;
+  box-sizing: border-box !important;
+}
 html[data-embed="true"] .diagram-container svg {
   width: 100% !important;
   min-width: 0 !important;
@@ -549,17 +556,15 @@ html[data-embed="true"] .diagram-container svg {
 html[data-embed="true"] .diagram-container svg [data-node-id] {
   cursor: pointer;
 }
-/* Archify embed mode hides the node passport; restore it for the desk.
-   Keep upper-left placement in-view (top 100px): prior −100px inset
-   clipped under the iframe edge. Raise z-index above diagram paint. */
+/* Archify embed mode hides the node passport; restore it for the desk. */
 html[data-embed="true"] .focus-chip {
   display: block !important;
   position: absolute !important;
   left: 0.75rem !important;
-  top: 100px !important;
+  top: 0.75rem !important;
   z-index: 10000 !important;
-  width: min(22rem, calc(100% - 1.5rem)) !important;
-  max-width: calc(100% - 1.5rem) !important;
+  width: min(22rem, calc(100% - 1.5rem - 100px)) !important;
+  max-width: calc(100% - 1.5rem - 100px) !important;
   pointer-events: auto !important;
 }
 html[data-embed="true"] .focus-chip[hidden] {
