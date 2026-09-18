@@ -35,7 +35,11 @@ test("Duaer-spec FED brand appears in desk UI and CLI", () => {
   assert.match(cli, /Open Duaer-spec FED/);
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  assert.match(readme, /docs\/assets\/duaer-spec-fed\.svg/);
   assert.match(readme, /## Duaer-spec FED \(live desk\)/);
+  const brandSvg = fs.readFileSync(path.join(ROOT, "docs/assets/duaer-spec-fed.svg"), "utf8");
+  assert.match(brandSvg, /#e05a2b/);
+  assert.match(brandSvg, />FED</);
   assert.doesNotMatch(readme, /[\u4e00-\u9fff]/);
 
   const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
