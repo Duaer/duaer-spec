@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "167-settings-compact",
+  "acceptedAt": "2026-09-18T16:30:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3"],
+    "commands": ["node --test test/live-smoke.test.mjs", "npm run test:live"]
+  }
+}

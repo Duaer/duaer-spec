@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: compact settings with host tutorials
+
+- Settings use collapsible blocks; denser spacing
+- Short how-to for model / Cloudflare / 阿里云 / AWS credentials
+
 ### Feat: Cloudflare / AWS keys in FED settings
 
 - Settings: Cloudflare API Token + Account ID; AWS Access Key (+ optional Region)
