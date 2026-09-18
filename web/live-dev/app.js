@@ -318,6 +318,8 @@ function setBusy(on) {
   state.busy = Boolean(on);
   state.busySince = state.busy ? Date.now() : 0;
   syncComposerEnabled();
+  // Confirm enablement depends on busy; re-sync after render finishes.
+  if (el.architectureConfirm) syncArchitecturePanel();
 }
 
 function maybeClearStaleBusy() {

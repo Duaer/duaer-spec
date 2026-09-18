@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "feature": "111-arch-confirm-click",
+  "summary": "Re-enable Confirm architecture when busy clears after diagram render.",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js — pass",
+    "L1": "node --test test/live-archify.test.mjs + npm test — pass",
+    "L3": "npm run test:live — pass"
+  }
+}
