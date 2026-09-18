@@ -1,0 +1,18 @@
+{
+  "status": "accepted",
+  "feature": "188-release-019",
+  "acceptedAt": "2026-09-19T00:00:00.000Z",
+  "summary": "0.19.0 shipped: develop+main pushed, tag v0.19.0, GitHub Release, npm publish success.",
+  "verification": {
+    "commands": [
+      "git push origin develop main v0.19.0",
+      "gh release create v0.19.0",
+      "gh run watch npm-publish"
+    ],
+    "results": "CI pass; Pages pass; npm publish success"
+  },
+  "preview": {
+    "url": "https://www.npmjs.com/package/duaer-spec/v/0.19.0",
+    "label": "npm 0.19.0"
+  }
+}
