@@ -139,6 +139,7 @@ const el = {
   previewPanel: document.getElementById("previewPanel"),
   previewLink: document.getElementById("previewLink"),
   previewMeta: document.getElementById("previewMeta"),
+  previewVersions: document.getElementById("previewVersions"),
   revisePanel: document.getElementById("revisePanel"),
   reviseHint: document.getElementById("reviseHint"),
   reviseCardFields: document.getElementById("reviseCardFields"),
@@ -2220,32 +2221,82 @@ function renderPreview(data) {
   state.lastStatus = data?.status || state.lastStatus;
   state.lastDeliveryAccepted =
     data?.delivery?.status === "accepted" || data?.status === "accepted";
+  // Task finished / accepted: never leave the dispatch button stuck on「续派中」.
+  if (
+    state.lastDeliveryAccepted ||
+    data?.status === "accepted" ||
+    (data?.status !== "revising" && state.reviseLocked)
+  ) {
+    state.reviseDispatching = false;
+  }
   const preview = data?.preview;
+  const versions = Array.isArray(data?.results) ? data.results : [];
   const productReady =
     state.lastDeliveryAccepted ||
     data?.status === "revising" ||
     Number(data?.revision || 0) > 0 ||
     state.mode === "revise" ||
-    state.reviseLocked;
-  if (!preview?.url || !productReady) {
+    state.reviseLocked ||
+    versions.length > 0;
+  const latest =
+    versions.length > 0 ? versions[versions.length - 1] : null;
+  const openUrl = preview?.url || latest?.url || "";
+  if (!openUrl || !productReady) {
     el.previewPanel.hidden = true;
   } else {
     el.previewPanel.hidden = false;
-    el.previewLink.href = preview.url;
-    el.previewLink.textContent = preview.label || t("preview.view");
+    el.previewLink.href = openUrl;
+    el.previewLink.textContent =
+      preview?.label || latest?.label || t("preview.view");
     if (el.previewMeta) {
       const bits = [];
-      if (preview.path) bits.push(preview.path);
-      if (preview.source)
+      if (preview?.path || latest?.path)
+        bits.push(preview?.path || latest?.path);
+      if (preview?.source)
         bits.push(
           preview.source === "auto" ? t("preview.auto") : "delivery.preview",
         );
       if (data?.revision > 0) bits.push(`r${data.revision}`);
+      else if (latest && Number(latest.revision) > 0)
+        bits.push(`r${latest.revision}`);
       el.previewMeta.textContent = bits.join(" · ");
     }
   }
+  renderPreviewVersions(versions, openUrl);
   renderRevisePanel(data);
   if (!el.previewPanel.hidden) focusRightPanel();
+}
+
+function renderPreviewVersions(versions, activeUrl) {
+  if (!el.previewVersions) return;
+  el.previewVersions.replaceChildren();
+  if (!Array.isArray(versions) || versions.length === 0) {
+    el.previewVersions.hidden = true;
+    return;
+  }
+  el.previewVersions.hidden = false;
+  const title = document.createElement("li");
+  title.className = "preview-versions-label";
+  title.textContent = t("preview.versions");
+  el.previewVersions.appendChild(title);
+  for (const entry of versions) {
+    if (!entry?.url) continue;
+    const li = document.createElement("li");
+    const a = document.createElement("a");
+    a.href = entry.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.className = "preview-version-link";
+    if (entry.url === activeUrl) a.classList.add("is-current");
+    const rev = Number(entry.revision) || 0;
+    a.textContent =
+      entry.label ||
+      (rev > 0
+        ? t("preview.versionRev", { revision: rev })
+        : t("preview.versionInitial"));
+    li.appendChild(a);
+    el.previewVersions.appendChild(li);
+  }
 }
 
 function renderRevisePanel(data) {
@@ -2597,6 +2648,10 @@ function startStatusPoll() {
       renderProgress(data);
       renderPreview(data);
       const st = data.delivery?.status || data.status || "pending";
+      if (data.status === "accepted" || data.delivery?.status === "accepted") {
+        state.reviseDispatching = false;
+        syncConfirmEnabled();
+      }
       const pct =
         data.progress && data.progress.total
           ? `${data.progress.done}/${data.progress.total}`

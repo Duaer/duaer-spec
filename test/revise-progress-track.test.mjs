@@ -114,6 +114,7 @@ function inferActiveProgress(tasksMd, {
   deliveryRevision = 0,
   terminalBusy = false,
   queueDepth = 0,
+  worktreeExists = true,
 } = {}) {
   const inferredFromTasks = inferRevisionFromTasksMd(tasksMd);
   const revisionHint = Math.max(
@@ -131,10 +132,15 @@ function inferActiveProgress(tasksMd, {
     revProgressHint.done < revProgressHint.total;
   const deliveryAccepted = deliveryStatus === "accepted";
   const deliveryOpen = deliveryStatus === "open";
-  const activelyRevising =
-    (!deliveryAccepted && jobStatus === "revising") ||
-    (revisionHint > 0 && deliveryOpen) ||
-    (hasOpenRevWork && (terminalBusy || Number(queueDepth || 0) > 0));
+  const terminalWorking = terminalBusy || Number(queueDepth || 0) > 0;
+  const activelyRevising = deliveryAccepted
+    ? jobStatus === "revising" &&
+      worktreeExists &&
+      hasOpenRevWork &&
+      terminalWorking
+    : jobStatus === "revising" ||
+      (revisionHint > 0 && deliveryOpen) ||
+      (hasOpenRevWork && terminalWorking);
   const activeRevision =
     revisionHint > 0 &&
     (activelyRevising ||
@@ -199,11 +205,12 @@ test("revision scope shows only R{n} checklist", () => {
 
 test("after Confirm revise, lagging accepted + busy Terminal tracks R tasks", () => {
   const out = inferActiveProgress(SAMPLE, {
-    jobStatus: "accepted",
-    revisionCount: 0,
+    jobStatus: "revising",
+    revisionCount: 1,
     deliveryStatus: "accepted",
     deliveryRevision: 0,
     terminalBusy: true,
+    worktreeExists: true,
   });
   assert.equal(out.activelyRevising, true);
   assert.equal(out.activeRevision, 1);
@@ -211,6 +218,40 @@ test("after Confirm revise, lagging accepted + busy Terminal tracks R tasks", ()
   assert.equal(out.progress.total, 3);
   assert.equal(out.progress.done, 1);
   assert.doesNotMatch(out.progress.current, /delivery accepted/);
+});
+
+test("accepted delivery + finished work is not stuck revising", () => {
+  const out = inferActiveProgress(SAMPLE, {
+    jobStatus: "revising",
+    revisionCount: 1,
+    deliveryStatus: "accepted",
+    deliveryRevision: 1,
+    terminalBusy: true,
+    worktreeExists: false,
+  });
+  assert.equal(out.activelyRevising, false);
+  assert.equal(out.status, "accepted");
+});
+
+test("accepted delivery + idle Terminal is not stuck revising", () => {
+  const done = `# Tasks
+
+## Revision 1 tasks
+
+- [x] R1-1 Apply revision
+- [x] R1-2 Verify
+- [x] R1-3 Stamp delivery.json accepted
+`;
+  const out = inferActiveProgress(done, {
+    jobStatus: "revising",
+    revisionCount: 1,
+    deliveryStatus: "accepted",
+    deliveryRevision: 1,
+    terminalBusy: true,
+    worktreeExists: true,
+  });
+  assert.equal(out.activelyRevising, false);
+  assert.equal(out.status, "accepted");
 });
 
 test("first dispatch open delivery is not revising", () => {

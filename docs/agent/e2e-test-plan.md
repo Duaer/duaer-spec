@@ -37,6 +37,7 @@ the table for their app.
 | E2E-022 | Live desk detects agents and launches selected digital employee | manual / curl |
 | E2E-023 | Live desk shows task progress from dispatched Brief tasks.md | manual / curl |
 | E2E-024 | Live desk shows preview link when delivery accepted | manual / curl |
+| E2E-079 | Result versions: each accept adds a previewable version; unified list; worktree gone keeps only openable snapshots; CTA is 查看结果; finished job does not stick on 续派中 | `npm test` + manual / curl |
 | E2E-025 | Deploy-needed jobs use `gh` + Actions (not third-party host CLIs by default) | manual |
 | E2E-026 | English docs contain no CJK; Chinese docs may include English | manual |
 | E2E-027 | After preview, feedback revise relaunches agent on same worktree | manual / curl |

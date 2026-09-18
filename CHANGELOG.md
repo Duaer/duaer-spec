@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Result versions + 查看结果
+
+- Preview CTA renamed to **查看结果** / View result
+- Each accepted dispatch/revision records a previewable version; desk lists
+  versions; snapshots under the live job survive worktree cleanup
+- Non-previewable dead links are pruned when the worktree is gone
+- Status no longer sticks on `revising` /「续派中」after delivery accepted and
+  work finished (or worktree cleaned)
+
 ## 0.17.0
 
 ### Claude auto permissions on dispatch

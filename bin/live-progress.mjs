@@ -91,7 +91,7 @@ ${items.join("\n")}
 
 若交付物是页面/静态文件，在 delivery.json 增加：
 \`\`\`json
-"preview": { "url": "index.html", "label": "查看成品" }
+"preview": { "url": "index.html", "label": "查看结果" }
 \`\`\`
 （也可用 http(s) 地址；相对路径相对 worktree 根目录；若已 GitHub Pages 部署，优先写公网 URL）
 `;

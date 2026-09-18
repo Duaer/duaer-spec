@@ -110,12 +110,15 @@ const zhCN = {
   "dispatch.doWithAgent": "派工并用 {label} 启动",
   "dispatch.done": "已派工",
   "dispatch.working": "派工中…",
-  "preview.title": "成品",
-  "preview.view": "查看成品",
+  "preview.title": "结果",
+  "preview.view": "查看结果",
   "preview.auto": "自动发现",
-  "preview.link": "\n成品：{url}",
+  "preview.link": "\n结果：{url}",
   "preview.missing":
     "\n（未找到 preview / index.html，可让数字员工在 delivery.json 写入 preview.url）",
+  "preview.versions": "历史版本",
+  "preview.versionInitial": "初版",
+  "preview.versionRev": "r{revision}",
   "revise.mark": "Revise card",
   "revise.title": "改进卡",
   "revise.hint": "左侧对话说清改动；本卡在下方填写，确认后送入同一 Terminal。",
@@ -130,13 +133,13 @@ const zhCN = {
   "revise.again": "再改一版",
   "revise.dispatch": "改进方案确认，再派一版",
   "revise.dispatching": "续派中…",
-  "revise.hintIdle": "成品可用后点「再改一版」；左侧对话，下方填写改进卡。",
+  "revise.hintIdle": "结果可用后点「再改一版」；左侧对话，下方填写改进卡。",
   "revise.hintBusy": "正在左侧对话完善下方改进卡…",
   "revise.hintReady": "下方改进卡已就绪：点「再派一版」，任务送入原 Terminal。",
   "revise.hintNeed": "请在左侧说明哪里不满意；我会填下方改进卡。卡齐后可点再派。",
   "revise.hintEnqueue": "正在送入同一 Terminal（不新开窗口）…",
   "revise.hintLocked": "本轮改进卡（下方）已确认。改完验收后若仍不满意，再点「再改一版」。",
-  "revise.hintRevising": "数字员工改写中。可继续「查看成品」；验收后再点「再改一版」。",
+  "revise.hintRevising": "数字员工改写中。可继续「查看结果」；验收后再点「再改一版」。",
   "revise.hintStuck":
     "Terminal 仍忙且尚无任务进度。可结束旧任务后点「再改一版」重试续派。",
   "bot.ready":
@@ -149,7 +152,7 @@ const zhCN = {
   "bot.continueRevise":
     "继续在左侧说哪里不满意；改动写在下方改进卡，再点「再派一版」。",
   "bot.accepted":
-    "数字员工已验收通过。可点「查看成品」；不满意再点成品旁「再改一版」。",
+    "数字员工已验收通过。可点「查看结果」；不满意再点结果旁「再改一版」。",
   "bot.acceptFailed": "自动验收未通过：{summary}{detail}",
   "bot.acceptFailedDefault": "请修改确认卡",
   "bot.autoFix": "自动修正",
@@ -167,9 +170,9 @@ const zhCN = {
   "bot.repoPrepared": "已准备仓库 {name}（{prep}）并记住",
   "bot.repoSelected": "已选择并记住仓库 {name}",
   "bot.dispatchDone":
-    "{duaer}{who}。进度看下方清单与日志；完成后可「查看成品」。\n{path}",
+    "{duaer}{who}。进度看下方清单与日志；完成后可「查看结果」。\n{path}",
   "bot.reviseDispatched":
-    "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看成品。",
+    "已确认改进方案并启动 Revision {revision}（{launch}）。{restated}\n下方保留本轮改进卡；上方确认卡仍是原需求；可继续查看结果。",
   "bot.reviseLaunchReuse": "已送入原 Terminal",
   "bot.reviseLaunchQueued":
     "已排入原 Terminal，当前任务结束后自动跑",
@@ -391,12 +394,15 @@ const en = {
   "dispatch.doWithAgent": "Dispatch and launch with {label}",
   "dispatch.done": "Dispatched",
   "dispatch.working": "Dispatching…",
-  "preview.title": "Product",
-  "preview.view": "View product",
+  "preview.title": "Results",
+  "preview.view": "View result",
   "preview.auto": "auto-detected",
-  "preview.link": "\nProduct: {url}",
+  "preview.link": "\nResult: {url}",
   "preview.missing":
     "\n(No preview / index.html; ask the employee to set preview.url in delivery.json)",
+  "preview.versions": "Versions",
+  "preview.versionInitial": "Initial",
+  "preview.versionRev": "r{revision}",
   "revise.mark": "Revise card",
   "revise.title": "Revise card",
   "revise.hint":
@@ -413,7 +419,7 @@ const en = {
   "revise.dispatch": "Confirm revise and dispatch",
   "revise.dispatching": "Dispatching revise…",
   "revise.hintIdle":
-    "After the product is ready, tap Revise again; chat left, revise card below.",
+    "After the result is ready, tap Revise again; chat left, revise card below.",
   "revise.hintBusy": "Filling the revise card from left chat…",
   "revise.hintReady":
     "Revise card ready: tap dispatch to enqueue the same Terminal.",
@@ -422,7 +428,7 @@ const en = {
   "revise.hintLocked":
     "This revise card is locked. After accept, tap Revise again if needed.",
   "revise.hintRevising":
-    "Employee is revising. You can View product; Revise again after accept.",
+    "Employee is revising. You can View result; Revise again after accept.",
   "revise.hintStuck":
     "Terminal is still busy with no task progress. Stop the old job, then tap Revise again to retry.",
   "bot.ready":
@@ -436,7 +442,7 @@ const en = {
   "bot.continueRevise":
     "Keep clarifying on the left; edits go in the revise card below.",
   "bot.accepted":
-    "Delivery accepted. View product; or tap Revise again beside it.",
+    "Delivery accepted. View result; or tap Revise again beside it.",
   "bot.acceptFailed": "Auto-accept failed: {summary}{detail}",
   "bot.acceptFailedDefault": "Edit the confirm card",
   "bot.autoFix": "Auto-fix",
@@ -453,9 +459,9 @@ const en = {
   "bot.repoPrepared": "Prepared repo {name} ({prep}) and remembered",
   "bot.repoSelected": "Selected and remembered repo {name}",
   "bot.dispatchDone":
-    "{duaer}{who}. Watch the checklist and log below; then View product.\n{path}",
+    "{duaer}{who}. Watch the checklist and log below; then View result.\n{path}",
   "bot.reviseDispatched":
-    "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View product.",
+    "Revise confirmed; started Revision {revision} ({launch}).{restated}\nRevise card kept below; top card stays the original brief; you can still View result.",
   "bot.reviseLaunchReuse": "enqueued in existing Terminal",
   "bot.reviseLaunchQueued":
     "Queued in the same Terminal; runs after the current task finishes",

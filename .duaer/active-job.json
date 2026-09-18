@@ -1,6 +1,5 @@
 {
-  "featureDir": ".duaer/specs/087-release-017",
-  "slug": "087-release-017",
-  "branch": "chore/release-017",
-  "worktree": ".worktree/chore-release-017"
+  "featureDir": ".duaer/specs/088-result-versions",
+  "slug": "088-result-versions",
+  "branch": "feat/result-versions"
 }

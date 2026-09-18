@@ -2817,7 +2817,7 @@ ${deployNeeded ? "\nDeploy: use GitHub CLI (`gh`) + Actions (see duaer-spec `doc
 9. 本需求需要部署：默认走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
 10. 静态站：复制本 worktree 的 .duaer/templates/deploy-github-pages.yml → .github/workflows/deploy.yml（按构建产物改 path）；不要去其它仓找模板
 11. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
-12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看成品」）
+12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看结果」）
 13. 用户要部署即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）
 `
     : `
@@ -3654,7 +3654,7 @@ function resolvePreview({ delivery, worktreePath, jobId }) {
     d.preview?.label ||
     d.previewLabel ||
     d.artifact?.label ||
-    "查看成品";
+    "查看结果";
 
   if (raw && /^https?:\/\//i.test(String(raw).trim())) {
     return {
@@ -3706,6 +3706,131 @@ function resolvePreview({ delivery, worktreePath, jobId }) {
   return null;
 }
 
+function resultVersionLabel(revision) {
+  const rev = Number(revision) || 0;
+  return rev > 0 ? `结果 r${rev}` : "结果 · 初版";
+}
+
+function resultSnapshotUrl(jobId, revision, rel) {
+  const safeJob = encodeURIComponent(jobId);
+  const rev = Number(revision) || 0;
+  const safeRel = String(rel || "")
+    .split("/")
+    .filter(Boolean)
+    .map((p) => encodeURIComponent(p))
+    .join("/");
+  return `/api/result/${safeJob}/r${rev}/${safeRel}`;
+}
+
+/** Copy preview entry into live job so it survives worktree handoff cleanup. */
+function snapshotResultArtifact(live, { revision, rel, srcRoot }) {
+  const rev = Number(revision) || 0;
+  const cleanRel = String(rel || "")
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/\\/g, "/");
+  if (!cleanRel || cleanRel.includes("..") || !srcRoot) return null;
+  const src = path.resolve(srcRoot, cleanRel);
+  const root = path.resolve(srcRoot);
+  if (!src.startsWith(root + path.sep) && src !== root) return null;
+  if (!fs.existsSync(src) || !fs.statSync(src).isFile()) return null;
+  const destRoot = path.join(live.featureDir, "results", `r${rev}`);
+  const dest = path.join(destRoot, cleanRel);
+  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  fs.copyFileSync(src, dest);
+  const snapshotRel = path
+    .join("results", `r${rev}`, cleanRel)
+    .split(path.sep)
+    .join("/");
+  return {
+    snapshotRel,
+    url: resultSnapshotUrl(live.id, rev, cleanRel),
+  };
+}
+
+function isResultPreviewable(live, entry, roots) {
+  if (!entry || typeof entry !== "object") return false;
+  if (entry.kind === "external") {
+    return Boolean(entry.url && /^https?:\/\//i.test(String(entry.url)));
+  }
+  if (entry.snapshotRel) {
+    const full = path.join(live.featureDir, entry.snapshotRel);
+    return fs.existsSync(full) && fs.statSync(full).isFile();
+  }
+  if (entry.path && roots?.root) {
+    const full = path.join(roots.root, entry.path);
+    return fs.existsSync(full) && fs.statSync(full).isFile();
+  }
+  return false;
+}
+
+/**
+ * Upsert accepted preview into job.results and prune dead (non-previewable) entries.
+ * When worktree is gone, only keep entries that still open (snapshot / external).
+ */
+function syncJobResults(live, roots, { preview, revision, accepted }) {
+  let results = Array.isArray(live.job.results)
+    ? live.job.results.map((r) => ({ ...r }))
+    : [];
+  const rev = Number(revision) || 0;
+
+  if (accepted && preview?.url) {
+    const base = {
+      revision: rev,
+      label: resultVersionLabel(rev),
+      kind: preview.kind || "artifact",
+      path: preview.path || null,
+      source: preview.source || "delivery",
+      acceptedAt: new Date().toISOString(),
+    };
+    if (preview.kind === "external") {
+      base.url = preview.url;
+    } else if (preview.path && roots?.root) {
+      const snap = snapshotResultArtifact(live, {
+        revision: rev,
+        rel: preview.path,
+        srcRoot: roots.root,
+      });
+      if (snap) {
+        base.url = snap.url;
+        base.snapshotRel = snap.snapshotRel;
+      } else if (roots.worktreeExists || roots.source === "primary") {
+        // Still openable from product root; keep live artifact URL.
+        base.url = preview.url;
+      }
+    } else {
+      base.url = preview.url;
+    }
+    // Only keep if we can open it now.
+    if (base.url && isResultPreviewable(live, base, roots)) {
+      const idx = results.findIndex((r) => Number(r.revision) === rev);
+      if (idx >= 0) results[idx] = { ...results[idx], ...base };
+      else results.push(base);
+    }
+  }
+
+  results = results
+    .filter((r) => isResultPreviewable(live, r, roots))
+    .sort((a, b) => Number(a.revision) - Number(b.revision));
+
+  const prev = JSON.stringify(live.job.results || []);
+  const next = JSON.stringify(results);
+  if (prev !== next) {
+    try {
+      const nextJob = { ...live.job, results };
+      fs.writeFileSync(
+        live.jobPath,
+        `${JSON.stringify(nextJob, null, 2)}\n`,
+        "utf8",
+      );
+      live.job = nextJob;
+    } catch {
+      // ignore persist errors; still return computed list
+    }
+  }
+  return results;
+}
+
 function resolveArtifactFile(jobId, relPath) {
   const live = readLiveJob(jobId);
   const dispatch = live.job.dispatch;
@@ -3714,20 +3839,56 @@ function resolveArtifactFile(jobId, relPath) {
   }
   const roots = resolveDispatchRoots(dispatch);
   const root = roots.root ? path.resolve(roots.root) : null;
-  if (!root || !fs.existsSync(root)) {
-    throw new Error("产品目录 / worktree 不存在");
-  }
   const rel = String(relPath || "")
     .trim()
     .replace(/^\/+/, "")
     .replace(/\\/g, "/");
   if (!rel || rel.includes("..")) throw new Error("非法路径");
+
+  if (root && fs.existsSync(root)) {
+    const full = path.resolve(root, rel);
+    if (
+      (full.startsWith(root + path.sep) || full === root) &&
+      fs.existsSync(full) &&
+      fs.statSync(full).isFile()
+    ) {
+      return full;
+    }
+  }
+
+  // Fall back to the newest matching result snapshot (worktree already cleaned).
+  const results = Array.isArray(live.job.results) ? live.job.results : [];
+  for (let i = results.length - 1; i >= 0; i -= 1) {
+    const entry = results[i];
+    if (!entry?.snapshotRel) continue;
+    const snap = path.join(live.featureDir, entry.snapshotRel);
+    if (
+      entry.path === rel &&
+      fs.existsSync(snap) &&
+      fs.statSync(snap).isFile()
+    ) {
+      return snap;
+    }
+  }
+  throw new Error("产品目录 / worktree 不存在");
+}
+
+function resolveResultSnapshotFile(jobId, revision, relPath) {
+  const live = readLiveJob(jobId);
+  const rev = Number(revision);
+  if (!Number.isFinite(rev) || rev < 0) throw new Error("非法版本");
+  const rel = String(relPath || "")
+    .trim()
+    .replace(/^\/+/, "")
+    .replace(/\\/g, "/");
+  if (!rel || rel.includes("..")) throw new Error("非法路径");
+  const root = path.resolve(live.featureDir, "results", `r${rev}`);
   const full = path.resolve(root, rel);
   if (!full.startsWith(root + path.sep) && full !== root) {
     throw new Error("路径越界");
   }
   if (!fs.existsSync(full) || !fs.statSync(full).isFile()) {
-    throw new Error("文件不存在");
+    throw new Error("结果快照不存在");
   }
   return full;
 }
@@ -3766,6 +3927,7 @@ function dispatchStatus(jobId) {
       activity: null,
       logTail: [],
       preview: null,
+      results: Array.isArray(live.job.results) ? live.job.results : [],
     };
   }
   const roots = resolveDispatchRoots(dispatch);
@@ -3819,11 +3981,19 @@ function dispatchStatus(jobId) {
   // busy on open R{n} work while status still lags on accepted.
   const deliveryAccepted = delivery?.status === "accepted";
   const deliveryOpen = delivery?.status === "open";
-  const activelyRevising =
-    (!deliveryAccepted && live.job.status === "revising") ||
-    (revisionHint > 0 && deliveryOpen) ||
-    (hasOpenRevWork &&
-      (terminal.busy || Number(terminal.queueDepth || 0) > 0));
+  const terminalWorking =
+    terminal.busy || Number(terminal.queueDepth || 0) > 0;
+  // Mid-revise lag: delivery may still say accepted while job is revising and
+  // Terminal is working open R{n} tasks. Once delivery is accepted again and
+  // worktree is gone (or Terminal idle / no open R work), never stay "revising".
+  const activelyRevising = deliveryAccepted
+    ? live.job.status === "revising" &&
+      worktreeExists &&
+      hasOpenRevWork &&
+      terminalWorking
+    : live.job.status === "revising" ||
+      (revisionHint > 0 && deliveryOpen) ||
+      (hasOpenRevWork && terminalWorking);
   const activeRevision =
     revisionHint > 0 &&
     (activelyRevising ||
@@ -3860,7 +4030,7 @@ function dispatchStatus(jobId) {
       ...progress,
       current:
         progress.current ||
-        "worktree 已清理；成品与 Brief 在产品仓 develop",
+        "worktree 已清理；结果与 Brief 在产品仓 develop",
     };
   }
 
@@ -3907,7 +4077,11 @@ function dispatchStatus(jobId) {
     activeRevision > 0;
 
   // Persist accepted status when handoff moved Brief to primary
-  if (accepted && live.job.status !== "accepted" && roots.source === "primary") {
+  if (
+    accepted &&
+    (live.job.status !== "accepted" ||
+      (roots.source === "primary" && live.job.status === "revising"))
+  ) {
     try {
       const nextJob = { ...live.job, status: "accepted" };
       fs.writeFileSync(
@@ -3919,6 +4093,48 @@ function dispatchStatus(jobId) {
     } catch {
       // ignore
     }
+  }
+
+  const resultRevision = Math.max(
+    Number(live.job.revisionCount || 0),
+    activeRevision,
+    Number(delivery?.revision || 0),
+  );
+  const results = syncJobResults(live, roots, {
+    preview,
+    revision: resultRevision,
+    accepted,
+  });
+  // Prefer latest snapshot URL when we recorded one for this revision.
+  let previewOut = showPreview ? preview : null;
+  if (previewOut && accepted && results.length) {
+    const latest = results[results.length - 1];
+    if (latest?.url && Number(latest.revision) === resultRevision) {
+      previewOut = {
+        ...previewOut,
+        url: latest.url,
+        label: latest.label || previewOut.label,
+        kind: latest.kind || previewOut.kind,
+      };
+    }
+  }
+  // After worktree cleanup with no previewable snapshot, hide dead current link.
+  if (
+    previewOut &&
+    !worktreeExists &&
+    previewOut.kind === "artifact" &&
+    !results.some((r) => r.url === previewOut.url)
+  ) {
+    const fallback = results.length ? results[results.length - 1] : null;
+    previewOut = fallback
+      ? {
+          url: fallback.url,
+          label: fallback.label || "查看结果",
+          source: fallback.source || "snapshot",
+          kind: fallback.kind || "artifact",
+          path: fallback.path || null,
+        }
+      : null;
   }
 
   const canRevise =
@@ -3948,13 +4164,10 @@ function dispatchStatus(jobId) {
     progress,
     activity,
     logTail,
-    preview: showPreview ? preview : null,
+    preview: previewOut,
+    results,
     canRevise,
-    revision: Math.max(
-      Number(live.job.revisionCount || 0),
-      activeRevision,
-      Number(delivery?.revision || 0),
-    ),
+    revision: resultRevision,
     handoffCleaned: !worktreeExists && roots.source === "primary",
     terminal,
   };
@@ -4525,6 +4738,34 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 404, {
         error: err instanceof Error ? err.message : "artifact not found",
+      });
+    }
+    return;
+  }
+
+  // /api/result/<jobId>/r<n>/relative/path — accepted-version snapshots
+  if (req.method === "GET" && url.pathname.startsWith("/api/result/")) {
+    try {
+      const parts = url.pathname.slice("/api/result/".length).split("/");
+      const jobId = decodeURIComponent(parts.shift() || "");
+      const revToken = decodeURIComponent(parts.shift() || "");
+      const revMatch = /^r(\d+)$/i.exec(revToken);
+      if (!revMatch) throw new Error("非法版本");
+      const rel = parts.map((p) => decodeURIComponent(p)).join("/");
+      const filePath = resolveResultSnapshotFile(
+        jobId,
+        Number(revMatch[1]),
+        rel || "index.html",
+      );
+      const body = fs.readFileSync(filePath);
+      res.writeHead(200, {
+        "content-type": contentTypeFor(filePath),
+        "cache-control": "no-store",
+      });
+      res.end(body);
+    } catch (err) {
+      send(res, 404, {
+        error: err instanceof Error ? err.message : "result not found",
       });
     }
     return;
