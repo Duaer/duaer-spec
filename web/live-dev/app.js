@@ -1119,6 +1119,7 @@ async function persistProjectChat() {
           confirmed: state.architecture.confirmed,
         },
         architectureMessages: state.architectureMessages,
+        dispatchPhase: state.dispatchPhase === "done" ? "done" : null,
         validate: {
           kind: state.validate.kind,
           fingerprint: state.validate.fingerprint,
@@ -1211,6 +1212,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.reviseLocked = false;
     state.originalCard = null;
     state.lastRevision = null;
+    state.dispatchPhase = null;
     applySavedCardFields(null, null);
     resetValidateGate();
     clearChatLog();
@@ -1250,6 +1252,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.architectureMessages = Array.isArray(data.architectureMessages)
       ? data.architectureMessages
       : [];
+    state.dispatchPhase = data.dispatchPhase === "done" ? "done" : null;
     applySavedCardFields(data.card, data.reviseCard);
     setConfirmFieldsReadonly(state.locked);
     setReviseFieldsReadonly(state.reviseLocked);
@@ -1301,6 +1304,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.reviseLocked = false;
     state.originalCard = null;
     state.lastRevision = null;
+    state.dispatchPhase = null;
     applySavedCardFields(null, null);
     resetValidateGate();
     clearChatLog();
@@ -2319,6 +2323,46 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
   }
 }
 
+function isDispatchedStatus(data) {
+  if (!data || typeof data !== "object") return false;
+  const st = String(data.status || "");
+  return Boolean(
+    data.dispatch?.dispatchedAt ||
+      data.dispatch?.worktreePath ||
+      st === "dispatched" ||
+      st === "revising" ||
+      st === "accepted" ||
+      data.delivery?.status === "accepted",
+  );
+}
+
+function markDispatchDone({ persist = true } = {}) {
+  state.dispatchPhase = "done";
+  syncDispatchButton();
+  if (persist) void persistProjectChat();
+}
+
+/** Keep「已派工」when the job is already on the server (refresh / timeout). */
+function applyDispatchStateFromStatus(data) {
+  if (!isDispatchedStatus(data)) return false;
+  markDispatchDone({ persist: true });
+  return true;
+}
+
+async function tryRecoverDispatchDone() {
+  if (!state.jobId) return false;
+  try {
+    const res = await fetch(
+      `/api/status?jobId=${encodeURIComponent(state.jobId)}`,
+    );
+    const data = await res.json();
+    if (!res.ok) return false;
+    return applyDispatchStateFromStatus(data);
+  } catch {
+    return false;
+  }
+}
+
 async function showDispatchPanel() {
   el.dispatch.hidden = false;
   el.dispatchErr.hidden = true;
@@ -3086,27 +3130,30 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchStatus.textContent =
       launch.kind === "worker" ? t("status.running") : t("status.waiting");
     beginRunBlock({ revision: 0, note: t("run.note.dispatch") });
-    void persistProjectChat();
+    markDispatchDone({ persist: true });
     startStatusPoll();
     focusRightPanel({ force: true });
   } catch (err) {
-    state.dispatchPhase = null;
-    el.doDispatch.disabled = false;
-    syncDispatchButton();
-    el.dispatchErr.hidden = false;
-    const msg =
-      err?.name === "AbortError"
-        ? t("err.dispatchTimeout")
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    el.dispatchErr.textContent = msg;
-    if (String(msg).includes("curl https://cursor.com/install")) {
-      syncInstallHint();
-      if (el.agentInstall) el.agentInstall.hidden = false;
-      if (el.agentInstallCmd) {
-        el.agentInstallCmd.textContent =
-          "curl https://cursor.com/install -fsS | bash";
+    const recovered = await tryRecoverDispatchDone();
+    if (!recovered) {
+      state.dispatchPhase = null;
+      el.doDispatch.disabled = false;
+      syncDispatchButton();
+      el.dispatchErr.hidden = false;
+      const msg =
+        err?.name === "AbortError"
+          ? t("err.dispatchTimeout")
+          : err instanceof Error
+            ? err.message
+            : String(err);
+      el.dispatchErr.textContent = msg;
+      if (String(msg).includes("curl https://cursor.com/install")) {
+        syncInstallHint();
+        if (el.agentInstall) el.agentInstall.hidden = false;
+        if (el.agentInstallCmd) {
+          el.agentInstallCmd.textContent =
+            "curl https://cursor.com/install -fsS | bash";
+        }
       }
     }
   } finally {
@@ -3794,6 +3841,7 @@ function startStatusPoll() {
       const res = await fetch(`/api/status?jobId=${encodeURIComponent(state.jobId)}`);
       const data = await res.json();
       if (!res.ok) return;
+      applyDispatchStateFromStatus(data);
       renderProgress(data);
       renderPreview(data);
       const st = data.delivery?.status || data.status || "pending";
@@ -4223,6 +4271,7 @@ async function restoreHistoryJob() {
       el.doDispatch.disabled = true;
       el.doDispatch.textContent = t("dispatch.done");
     }
+    markDispatchDone({ persist: true });
     await loadAgents();
     startStatusPoll();
     const statusData = data.status;

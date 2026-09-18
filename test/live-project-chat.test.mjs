@@ -75,6 +75,26 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test("dispatchPhase done round-trips in project chat", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    jobId: "job-dispatched",
+    locked: true,
+    dispatchPhase: "done",
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.dispatchPhase, "done");
+  writeProjectChat(root, {
+    projectPath,
+    jobId: "job-new",
+    dispatchPhase: "working",
+  });
+  assert.equal(readProjectChat(root, projectPath).dispatchPhase, null);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("architecture mode and messages round-trip", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
   const projectPath = path.join(root, "app");
@@ -128,4 +148,5 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /applySavedCardFields/);
   assert.match(js, /restoreValidateGate/);
   assert.match(js, /startStatusPoll/);
+  assert.match(js, /dispatchPhase|markDispatchDone|applyDispatchStateFromStatus/);
 });
