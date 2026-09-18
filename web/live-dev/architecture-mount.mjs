@@ -2,6 +2,9 @@
  * Mount Archify architecture HTML into a page host (no iframe).
  * Full styles + viewer runtime (focus-chip, zoom, motion) via Shadow DOM
  * and a document proxy scoped to `.archify-root`.
+ *
+ * Must include the full <body> chrome (toolbar buttons etc.) — Archify's
+ * viewer script null-derefs if #btn-preset / #btn-theme are missing.
  */
 
 function architectureKeyFromUrl(url) {
@@ -20,7 +23,6 @@ function scopeArchifyCss(css) {
     .replace(/html\[/g, ".archify-root[")
     .replace(/\bhtml\b/g, ".archify-root")
     .replace(/\bbody\b/g, ".archify-root");
-  // Collapse `html body` / `html[…] body` → single `.archify-root[…]`
   for (let i = 0; i < 3; i += 1) {
     out = out.replace(
       /\.archify-root((?:\[[^\]]*\])*)\s+\.archify-root\b/g,
@@ -53,7 +55,8 @@ function hostChromeCss() {
   box-sizing: border-box;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-/* Desk: hide Archify chrome; keep diagram FX + focus-chip. */
+/* Desk: hide Archify chrome; keep diagram FX + focus-chip.
+   DOM nodes stay present so the viewer script can bind them. */
 .archify-root .toolbar,
 .archify-root .header,
 .archify-root .cards,
@@ -64,7 +67,10 @@ function hostChromeCss() {
 .archify-root .diagram-guide,
 .archify-root .node-finder,
 .archify-root .guided-views,
-.archify-root .share-chapter-cue {
+.archify-root .share-chapter-cue,
+.archify-root .export-wrap,
+.archify-root .preset-wrap,
+.archify-root .present-wrap {
   display: none !important;
 }
 .archify-root .container {
@@ -113,6 +119,25 @@ function hostChromeCss() {
 `;
 }
 
+function isJsonScript(el) {
+  const type = String(el.getAttribute("type") || "").toLowerCase();
+  if (type === "application/json") return true;
+  const id = el.id || "";
+  return (
+    id === "archify-i18n-data" ||
+    id === "archify-guided-views-data" ||
+    id === "archify-source-evidence-data"
+  );
+}
+
+function isViewerMainScript(el) {
+  if (el.id === "duaer-embed-node-zoom") return false;
+  const type = String(el.getAttribute("type") || "").toLowerCase();
+  if (type && type !== "text/javascript" && type !== "module") return false;
+  const body = el.textContent || "";
+  return body.includes("var Archify") || /Archify\s*=\s*\{\}/.test(body);
+}
+
 function parseArchifyHtml(html) {
   const doc = new DOMParser().parseFromString(String(html || ""), "text/html");
   const theme =
@@ -125,51 +150,37 @@ function parseArchifyHtml(html) {
     "classic";
   const lang = doc.documentElement.getAttribute("lang") || "en";
 
-  const styleChunks = [];
+  /** @type {{ id: string, css: string }[]} */
+  const styles = [];
   for (const el of doc.querySelectorAll("style")) {
     if (el.id === "duaer-embed-fit") continue;
     const css = String(el.textContent || "").trim();
-    if (css) styleChunks.push(css);
+    if (!css) continue;
+    styles.push({ id: el.id || "", css });
   }
 
-  const container = doc.querySelector(".container");
-  if (!container || !container.querySelector("svg")) {
+  if (!doc.querySelector(".container svg, .diagram-container svg, svg[viewBox]")) {
     throw new Error("architecture svg missing");
   }
 
-  // Keep JSON data scripts that live inside the container.
-  const jsonScripts = [];
-  for (const el of doc.querySelectorAll(
-    "script#archify-i18n-data, script#archify-guided-views-data, script[type='application/json']",
-  )) {
-    jsonScripts.push({
-      id: el.id || "",
-      body: el.textContent || "",
-    });
+  // Full body markup — toolbar + container + focus-chip + overlays.
+  // Strip executable scripts (we re-run the viewer via new Function).
+  const bodyClone = doc.body.cloneNode(true);
+  for (const el of [...bodyClone.querySelectorAll("script")]) {
+    if (isJsonScript(el)) continue;
+    el.remove();
   }
+  const bodyHtml = bodyClone.innerHTML;
 
   let main = "";
   for (const el of doc.querySelectorAll("script")) {
-    if (el.id === "duaer-embed-node-zoom") continue;
-    if (el.type && el.type !== "text/javascript" && el.type !== "module") {
-      continue;
-    }
-    const body = el.textContent || "";
-    if (body.includes("var Archify") || /Archify\s*=\s*\{\}/.test(body)) {
-      main = body;
+    if (isViewerMainScript(el)) {
+      main = el.textContent || "";
       break;
     }
   }
 
-  return {
-    theme,
-    preset,
-    lang,
-    css: styleChunks.join("\n\n"),
-    containerHtml: container.outerHTML,
-    jsonScripts,
-    main,
-  };
+  return { theme, preset, lang, styles, bodyHtml, main };
 }
 
 function createScopedDocument(rootEl, shadow) {
@@ -337,13 +348,20 @@ export async function mountArchitectureDiagram(host, opts = {}) {
   });
   if (!htmlRes.ok) throw new Error(`architecture ${key} not found`);
   const parsed = parseArchifyHtml(await htmlRes.text());
-  const scoped = scopeArchifyCss(parsed.css);
+
+  const styleHtml = [
+    `<style id="duaer-arch-host-chrome">${hostChromeCss()}</style>`,
+    ...parsed.styles.map((s) => {
+      const idAttr = s.id ? ` id="${s.id}"` : "";
+      return `<style${idAttr}>${scopeArchifyCss(s.css)}</style>`;
+    }),
+  ].join("\n");
 
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
   host._archify = null;
 
   shadow.innerHTML = `
-    <style>${hostChromeCss()}\n${scoped}</style>
+    ${styleHtml}
     <div
       class="archify-root"
       data-theme="${parsed.theme}"
@@ -351,22 +369,12 @@ export async function mountArchitectureDiagram(host, opts = {}) {
       data-motion-capable="true"
       data-ambient-motion="running"
       lang="${parsed.lang}"
-    >${parsed.containerHtml}</div>
+    >${parsed.bodyHtml}</div>
   `;
 
   const rootEl = shadow.querySelector(".archify-root");
   if (!rootEl) throw new Error("architecture root missing");
-
-  // Ensure i18n / guided-views JSON nodes exist (some builds place them outside .container).
-  for (const s of parsed.jsonScripts) {
-    if (!s.id) continue;
-    if (rootEl.querySelector(`#${CSS.escape(s.id)}`)) continue;
-    const el = document.createElement("script");
-    el.type = "application/json";
-    el.id = s.id;
-    el.textContent = s.body;
-    rootEl.appendChild(el);
-  }
+  if (!rootEl.querySelector("svg")) throw new Error("architecture svg missing");
 
   const scopedDocument = createScopedDocument(rootEl, shadow);
   try {

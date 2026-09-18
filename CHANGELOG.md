@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: architecture click FX (viewer boot)
+
+- Mount full Archify body (toolbar nodes kept, visually hidden) so viewer init
+  no longer throws on missing `#btn-preset`
+- Preserve `#archify-fonts` style id; click opens focus-chip + zoom
+
 ### Fix: full Archify styles & FX in inline mount
 
 - Mount full `.container` + Archify CSS/fonts into Shadow DOM (`.archify-root`)

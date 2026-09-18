@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "feature": "158-arch-click-fx",
+  "acceptedAt": "2026-09-18T15:10:00.000Z",
+  "verification": {
+    "levels": ["L0", "L3-live"],
+    "commands": [
+      "node --test test/live-smoke.test.mjs test/live-archify.test.mjs",
+      "playwright smoke: click opens focus-chip"
+    ],
+    "notes": "Mount full body so Archify viewer can bind toolbar ids; click FX works"
+  }
+}

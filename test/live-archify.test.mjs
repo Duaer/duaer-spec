@@ -318,6 +318,6 @@ test("live sources wire architecture API + desk panel", () => {
     "utf8",
   );
   assert.match(mount, /attachShadow|archify-root|focus-chip|runViewerScript|scopeArchifyCss/);
-  assert.match(mount, /data-motion-capable|installDesktopReveal/);
+  assert.match(mount, /data-motion-capable|installDesktopReveal|bodyHtml|btn-preset/);
   assert.doesNotMatch(mount, /arch-passport/);
 });

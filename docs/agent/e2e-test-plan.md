@@ -104,6 +104,7 @@ the table for their app.
 | E2E-122 | Architecture canvas expands to full diagram height (no iframe); node passport via Shadow mount | `npm test` + `npm run test:live` + manual |
 | E2E-123 | Architecture mounts inline (Shadow DOM), not iframe; GET `.json` for passport | `npm test` + manual |
 | E2E-124 | Inline mount keeps full Archify FX (theme CSS, motion, focus-chip, zoom) | `npm test` + manual |
+| E2E-125 | Node click boots Archify viewer (full body mount) → focus-chip + zoom | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -259,3 +260,4 @@ the table for their app.
 | E2E-122 | `155-arch-canvas-expand` | canvas expands; no iframe scroll |
 | E2E-123 | `156-arch-inline-mount` | Shadow DOM mount; no iframe |
 | E2E-124 | `157-arch-mount-fx` | full Archify styles + viewer FX |
+| E2E-125 | `158-arch-click-fx` | full body mount; click passport + zoom |
