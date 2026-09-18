@@ -251,6 +251,11 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="autoFixCard"/);
   assert.match(html, /id="agentInstall"/);
   assert.match(html, /id="projectActivate"/);
+  assert.match(html, /setup-guide|setup\.guideTitle/);
+  assert.match(html, /setupCmdCursor|cursor\.com\/install/);
+  assert.match(html, /@anthropic-ai\/claude-code/);
+  assert.match(html, /id="cfgOpen"/);
+  assert.match(js, /setup\.guideOther|cfgOpen|allowBack/);
   assert.match(html, /id="projectTitle"/);
   assert.match(html, /id="projectDescription"/);
   assert.match(html, /id="dispatchProjectSummary"|dispatch-project-summary/);

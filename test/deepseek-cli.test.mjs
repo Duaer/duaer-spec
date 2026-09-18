@@ -37,4 +37,8 @@ test("live workers are Cursor Agent and Claude Code only", () => {
   );
   assert.match(guide, /Claude Code/);
   assert.match(guide, /api\.deepseek\.com\/anthropic/);
+  assert.match(guide, /curl https:\/\/cursor\.com\/install/);
+  assert.match(guide, /@anthropic-ai\/claude-code/);
+
+  assert.match(live, /npm install -g @anthropic-ai\/claude-code/);
 });

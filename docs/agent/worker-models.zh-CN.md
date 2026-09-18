@@ -9,13 +9,56 @@ FED 派工用的是 **Terminal 里的数字员工 CLI**，和台面聊天用的 
 
 第三方包 `deepseek` / `deepseek-tui`（现已改名 Codewhale）**不是** DeepSeek 官方 CLI，FED **不再**把它当作数字员工。要用 DeepSeek **模型**写代码：把 Claude Code（或其它支持的工具）接到 DeepSeek 官方接口。
 
+FED 首次打开的「配置模型」页下方也有同样说明。
+
 ## Desk 模型（FED 聊天）
+
+在 FED「配置模型」页选择：
+
+- **DeepSeek** / **OpenAI** 预设，或  
+- **Custom**：任意 OpenAI 兼容的 Base URL + API Key + Model
+
+也可用命令行：
 
 ```bash
 duaer live config --provider deepseek --api-key <key>
 # 或
 duaer live config --base-url https://api.openai.com/v1 --api-key <key> --model gpt-4o-mini
+# 其它服务商同理：换 base-url / model
 ```
+
+配置写入 `~/.duaer/live/config.json`。
+
+## 安装 Cursor Agent
+
+```bash
+curl https://cursor.com/install -fsS | bash
+```
+
+装好后应能在终端执行 `agent` 或 `cursor agent`。模型与额度在 **Cursor 账号 / 设置**里选；FED 只负责在产品 worktree 上启动 CLI。
+
+## 安装 Claude Code
+
+推荐其一：
+
+```bash
+# npm（需本机 Node）
+npm install -g @anthropic-ai/claude-code
+
+# 或官方安装脚本
+curl -fsSL https://claude.ai/install.sh | bash
+```
+
+装好后探活：
+
+```bash
+claude -p "Reply with exactly: pong"
+```
+
+升级（npm）：`npm install -g @anthropic-ai/claude-code@latest`  
+文档：<https://code.claude.com/docs/en/installation>
+
+FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令。
 
 ## 数字员工：Claude Code + DeepSeek 模型（官方）
 
@@ -43,20 +86,6 @@ DeepSeek 提供 Anthropic 兼容接口。配好 Claude Code 后，在 FED 派工
 
 官方文档：
 [Integrate with Claude Code](https://api-docs.deepseek.com/quick_start/agent_integrations/claude_code/)。
-
-探活：
-
-```bash
-claude -p "Reply with exactly: pong"
-```
-
-FED 派工会带 `--permission-mode bypassPermissions`，在隔离 worktree 里自动改文件 / 跑命令，不再逐步要确认。
-
-## 数字员工：Cursor Agent
-
-安装：`curl https://cursor.com/install -fsS | bash`
-
-模型账号走 Cursor 自己的设置。FED 只负责在产品 worktree 上启动 `agent` / `cursor agent`。
 
 ## 其它后端
 

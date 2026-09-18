@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Setup guide: CLI install + other models
+
+- FED「配置模型」页下方说明：Cursor / Claude 安装命令，以及其它模型接法
+- Header **模型**可再打开说明；`worker-models` / README 同步
+
 ### Structured requirements editing
 
 - Clicking a requirements field edits as structured rows (same look as display)

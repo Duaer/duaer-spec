@@ -1824,7 +1824,7 @@ const AGENT_CATALOG = [
     kind: "worker",
     hint: "Terminal 执行 claude CLI",
     installCommand:
-      "查看 https://docs.anthropic.com/en/docs/claude-code/overview 安装 Claude Code CLI；已安装可执行 claude update",
+      "npm install -g @anthropic-ai/claude-code",
   },
 ];
 

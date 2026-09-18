@@ -120,6 +120,8 @@ const el = {
   cfgKey: document.getElementById("cfgKey"),
   cfgModel: document.getElementById("cfgModel"),
   saveCfg: document.getElementById("saveCfg"),
+  cfgOpen: document.getElementById("cfgOpen"),
+  cfgBack: document.getElementById("cfgBack"),
   cfgErr: document.getElementById("cfgErr"),
   dispatch: document.getElementById("dispatch"),
   repoList: document.getElementById("repoList"),
@@ -1329,25 +1331,27 @@ function renderProviders() {
   }
 }
 
-function showSetup(cfg) {
+function showSetup(cfg, { allowBack = false } = {}) {
   el.setup.hidden = false;
   el.desk.hidden = true;
-  state.lastCfg = { ...cfg, ready: false };
-  if (Array.isArray(cfg.providers) && cfg.providers.length) {
+  state.lastCfg = { ...(cfg || {}), ready: Boolean(cfg?.ready) };
+  if (Array.isArray(cfg?.providers) && cfg.providers.length) {
     state.providers = cfg.providers.map((p) => ({ ...p }));
   }
   renderProviders();
-  el.cfgBase.value = cfg.baseUrl || "";
-  el.cfgModel.value = cfg.model || "";
+  el.cfgBase.value = cfg?.baseUrl || "";
+  el.cfgModel.value = cfg?.model || "";
   el.cfgKey.value = "";
-  el.cfgKey.placeholder = cfg.hasApiKey ? t("setup.keySaved") : "sk-…";
-  const id = cfg.provider || "deepseek";
-  applyProvider(id, { fillEmptyOnly: Boolean(cfg.baseUrl || cfg.model) });
+  el.cfgKey.placeholder = cfg?.hasApiKey ? t("setup.keySaved") : "sk-…";
+  const id = cfg?.provider || "deepseek";
+  applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
+  if (el.cfgBack) el.cfgBack.hidden = !allowBack;
 }
 
 function showDesk(cfg) {
   el.setup.hidden = true;
   el.desk.hidden = false;
+  if (el.cfgBack) el.cfgBack.hidden = true;
   state.ready = true;
   state.lastCfg = { ...cfg, ready: true };
   if (el.projectsRoot) {
@@ -1444,6 +1448,23 @@ el.saveCfg.addEventListener("click", async () => {
   } catch (err) {
     el.cfgErr.hidden = false;
     el.cfgErr.textContent = err instanceof Error ? err.message : String(err);
+  }
+});
+
+el.cfgOpen?.addEventListener("click", () => {
+  showSetup(
+    {
+      ...(state.lastCfg || {}),
+      providers: state.providers,
+      provider: state.providerId || state.lastCfg?.provider,
+    },
+    { allowBack: Boolean(state.ready) },
+  );
+});
+
+el.cfgBack?.addEventListener("click", () => {
+  if (state.ready || state.lastCfg?.ready) {
+    showDesk({ ...(state.lastCfg || {}), ready: true });
   }
 });
 
