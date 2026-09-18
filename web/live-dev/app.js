@@ -142,6 +142,8 @@ const el = {
   cfgModel: document.getElementById("cfgModel"),
   saveCfg: document.getElementById("saveCfg"),
   cfgOpen: document.getElementById("cfgOpen"),
+  githubStars: document.getElementById("githubStars"),
+  githubStarCount: document.getElementById("githubStarCount"),
   cfgBack: document.getElementById("cfgBack"),
   cfgErr: document.getElementById("cfgErr"),
   dispatch: document.getElementById("dispatch"),
@@ -1658,6 +1660,46 @@ async function hydrateActiveProjectMeta() {
     }
   } catch {
     /* ignore */
+  }
+}
+
+function formatStarCount(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
+  if (n < 1000) return String(Math.floor(n));
+  if (n < 10000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
+async function refreshGithubStars({ force = false } = {}) {
+  if (!el.githubStars || !el.githubStarCount) return;
+  try {
+    const q = force ? "?force=1" : "";
+    const res = await fetch(`/api/github${q}`);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "github");
+    if (data.url) el.githubStars.href = data.url;
+    el.githubStarCount.textContent = formatStarCount(data.stars);
+    if (typeof data.stars === "number") {
+      el.githubStars.title = `${data.fullName || "GitHub"} · ★ ${data.stars}`;
+    }
+  } catch {
+    /* keep last / fallback dash */
+  }
+}
+
+let githubStarsTimer = null;
+let githubVisibilityWired = false;
+function startGithubStarsPolling() {
+  void refreshGithubStars();
+  if (githubStarsTimer) clearInterval(githubStarsTimer);
+  githubStarsTimer = setInterval(() => {
+    void refreshGithubStars();
+  }, 5 * 60 * 1000);
+  if (!githubVisibilityWired) {
+    githubVisibilityWired = true;
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") void refreshGithubStars();
+    });
   }
 }
 
@@ -4746,3 +4788,4 @@ if (el.autoFixRevise) {
 }
 
 void loadConfig();
+startGithubStarsPolling();

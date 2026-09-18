@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "124-header-github-stars",
+  "summary": "Uniform top-right controls + GitHub stars button via /api/github",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs + app.js + i18n.js",
+    "L3": "npm run test:live — pass (includes /api/github)"
+  }
+}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Uniform header actions + GitHub stars
+
+- Top-right controls share one button chrome (Projects / Settings / language / GitHub)
+- GitHub opens `fujiezee/duaer-spec`; star count via cached `/api/github`
+
 ### Remove beginner slogan
 
 - Drop 「小白也能做FED」 / 「Beginners can do FED too」 from top nav and leftover i18n

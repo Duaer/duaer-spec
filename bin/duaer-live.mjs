@@ -134,6 +134,91 @@ ensureCliSearchPath();
 /** Last npm update check result for /api/health (refreshed in background). */
 let updateInfoCache = null;
 
+/** Cached GitHub repo meta for header stars (`/api/github`). */
+const GITHUB_CACHE_MS = 5 * 60 * 1000;
+const DEFAULT_GITHUB_REPO =
+  process.env.DUAER_GITHUB_REPO?.trim() || "fujiezee/duaer-spec";
+const DEFAULT_GITHUB_URL = `https://github.com/${DEFAULT_GITHUB_REPO}`;
+let githubMetaCache = {
+  at: 0,
+  stars: null,
+  url: DEFAULT_GITHUB_URL,
+  fullName: DEFAULT_GITHUB_REPO,
+  error: null,
+};
+
+function resolveGithubRepoFromPackage() {
+  try {
+    const pkg = JSON.parse(
+      fs.readFileSync(path.join(PACKAGE_ROOT, "package.json"), "utf8"),
+    );
+    const raw =
+      pkg.repository?.url || pkg.homepage || pkg.bugs?.url || "";
+    const m = String(raw).match(/github\.com[/:]([^/]+\/[^/#.\s]+)/i);
+    if (m) return m[1].replace(/\.git$/i, "");
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_GITHUB_REPO;
+}
+
+async function refreshGithubMeta({ force = false } = {}) {
+  if (process.env.DUAER_NO_GITHUB_STARS === "1") {
+    githubMetaCache = {
+      at: Date.now(),
+      stars: null,
+      url: DEFAULT_GITHUB_URL,
+      fullName: resolveGithubRepoFromPackage(),
+      error: "disabled",
+    };
+    return githubMetaCache;
+  }
+  if (
+    !force &&
+    githubMetaCache.at &&
+    Date.now() - githubMetaCache.at < GITHUB_CACHE_MS
+  ) {
+    return githubMetaCache;
+  }
+  const fullName = resolveGithubRepoFromPackage();
+  const url = `https://github.com/${fullName}`;
+  try {
+    const headers = {
+      Accept: "application/vnd.github+json",
+      "User-Agent": "duaer-spec-live",
+      "X-GitHub-Api-Version": "2022-11-28",
+    };
+    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const res = await fetch(`https://api.github.com/repos/${fullName}`, {
+      headers,
+    });
+    if (!res.ok) {
+      throw new Error(`GitHub HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    githubMetaCache = {
+      at: Date.now(),
+      stars:
+        typeof data.stargazers_count === "number"
+          ? data.stargazers_count
+          : null,
+      url: data.html_url || url,
+      fullName: data.full_name || fullName,
+      error: null,
+    };
+  } catch (err) {
+    githubMetaCache = {
+      at: Date.now(),
+      stars: githubMetaCache.stars,
+      url: githubMetaCache.url || url,
+      fullName,
+      error: err instanceof Error ? err.message : String(err),
+    };
+  }
+  return githubMetaCache;
+}
+
 /** Built-in OpenAI-compatible provider presets (UI + CLI). */
 const PROVIDERS = {
   deepseek: {
@@ -4314,6 +4399,19 @@ async function handleApi(req, res) {
       await refreshUpdateInfo({ force: false });
     }
     send(res, 200, { ok: true, ...publicConfig() });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/github") {
+    const force = url.searchParams.get("force") === "1";
+    const meta = await refreshGithubMeta({ force });
+    send(res, 200, {
+      url: meta.url,
+      fullName: meta.fullName,
+      stars: meta.stars,
+      fetchedAt: meta.at || null,
+      error: meta.error || null,
+    });
     return;
   }
 

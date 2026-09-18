@@ -259,6 +259,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /setupCmdCursor|cursor\.com\/install/);
   assert.match(html, /@anthropic-ai\/claude-code/);
   assert.match(html, /id="cfgOpen"/);
+  assert.match(html, /id="githubStars"|class="[^"]*top-btn[^"]*github-btn/);
+  assert.match(html, /class="top-btn"/);
+  assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);
+  assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);
   assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);
   assert.match(html, /architecturePanel|architectureFrame/);
@@ -291,6 +295,13 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const health = await (await fetch(`${live.base}/api/health`)).json();
   assert.equal(health.ready, true);
+
+  const gh = await (await fetch(`${live.base}/api/github`)).json();
+  assert.match(String(gh.url || ""), /github\.com\/fujiezee\/duaer-spec/);
+  assert.ok(
+    gh.stars === null || typeof gh.stars === "number",
+    "stars null or number",
+  );
 
   const empty = await fetch(`${live.base}/api/validate`, {
     method: "POST",
