@@ -102,6 +102,7 @@ function emptySession(projectPath = "") {
       confirmed: false,
     },
     architectureMessages: [],
+    dispatchPhase: null,
   };
 }
 
@@ -153,6 +154,7 @@ export function readProjectChat(liveRoot, projectPath) {
               confirmed: false,
             },
       architectureMessages: clipMessages(raw.architectureMessages),
+      dispatchPhase: raw.dispatchPhase === "done" ? "done" : null,
     };
   } catch {
     return empty;
@@ -207,6 +209,7 @@ export function writeProjectChat(liveRoot, payload) {
             confirmed: false,
           },
     architectureMessages: clipMessages(payload.architectureMessages),
+    dispatchPhase: payload.dispatchPhase === "done" ? "done" : null,
   };
   fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
   return doc;

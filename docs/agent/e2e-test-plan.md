@@ -67,6 +67,7 @@ the table for their app.
 | E2E-084 | Requirements fields edit as structured rows (add/remove), not raw textarea | `npm test` + `npm run test:live` |
 | E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model/Settings reopens it; setup.hint names Duaer desk model; guideDoc links locale-specific GitHub worker-models | `npm test` + `npm run test:live` |
 | E2E-086 | After Confirm, architecture dialogue + Archify HTML under hosting (no diagram-container height clip; every node click zooms in embed); gate dispatch; revise must re-confirm; ready chat says diagram is under hosting; Confirm architecture clickable after render | `npm test` + `npm run test:live` |
+| E2E-087 | After「派工并用…启动」succeeds, button stays「已派工」(persisted + restored from status); refresh / client timeout does not re-enable first launch | `npm test` + `npm run test:live` |
 | E2E-063 | Duaer-spec FED brand: header/title show Duaer-spec FED; zh secondary mark is the Chinese product name; en mark is Field Engineering Desk; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` (auto tool approve) | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
@@ -183,3 +184,4 @@ the table for their app.
 | E2E-084 | `098-req-structured-edit` | structured requirements edit |
 | E2E-085 | `099-setup-cli-guide` | setup guide CLI + other models |
 | E2E-086 | `100-architecture-archify` | Archify architecture before dispatch |
+| E2E-087 | `117-dispatch-done-state` | dispatch button stays finished |

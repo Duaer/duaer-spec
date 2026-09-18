@@ -1,5 +1,4 @@
 {
-  "featureDir": ".duaer/specs/116-arch-node-zoom",
-  "slug": "116-arch-node-zoom",
-  "branch": "fix/arch-node-zoom"
+  "feature": "117-dispatch-done-state",
+  "spec": ".duaer/specs/117-dispatch-done-state/spec.md"
 }

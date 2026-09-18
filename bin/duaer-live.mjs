@@ -5051,6 +5051,7 @@ async function handleApi(req, res) {
         validate: body.validate,
         architecture: body.architecture,
         architectureMessages: body.architectureMessages,
+        dispatchPhase: body.dispatchPhase,
       });
       send(res, 200, { ok: true, ...saved });
     } catch (err) {
