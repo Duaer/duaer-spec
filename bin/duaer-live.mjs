@@ -980,15 +980,28 @@ function normalizeRepoPath(repoPath) {
 
 function rememberRepo(repoPath, extra = {}) {
   const abs = normalizeRepoPath(repoPath);
+  const prev = readRepos().find((r) => normalizeRepoPath(r.path) === abs) || {};
+  const title = String(extra.title ?? extra.name ?? prev.title ?? prev.name ?? "")
+    .trim();
+  const description = String(
+    extra.description !== undefined ? extra.description : prev.description || "",
+  ).trim();
+  const displayName = title || path.basename(abs) || abs;
   const next = [
     {
       path: abs,
-      name: path.basename(abs) || abs,
+      name: displayName,
+      title: displayName,
+      description,
       lastUsedAt: new Date().toISOString(),
-      ...extra,
+      ...Object.fromEntries(
+        Object.entries(extra).filter(
+          ([k]) => !["title", "name", "description", "path", "lastUsedAt"].includes(k),
+        ),
+      ),
     },
     ...readRepos().filter((r) => normalizeRepoPath(r.path) !== abs),
-  ].slice(0, 20);
+  ].slice(0, 40);
   fs.writeFileSync(
     reposFile(),
     `${JSON.stringify({ repos: next }, null, 2)}\n`,
@@ -1574,31 +1587,66 @@ function listProjectsPayload() {
 
 /**
  * Select or create a product project and set it active.
- * @param {{ path?: string, name?: string, create?: boolean }} body
+ * @param {{
+ *   path?: string,
+ *   name?: string,
+ *   title?: string,
+ *   description?: string,
+ *   requireMeta?: boolean,
+ * }} body
  */
 function activateProject(body = {}) {
   const cfg = readConfig();
   let raw = String(body.path || body.name || "").trim();
   if (!raw) {
-    const e = new Error("请填写项目路径或项目名");
+    const e = new Error("请填写目录名或绝对路径");
     e.code = "EMPTY_PATH";
     throw e;
   }
+  const titleIn = String(body.title || "").trim();
+  const descriptionIn = String(body.description || "").trim();
   const abs = resolveProductRepoPath(raw, {
     projectsRoot: cfg.projectsRoot,
   });
   const ensured = ensureProductDir(abs);
+  const existing = readRepos().find(
+    (r) => normalizeRepoPath(r.path) === normalizeRepoPath(abs),
+  );
+  const isNew = Boolean(ensured.created) || !existing;
+  const needMeta = Boolean(body.requireMeta) || isNew;
+  if (needMeta && !titleIn) {
+    const e = new Error("请填写项目名称");
+    e.code = "NEED_TITLE";
+    throw e;
+  }
+  if (needMeta && !descriptionIn) {
+    const e = new Error("请填写简单的背景描述");
+    e.code = "NEED_DESCRIPTION";
+    throw e;
+  }
   const probe = probeRepo(ensured.path, {
     bootstrap: true,
     exact: true,
     ensureDuaer: false,
   });
-  rememberRepo(probe.path, { name: path.basename(probe.path) });
+  const savedTitle =
+    titleIn ||
+    existing?.title ||
+    existing?.name ||
+    path.basename(probe.path);
+  const savedDesc = descriptionIn || existing?.description || "";
+  rememberRepo(probe.path, {
+    title: savedTitle,
+    name: savedTitle,
+    description: savedDesc,
+  });
   const next = writeConfig({ activeProjectPath: probe.path });
   return {
     ok: true,
     path: probe.path,
-    name: path.basename(probe.path),
+    name: savedTitle,
+    title: savedTitle,
+    description: savedDesc,
     created: Boolean(ensured.created),
     ...publicConfig(next),
     ...listProjectsPayload(),

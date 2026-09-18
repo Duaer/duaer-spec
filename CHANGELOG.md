@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Project name + background
+
+- Creating a project requires **项目名称** and a short **背景描述**
+- Title and description persist in `repos.json` and show in the project list
+
 ### Project-first desk
 
 - Top bar「历史」→「项目」; must select/create a product project before chat

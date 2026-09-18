@@ -24,7 +24,7 @@ export function normalizeProjectKey(p) {
 /**
  * Build project rows from remembered repos + jobs.
  * @param {{
- *   repos?: Array<{ path?: string, name?: string, lastUsedAt?: string }>,
+ *   repos?: Array<{ path?: string, name?: string, title?: string, description?: string, lastUsedAt?: string }>,
  *   jobs?: Array<{ id: string, repoPath?: string|null, goal?: string, status?: string, at?: string|null }>,
  *   activeProjectPath?: string,
  * }} input
@@ -34,25 +34,32 @@ export function buildProjectList(input = {}) {
   const jobs = Array.isArray(input.jobs) ? input.jobs : [];
   const active = normalizeProjectKey(input.activeProjectPath);
 
-  /** @type {Map<string, { path: string, name: string, lastUsedAt: string|null, jobs: typeof jobs }>} */
+  /** @type {Map<string, { path: string, name: string, title: string, description: string, lastUsedAt: string|null, jobs: typeof jobs }>} */
   const map = new Map();
 
-  function ensure(pathRaw, nameHint, lastUsedAt) {
+  function ensure(pathRaw, meta = {}) {
     const key = normalizeProjectKey(pathRaw);
     if (!key) return null;
+    const titleHint = String(meta.title || meta.name || "").trim();
+    const descHint = String(meta.description || "").trim();
+    const lastUsedAt = meta.lastUsedAt || null;
     let row = map.get(key);
     if (!row) {
       row = {
         path: key,
-        name: nameHint || basename(key) || key,
+        name: titleHint || basename(key) || key,
+        title: titleHint || basename(key) || key,
+        description: descHint,
         lastUsedAt: lastUsedAt || null,
         jobs: [],
       };
       map.set(key, row);
     } else {
-      if (nameHint && (!row.name || row.name === basename(row.path))) {
-        row.name = nameHint;
+      if (titleHint) {
+        row.title = titleHint;
+        row.name = titleHint;
       }
+      if (descHint) row.description = descHint;
       if (lastUsedAt && (!row.lastUsedAt || lastUsedAt > row.lastUsedAt)) {
         row.lastUsedAt = lastUsedAt;
       }
@@ -62,7 +69,12 @@ export function buildProjectList(input = {}) {
 
   for (const r of repos) {
     if (!r?.path) continue;
-    ensure(r.path, r.name, r.lastUsedAt || null);
+    ensure(r.path, {
+      title: r.title || r.name,
+      name: r.name,
+      description: r.description,
+      lastUsedAt: r.lastUsedAt || null,
+    });
   }
 
   const unassigned = [];
@@ -72,7 +84,7 @@ export function buildProjectList(input = {}) {
       unassigned.push(job);
       continue;
     }
-    const row = ensure(key, null, job.at || null);
+    const row = ensure(key, { lastUsedAt: job.at || null });
     if (row) row.jobs.push(job);
   }
 
@@ -82,7 +94,7 @@ export function buildProjectList(input = {}) {
     const ta = Date.parse(a.lastUsedAt || "") || 0;
     const tb = Date.parse(b.lastUsedAt || "") || 0;
     if (tb !== ta) return tb - ta;
-    return a.name.localeCompare(b.name);
+    return String(a.title || a.name).localeCompare(String(b.title || b.name));
   });
 
   for (const p of projects) {

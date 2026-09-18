@@ -67,6 +67,7 @@ const state = {
   /** Absolute path of the active product project (required before chat). */
   projectPath: null,
   projectName: null,
+  projectDescription: null,
   projects: [],
   unassignedJobs: [],
   /** Active run-block for progress polling ({ revision, root, summary, tasks, log }). */
@@ -125,7 +126,9 @@ const el = {
   repoPath: document.getElementById("repoPath"),
   projectsRoot: document.getElementById("projectsRoot"),
   saveProjectsRoot: document.getElementById("saveProjectsRoot"),
-  projectName: document.getElementById("projectName"),
+  projectFolder: document.getElementById("projectFolder"),
+  projectTitle: document.getElementById("projectTitle"),
+  projectDescription: document.getElementById("projectDescription"),
   projectActivate: document.getElementById("projectActivate"),
   projectBrowse: document.getElementById("projectBrowse"),
   projectList: document.getElementById("projectList"),
@@ -332,10 +335,11 @@ function syncProjectGateHint() {
   el.projectGateHint.textContent = t("project.gateHint");
 }
 
-function setActiveProject(path, name) {
+function setActiveProject(path, name, description) {
   const abs = String(path || "").trim();
   state.projectPath = abs || null;
   state.projectName = name || (abs ? abs.split(/[\\/]/).pop() : null);
+  state.projectDescription = description || null;
   if (el.repoPath && abs) el.repoPath.value = abs;
   syncDispatchProjectLine();
   syncComposerEnabled();
@@ -2891,7 +2895,14 @@ async function loadProjectsPanel() {
       el.projectsRoot.value = data.projectsRoot || el.projectsRoot.value || "";
     }
     if (data.activeProjectPath) {
-      setActiveProject(data.activeProjectPath);
+      const active = (data.projects || []).find(
+        (p) => normalizePathKey(p.path) === normalizePathKey(data.activeProjectPath),
+      );
+      setActiveProject(
+        data.activeProjectPath,
+        active?.title || active?.name,
+        active?.description,
+      );
     }
     renderProjectList();
     renderProjectConversations();
@@ -2924,7 +2935,7 @@ function renderProjectList() {
     btn.setAttribute("aria-pressed", pressed ? "true" : "false");
     const goal = document.createElement("span");
     goal.className = "history-item-goal";
-    goal.textContent = proj.name || proj.path;
+    goal.textContent = proj.title || proj.name || proj.path;
     const st = document.createElement("span");
     st.className = "history-item-status";
     st.textContent = t("project.jobCount", {
@@ -2932,12 +2943,18 @@ function renderProjectList() {
     });
     const meta = document.createElement("span");
     meta.className = "history-item-meta";
-    meta.textContent = proj.path;
+    meta.textContent = proj.description
+      ? `${proj.description} · ${proj.path}`
+      : proj.path;
     btn.appendChild(goal);
     btn.appendChild(st);
     btn.appendChild(meta);
     btn.addEventListener("click", () => {
-      void activateProjectPath(proj.path);
+      void activateProjectPath(proj.path, {
+        title: proj.title || proj.name,
+        description: proj.description || "",
+        requireMeta: false,
+      });
     });
     el.projectList.appendChild(btn);
   }
@@ -2994,29 +3011,53 @@ function renderProjectConversations() {
   }
 }
 
-async function activateProjectPath(pathOrName) {
+async function activateProjectPath(pathOrName, meta = {}) {
   const raw = String(pathOrName || "").trim();
   if (!raw) {
     addBubble("bot", t("project.needName"));
     return;
   }
+  const requireMeta = meta.requireMeta !== false;
+  const title = String(meta.title ?? "").trim();
+  const description = String(meta.description ?? "").trim();
+  if (requireMeta) {
+    if (!title) {
+      addBubble("bot", t("project.needTitle"));
+      return;
+    }
+    if (!description) {
+      addBubble("bot", t("project.needDesc"));
+      return;
+    }
+  }
   try {
+    const body = { path: raw };
+    if (requireMeta || title) body.title = title;
+    if (requireMeta || description) body.description = description;
+    if (requireMeta) body.requireMeta = true;
     const res = await fetch("/api/projects/activate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ path: raw }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || t("project.fail"));
     state.projects = data.projects || [];
     state.unassignedJobs = data.unassigned || [];
-    setActiveProject(data.path || data.activeProjectPath, data.name);
+    setActiveProject(
+      data.path || data.activeProjectPath,
+      data.title || data.name,
+      data.description,
+    );
     if (el.projectsRoot && data.projectsRoot != null) {
       el.projectsRoot.value = data.projectsRoot || "";
     }
     renderProjectList();
     renderProjectConversations();
-    addBubble("bot", t("project.activated", { name: data.name || data.path }));
+    addBubble(
+      "bot",
+      t("project.activated", { name: data.title || data.name || data.path }),
+    );
     setHistoryOpen(false);
   } catch (err) {
     if (el.historyErr) {
@@ -3160,8 +3201,12 @@ if (el.historyRestore) {
 }
 
 el.projectActivate?.addEventListener("click", () => {
-  const raw = (el.projectName?.value || "").trim();
-  void activateProjectPath(raw);
+  const raw = (el.projectFolder?.value || "").trim();
+  void activateProjectPath(raw, {
+    title: (el.projectTitle?.value || "").trim(),
+    description: (el.projectDescription?.value || "").trim(),
+    requireMeta: true,
+  });
 });
 
 el.projectBrowse?.addEventListener("click", async () => {
@@ -3176,8 +3221,18 @@ el.projectBrowse?.addEventListener("click", async () => {
       throw new Error(data.error || t("err.pick"));
     }
     if (data.path) {
-      if (el.projectName) el.projectName.value = data.path;
-      await activateProjectPath(data.path);
+      if (el.projectFolder) el.projectFolder.value = data.path;
+      const title = (el.projectTitle?.value || "").trim();
+      const description = (el.projectDescription?.value || "").trim();
+      if (!title || !description) {
+        addBubble("bot", t("project.needTitle") + " / " + t("project.needDesc"));
+        return;
+      }
+      await activateProjectPath(data.path, {
+        title,
+        description,
+        requireMeta: true,
+      });
     }
   } catch (err) {
     if (el.historyErr) {

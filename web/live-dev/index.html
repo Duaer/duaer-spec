@@ -263,14 +263,22 @@
           <button type="button" class="btn" id="saveProjectsRoot" data-i18n="dispatch.saveProjectsRoot">保存父目录</button>
         </div>
         <label class="field">
-          <span data-i18n="project.nameLabel">项目名或绝对路径</span>
-          <input id="projectName" type="text" data-i18n-placeholder="project.namePh" placeholder="my-app 或 /Users/…/my-app" autocomplete="off" />
+          <span data-i18n="project.folderLabel">目录名或绝对路径</span>
+          <input id="projectFolder" type="text" data-i18n-placeholder="project.folderPh" placeholder="my-app 或 /Users/…/my-app" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span data-i18n="project.titleLabel">项目名称</span>
+          <input id="projectTitle" type="text" data-i18n-placeholder="project.titlePh" placeholder="例如：发票汇总台" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span data-i18n="project.descLabel">背景描述</span>
+          <textarea id="projectDescription" rows="2" data-i18n-placeholder="project.descPh" placeholder="一两句：给谁用、解决什么问题…"></textarea>
         </label>
         <div class="repo-actions">
           <button type="button" class="btn primary" id="projectActivate" data-i18n="project.activate">选为当前项目</button>
           <button type="button" class="btn" id="projectBrowse" data-i18n="project.browse">浏览…</button>
         </div>
-        <p class="hint" data-i18n="project.createHint">短名在父目录下创建；绝对路径直接打开。未选项目前不能对话。</p>
+        <p class="hint" data-i18n="project.createHint">新建须填名称与背景；短名在父目录下创建。未选项目前不能对话。</p>
       </section>
 
       <p class="project-section-label" data-i18n="project.listTitle">已有项目</p>
