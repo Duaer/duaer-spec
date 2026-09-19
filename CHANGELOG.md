@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.21.0 — 2026-09-19
+
 ### Feat: click architecture diagram for fullscreen present view
 
 - User-facing hints explain layout / worker colors and click-to-fullscreen
