@@ -85,4 +85,7 @@ test("live sources wire project-first APIs and UI", () => {
   assert.match(js, /project\.kickoff|sendChat\(/);
   assert.match(js, /activateProjectPath|loadProjectsPanel/);
   assert.match(js, /chatAllowed[\s\S]*projectPath/);
+  assert.match(js, /deliveryStatus|paintDeliveryCockpit|deriveProjectDeliveryStatus/);
+  assert.match(html, /id="deliveryCockpit"|id="deliveryStages"/);
+  assert.match(live, /enrichProjectsWithDeliveryStatus/);
 });

@@ -3,6 +3,7 @@
  */
 
 import { basename } from "node:path";
+import { deriveProjectDeliveryStatus } from "../web/live-dev/delivery-status.mjs";
 
 /**
  * @param {string | null | undefined} p
@@ -22,6 +23,34 @@ export function normalizeProjectKey(p) {
 }
 
 /**
+ * Attach deliveryStatus / nextAction / hasDeliverables from a session reader.
+ * @param {ReturnType<typeof buildProjectList>} bag
+ * @param {(projectPath: string) => object|null|undefined} readSession
+ */
+export function enrichProjectsWithDeliveryStatus(bag, readSession) {
+  const projects = Array.isArray(bag?.projects) ? bag.projects : [];
+  for (const p of projects) {
+    let session = null;
+    try {
+      session = typeof readSession === "function" ? readSession(p.path) : null;
+    } catch {
+      session = null;
+    }
+    const latestJob = Array.isArray(p.jobs) && p.jobs.length ? p.jobs[0] : null;
+    const derived = deriveProjectDeliveryStatus(session, {
+      jobStatus: latestJob?.status || null,
+      deliveryAccepted:
+        String(latestJob?.status || "").toLowerCase() === "accepted",
+    });
+    p.deliveryStatus = derived.status;
+    p.nextAction = derived.nextAction;
+    p.hasDeliverables = derived.hasDeliverables;
+    p.stageSummary = derived.stages;
+  }
+  return bag;
+}
+
+/**
  * Build project rows from remembered repos + jobs.
  * @param {{
  *   repos?: Array<{ path?: string, name?: string, title?: string, description?: string, lastUsedAt?: string }>,
@@ -34,7 +63,7 @@ export function buildProjectList(input = {}) {
   const jobs = Array.isArray(input.jobs) ? input.jobs : [];
   const active = normalizeProjectKey(input.activeProjectPath);
 
-  /** @type {Map<string, { path: string, name: string, title: string, description: string, lastUsedAt: string|null, jobs: typeof jobs }>} */
+  /** @type {Map<string, object>} */
   const map = new Map();
 
   function ensure(pathRaw, meta = {}) {
@@ -52,6 +81,10 @@ export function buildProjectList(input = {}) {
         description: descHint,
         lastUsedAt: lastUsedAt || null,
         jobs: [],
+        deliveryStatus: "drafting",
+        nextAction: "chat",
+        hasDeliverables: false,
+        stageSummary: [],
       };
       map.set(key, row);
     } else {

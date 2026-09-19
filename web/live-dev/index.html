@@ -302,7 +302,7 @@
             <h2 class="card-title" data-i18n="progress.title">任务进度</h2>
             <button
               type="button"
-              class="btn deliverables-open"
+              class="btn deliverables-open primary"
               id="openDeliverables"
               data-i18n="deliverables.open"
               data-i18n-title="deliverables.openHint"
@@ -313,6 +313,10 @@
             </button>
             <p id="dispatchStatus" class="meta progress-status" hidden></p>
           </header>
+          <div id="deliveryCockpit" class="delivery-cockpit" hidden>
+            <ol class="delivery-stages" id="deliveryStages" aria-label="Delivery stages"></ol>
+            <p class="delivery-next" id="deliveryNextAction"></p>
+          </div>
           <div id="progressEmpty" class="progress-empty">
             <p class="progress-empty-title" data-i18n="progress.emptyTitle">还没有进度</p>
             <p class="progress-empty-hint" data-i18n="progress.empty">派工后显示各轮任务与改动文件</p>

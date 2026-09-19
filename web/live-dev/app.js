@@ -11,6 +11,10 @@ import {
   applyDomI18n,
 } from "./i18n.js";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
+import {
+  deriveProjectDeliveryStatus,
+  stageTone,
+} from "./delivery-status.mjs";
 import { renderChatMarkdown } from "./chat-markdown.mjs";
 import { extractArchitectureIr } from "./architecture-ir.mjs";
 import {
@@ -255,6 +259,9 @@ const el = {
   dispatchErr: document.getElementById("dispatchErr"),
   dispatchStatus: document.getElementById("dispatchStatus"),
   openDeliverables: document.getElementById("openDeliverables"),
+  deliveryCockpit: document.getElementById("deliveryCockpit"),
+  deliveryStages: document.getElementById("deliveryStages"),
+  deliveryNextAction: document.getElementById("deliveryNextAction"),
   progressCol: document.querySelector(".progress-col"),
   progressEmpty: document.getElementById("progressEmpty"),
   runTimeline: document.getElementById("runTimeline"),
@@ -589,6 +596,53 @@ function setActiveProject(path, name, description) {
 function syncDeliverablesEntry() {
   if (!el.openDeliverables) return;
   el.openDeliverables.hidden = !state.projectPath;
+  paintDeliveryCockpit();
+}
+
+function deskSessionSnapshot() {
+  return {
+    modules: state.modules || [],
+    architecture: state.architecture || {},
+    jobId: state.jobId || null,
+    reviseCards: state.reviseCards || [],
+    reviseLocked: Boolean(state.reviseLocked),
+    revisePlanConfirmed: Boolean(state.revisePlanConfirmed),
+    lastRevision: state.lastRevision || null,
+    originalCard: state.originalCard || null,
+  };
+}
+
+function paintDeliveryCockpit(statusHint = null) {
+  if (!el.deliveryCockpit) return;
+  if (!state.projectPath) {
+    el.deliveryCockpit.hidden = true;
+    return;
+  }
+  const hint =
+    statusHint && typeof statusHint === "object" ? statusHint : {};
+  const progress = hint.progress;
+  const derived = deriveProjectDeliveryStatus(deskSessionSnapshot(), {
+    jobStatus: hint.status || hint.jobStatus || null,
+    deliveryAccepted:
+      hint.delivery?.status === "accepted" ||
+      String(hint.status || "").toLowerCase() === "accepted",
+    progressDone: progress?.done,
+    progressTotal: progress?.total,
+  });
+  el.deliveryCockpit.hidden = false;
+  if (el.deliveryStages) {
+    el.deliveryStages.replaceChildren();
+    for (const st of stageTone(derived.stages)) {
+      const li = document.createElement("li");
+      li.className = `delivery-stage is-${st.tone}`;
+      li.dataset.stage = st.id;
+      li.textContent = t(`cockpit.stage.${st.id}`);
+      el.deliveryStages.appendChild(li);
+    }
+  }
+  if (el.deliveryNextAction) {
+    el.deliveryNextAction.textContent = t(`cockpit.next.${derived.nextAction}`);
+  }
 }
 
 function openDeliverablesPage() {
@@ -791,6 +845,7 @@ function renderModuleTabs() {
       total: String(list.length),
     });
   }
+  paintDeliveryCockpit();
 }
 
 function mergeModulesFromChatPayload(data) {
@@ -4035,6 +4090,7 @@ async function renderArchitectureFromIr(ir) {
       if (!state.architecture.fingerprint) state.architecture.fingerprint = fp;
     }
     syncArchitecturePanel();
+    paintDeliveryCockpit();
     schedulePersistProjectDesk();
     return true;
   }
@@ -5492,6 +5548,7 @@ function fillRunProgress(block, data) {
 
 function renderProgress(data) {
   if (!el.runTimeline) return;
+  paintDeliveryCockpit(data);
   const progress = data?.progress;
   if (!progress) {
     if (!state.activeRun) el.runTimeline.hidden = el.runTimeline.childElementCount === 0;
@@ -6865,20 +6922,22 @@ function renderProjectList() {
   }
   const active = normalizePathKey(state.projectPath);
   for (const proj of state.projects) {
+    const row = document.createElement("div");
+    row.className = "project-row";
+    const pressed = normalizePathKey(proj.path) === active;
+    if (pressed) row.classList.add("is-active");
+
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "history-item project-item";
     btn.dataset.path = proj.path;
-    const pressed = normalizePathKey(proj.path) === active;
     btn.setAttribute("aria-pressed", pressed ? "true" : "false");
     const goal = document.createElement("span");
     goal.className = "history-item-goal";
     goal.textContent = proj.title || proj.name || proj.path;
     const st = document.createElement("span");
-    st.className = "history-item-status";
-    st.textContent = t("project.jobCount", {
-      n: String((proj.jobs || []).length),
-    });
+    st.className = `history-item-status project-status is-${proj.deliveryStatus || "drafting"}`;
+    st.textContent = t(`project.status.${proj.deliveryStatus || "drafting"}`);
     const meta = document.createElement("span");
     meta.className = "history-item-meta";
     meta.textContent = proj.description
@@ -6894,7 +6953,33 @@ function renderProjectList() {
         requireMeta: false,
       });
     });
-    el.projectList.appendChild(btn);
+    row.appendChild(btn);
+
+    if (proj.hasDeliverables) {
+      const deliv = document.createElement("button");
+      deliv.type = "button";
+      deliv.className = "btn project-deliverables";
+      deliv.textContent = t("deliverables.openShort");
+      deliv.title = t("deliverables.openHint");
+      deliv.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        const open = async () => {
+          if (normalizePathKey(state.projectPath) !== normalizePathKey(proj.path)) {
+            await activateProjectPath(proj.path, {
+              title: proj.title || proj.name,
+              description: proj.description || "",
+              requireMeta: false,
+            });
+          }
+          openDeliverablesPage();
+        };
+        void open();
+      });
+      row.appendChild(deliv);
+    }
+
+    el.projectList.appendChild(row);
   }
 }
 
@@ -7224,6 +7309,8 @@ el.projectBrowse?.addEventListener("click", async () => {
 onLocaleChange(() => {
   syncDynamicI18n();
   syncReviseCardChrome();
+  paintDeliveryCockpit();
+  renderProjectList();
   if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
     renderPreview(state.lastStatus);
   } else {

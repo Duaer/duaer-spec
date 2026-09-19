@@ -50,6 +50,7 @@ import {
 } from "./live-repo-path.mjs";
 import {
   buildProjectList,
+  enrichProjectsWithDeliveryStatus,
   normalizeProjectKey,
 } from "./live-projects.mjs";
 import {
@@ -2035,6 +2036,9 @@ function listProjectsPayload() {
     jobs,
     activeProjectPath: cfg.activeProjectPath,
   });
+  enrichProjectsWithDeliveryStatus(bag, (projectPath) =>
+    readProjectChat(liveRoot(), projectPath),
+  );
   return {
     ...bag,
     projectsRoot: cfg.projectsRoot || "",
