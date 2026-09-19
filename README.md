@@ -66,10 +66,22 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
 - **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
-- **Employee roles.** Top-bar **digital employee** directory: **Implementer** builds features; **Functional regression** verifies against acceptance and testing rules; **Deployer** ships to the planned host. Optional parallel workers on the same CLI.
+- **Employee roles.** Top-bar **digital employee** directory (Implementer / Functional regression / Deployer). Optional parallel workers on the same CLI. See the next section.
 - **Locales.** Desk UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
 - **Deliverables and results.** Open a deliverables page (requirements, architecture, tasks, delivery); when done, open the page or the project folder.
 - **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on the same job without starting from scratch.
+
+### Digital employees: three roles
+
+Open **Employees** in the top bar. Runtime is still Cursor Agent or Claude Code; the difference is **task role** — who builds, who regresses, who deploys.
+
+| Role | Does | Does not |
+|---|---|---|
+| **Implementer** | Build to acceptance; update product README; start preview and stamp delivery | — |
+| **Functional regression** | Check confirmed acceptance against the product `.duaer/memory/testing.md` risk table (prefer Playwright, `npm test`, `npm run test:live`, L0–L3); add missing tests, run them, keep evidence | **Change product scope**; on failure, leave a reproducible note — do not stamp accepted |
+| **Deployer** | Publish to the planned host and write the public URL into delivery preview | Change product scope |
+
+With multiple workers, the **last lane** owns functional regression (and deploy tasks); implement work stays on earlier lanes. With one worker, the same CLI session runs roles in task order.
 
 ### Deploy: supported hosts
 

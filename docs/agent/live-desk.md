@@ -76,9 +76,13 @@ Kickoff owns Brief creation and dispatch:
 
 - Builds a **dependency-aware task pool** (`dependsOn` edges).
 - **Employee directory** (top bar): lists specialized roles — **Implementer**,
-  **Functional regression** (Acceptance → testing.md L0–L3 / Playwright), and
-  **Deployer** (planned host: Cloudflare / Alibaba Cloud / AWS / GitHub Pages).
-  Runtime remains Cursor Agent / Claude Code; kickoff tasks carry
+  **Functional regression**, and **Deployer**.
+  - **Functional regression** checks confirmed acceptance against the product
+    `.duaer/memory/testing.md` risk table (prefer Playwright / `npm test` /
+    `npm run test:live`, L0–L3); writes or runs tests and keeps evidence; does
+    **not** change product scope; on failure leaves a reproducible note and does
+    not stamp `accepted`.
+  - Runtime remains Cursor Agent / Claude Code; kickoff tasks carry
   `role: implement | verify-l3 | deploy`. With workerCount ≥ 2, verify-l3 and
   deploy tasks go to the last lane.
 - **Atomic + monitorable:** one checkbox task per independently verifiable

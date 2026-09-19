@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Docs: explain Functional regression digital employee
+
+- READMEs add a three-role table with Functional regression duties and boundaries
+- Employee drawer copy clarifies regression vs implement / deploy
+
 ## 0.24.0 — 2026-09-19
 
 ### Feat: common live-desk locales beyond zh/en/ja
