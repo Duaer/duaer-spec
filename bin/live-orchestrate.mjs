@@ -137,6 +137,8 @@ export function orchestrationSummary(input = {}) {
 
 /**
  * Decide which workers need a new wave release.
+ * Busy lanes still return reason "ready" — launchAgent FIFO-enqueues
+ * continue behind the current session (silent-wait must not block forever).
  * @param {{
  *   pool: { tasks?: Array<object> },
  *   workerCount: number,
@@ -153,7 +155,6 @@ export function pendingWaveReleases(input = {}) {
       ? input.doneSet
       : new Set([...(input.doneSet || [])].map(normId).filter(Boolean));
   const released = input.releasedWaves || {};
-  const terminals = input.terminals || {};
   const out = [];
   for (let w = 1; w <= count; w += 1) {
     const workerId = `w${w}`;
@@ -162,16 +163,6 @@ export function pendingWaveReleases(input = {}) {
     const fp = fingerprintWave(wave.map((t) => t.id));
     const prior = Array.isArray(released[workerId]) ? released[workerId] : [];
     if (prior.includes(fp)) continue;
-    const term = terminals[workerId] || {};
-    if (term.busy || Number(term.queueDepth) > 0) {
-      out.push({
-        workerId,
-        wave,
-        fingerprint: fp,
-        reason: "lane_busy",
-      });
-      continue;
-    }
     out.push({
       workerId,
       wave,

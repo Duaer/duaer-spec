@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: orchestration wave release no longer deadlocks on silent wait
+
+- Next ready wave is FIFO-enqueued even when the Terminal lane is busy
+- After a wave, agents exit the CLI session (no hang waiting for continue)
+
 ### Fix: architecture embed click opens fullscreen only
 
 - Desk diagram click (capture) opens present fullscreen and does not zoom nodes

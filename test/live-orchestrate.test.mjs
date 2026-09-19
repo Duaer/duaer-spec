@@ -71,7 +71,7 @@ test("doneIdsFromProgress", () => {
   assert.equal(done.has("T002"), false);
 });
 
-test("pendingWaveReleases skips released and busy lanes", () => {
+test("pendingWaveReleases enqueues even when lane busy", () => {
   const pending = pendingWaveReleases({
     pool,
     workerCount: 2,
@@ -88,7 +88,7 @@ test("pendingWaveReleases skips released and busy lanes", () => {
     byId.w1.wave.map((t) => t.id),
     ["T002"],
   );
-  assert.equal(byId.w2.reason, "lane_busy");
+  assert.equal(byId.w2.reason, "ready");
   assert.deepEqual(
     byId.w2.wave.map((t) => t.id),
     ["T003"],

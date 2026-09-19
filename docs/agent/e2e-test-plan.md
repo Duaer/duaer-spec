@@ -125,7 +125,7 @@ the table for their app.
 | E2E-143 | Cyclic architecture IR does not freeze live desk; deliverables page opens without Google Fonts | `npm test` + manual |
 | E2E-144 | Deliverables HTML has Contents TOC + structured card fields (dl/dt/dd) | `npm test` + manual |
 | E2E-145 | Multi-worker dispatch shows per-employee lanes under 派工进度 | `npm test` + `npm run test:live` + manual |
-| E2E-146 | Wave orchestration: only ready tasks in first prompt; status poll continues next wave when lane idle | `npm test` + manual |
+| E2E-146 | Wave orchestration: only ready tasks in first prompt; status poll continues next wave when prior wave checked (enqueue even if lane busy; agent exits after wave) | `npm test` + manual |
 | E2E-147 | Deliverables HTML: numbered acceptance lists, chips, task table, confirmation registry | `npm test` + manual |
 | E2E-148 | Deliverables page two-column dossier layout (TOC rail + paper body) | `npm test` + manual |
 | E2E-149 | 初版 · 需求卡 accordion body uses structured lists/paragraphs (`req-list` / `req-para`); goal prose does not shatter on `、` | `npm test` + `npm run test:live` |

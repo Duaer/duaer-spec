@@ -12,7 +12,8 @@ test("live dispatch prompts forbid early Job not accepted yet", () => {
   assert.match(live, /禁止半途收尾/);
   assert.match(live, /__ACCEPT_NUDGE__/);
   assert.match(live, /delivery\.json 尚未 accepted/);
-  assert.match(live, /静默停等编排器/);
+  assert.match(live, /本波完成，退出等编排器/);
+  assert.doesNotMatch(live, /静默停等编排器/);
   assert.doesNotMatch(
     live,
     /本波全部改成 - \[x\] 后停止；不要开始未放行/,

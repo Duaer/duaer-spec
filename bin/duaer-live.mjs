@@ -1578,7 +1578,7 @@ function discoverRepos({ max = 40 } = {}) {
 const DISPATCH_MUST_FINISH_RULES = `
 禁止半途收尾：
 - 分派的每一项任务都必须做完；不得以「Job not accepted yet」或「⏳ … not accepted」作为最终回复（那会让编码停住）
-- 波次间隙可以静默停等编排器 continue；停等时不要输出任何 not accepted / 未验收话术
+- 本波勾完且还有后续波次时：输出一行「本波完成，退出等编排器」后立刻结束本次 CLI 会话/进程退出（不要挂起等待）；编排器会 FIFO 排队 --continue 放行下一波
 - 当你负责的任务与 stamp 全部完成后：必须把 delivery.json 标为 accepted（含 preview.url），最终只允许一行：✅ Job accepted — ready for your review.
 `.trim();
 
@@ -3689,7 +3689,7 @@ Brief: ${featureDir}
 2. 只做 Brief 范围；以 Acceptance 为准交付可让人满意的成品（可核对结果，不是过程叙事）
 3. 按 .duaer/memory/testing.md（若有）做风险验证
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
-4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则静默停等编排器 continue（不要写 Job not accepted yet）；若已无后续波次则继续完成 stamp accepted
+4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话（不要挂起；编排器用 --continue 放行）；若已无后续波次则继续完成 stamp accepted
 4b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个勾选项只覆盖一个验收点；进度只能用 tasks.md 的 - [ ]/- [x] 监控（立刻勾选，不要攒到最后）；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
@@ -3780,7 +3780,7 @@ Brief: ${featureDir}
 编排波次（只做这些已放行任务）：
 ${waveList}
 ${roleBlurb ? `\n${roleBlurb}\n` : ""}
-本波全部改成 - [x] 后：若还有后续波次则静默停等编排器（不要写 Job not accepted yet）；若已无后续任务则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要开始未放行 / 未满足 dependsOn 的任务。
+本波全部改成 - [x] 后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话（不要挂起；不要写 Job not accepted yet）；若已无后续任务则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要开始未放行 / 未满足 dependsOn 的任务。
 
 ${DISPATCH_MUST_FINISH_RULES}
 `
@@ -3792,7 +3792,7 @@ ${DISPATCH_MUST_FINISH_RULES}
 当前编排波次（只做这些）：
 ${waveList}
 ${roleBlurb ? `\n${roleBlurb}\n` : ""}
-本波全部改成 - [x] 后：若你还有后续波次则静默停等；若你负责的任务已全部做完且轮到 stamp，则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要写 Job not accepted yet。不要开始未放行 / 未满足 dependsOn 的任务。其他任务由同事或后续波次负责。不要改 Brief 范围外的东西。
+本波全部改成 - [x] 后：若你还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话；若你负责的任务已全部做完且轮到 stamp，则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要写 Job not accepted yet。不要开始未放行 / 未满足 dependsOn 的任务。其他任务由同事或后续波次负责。不要改 Brief 范围外的东西。
 
 ${DISPATCH_MUST_FINISH_RULES}
 `;
@@ -5104,7 +5104,7 @@ ${waveList}
 要求：
 1. 只做本波已放行任务；立刻把完成项改成 tasks.md 的 - [x]
 2. 不要开始未放行 / 未满足 dependsOn 的任务
-3. 本波勾完后：若还有后续波次则静默停等编排器；若已无后续 / 需 stamp，则完成 stamp delivery.json accepted 并输出 ✅ Job accepted
+3. 本波勾完后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话；若已无后续 / 需 stamp，则完成 stamp delivery.json accepted 并输出 ✅ Job accepted
 4. 只在上述 worktree 内改动；不要推远程除非明确要求
 
 ${DISPATCH_MUST_FINISH_RULES}
@@ -5144,10 +5144,6 @@ ${DISPATCH_MUST_FINISH_RULES}
     Number(progress.total) > 0 &&
     Number(progress.done) >= Number(progress.total);
   const nudgeLane = "w1";
-  const nudgeTerm =
-    (workerCount > 1
-      ? terminalsByLane[nudgeLane]
-      : terminalsByLane.w1 || terminalsByLane.default) || {};
   const acceptFp = "__ACCEPT_NUDGE__";
   const priorNudge = Array.isArray(releasedWaves[nudgeLane])
     ? releasedWaves[nudgeLane]
@@ -5157,7 +5153,6 @@ ${DISPATCH_MUST_FINISH_RULES}
     !accepted &&
     agentId &&
     worktreePath &&
-    !(nudgeTerm.busy || Number(nudgeTerm.queueDepth || 0) > 0) &&
     !priorNudge.includes(acceptFp)
   ) {
     const brief = featureDir || dispatch.featureDir || "";
