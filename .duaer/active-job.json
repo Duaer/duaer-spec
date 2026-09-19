@@ -1,5 +1,5 @@
 {
-  "featureDir": ".duaer/specs/200-preview-start-url",
-  "slug": "200-preview-start-url",
-  "branch": "fix/preview-start-url"
+  "featureDir": ".duaer/specs/201-arch-fullscreen",
+  "slug": "201-arch-fullscreen",
+  "branch": "feat/arch-fullscreen"
 }

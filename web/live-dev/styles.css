@@ -1309,6 +1309,10 @@ a.btn[hidden] {
   background: transparent;
 }
 
+.architecture-mount-clickable:not([hidden]) {
+  cursor: zoom-in;
+}
+
 .progress-col {
   padding: 1.05rem 0.95rem 1.15rem;
   align-self: stretch;
@@ -1930,6 +1934,10 @@ a.btn[hidden] {
   background: #0b1118;
   /* Content-driven height — no iframe, no inner scrollbar. */
   overflow: visible;
+}
+
+.architecture-mount.architecture-mount-clickable:not([hidden]) {
+  cursor: zoom-in;
 }
 
 .architecture-mount[hidden] {

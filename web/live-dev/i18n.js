@@ -194,7 +194,7 @@ const zhCN = {
   "result.allModulesExtra": "可开始架构设计。",
   "dispatch.taskPool": "任务池（依赖 / 并行）",
   "dispatch.taskGraph": "任务执行路径",
-  "dispatch.taskGraphHint": "与系统架构图同一排版；色条表示数字员工分工",
+  "dispatch.taskGraphHint": "与系统架构图同一排版；色条表示数字员工分工。点击图可新页面全屏查看",
   "dispatch.workerCount": "数字员工数量",
   "dispatch.workerCountHint": "默认 1 人串行推进；可并行时选多人（同一 CLI）",
   "dispatch.workerSerial": "串行",
@@ -235,14 +235,16 @@ const zhCN = {
   "arch.hintNeed": "全部模块确认后，在左侧对话设计架构；确认架构后才能开工",
   "arch.hintDesigning": "正在对话设计架构；出图后会显示在本区域",
   "arch.hintMissing": "对话称图已生成，但台面未收到可渲染数据。请点「重新生成架构图」。",
-  "arch.hintPreview": "架构图已显示在下方。满意则点确认架构，再开工。",
-  "arch.hintConfirmed": "架构已确认；数字员工将按此图开发。",
-  "arch.hintStale": "改版默认沿用原架构。仅当架构变化时，确认下方新图后再派工。",
-  "arch.hintReviseKeep": "改版沿用已确认架构；若结构有变，点「架构有变，重新设计」。",
+  "arch.hintPreview": "架构图在下方。点击图可新页面全屏查看；满意则确认架构，再开工",
+  "arch.hintConfirmed": "架构已确认；点击图可全屏查看。数字员工将按此图开发",
+  "arch.hintStale": "改版默认沿用原架构。仅当架构变化时，确认下方新图后再派工。点击图可全屏查看",
+  "arch.hintReviseKeep": "改版沿用已确认架构；若结构有变，点「架构有变，重新设计」。点击图可全屏查看",
   "arch.afterRevisePlan":
     "改进方案已确认。接下来确认系统架构是否仍适用；有变化则重新设计后再确认。",
   "arch.hintAfterRevisePlan":
-    "改进方案已确认。请确认架构是否仍适用；有变化则点「架构有变，重新设计」。",
+    "改进方案已确认。请确认架构是否仍适用；有变化则点「架构有变，重新设计」。点击图可全屏查看",
+  "arch.openFullscreen": "全屏查看",
+  "arch.openFullscreenHint": "在新页面全屏打开架构图",
   "arch.needConfirmAfterPlan": "请先确认架构，再派这一版",
   "arch.enterDesignRevise":
     "改进方案已确认。架构可能有变——在左侧对话里一起定新架构，或点选项继续。",
@@ -715,7 +717,7 @@ const en = {
   "result.allModulesExtra": "Architecture design can start.",
   "dispatch.taskPool": "Task pool (deps / parallel)",
   "dispatch.taskGraph": "Task execution path",
-  "dispatch.taskGraphHint": "Same layout as system architecture; colors show worker lanes",
+  "dispatch.taskGraphHint": "Same layout as system architecture; colors show worker lanes. Click the diagram for fullscreen",
   "dispatch.workerCount": "Digital employees",
   "dispatch.workerCountHint":
     "Default 1 serial; pick more when tasks can run in parallel (same CLI)",
@@ -773,14 +775,20 @@ const en = {
   "arch.hintDesigning": "Designing in chat — the diagram will appear in this panel",
   "arch.hintMissing":
     "Chat claimed the diagram was ready, but no renderable data arrived. Tap Regenerate diagram.",
-  "arch.hintPreview": "Diagram is below. Confirm architecture, then kick off.",
-  "arch.hintConfirmed": "Architecture confirmed — the digital employee will follow this map.",
-  "arch.hintStale": "Revise keeps the prior architecture. Re-confirm only when the new diagram below changes it.",
-  "arch.hintReviseKeep": "Revise keeps the confirmed architecture; tap redesign only if structure changes.",
+  "arch.hintPreview":
+    "Diagram is below. Click it for fullscreen; confirm architecture, then kick off",
+  "arch.hintConfirmed":
+    "Architecture confirmed — click the diagram for fullscreen. The digital employee will follow this map",
+  "arch.hintStale":
+    "Revise keeps the prior architecture. Re-confirm only when the new diagram below changes it. Click for fullscreen",
+  "arch.hintReviseKeep":
+    "Revise keeps the confirmed architecture; tap redesign only if structure changes. Click the diagram for fullscreen",
   "arch.afterRevisePlan":
     "Revise plan confirmed. Next, confirm whether the architecture still applies — redesign if it changed.",
   "arch.hintAfterRevisePlan":
-    "Revise plan confirmed. Confirm the architecture still applies, or tap redesign if structure changed.",
+    "Revise plan confirmed. Confirm the architecture still applies, or tap redesign if structure changed. Click for fullscreen",
+  "arch.openFullscreen": "Fullscreen",
+  "arch.openFullscreenHint": "Open the architecture diagram fullscreen in a new tab",
   "arch.needConfirmAfterPlan": "Confirm architecture, then dispatch this revision",
   "arch.enterDesignRevise":
     "Revise plan confirmed. Architecture may change — design it in the left chat, or tap an option.",

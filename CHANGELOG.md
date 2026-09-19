@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: click architecture diagram for fullscreen present view
+
+- User-facing hints explain layout / worker colors and click-to-fullscreen
+- Click diagram (or「全屏查看」) opens Archify HTML with `?present=1` in a new tab
+
 ### Fix: 打开看看 prefers project start URL over docs paths
 
 - Ignore non-HTML `delivery.preview.url` (e.g. `docs/**/*.md`) for primary open

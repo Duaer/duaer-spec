@@ -133,23 +133,26 @@
                 <p id="architecturePreviousSummary" class="architecture-summary" hidden></p>
                 <div
                   id="architecturePreviousFrame"
-                  class="architecture-mount"
+                  class="architecture-mount architecture-mount-clickable"
                   title="previous architecture"
                   hidden
                 ></div>
               </div>
               <p id="architectureCurrentTitle" class="architecture-title" data-i18n="arch.title">系统架构</p>
-              <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工</p>
+              <p id="architectureHint" class="hint" data-i18n="arch.hintNeed">确认需求后，在对话里设计架构；确认架构后才能派工。出图后点击可全屏查看</p>
               <p id="architectureSummary" class="architecture-summary" hidden></p>
               <div
                 id="architectureFrame"
-                class="architecture-mount"
+                class="architecture-mount architecture-mount-clickable"
                 title="architecture"
                 hidden
               ></div>
               <div class="architecture-actions">
                 <button type="button" class="btn confirm" id="architectureConfirm" hidden data-i18n="arch.confirm">
                   确认架构，可派工
+                </button>
+                <button type="button" class="btn" id="architectureOpenFullscreen" hidden data-i18n="arch.openFullscreen" data-i18n-title="arch.openFullscreenHint" title="在新页面全屏打开架构图">
+                  全屏查看
                 </button>
                 <button type="button" class="btn" id="architectureRedesign" hidden data-i18n="arch.redesign">
                   架构有变，重新设计
@@ -175,8 +178,8 @@
             </div>
             <div id="taskPoolPreview" class="task-pool-preview" hidden>
               <p class="agent-pick-label" data-i18n="dispatch.taskGraph">任务执行路径</p>
-              <p class="hint" data-i18n="dispatch.taskGraphHint">按依赖分层；色条表示数字员工分工</p>
-              <div id="taskGraphMount" class="task-graph-mount architecture-mount"></div>
+              <p class="hint" data-i18n="dispatch.taskGraphHint">与系统架构图同一排版；色条表示数字员工分工。点击图可新页面全屏查看</p>
+              <div id="taskGraphMount" class="task-graph-mount architecture-mount architecture-mount-clickable"></div>
               <pre id="taskPoolList" class="task-pool-list" hidden></pre>
             </div>
             <div id="repoPickBlock" class="repo-pick-block">

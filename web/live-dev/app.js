@@ -253,6 +253,9 @@ const el = {
   architectureConfirm: document.getElementById("architectureConfirm"),
   architectureRedesign: document.getElementById("architectureRedesign"),
   architectureRetry: document.getElementById("architectureRetry"),
+  architectureOpenFullscreen: document.getElementById(
+    "architectureOpenFullscreen",
+  ),
   agentHint: document.getElementById("agentHint"),
   agentInstall: document.getElementById("agentInstall"),
   agentInstallTitle: document.getElementById("agentInstallTitle"),
@@ -1003,6 +1006,10 @@ async function syncTaskPoolPreviewAsync() {
       url: data.url,
       ir: null,
     });
+    bindArchitecturePresentClick(
+      el.taskGraphMount,
+      () => state.taskGraphUrl || data.url,
+    );
   } catch {
     if (seq !== state.taskGraphRenderSeq) return;
     state.taskGraphUrl = null;
@@ -1138,8 +1145,42 @@ function renderReviseArchBlock(arch, { baseline = false } = {}) {
   return `<div class="revise-arch-block">
     <p class="revise-arch-label">${escapeHtml(label)}</p>
     ${summary}
-    <div class="architecture-mount revise-arch-frame" data-arch-url="${escapeHtml(url)}" title="architecture"></div>
+    <div class="architecture-mount architecture-mount-clickable revise-arch-frame" data-arch-url="${escapeHtml(url)}" title="architecture"></div>
   </div>`;
+}
+
+function architecturePresentUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, window.location.origin);
+    u.searchParams.delete("embed");
+    u.searchParams.set("present", "1");
+    return u.href;
+  } catch {
+    const base = raw.split("#")[0];
+    const join = base.includes("?") ? "&" : "?";
+    return `${base}${join}present=1`;
+  }
+}
+
+function openArchitecturePresent(url) {
+  const href = architecturePresentUrl(url);
+  if (!href) return;
+  window.open(href, "_blank", "noopener");
+}
+
+function bindArchitecturePresentClick(host, getUrl) {
+  if (!host || host.dataset.presentBound === "1") return;
+  host.dataset.presentBound = "1";
+  host.classList.add("architecture-mount-clickable");
+  host.addEventListener("click", (ev) => {
+    if (ev.target.closest?.("button, a, input, textarea, select")) return;
+    const url = typeof getUrl === "function" ? getUrl() : getUrl;
+    const href = String(url || host.dataset.archUrl || "").trim();
+    if (!href) return;
+    openArchitecturePresent(href);
+  });
 }
 
 function hydrateArchitectureMounts(root) {
@@ -1148,6 +1189,7 @@ function hydrateArchitectureMounts(root) {
   for (const host of hosts) {
     const url = host.getAttribute("data-arch-url") || "";
     if (!url) continue;
+    bindArchitecturePresentClick(host, () => host.getAttribute("data-arch-url"));
     mountArchitectureDiagram(host, { url }).catch(() => {
       clearArchitectureMount(host);
     });
@@ -1160,6 +1202,7 @@ async function bindArchitectureMount(host, arch) {
     clearArchitectureMount(host);
     return;
   }
+  bindArchitecturePresentClick(host, () => arch.url || host.dataset.archUrl);
   const key = architectureKeyFromArchitectureUrl(arch.url);
   if (
     key &&
@@ -3758,6 +3801,12 @@ function syncArchitecturePanel(kind) {
     el.architectureSummary.textContent = a.url ? a.summary || "" : "";
   }
   void bindArchitectureMount(el.architectureFrame, a.url ? a : null);
+  if (el.architectureOpenFullscreen) {
+    el.architectureOpenFullscreen.hidden = !a.url;
+    el.architectureOpenFullscreen.disabled = !a.url || state.busy;
+    el.architectureOpenFullscreen.textContent = t("arch.openFullscreen");
+    el.architectureOpenFullscreen.title = t("arch.openFullscreenHint");
+  }
   if (el.architectureConfirm) {
     const canConfirm = a.status === "preview" && a.url && !a.confirmed;
     el.architectureConfirm.hidden = !canConfirm && a.status !== "confirmed";
@@ -5055,6 +5104,14 @@ el.architectureRedesign?.addEventListener("click", () => {
 
 el.architectureRetry?.addEventListener("click", () => {
   retryArchitectureDesign();
+});
+
+el.architectureOpenFullscreen?.addEventListener("click", () => {
+  const url =
+    state.architecture?.url ||
+    el.architectureFrame?.dataset?.archUrl ||
+    "";
+  openArchitecturePresent(url);
 });
 
 el.pickProjectsRoot?.addEventListener("click", async () => {
