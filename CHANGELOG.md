@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.24.1 — 2026-09-19
+
 ### Docs: explain Functional regression digital employee
 
 - READMEs add a three-role table with Functional regression duties and boundaries
