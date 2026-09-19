@@ -3,6 +3,10 @@
  */
 
 import { splitAcceptanceLines } from "../web/live-dev/acceptance-lines.mjs";
+import {
+  EMPLOYEE_ROLES,
+  clipEmployeeRole,
+} from "../web/live-dev/employee-catalog.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -244,6 +248,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       moduleId: partial.moduleId || null,
       title: String(partial.title || "").slice(0, 200),
       dependsOn: Array.isArray(partial.dependsOn) ? partial.dependsOn.filter(Boolean) : [],
+      role: clipEmployeeRole(partial.role),
       status: "queued",
       workerId: null,
     };
@@ -257,6 +262,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       moduleId: m.id,
       title: `Implement module «${m.title}»: ${truncate(m.card.goal, 100)}`,
       dependsOn: [],
+      role: EMPLOYEE_ROLES.IMPLEMENT,
     });
     const acceptLines = splitAcceptanceLines(m.card.acceptance);
     let prevId = impl.id;
@@ -266,6 +272,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
           moduleId: m.id,
           title: `Satisfy acceptance (alone) «${m.title}»: ${truncate(line, 120)}`,
           dependsOn: [prevId],
+          role: EMPLOYEE_ROLES.IMPLEMENT,
         });
         prevId = acc.id;
       }
@@ -274,6 +281,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
         moduleId: m.id,
         title: `Satisfy acceptance for «${m.title}»: ${truncate(m.card.acceptance || m.card.goal, 100)}`,
         dependsOn: [impl.id],
+        role: EMPLOYEE_ROLES.IMPLEMENT,
       });
       prevId = acc.id;
     }
@@ -281,6 +289,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       moduleId: m.id,
       title: `Verify «${m.title}» against acceptance`,
       dependsOn: [prevId],
+      role: EMPLOYEE_ROLES.VERIFY_L3,
     });
     moduleVerifyId.set(m.id, verify.id);
 
@@ -301,20 +310,23 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
 
   const verifyAll = push({
     moduleId: null,
-    title: "Risk-based verification per testing.md",
+    title: "Risk-based verification per testing.md (L0–L3 / Playwright when applicable)",
     dependsOn: [...moduleVerifyId.values()],
+    role: EMPLOYEE_ROLES.VERIFY_L3,
   });
   const readme = push({
     moduleId: null,
     title:
       "Update product README to match delivered requirements (modules/goal/acceptance/how to run)",
     dependsOn: [verifyAll.id],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
   });
   push({
     moduleId: null,
     title:
       "Start preview service; stamp delivery.json accepted with preview.url",
     dependsOn: [readme.id],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
   });
   if (deployNeeded) {
     push({
@@ -323,6 +335,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
         deployTaskText ||
         "Deploy with GitHub CLI (`gh`) + Actions; write public URL to preview.url",
       dependsOn: [tasks[tasks.length - 1].id],
+      role: EMPLOYEE_ROLES.IMPLEMENT,
     });
   }
 
@@ -339,13 +352,16 @@ export function taskPoolToMarkdown(pool) {
     const deps =
       t.dependsOn?.length > 0 ? ` (depends: ${t.dependsOn.join(", ")})` : "";
     const mod = t.moduleId ? ` [${t.moduleId}]` : "";
-    return `- [ ] ${t.id}${mod} ${t.title}${deps}`;
+    const role = t.role ? ` {${t.role}}` : "";
+    return `- [ ] ${t.id}${mod}${role} ${t.title}${deps}`;
   });
   return `# Tasks
 
 ${lines.join("\n")}
 
 做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 监控进度与编排放行。
+
+**角色：** \`{implement}\` 实现员工 · \`{verify-l3}\` 功能回归（Acceptance → testing.md L0–L3 / Playwright）
 
 **原子任务规则（强制）：**
 - 每个勾选项只做一个可独立验证的功能点；不要把多项验收揉进同一条
@@ -358,10 +374,15 @@ ${lines.join("\n")}
 /**
  * Assign tasks to 1..N workers (same CLI family). Ready roots fan out;
  * dependent tasks inherit the worker of their first dependency when possible.
+ * When count ≥ 2, verify-l3 tasks go to the last lane (regression employee).
  */
 export function assignTasksToWorkers(pool, workerCount = 1) {
   const count = Math.max(1, Math.min(8, Number(workerCount) || 1));
-  const tasks = (pool?.tasks || []).map((t) => ({ ...t, workerId: null }));
+  const tasks = (pool?.tasks || []).map((t) => ({
+    ...t,
+    role: clipEmployeeRole(t.role),
+    workerId: null,
+  }));
   if (count === 1) {
     for (const t of tasks) t.workerId = "w1";
     return { workerCount: 1, tasks };
@@ -394,6 +415,12 @@ export function assignTasksToWorkers(pool, workerCount = 1) {
     if (!t.moduleId) t.workerId = "w1";
   }
 
+  // Regression employee owns the last lane when multiple workers.
+  const verifyLane = `w${count}`;
+  for (const t of tasks) {
+    if (t.role === EMPLOYEE_ROLES.VERIFY_L3) t.workerId = verifyLane;
+  }
+
   return { workerCount: count, tasks };
 }
 
@@ -406,6 +433,7 @@ export function clipTaskPool(raw) {
       id: String(t.id || "").slice(0, 20),
       moduleId: t.moduleId ? String(t.moduleId).slice(0, 80) : null,
       title: String(t.title || "").slice(0, 200),
+      role: clipEmployeeRole(t.role),
       dependsOn: Array.isArray(t.dependsOn)
         ? t.dependsOn.map((x) => String(x).slice(0, 20)).slice(0, 20)
         : [],

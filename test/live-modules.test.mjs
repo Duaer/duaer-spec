@@ -182,10 +182,18 @@ test("buildTaskPoolFromModules has dependsOn chain", () => {
   );
   assert.ok(authVerify && dashImpl);
   assert.ok(dashImpl.dependsOn.includes(authVerify.id));
-  assert.equal(dashImpl.workerId, authVerify.workerId);
-  const shared = assigned.tasks.filter((t) => !t.moduleId);
-  assert.ok(shared.length > 0);
-  assert.ok(shared.every((t) => t.workerId === "w1"));
+  // verify-l3 tasks use the last lane when N≥2
+  assert.equal(authVerify.role, "verify-l3");
+  assert.equal(authVerify.workerId, "w2");
+  const sharedImpl = assigned.tasks.filter(
+    (t) => !t.moduleId && t.role === "implement",
+  );
+  const sharedVerify = assigned.tasks.filter(
+    (t) => !t.moduleId && t.role === "verify-l3",
+  );
+  assert.ok(sharedImpl.length > 0);
+  assert.ok(sharedImpl.every((t) => t.workerId === "w1"));
+  assert.ok(sharedVerify.every((t) => t.workerId === "w2"));
 });
 
 test("assignTasksToWorkers keeps independent modules on separate workers", () => {

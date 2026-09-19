@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: digital employee directory + role specialization
+
+- Top bar **数字员工** drawer lists Implementer and Functional regression
+- Kickoff tasks carry `role: implement | verify-l3`; multi-worker puts
+  verify-l3 on the last lane; prompts include role blurbs
+
 ## 0.22.0 — 2026-09-19
 
 ### Feat: Japanese (ja) live desk locale

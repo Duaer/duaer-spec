@@ -322,6 +322,39 @@ body {
   width: min(28rem, 100vw);
 }
 
+.employee-drawer .employee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  padding-bottom: 0.5rem;
+}
+
+.employee-card {
+  margin: 0;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--bg-soft, rgba(255, 255, 255, 0.03));
+}
+
+.employee-name {
+  margin: 0 0 0.2rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.employee-role {
+  margin: 0 0 0.45rem;
+}
+
+.employee-cap {
+  margin: 0 0 0.35rem;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
 .history-drawer[hidden],
 .history-backdrop[hidden] {
   display: none !important;

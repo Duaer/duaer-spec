@@ -24,6 +24,7 @@ import {
 } from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
 import { buildTaskArchitectureIr } from "./task-graph.mjs";
+import { EMPLOYEE_CATALOG } from "./employee-catalog.mjs";
 
 /** Deliverables API lang: en | ja | zh */
 function deliverablesLang() {
@@ -351,6 +352,10 @@ const el = {
   updateNotice: document.getElementById("updateNotice"),
   langSelect: document.getElementById("langSelect"),
   historyToggle: document.getElementById("historyToggle"),
+  employeeToggle: document.getElementById("employeeToggle"),
+  employeePanel: document.getElementById("employeePanel"),
+  employeeClose: document.getElementById("employeeClose"),
+  employeeList: document.getElementById("employeeList"),
   projectBadge: document.getElementById("projectBadge"),
   historyPanel: document.getElementById("historyPanel"),
   historyBackdrop: document.getElementById("historyBackdrop"),
@@ -2838,9 +2843,56 @@ function syncDrawerBackdrop() {
   if (!el.historyBackdrop) return;
   const open =
     (el.historyPanel && !el.historyPanel.hidden) ||
-    (el.settingsPanel && !el.settingsPanel.hidden);
+    (el.settingsPanel && !el.settingsPanel.hidden) ||
+    (el.employeePanel && !el.employeePanel.hidden);
   el.historyBackdrop.hidden = !open;
   document.body.classList.toggle("history-open", Boolean(open));
+}
+
+function setEmployeeOpen(open) {
+  if (!el.employeePanel) return;
+  const want = Boolean(open);
+  if (want) {
+    if (!state.ready) return;
+    if (el.historyPanel && !el.historyPanel.hidden) {
+      el.historyPanel.hidden = true;
+      if (el.historyToggle) el.historyToggle.setAttribute("aria-expanded", "false");
+    }
+    if (el.settingsPanel && !el.settingsPanel.hidden) {
+      el.settingsPanel.hidden = true;
+      if (el.cfgOpen) el.cfgOpen.setAttribute("aria-expanded", "false");
+    }
+  }
+  el.employeePanel.hidden = !want;
+  if (el.employeeToggle) {
+    el.employeeToggle.setAttribute("aria-expanded", want ? "true" : "false");
+  }
+  syncDrawerBackdrop();
+  if (want) renderEmployeeList();
+}
+
+function renderEmployeeList() {
+  if (!el.employeeList) return;
+  el.employeeList.replaceChildren();
+  for (const emp of EMPLOYEE_CATALOG) {
+    const row = document.createElement("article");
+    row.className = "employee-card";
+    row.setAttribute("role", "listitem");
+    const name = document.createElement("h3");
+    name.className = "employee-name";
+    name.textContent = t(`employee.${emp.id}.name`);
+    const role = document.createElement("p");
+    role.className = "employee-role meta";
+    role.textContent = t("employee.role", { role: emp.role });
+    const cap = document.createElement("p");
+    cap.className = "employee-cap";
+    cap.textContent = t(`employee.${emp.id}.cap`);
+    const runtime = document.createElement("p");
+    runtime.className = "hint tight";
+    runtime.textContent = t("employee.runtime");
+    row.append(name, role, cap, runtime);
+    el.employeeList.appendChild(row);
+  }
 }
 
 function setSettingsOpen(open) {
@@ -2850,6 +2902,12 @@ function setSettingsOpen(open) {
     el.historyPanel.hidden = true;
     if (el.historyToggle) {
       el.historyToggle.setAttribute("aria-expanded", "false");
+    }
+  }
+  if (want && el.employeePanel && !el.employeePanel.hidden) {
+    el.employeePanel.hidden = true;
+    if (el.employeeToggle) {
+      el.employeeToggle.setAttribute("aria-expanded", "false");
     }
   }
   el.settingsPanel.hidden = !want;
@@ -7103,6 +7161,12 @@ function setHistoryOpen(open) {
     el.settingsPanel.hidden = true;
     if (el.cfgOpen) el.cfgOpen.setAttribute("aria-expanded", "false");
   }
+  if (want && el.employeePanel && !el.employeePanel.hidden) {
+    el.employeePanel.hidden = true;
+    if (el.employeeToggle) {
+      el.employeeToggle.setAttribute("aria-expanded", "false");
+    }
+  }
   el.historyPanel.hidden = !want;
   if (el.historyToggle) {
     el.historyToggle.setAttribute("aria-expanded", want ? "true" : "false");
@@ -7480,6 +7544,15 @@ if (el.historyToggle) {
     setHistoryOpen(open);
   });
 }
+if (el.employeeToggle) {
+  el.employeeToggle.addEventListener("click", () => {
+    const open = el.employeePanel?.hidden !== false;
+    setEmployeeOpen(open);
+  });
+}
+if (el.employeeClose) {
+  el.employeeClose.addEventListener("click", () => setEmployeeOpen(false));
+}
 el.openDeliverables?.addEventListener("click", () => {
   openDeliverablesPage();
 });
@@ -7490,6 +7563,10 @@ if (el.historyBackdrop) {
   el.historyBackdrop.addEventListener("click", () => {
     if (el.settingsPanel && !el.settingsPanel.hidden) {
       if (state.ready) setSettingsOpen(false);
+      return;
+    }
+    if (el.employeePanel && !el.employeePanel.hidden) {
+      setEmployeeOpen(false);
       return;
     }
     setHistoryOpen(false);
@@ -7554,6 +7631,7 @@ onLocaleChange(() => {
   renderProjectList();
   renderWorkerCountList();
   syncTaskPoolPreview();
+  if (el.employeePanel && !el.employeePanel.hidden) renderEmployeeList();
   if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
     renderPreview(state.lastStatus);
   } else {

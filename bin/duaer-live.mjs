@@ -73,6 +73,7 @@ import {
   assignTasksToWorkers,
   clipWorkerCount,
 } from "./live-modules.mjs";
+import { rolePromptZh } from "../web/live-dev/employee-catalog.mjs";
 import {
   doneIdsFromProgress,
   fingerprintWave,
@@ -3703,6 +3704,10 @@ Brief: ${featureDir}
     const waveList = wave
       .map((t) => `- ${t.id}: ${t.title || t.id}`)
       .join("\n");
+    const ownedRoles = [
+      ...new Set(workerTasks.map((t) => t.role).filter(Boolean)),
+    ];
+    const roleBlurb = rolePromptZh(ownedRoles);
     const workerPrompt =
       assigned.workerCount === 1
         ? `${agentPrompt}
@@ -3710,7 +3715,7 @@ Brief: ${featureDir}
 ——
 编排波次（只做这些已放行任务）：
 ${waveList}
-
+${roleBlurb ? `\n${roleBlurb}\n` : ""}
 本波全部改成 - [x] 后：若还有后续波次则静默停等编排器（不要写 Job not accepted yet）；若已无后续任务则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要开始未放行 / 未满足 dependsOn 的任务。
 
 ${DISPATCH_MUST_FINISH_RULES}
@@ -3722,7 +3727,7 @@ ${DISPATCH_MUST_FINISH_RULES}
 你负责的全部任务：${ownedIds.join(", ") || "(none)"}。
 当前编排波次（只做这些）：
 ${waveList}
-
+${roleBlurb ? `\n${roleBlurb}\n` : ""}
 本波全部改成 - [x] 后：若你还有后续波次则静默停等；若你负责的任务已全部做完且轮到 stamp，则 stamp delivery.json accepted 并输出 ✅ Job accepted。不要写 Job not accepted yet。不要开始未放行 / 未满足 dependsOn 的任务。其他任务由同事或后续波次负责。不要改 Brief 范围外的东西。
 
 ${DISPATCH_MUST_FINISH_RULES}

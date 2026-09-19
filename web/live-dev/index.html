@@ -32,6 +32,15 @@
             <button type="button" class="top-btn" id="historyToggle" data-i18n="project.toggle">
               项目
             </button>
+            <button
+              type="button"
+              class="top-btn"
+              id="employeeToggle"
+              data-i18n="employee.toggle"
+              aria-expanded="false"
+            >
+              数字员工
+            </button>
             <button type="button" class="top-btn" id="cfgOpen" data-i18n="setup.open" aria-expanded="false">
               设置
             </button>
@@ -387,6 +396,20 @@
           恢复到当前桌面
         </button>
       </div>
+    </aside>
+
+    <aside id="employeePanel" class="history-drawer panel employee-drawer" hidden>
+      <div class="history-head">
+        <div>
+          <p class="mark" data-i18n="employee.mark">Employees</p>
+          <h2 class="history-title" data-i18n="employee.title">数字员工</h2>
+        </div>
+        <button type="button" class="btn history-close" id="employeeClose" data-i18n="employee.close">
+          关闭
+        </button>
+      </div>
+      <p class="hint tight" data-i18n="employee.lead">派工时按任务角色分配；运行时仍是 Cursor Agent / Claude Code。</p>
+      <div id="employeeList" class="employee-list" role="list"></div>
     </aside>
 
     <aside id="settingsPanel" class="history-drawer panel settings-drawer" hidden>
