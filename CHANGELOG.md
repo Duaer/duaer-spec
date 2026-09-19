@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 0.20.0 — 2026-09-19
+
+### Feat: pick projects parent folder via system dialog
+
+- 产品父目录 is read-only; **选择…** opens the native folder picker and saves
+- **清除** empties `projectsRoot`; cancel leaves the previous path
+
+### Fix: `duaer live` opens without model gate
+
+- Desk starts and opens the browser even when no model is configured
+- Settings guides model setup instead of blocking launch
+
+### Feat: FDE portfolio status and delivery cockpit
+
+- Project list shows delivery status chips and open-deliverables actions
+- Progress column shows stage summary, next action, and deliverables CTA
+
 ## 0.19.0 — 2026-09-19
 
 ### Feat: modular `[模块]` structured requirement cards
