@@ -66,11 +66,24 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
 - **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
-- **Employee roles.** Top-bar **digital employee** directory: Implementer builds features; Functional regression verifies against acceptance and testing rules. Optional parallel workers on the same CLI.
+- **Employee roles.** Top-bar **digital employee** directory: **Implementer** builds features; **Functional regression** verifies against acceptance and testing rules; **Deployer** ships to the planned host. Optional parallel workers on the same CLI.
 - **zh-CN / en / ja UI.** Desk copy follows the language you pick.
 - **Deliverables and results.** Open a deliverables page (requirements, architecture, tasks, delivery); when done, open the page or the project folder.
 - **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on the same job without starting from scratch.
-- **Hosting when you need it.** Cloudflare / Alibaba Cloud / AWS / GitHub Pages; default is GitHub Actions when unset.
+
+### Deploy: supported hosts
+
+Before kickoff, pick a **planned host** on the desk. Coding follows that platform; the **Deployer** employee publishes and writes the public URL into delivery preview.
+
+| Option | Good for | You prepare |
+|---|---|---|
+| **No deploy yet** | Local delivery only | Nothing |
+| **GitHub Pages** | Static / docs sites; default when hosting is implied but no host was chosen | GitHub repo + `gh` auth |
+| **Cloudflare** | Pages for static; Workers for edge APIs | API Token + Account ID in desk Settings |
+| **Alibaba Cloud** | OSS (+ CDN) for static; Function Compute and similar for APIs | AccessKey in desk Settings |
+| **AWS** | S3 + CloudFront for static; Amplify / Lambda and similar when needed | Access keys in desk Settings |
+
+Detail: [`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md) · GitHub default path: [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)
 
 ### Repo habits (for humans and employees)
 

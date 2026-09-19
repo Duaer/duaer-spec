@@ -75,13 +75,14 @@ registry linking into the requirements document (no duplicate full cards).
 Kickoff owns Brief creation and dispatch:
 
 - Builds a **dependency-aware task pool** (`dependsOn` edges).
-- **Employee directory** (top bar): lists specialized roles — **Implementer**
-  and **Functional regression** (Acceptance → testing.md L0–L3 / Playwright).
+- **Employee directory** (top bar): lists specialized roles — **Implementer**,
+  **Functional regression** (Acceptance → testing.md L0–L3 / Playwright), and
+  **Deployer** (planned host: Cloudflare / Alibaba Cloud / AWS / GitHub Pages).
   Runtime remains Cursor Agent / Claude Code; kickoff tasks carry
-  `role: implement | verify-l3`. With workerCount ≥ 2, verify-l3 tasks go to
-  the last lane.
+  `role: implement | verify-l3 | deploy`. With workerCount ≥ 2, verify-l3 and
+  deploy tasks go to the last lane.
 - **Atomic + monitorable:** one checkbox task per independently verifiable
-  acceptance line (plus impl / verify / shared steps). Agents must mark
+  acceptance line (plus impl / verify / deploy / shared steps). Agents must mark
   `- [x]` as each atom completes so the desk can poll progress and release waves.
 - **Worker count** defaults to **1**. Optional **N** parallel workers on the
   **same** CLI (Cursor Agent or Claude Code — not mixed).

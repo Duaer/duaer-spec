@@ -143,7 +143,7 @@ the table for their app.
 | E2E-162 | Architecture / task-path click opens present=1 fullscreen in a new tab | `npm test` + `npm run test:live` |
 | E2E-163 | Task breakdown: multi-line acceptance → one atomic checkbox task per line; progress monitorable via `- [ ]`/`- [x]` | `npm test` |
 | E2E-164 | Live desk Japanese (`ja`) locale: select option, catalog parity with en, deliverables `lang=ja` | `npm test` + manual |
-| E2E-165 | Top 数字员工 directory lists Implementer + Functional regression; kickoff tasks carry role | `npm test` + `npm run test:live` |
+| E2E-165 | Top 数字员工 directory lists Implementer + Functional regression + Deployer; kickoff tasks carry role | `npm test` + `npm run test:live` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -333,4 +333,4 @@ the table for their app.
 | E2E-162 | `201-arch-fullscreen` | architecture click → present fullscreen |
 | E2E-163 | `203-atomic-monitorable-tasks` | atomic verifiable tasks; checkbox progress |
 | E2E-164 | `204-live-i18n-ja` | Japanese locale on live desk |
-| E2E-165 | `206-employee-directory` | employee directory + verify-l3 role |
+| E2E-165 | `206-employee-directory` / `214-deploy-employee` | employee directory + verify-l3 + deploy roles |

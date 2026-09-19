@@ -19,10 +19,11 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-test("catalog has implementer and regression", () => {
-  assert.equal(EMPLOYEE_CATALOG.length, 2);
+test("catalog has implementer, regression, and deployer", () => {
+  assert.equal(EMPLOYEE_CATALOG.length, 3);
   assert.ok(EMPLOYEE_CATALOG.some((e) => e.role === EMPLOYEE_ROLES.IMPLEMENT));
   assert.ok(EMPLOYEE_CATALOG.some((e) => e.role === EMPLOYEE_ROLES.VERIFY_L3));
+  assert.ok(EMPLOYEE_CATALOG.some((e) => e.role === EMPLOYEE_ROLES.DEPLOY));
 });
 
 test("buildTaskPoolFromModules tags implement vs verify-l3 roles", () => {
@@ -74,9 +75,35 @@ test("assignTasksToWorkers sends verify-l3 to last lane when N≥2", () => {
   assert.ok(verify.every((t) => t.workerId === "w2"));
 });
 
+test("deployNeeded tags deploy role and last lane when N≥2", () => {
+  const pool = buildTaskPoolFromModules(
+    [
+      {
+        id: "a",
+        title: "A",
+        status: "confirmed",
+        card: { goal: "g", acceptance: "ok", outOfScope: "", assumptions: "" },
+        dependsOn: [],
+      },
+    ],
+    { deployNeeded: true, deployTaskText: "Deploy to Cloudflare Pages" },
+  );
+  const deploy = pool.tasks.filter((t) => t.role === EMPLOYEE_ROLES.DEPLOY);
+  assert.equal(deploy.length, 1);
+  assert.match(deploy[0].title, /Cloudflare/);
+  const assigned = assignTasksToWorkers(pool, 2);
+  const dep = assigned.tasks.filter((t) => t.role === EMPLOYEE_ROLES.DEPLOY);
+  assert.ok(dep.every((t) => t.workerId === "w2"));
+});
+
 test("rolePromptZh mentions regression duties", () => {
   const s = rolePromptZh([EMPLOYEE_ROLES.VERIFY_L3]);
   assert.match(s, /功能回归|verify-l3|Playwright|testing\.md/);
+});
+
+test("rolePromptZh mentions deploy duties", () => {
+  const s = rolePromptZh([EMPLOYEE_ROLES.DEPLOY]);
+  assert.match(s, /部署|deploy|Cloudflare|GitHub Pages/);
 });
 
 test("desk wires employee directory toggle and drawer", () => {

@@ -335,7 +335,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
         deployTaskText ||
         "Deploy with GitHub CLI (`gh`) + Actions; write public URL to preview.url",
       dependsOn: [tasks[tasks.length - 1].id],
-      role: EMPLOYEE_ROLES.IMPLEMENT,
+      role: EMPLOYEE_ROLES.DEPLOY,
     });
   }
 
@@ -361,7 +361,7 @@ ${lines.join("\n")}
 
 做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 监控进度与编排放行。
 
-**角色：** \`{implement}\` 实现员工 · \`{verify-l3}\` 功能回归（Acceptance → testing.md L0–L3 / Playwright）
+**角色：** \`{implement}\` 实现员工 · \`{verify-l3}\` 功能回归 · \`{deploy}\` 部署员工（Cloudflare / 阿里云 / AWS / GitHub Pages）
 
 **原子任务规则（强制）：**
 - 每个勾选项只做一个可独立验证的功能点；不要把多项验收揉进同一条
@@ -374,7 +374,7 @@ ${lines.join("\n")}
 /**
  * Assign tasks to 1..N workers (same CLI family). Ready roots fan out;
  * dependent tasks inherit the worker of their first dependency when possible.
- * When count ≥ 2, verify-l3 tasks go to the last lane (regression employee).
+ * When count ≥ 2, verify-l3 and deploy tasks go to the last lane.
  */
 export function assignTasksToWorkers(pool, workerCount = 1) {
   const count = Math.max(1, Math.min(8, Number(workerCount) || 1));
@@ -415,10 +415,15 @@ export function assignTasksToWorkers(pool, workerCount = 1) {
     if (!t.moduleId) t.workerId = "w1";
   }
 
-  // Regression employee owns the last lane when multiple workers.
-  const verifyLane = `w${count}`;
+  // Regression + deploy employees own the last lane when multiple workers.
+  const specialtyLane = `w${count}`;
   for (const t of tasks) {
-    if (t.role === EMPLOYEE_ROLES.VERIFY_L3) t.workerId = verifyLane;
+    if (
+      t.role === EMPLOYEE_ROLES.VERIFY_L3 ||
+      t.role === EMPLOYEE_ROLES.DEPLOY
+    ) {
+      t.workerId = specialtyLane;
+    }
   }
 
   return { workerCount: count, tasks };

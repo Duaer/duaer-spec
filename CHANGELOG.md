@@ -2,9 +2,11 @@
 
 ## Unreleased
 
-### Docs: drop meta “plain language / 人话” labels from README headings
+### Feat: deploy digital employee + documented hosting options
 
-- Section titles are「我们有什么」/「What you get」without the meta tag in the title
+- Employee directory adds **Deployer** (`role: deploy`); deploy tasks use that role
+- Multi-worker puts deploy (with verify-l3) on the last lane
+- READMEs list supported hosts: none / GitHub Pages / Cloudflare / 阿里云 / AWS
 
 ## 0.23.1 — 2026-09-19
 
