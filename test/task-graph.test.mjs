@@ -38,6 +38,27 @@ test("buildPreviewPoolFromModules creates dependsOn chain", () => {
   assert.ok(byId.T004.dependsOn.includes("T003"));
 });
 
+test("buildPreviewPoolFromModules splits multi-line acceptance", () => {
+  const pool = buildPreviewPoolFromModules([
+    {
+      id: "auth",
+      title: "Auth",
+      status: "confirmed",
+      card: {
+        goal: "login",
+        acceptance: "- form shown\n- submit works",
+        outOfScope: "",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  const acceptTasks = pool.tasks.filter((t) => /^Accept «/.test(t.title));
+  assert.equal(acceptTasks.length, 2);
+  assert.match(acceptTasks[0].title, /form shown/);
+  assert.match(acceptTasks[1].title, /submit works/);
+});
+
 test("assignPreviewWorkers fans modules across workers", () => {
   const pool = buildPreviewPoolFromModules(modules);
   const one = assignPreviewWorkers(pool, 1);

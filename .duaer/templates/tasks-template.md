@@ -15,6 +15,10 @@ TDD-style tests-before-code remain encouraged when useful.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+**Atomic + monitorable**: Each checkbox is one independently verifiable atom.
+Progress is only via `- [ ]` / `- [x]` — no prose-only status. Split Acceptance
+into one task per criterion; no artificial upper count.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

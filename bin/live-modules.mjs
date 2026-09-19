@@ -2,6 +2,8 @@
  * Modular requirements + dependency-aware task pool for live desk FDE.
  */
 
+import { splitAcceptanceLines } from "../web/live-dev/acceptance-lines.mjs";
+
 function clipCard(card) {
   if (!card || typeof card !== "object") {
     return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
@@ -225,6 +227,9 @@ export function aggregateModulesCard(modules) {
  * Build a dependency-aware task pool from confirmed modules.
  * Default: later modules depend on the previous module's verify task (serial chain),
  * unless module.dependsOn lists other module ids (then depend on those modules' verify tasks).
+ *
+ * Atomic rule: one checkbox task per independently verifiable acceptance line so
+ * FDE can monitor progress; never fold multiple acceptance criteria into one task.
  */
 export function buildTaskPoolFromModules(modules, { deployNeeded = false, deployTaskText = null } = {}) {
   const list = clipModules(modules).filter((m) => m.status === "confirmed");
@@ -253,15 +258,29 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       title: `Implement module «${m.title}»: ${truncate(m.card.goal, 100)}`,
       dependsOn: [],
     });
-    const accept = push({
-      moduleId: m.id,
-      title: `Satisfy acceptance for «${m.title}»: ${truncate(m.card.acceptance, 100)}`,
-      dependsOn: [impl.id],
-    });
+    const acceptLines = splitAcceptanceLines(m.card.acceptance);
+    let prevId = impl.id;
+    if (acceptLines.length) {
+      for (const line of acceptLines) {
+        const acc = push({
+          moduleId: m.id,
+          title: `Satisfy acceptance (alone) «${m.title}»: ${truncate(line, 120)}`,
+          dependsOn: [prevId],
+        });
+        prevId = acc.id;
+      }
+    } else {
+      const acc = push({
+        moduleId: m.id,
+        title: `Satisfy acceptance for «${m.title}»: ${truncate(m.card.acceptance || m.card.goal, 100)}`,
+        dependsOn: [impl.id],
+      });
+      prevId = acc.id;
+    }
     const verify = push({
       moduleId: m.id,
       title: `Verify «${m.title}» against acceptance`,
-      dependsOn: [accept.id],
+      dependsOn: [prevId],
     });
     moduleVerifyId.set(m.id, verify.id);
 
@@ -322,7 +341,18 @@ export function taskPoolToMarkdown(pool) {
     const mod = t.moduleId ? ` [${t.moduleId}]` : "";
     return `- [ ] ${t.id}${mod} ${t.title}${deps}`;
   });
-  return `# Tasks\n\n${lines.join("\n")}\n`;
+  return `# Tasks
+
+${lines.join("\n")}
+
+做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 监控进度与编排放行。
+
+**原子任务规则（强制）：**
+- 每个勾选项只做一个可独立验证的功能点；不要把多项验收揉进同一条
+- 进度必须可监控：只用 \`- [ ]\` / \`- [x]\` 勾选；禁止无 checkbox 的笼统进度叙事
+- 若清单仍偏粗：开工后先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
+- 不要为了凑数合并无关步骤；也不要人为限制条数
+`;
 }
 
 /**

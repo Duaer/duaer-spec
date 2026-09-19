@@ -2,6 +2,11 @@
  * Task dependency preview for FDE kickoff — Archify IR (same as architecture).
  */
 
+import {
+  splitAcceptanceLines,
+  truncateText,
+} from "./acceptance-lines.mjs";
+
 const WORKER_TYPES = {
   w1: "backend",
   w2: "frontend",
@@ -44,20 +49,35 @@ export function buildPreviewPoolFromModules(modules) {
   for (let i = 0; i < list.length; i += 1) {
     const m = list[i];
     const title = String(m.title || m.id || "module").slice(0, 80);
+    const card = m.card && typeof m.card === "object" ? m.card : {};
     const impl = push({
       moduleId: m.id,
       title: `Implement «${title}»`,
       dependsOn: [],
     });
-    const acc = push({
-      moduleId: m.id,
-      title: `Acceptance «${title}»`,
-      dependsOn: [impl.id],
-    });
+    const acceptLines = splitAcceptanceLines(card.acceptance);
+    let prevId = impl.id;
+    if (acceptLines.length) {
+      for (const line of acceptLines) {
+        const acc = push({
+          moduleId: m.id,
+          title: `Accept «${title}»: ${truncateText(line, 80)}`,
+          dependsOn: [prevId],
+        });
+        prevId = acc.id;
+      }
+    } else {
+      const acc = push({
+        moduleId: m.id,
+        title: `Acceptance «${title}»`,
+        dependsOn: [impl.id],
+      });
+      prevId = acc.id;
+    }
     const ver = push({
       moduleId: m.id,
       title: `Verify «${title}»`,
-      dependsOn: [acc.id],
+      dependsOn: [prevId],
     });
     moduleVerifyId.set(m.id, ver.id);
 

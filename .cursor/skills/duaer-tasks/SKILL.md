@@ -139,6 +139,14 @@ The tasks.md should be immediately executable - each task must be specific enoug
 
 **CRITICAL**: Tasks MUST be organized by user story to enable independent implementation and testing.
 
+**Atomic + monitorable (NON-NEGOTIABLE)**:
+- Every task is **one** independently verifiable atom (one acceptance point,
+  one file-scoped change, or one verification slice) — not a bundled mega-task.
+- Every task is a markdown checkbox (`- [ ]` / `- [x]`) so progress is
+  monitorable; agents mark `[x]` as each atom completes.
+- Prefer one task per Acceptance / independent-test criterion. No artificial
+  upper count; refine if still too coarse.
+
 **Verification is DEFAULT**: For each user story, generate verification tasks
 from `.duaer/memory/testing.md` (L0–L3 as the risk table requires). Do **not**
 omit tests just because the Spec did not say “TDD”. Only skip a level when the

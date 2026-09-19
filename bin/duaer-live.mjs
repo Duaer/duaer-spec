@@ -3625,7 +3625,7 @@ Brief: ${featureDir}
 3. 按 .duaer/memory/testing.md（若有）做风险验证
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
 4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则静默停等编排器 continue（不要写 Job not accepted yet）；若已无后续波次则继续完成 stamp accepted
-4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
+4b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个勾选项只覆盖一个验收点；进度只能用 tasks.md 的 - [ ]/- [x] 监控（立刻勾选，不要攒到最后）；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
@@ -4243,7 +4243,7 @@ ${restated.keep}
 0. 本轮 Revision 已在 Duaer-spec FDE 自动验收通过。直接改；不要进入 Confirming intent；不要让用户从多个风格/方向选项里再选一次；不要反复确认需求
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
-2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
+2b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个 R${revN}-* 只覆盖一个改动；进度用 - [ ]/- [x] 立刻勾选监控；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url 为可打开的成品入口（http://localhost:… 或 HTML 页面，必填；禁止用 docs/**/*.md 当预览）；若是服务须先启动并可打开。禁止以 Job not accepted yet 收尾
 3b. 交付前必须更新产品仓 README（说明文档）以反映本轮改动后的行为/用法；需求变了就改 README，不要只改代码。英文 README 不得出现中文；中文说明用 README.zh-CN.md（或项目既有约定）
 4. 按 testing.md 做风险验证（若有）

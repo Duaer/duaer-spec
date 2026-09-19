@@ -74,6 +74,9 @@ registry linking into the requirements document (no duplicate full cards).
 Kickoff owns Brief creation and dispatch:
 
 - Builds a **dependency-aware task pool** (`dependsOn` edges).
+- **Atomic + monitorable:** one checkbox task per independently verifiable
+  acceptance line (plus impl / verify / shared steps). Agents must mark
+  `- [x]` as each atom completes so the desk can poll progress and release waves.
 - **Worker count** defaults to **1**. Optional **N** parallel workers on the
   **same** CLI (Cursor Agent or Claude Code — not mixed).
 - Assignment: shared / cross-cutting tasks → worker 1; module-scoped tasks

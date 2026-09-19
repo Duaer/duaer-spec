@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Feat: atomic verifiable tasks with monitorable progress
+
+- Constitution + duaer-do / duaer-tasks: decompose to one independently
+  verifiable atom per checkbox; progress only via `- [ ]` / `- [x]`
+- Kickoff task pool and preview graph split multi-line acceptance into
+  one task per criterion so FDE can monitor and release waves
+
 ## 0.21.0 — 2026-09-19
 
 ### Feat: click architecture diagram for fullscreen present view

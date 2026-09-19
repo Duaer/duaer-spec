@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T04:50:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": [
+      "node --check bin/live-modules.mjs bin/live-progress.mjs web/live-dev/task-graph.mjs web/live-dev/acceptance-lines.mjs",
+      "npm test (165 pass; atomic pool + preview split covered)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Atomic verifiable tasks with checkbox-monitorable progress: constitution, skills, kickoff pool + preview graph split acceptance lines."
+}

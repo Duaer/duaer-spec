@@ -41,3 +41,16 @@ cannot cover the path.
 **Job handoff (not a git lock):** the agent reports accept/open itself.
 Default policy `coach` — do not claim "done" while the active job is unfinished.
 Do not send the human to run `duaer status` for routine work.
+
+### V. Atomic verifiable tasks; progress must be monitorable (NON-NEGOTIABLE)
+
+When breaking down work (`tasks.md`, kickoff task pool, or mid-job re-split):
+
+1. **Atomic + verifiable:** each task covers **one** independently checkable
+   acceptance point or deliverable slice. Do not bundle unrelated acceptance
+   into a mega-task.
+2. **Monitorable progress:** every task is a markdown checkbox
+   (`- [ ]` / `- [x]`). Mark `[x]` as soon as that atom is done so FDE / humans
+   can see progress. Do not replace checkboxes with prose-only status.
+3. Prefer splitting Acceptance lines (and Goal slices) over inventing coarse
+   phases. There is **no** artificial upper count; refine if still too coarse.

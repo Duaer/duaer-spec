@@ -54,7 +54,13 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
    - Deep ambiguity after a full Spec still uses `duaer-clarify` (up to 5
      questions). Understand is the **lightweight front door** on every ask.
 
-3. **Break down** — If `tasks.md` missing, write a short checklist from the Spec.
+3. **Break down** — If `tasks.md` missing, write a checklist from the Spec.
+   **Atomic + monitorable (mandatory):**
+   - Split until each item is **one** independently verifiable acceptance /
+     deliverable atom (not a mega-phase).
+   - Every item is a markdown checkbox (`- [ ]` / `- [x]`) so progress can be
+     polled; check off immediately when that atom is done.
+   - Prefer one checkbox per Acceptance line; no artificial upper count.
    Skip a heavy plan unless architecture or contracts change.
 
 4. **Work** — Implement open tasks; mark `[x]` as you go. No scope beyond Spec.

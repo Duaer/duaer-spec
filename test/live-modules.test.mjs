@@ -100,6 +100,36 @@ test("aggregateModulesCard joins multi-module brief", () => {
   assert.match(agg.acceptance, /\/a/);
 });
 
+test("buildTaskPoolFromModules splits multi-line acceptance into atomic tasks", () => {
+  const pool = buildTaskPoolFromModules([
+    {
+      id: "auth",
+      title: "Auth",
+      status: "confirmed",
+      card: {
+        goal: "Login",
+        outOfScope: "",
+        acceptance: "- Open /login see form\n- Submit shows dashboard",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  const acceptTasks = pool.tasks.filter((t) =>
+    /Satisfy acceptance \(alone\)/.test(t.title),
+  );
+  assert.equal(acceptTasks.length, 2);
+  assert.match(acceptTasks[0].title, /Open \/login/);
+  assert.match(acceptTasks[1].title, /Submit shows/);
+  assert.deepEqual(acceptTasks[0].dependsOn, ["T001"]);
+  assert.deepEqual(acceptTasks[1].dependsOn, [acceptTasks[0].id]);
+  const md = taskPoolToMarkdown(pool);
+  assert.match(md, /原子任务规则/);
+  assert.match(md, /进度必须可监控/);
+  const boxes = md.match(/^- \[ \]/gm) || [];
+  assert.ok(boxes.length >= 5);
+});
+
 test("buildTaskPoolFromModules has dependsOn chain", () => {
   const pool = buildTaskPoolFromModules([
     {
