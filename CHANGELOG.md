@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Docs: drop meta “plain language / 人话” labels from README headings
+
+- Section titles are「我们有什么」/「What you get」without the meta tag in the title
+
 ## 0.23.1 — 2026-09-19
 
 ### Docs: plain-language feature overview in READMEs

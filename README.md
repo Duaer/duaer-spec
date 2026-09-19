@@ -45,7 +45,7 @@ Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
 
 Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 
-## What you get (plain language)
+## What you get
 
 After install, these are the capabilities you actually use:
 

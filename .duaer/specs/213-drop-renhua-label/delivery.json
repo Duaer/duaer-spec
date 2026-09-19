@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T13:35:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["rg -n '人话|plain language\\)' README.zh-CN.md README.md → no heading matches"],
+    "result": "pass"
+  },
+  "summary": "README feature headings no longer use 人话 / (plain language) meta labels."
+}
