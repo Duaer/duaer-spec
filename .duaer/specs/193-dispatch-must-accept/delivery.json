@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T03:10:00.000Z",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs",
+    "L1": "node --test test/dispatch-must-accept.test.mjs test/live-orchestrate.test.mjs",
+    "L3": "npm run test:live",
+    "result": "pass"
+  },
+  "summary": "FDE dispatch must finish every task; forbid Job not accepted yet; accept nudge when checklist done."
+}

@@ -258,6 +258,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
   assert.match(liveBin, /buildWorkersProgress/);
   assert.match(liveBin, /advanceOrchestration|waveForWorker|releasedWaves/);
+  assert.match(liveBin, /DISPATCH_MUST_FINISH_RULES|Job not accepted yet/);
+  assert.match(liveBin, /__ACCEPT_NUDGE__/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: FDE dispatch must finish every task
+
+- Kickoff / wave / continue / revise prompts forbid `Job not accepted yet` as a final handoff
+- When all `tasks.md` boxes are checked but delivery is still open, status poll nudges stamp accept once
+- `duaer-do`: live-dispatch jobs must stamp accepted before stopping
+
 ## 0.20.0 — 2026-09-19
 
 ### Feat: pick projects parent folder via system dialog

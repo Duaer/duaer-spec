@@ -86,6 +86,10 @@ Kickoff owns Brief creation and dispatch:
   enqueues `--continue` on the owning lane with the next ready wave (no
   prompt-only hope). Assignment inherits the first dependency’s worker when
   possible so chained work stays on-lane.
+- **Must finish:** prompts forbid ending with `Job not accepted yet`. Workers
+  complete every assigned task and stamp `delivery.json` `accepted`. If the
+  checklist is fully checked but delivery is still open, status poll nudges
+  an idle lane once to stamp accept.
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 

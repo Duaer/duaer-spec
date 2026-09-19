@@ -67,9 +67,21 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
 
 6. **Handoff** — One line to the human:
    - `✅ Job accepted — ready for your review.`
-   - `⏳ Job not accepted yet — <one sentence>.`
+   - `⏳ Job not accepted yet — <one sentence>.` (**not** for FDE / live-dispatch
+     — see below)
    - During Understand wait: `⏳ Confirming intent — <one sentence restatement>.`
    Never claim done unless accepted + tasks clear. Git is not locked by this.
+
+### FDE live-dispatch (mandatory finish)
+
+When `.duaer/active-job.json` has `"source": "live-dispatch"` (Duaer-spec FDE
+kicked you off), **every** assigned task must be completed and
+`delivery.json` stamped `accepted` before you stop.
+
+- **Do not** end with `⏳ Job not accepted yet` — that freezes the desk mid-coding.
+- Mid-wave pause for the orchestrator is fine **only** as a quiet stop (no
+  unaccepted handoff line).
+- Final line after stamp: `✅ Job accepted — ready for your review.`
 
 ## Hotfix
 
