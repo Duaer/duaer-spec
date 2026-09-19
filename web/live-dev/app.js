@@ -25,6 +25,25 @@ import {
 import { enrichChatOptions } from "./choice-options.mjs";
 import { buildTaskArchitectureIr } from "./task-graph.mjs";
 
+/** Deliverables API lang: en | ja | zh */
+function deliverablesLang() {
+  const loc = getLocale();
+  if (loc === "en") return "en";
+  if (loc === "ja") return "ja";
+  return "zh";
+}
+
+function localeListJoin(items) {
+  return items.join(getLocale() === "en" ? ", " : "、");
+}
+
+function localeDateTag() {
+  const loc = getLocale();
+  if (loc === "en") return "en-US";
+  if (loc === "ja") return "ja-JP";
+  return "zh-CN";
+}
+
 const FALLBACK_PROVIDERS = [
   {
     id: "deepseek",
@@ -661,7 +680,7 @@ function openDeliverablesPage() {
     addBubble("bot", t("bot.needProject"));
     return;
   }
-  const lang = getLocale() === "en" ? "en" : "zh";
+  const lang = deliverablesLang();
   const url = `/api/projects/deliverables?path=${encodeURIComponent(abs)}&lang=${lang}`;
   window.open(url, "_blank", "noopener,noreferrer");
 }
@@ -4660,12 +4679,12 @@ function renderAgentList() {
     const ok = (state.agents || []).map((a) => a.label).filter(Boolean);
     if (miss.length && ok.length) {
       el.agentHint.textContent = t("agent.partialHint", {
-        ok: ok.join(getLocale() === "en" ? ", " : "、"),
-        miss: miss.join(getLocale() === "en" ? ", " : "、"),
+        ok: localeListJoin(ok),
+        miss: localeListJoin(miss),
       });
     } else if (miss.length) {
       el.agentHint.textContent = t("agent.missingHint", {
-        list: miss.join(getLocale() === "en" ? ", " : "、"),
+        list: localeListJoin(miss),
       });
     } else {
       el.agentHint.textContent = t("agent.detected");
@@ -7062,7 +7081,7 @@ function formatHistoryTime(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return String(iso);
   try {
-    return d.toLocaleString(getLocale() === "en" ? "en-US" : "zh-CN", {
+    return d.toLocaleString(localeDateTag(), {
       month: "short",
       day: "numeric",
       hour: "2-digit",

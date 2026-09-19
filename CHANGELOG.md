@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: Japanese (ja) live desk locale
+
+- Language select adds 日本語; catalog covers all en keys
+- Deliverables API accepts `lang=ja`; dates / HTML `lang` use ja-JP
+
 ### Feat: atomic verifiable tasks with monitorable progress
 
 - Constitution + duaer-do / duaer-tasks: decompose to one independently

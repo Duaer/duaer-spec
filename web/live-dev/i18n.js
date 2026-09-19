@@ -1,8 +1,10 @@
 /**
- * Duaer-spec FDE (live desk) i18n — zh-CN (default) + en.
+ * Duaer-spec FDE (live desk) i18n — zh-CN (default) + en + ja.
  */
 
-export const LOCALES = ["zh-CN", "en"];
+import { ja } from "./i18n-ja.js";
+
+export const LOCALES = ["zh-CN", "en", "ja"];
 
 const STORAGE_KEY = "duaer.live.locale";
 
@@ -1066,7 +1068,7 @@ const en = {
   "err.autoFix": "Auto-fix failed",
 };
 
-const catalogs = { "zh-CN": zhCN, en };
+const catalogs = { "zh-CN": zhCN, en, ja };
 
 let locale = "zh-CN";
 const listeners = new Set();
@@ -1084,6 +1086,7 @@ export function detectLocale() {
   }
   const nav = String(navigator.language || navigator.userLanguage || "").toLowerCase();
   if (nav.startsWith("zh")) return "zh-CN";
+  if (nav.startsWith("ja")) return "ja";
   return "en";
 }
 

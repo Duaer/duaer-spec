@@ -52,7 +52,7 @@ the table for their app.
 | E2E-035 | After handoff removes worktree, status/preview work; revise recreates wt | manual |
 | E2E-036 | Confirm card unchanged; revise card stays in bottom panel | manual |
 | E2E-037 | Preview/revise CTAs hidden until delivery accepted | manual |
-| E2E-038 | Live desk language switch (zh-CN / en) updates copy; reload keeps locale | manual |
+| E2E-038 | Live desk language switch (zh-CN / en / ja) updates copy; reload keeps locale | manual |
 | E2E-039 | After accept, revise confirm starts agent (fresh session if needed); stale runner opens new Terminal; revise card uses dark plate style | manual |
 | E2E-040 | Live desk: left chat + right card stay viewport-aligned; right auto-scrolls to active stage on real stage changes — not on every status poll; manual scroll in 需求/运行 is held ~12s | manual |
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt) while job is still in progress; after accept, see E2E-047 | manual |
@@ -142,6 +142,7 @@ the table for their app.
 | E2E-161 | 打开看看 uses project start URL, not docs/*.md preview paths | `npm test` + `npm run test:live` |
 | E2E-162 | Architecture / task-path click opens present=1 fullscreen in a new tab | `npm test` + `npm run test:live` |
 | E2E-163 | Task breakdown: multi-line acceptance → one atomic checkbox task per line; progress monitorable via `- [ ]`/`- [x]` | `npm test` |
+| E2E-164 | Live desk Japanese (`ja`) locale: select option, catalog parity with en, deliverables `lang=ja` | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -330,3 +331,4 @@ the table for their app.
 | E2E-161 | `200-preview-start-url` | 打开看看 prefers start URL over docs |
 | E2E-162 | `201-arch-fullscreen` | architecture click → present fullscreen |
 | E2E-163 | `203-atomic-monitorable-tasks` | atomic verifiable tasks; checkbox progress |
+| E2E-164 | `204-live-i18n-ja` | Japanese locale on live desk |

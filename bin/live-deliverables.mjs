@@ -15,12 +15,25 @@ function esc(s) {
     .replace(/"/g, "&quot;");
 }
 
+function normalizeDeliverablesLang(lang) {
+  const l = String(lang || "").toLowerCase();
+  if (l === "en" || l.startsWith("en")) return "en";
+  if (l === "ja" || l.startsWith("ja")) return "ja";
+  return "zh";
+}
+
+function pickLang(lang, map) {
+  const l = normalizeDeliverablesLang(lang);
+  return map[l] ?? map.zh;
+}
+
 function fmtAt(iso, lang) {
-  if (!iso) return lang === "en" ? "—" : "—";
+  if (!iso) return "—";
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return String(iso).slice(0, 19);
-    return d.toLocaleString(lang === "en" ? "en-US" : "zh-CN", {
+    const tag = pickLang(lang, { en: "en-US", ja: "ja-JP", zh: "zh-CN" });
+    return d.toLocaleString(tag, {
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -279,7 +292,7 @@ function renderTaskPoolHtml(body, L) {
  * @param {{ job?: object|null, lang?: string, projectTitle?: string }} [opts]
  */
 export function buildDeliverablesModel(session, opts = {}) {
-  const lang = opts.lang === "en" ? "en" : "zh";
+  const lang = normalizeDeliverablesLang(opts.lang);
   const s = session && typeof session === "object" ? session : {};
   const modules = Array.isArray(s.modules) ? s.modules : [];
   const confirmed = modules.filter((m) => m.status === "confirmed");
@@ -294,7 +307,7 @@ export function buildDeliverablesModel(session, opts = {}) {
   if (allReq || confirmed.length) {
     reqVersions.push({
       id: "v0",
-      label: lang === "en" ? "Initial" : "初版",
+      label: pickLang(lang, { en: "Initial", ja: "初版", zh: "初版" }),
       at: s.updatedAt || null,
       modules: (allReq ? modules : confirmed).map((m) => ({
         id: m.id,
@@ -309,8 +322,11 @@ export function buildDeliverablesModel(session, opts = {}) {
     if (rev < 1) continue;
     reqVersions.push({
       id: `r${rev}`,
-      label:
-        lang === "en" ? `Revision ${rev}` : `第 ${rev} 次改进`,
+      label: pickLang(lang, {
+        en: `Revision ${rev}`,
+        ja: `改訂 ${rev}`,
+        zh: `第 ${rev} 次改进`,
+      }),
       at: entry.at || s.updatedAt || null,
       revise: {
         goal: entry.goal || "",
@@ -324,19 +340,27 @@ export function buildDeliverablesModel(session, opts = {}) {
   const stages = [
     {
       id: "requirements",
-      title: lang === "en" ? "Requirements" : "需求",
+      title: pickLang(lang, { en: "Requirements", ja: "要件", zh: "需求" }),
       status: allReq ? "done" : confirmed.length ? "partial" : "empty",
       artifacts: [
         {
           id: "req-doc",
-          title: lang === "en" ? "Requirements document" : "需求文档",
+          title: pickLang(lang, {
+            en: "Requirements document",
+            ja: "要件ドキュメント",
+            zh: "需求文档",
+          }),
           kind: "timeline",
           ready: reqVersions.length > 0,
           versions: reqVersions,
         },
         {
           id: "req-confirm",
-          title: lang === "en" ? "Requirements confirmation" : "需求确认书",
+          title: pickLang(lang, {
+            en: "Requirements confirmation",
+            ja: "要件確認書",
+            zh: "需求确认书",
+          }),
           kind: "confirmations",
           ready: confirmed.length > 0,
           confirmations: confirmed.map((m) => ({
@@ -350,12 +374,16 @@ export function buildDeliverablesModel(session, opts = {}) {
     },
     {
       id: "architecture",
-      title: lang === "en" ? "Architecture" : "架构",
+      title: pickLang(lang, { en: "Architecture", ja: "アーキテクチャ", zh: "架构" }),
       status: arch.confirmed ? "done" : arch.url ? "partial" : "empty",
       artifacts: [
         {
           id: "arch-diagram",
-          title: lang === "en" ? "Architecture diagram" : "架构图",
+          title: pickLang(lang, {
+            en: "Architecture diagram",
+            ja: "アーキテクチャ図",
+            zh: "架构图",
+          }),
           kind: "architecture",
           ready: Boolean(arch.url),
           url: arch.url || null,
@@ -364,34 +392,48 @@ export function buildDeliverablesModel(session, opts = {}) {
         },
         {
           id: "arch-confirm",
-          title: lang === "en" ? "Architecture confirmation" : "架构确认",
+          title: pickLang(lang, {
+            en: "Architecture confirmation",
+            ja: "アーキテクチャ確認",
+            zh: "架构确认",
+          }),
           kind: "note",
           ready: Boolean(arch.confirmed),
           body: arch.confirmed
-            ? lang === "en"
-              ? "Architecture confirmed on the desk."
-              : "已在台面确认架构。"
+            ? pickLang(lang, {
+                en: "Architecture confirmed on the desk.",
+                ja: "デスクでアーキテクチャを確認済みです。",
+                zh: "已在台面确认架构。",
+              })
             : "",
         },
       ],
     },
     {
       id: "kickoff",
-      title: lang === "en" ? "Kickoff & implementation" : "开工与实现",
+      title: pickLang(lang, {
+        en: "Kickoff & implementation",
+        ja: "キックオフと実装",
+        zh: "开工与实现",
+      }),
       status: s.jobId || s.taskPool ? "done" : "empty",
       artifacts: [
         {
           id: "brief",
-          title: lang === "en" ? "Brief / job" : "Brief / 工单",
+          title: pickLang(lang, {
+            en: "Brief / job",
+            ja: "Brief / ジョブ",
+            zh: "Brief / 工单",
+          }),
           kind: "note",
           ready: Boolean(s.jobId),
           body: s.jobId
-            ? `${lang === "en" ? "Job" : "工单"}: ${s.jobId}`
+            ? `${pickLang(lang, { en: "Job", ja: "ジョブ", zh: "工单" })}: ${s.jobId}`
             : "",
         },
         {
           id: "task-pool",
-          title: lang === "en" ? "Task pool" : "任务池",
+          title: pickLang(lang, { en: "Task pool", ja: "タスクプール", zh: "任务池" }),
           kind: "taskpool",
           ready: Boolean(s.taskPool),
           body: s.taskPool
@@ -399,16 +441,18 @@ export function buildDeliverablesModel(session, opts = {}) {
             : "",
           meta:
             Number(s.workerCount) > 1
-              ? lang === "en"
-                ? `Workers: ${s.workerCount}`
-                : `数字员工：${s.workerCount}`
+              ? pickLang(lang, {
+                  en: `Workers: ${s.workerCount}`,
+                  ja: `デジタル従業員：${s.workerCount}`,
+                  zh: `数字员工：${s.workerCount}`,
+                })
               : "",
         },
       ],
     },
     {
       id: "delivery",
-      title: lang === "en" ? "Delivery" : "交付",
+      title: pickLang(lang, { en: "Delivery", ja: "デリバリー", zh: "交付" }),
       status:
         delivery?.status === "accepted" || job?.jobStatus === "accepted"
           ? "done"
@@ -418,22 +462,26 @@ export function buildDeliverablesModel(session, opts = {}) {
       artifacts: [
         {
           id: "delivery-stamp",
-          title: lang === "en" ? "Delivery stamp" : "交付戳",
+          title: pickLang(lang, {
+            en: "Delivery stamp",
+            ja: "デリバリースタンプ",
+            zh: "交付戳",
+          }),
           kind: "note",
           ready: Boolean(delivery || job?.jobStatus),
           body: delivery
-            ? `${lang === "en" ? "Status" : "状态"}: ${delivery.status || "—"}${
+            ? `${pickLang(lang, { en: "Status", ja: "状態", zh: "状态" })}: ${delivery.status || "—"}${
                 delivery.acceptedAt
-                  ? `\n${lang === "en" ? "Accepted" : "验收"}: ${delivery.acceptedAt}`
+                  ? `\n${pickLang(lang, { en: "Accepted", ja: "受入", zh: "验收" })}: ${delivery.acceptedAt}`
                   : ""
               }`
             : job?.jobStatus
-              ? `${lang === "en" ? "Job status" : "工单状态"}: ${job.jobStatus}`
+              ? `${pickLang(lang, { en: "Job status", ja: "ジョブ状態", zh: "工单状态" })}: ${job.jobStatus}`
               : "",
         },
         {
           id: "preview",
-          title: lang === "en" ? "Preview" : "预览",
+          title: pickLang(lang, { en: "Preview", ja: "プレビュー", zh: "预览" }),
           kind: "link",
           ready: Boolean(preview?.url),
           url: preview?.url || null,
@@ -445,14 +493,15 @@ export function buildDeliverablesModel(session, opts = {}) {
   if (reviseCards.length || s.reviseLocked || s.lastRevision) {
     stages.push({
       id: "revise",
-      title: lang === "en" ? "Revisions" : "改进",
+      title: pickLang(lang, { en: "Revisions", ja: "改訂", zh: "改进" }),
       status: reviseCards.length ? "done" : "partial",
       artifacts: reviseCards.map((entry) => ({
         id: `revise-${entry.revision}`,
-        title:
-          lang === "en"
-            ? `Revision ${entry.revision} plan`
-            : `第 ${entry.revision} 版改进方案`,
+        title: pickLang(lang, {
+          en: `Revision ${entry.revision} plan`,
+          ja: `改訂 ${entry.revision} プラン`,
+          zh: `第 ${entry.revision} 版改进方案`,
+        }),
         kind: "card",
         ready: true,
         card: {
@@ -474,7 +523,7 @@ export function buildDeliverablesModel(session, opts = {}) {
     projectTitle:
       String(opts.projectTitle || "").trim() ||
       path.basename(String(s.projectPath || "")) ||
-      (lang === "en" ? "Project" : "项目"),
+      pickLang(lang, { en: "Project", ja: "プロジェクト", zh: "项目" }),
     updatedAt: s.updatedAt || null,
     stages,
   };
@@ -510,6 +559,37 @@ function labelsFor(lang) {
       taskTitle: "Task",
       confirmRegistry: "Confirmation registry",
       jump: "View in requirements",
+    };
+  }
+  if (lang === "ja") {
+    return {
+      brand: "プロジェクト成果物",
+      pageTitle: "成果物ドシエ",
+      subtitle: "各段階で何ができたかを整理した記録",
+      generated: "生成日時",
+      project: "プロジェクト",
+      emptyStage: "まだ成果物はありません",
+      emptyCard: "（空）",
+      goal: "目的",
+      out: "対象外",
+      accept: "受入基準",
+      assume: "前提",
+      statusDone: "完了",
+      statusPartial: "進行中",
+      statusEmpty: "未着手",
+      timeline: "バージョンタイムライン",
+      toc: "目次",
+      artifacts: "成果物",
+      openArch: "図を開く",
+      openLink: "開く",
+      confirmed: "確認済み",
+      draft: "下書き",
+      module: "モジュール",
+      depends: "依存",
+      taskId: "ID",
+      taskTitle: "タスク",
+      confirmRegistry: "確認レジストリ",
+      jump: "要件本文を見る",
     };
   }
   return {
@@ -631,7 +711,7 @@ function renderArtifact(art, L, lang) {
  * @param {ReturnType<typeof buildDeliverablesModel>} model
  */
 export function renderDeliverablesHtml(model) {
-  const lang = model.lang === "en" ? "en" : "zh";
+  const lang = normalizeDeliverablesLang(model.lang);
   const L = labelsFor(lang);
   const stages = model.stages || [];
   const tocHtml = `<nav class="toc" aria-label="${esc(L.toc)}">
@@ -673,7 +753,7 @@ export function renderDeliverablesHtml(model) {
     .join("\n");
 
   return `<!DOCTYPE html>
-<html lang="${lang === "en" ? "en" : "zh-CN"}">
+<html lang="${pickLang(lang, { en: "en", ja: "ja", zh: "zh-CN" })}">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />

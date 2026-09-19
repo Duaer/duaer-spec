@@ -6578,10 +6578,13 @@ async function handleApi(req, res) {
         send(res, 400, { error: "path required", code: "EMPTY_PATH" });
         return;
       }
+      const langRaw = String(url.searchParams.get("lang") || "").toLowerCase();
       const lang =
-        String(url.searchParams.get("lang") || "").toLowerCase() === "en"
+        langRaw === "en" || langRaw.startsWith("en")
           ? "en"
-          : "zh";
+          : langRaw === "ja" || langRaw.startsWith("ja")
+            ? "ja"
+            : "zh";
       const asJson = String(url.searchParams.get("format") || "") === "json";
       const session = readProjectChat(liveRoot(), projectPath);
       let job = null;

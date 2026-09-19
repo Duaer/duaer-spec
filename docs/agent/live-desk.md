@@ -50,7 +50,7 @@ HTML page generated from the project session:
 | Delivery | Delivery stamp · preview URL |
 | Revisions | Each revise plan card (when present) |
 
-API: `GET /api/projects/deliverables?path=…&lang=zh|en` (`format=json` for the
+API: `GET /api/projects/deliverables?path=…&lang=zh|en|ja` (`format=json` for the
 model). A cache file is written under `~/.duaer/live/project-chats/*-deliverables.html`.
 The HTML uses a **white client dossier** look (not the desk dark theme).
 Each page includes a **Contents** nav, stage anchors, and labeled field rows
