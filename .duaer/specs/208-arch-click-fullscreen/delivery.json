@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T13:10:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": ["node --test test/arch-fullscreen.test.mjs test/live-archify.test.mjs", "npm test"],
+    "result": "pass"
+  },
+  "summary": "Architecture mount click opens present fullscreen only; embed node zoom disabled."
+}

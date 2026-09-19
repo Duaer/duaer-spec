@@ -1198,13 +1198,21 @@ function bindArchitecturePresentClick(host, getUrl) {
   if (!host || host.dataset.presentBound === "1") return;
   host.dataset.presentBound = "1";
   host.classList.add("architecture-mount-clickable");
-  host.addEventListener("click", (ev) => {
-    if (ev.target.closest?.("button, a, input, textarea, select")) return;
-    const url = typeof getUrl === "function" ? getUrl() : getUrl;
-    const href = String(url || host.dataset.archUrl || "").trim();
-    if (!href) return;
-    openArchitecturePresent(href);
-  });
+  // Capture on the host so Shadow DOM node clicks open fullscreen instead of
+  // Archify reveal/zoom in the embed.
+  host.addEventListener(
+    "click",
+    (ev) => {
+      if (ev.target.closest?.("button, a, input, textarea, select")) return;
+      const url = typeof getUrl === "function" ? getUrl() : getUrl;
+      const href = String(url || host.dataset.archUrl || "").trim();
+      if (!href) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      openArchitecturePresent(href);
+    },
+    true,
+  );
 }
 
 function hydrateArchitectureMounts(root) {

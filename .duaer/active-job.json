@@ -1,5 +1,4 @@
 {
-  "featureDir": ".duaer/specs/207-fix-projects-root-pick",
-  "slug": "207-fix-projects-root-pick",
-  "updatedAt": "2026-09-19T12:52:00.000Z"
+  "feature": "208-arch-click-fullscreen",
+  "specDir": ".duaer/specs/208-arch-click-fullscreen"
 }

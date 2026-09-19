@@ -29,5 +29,7 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(I18N, /点击图可新页面全屏查看/);
   assert.match(APP, /architectureOpenFullscreen/);
   assert.match(APP, /bindArchitecturePresentClick\(\s*el\.taskGraphMount/);
+  assert.match(APP, /stopPropagation\(\)/);
+  assert.match(APP, /addEventListener\(\s*"click",[\s\S]*?true\s*\)/);
   assert.match(CSS, /architecture-mount-clickable/);
 });

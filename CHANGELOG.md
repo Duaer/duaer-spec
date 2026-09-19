@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: architecture embed click opens fullscreen only
+
+- Desk diagram click (capture) opens present fullscreen and does not zoom nodes
+- Embed `reveal` zoom path disabled; focus-chip hidden on the mount
+
 ### Fix: projects parent folder picker frontmost + clickable path
 
 - macOS folder dialog activates Finder so it is not buried behind the browser

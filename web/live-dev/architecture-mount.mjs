@@ -1,7 +1,8 @@
 /**
  * Mount Archify architecture HTML into a page host (no iframe).
- * Full styles + viewer runtime (focus-chip, zoom, motion) via Shadow DOM
- * and a document proxy scoped to `.archify-root`.
+ * Full styles + viewer runtime (motion overlays) via Shadow DOM and a
+ * document proxy scoped to `.archify-root`. Desk clicks open fullscreen
+ * present view; embed node zoom is disabled.
  *
  * Must include the full <body> chrome (toolbar buttons etc.) — Archify's
  * viewer script null-derefs if #btn-preset / #btn-theme are missing.
@@ -61,8 +62,9 @@ function hostChromeCss() {
   box-sizing: border-box;
   font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-/* Desk: hide Archify chrome; keep diagram FX + focus-chip.
-   DOM nodes stay present so the viewer script can bind them. */
+/* Desk: hide Archify chrome; keep diagram FX.
+   DOM nodes stay present so the viewer script can bind them.
+   focus-chip stays hidden — click opens fullscreen, not node passport. */
 .archify-root .toolbar,
 .archify-root .header,
 .archify-root .cards,
@@ -114,24 +116,7 @@ function hostChromeCss() {
   max-height: none !important;
 }
 .archify-root .focus-chip {
-  display: block !important;
-  position: absolute !important;
-  left: 0.75rem !important;
-  top: 0.75rem !important;
-  z-index: 10000 !important;
-  width: min(22rem, calc(100% - 1.5rem - 100px)) !important;
-  max-width: calc(100% - 1.5rem - 100px) !important;
-  max-height: none !important;
-  overflow: visible !important;
-  pointer-events: auto !important;
-}
-.archify-root .focus-chip[hidden] {
   display: none !important;
-}
-.archify-root .focus-chip .relationship-lens-list {
-  display: block !important;
-  max-height: none !important;
-  overflow: visible !important;
 }
 `;
 }
@@ -280,41 +265,17 @@ function createScopedDocument(rootEl, shadow) {
   });
 }
 
-function installDesktopReveal(Archify) {
+/**
+ * Desk mounts open fullscreen on click; do not zoom/enlarge nodes in-embed.
+ * Keep Archify.view.reveal as a no-op so residual handlers cannot frame zoom.
+ */
+function disableEmbedNodeZoom(Archify) {
   if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
-  if (Archify.view.__duaerEmbedZoom) return;
-  const original = Archify.view.reveal.bind(Archify.view);
-  Archify.view.reveal = function duaerReveal(ids, options) {
-    const opts = Object.assign({}, options || {}, {
-      includeNeighbors: false,
-      maxScale: 2.6,
-      padding: 28,
-    });
-    let forced = false;
-    const desc = Object.getOwnPropertyDescriptor(window, "innerWidth");
-    try {
-      if ((window.innerWidth || 0) <= 720) {
-        Object.defineProperty(window, "innerWidth", {
-          configurable: true,
-          get() {
-            return 1280;
-          },
-        });
-        forced = true;
-      }
-      return original(ids, opts);
-    } finally {
-      if (forced) {
-        try {
-          if (desc) Object.defineProperty(window, "innerWidth", desc);
-          else delete window.innerWidth;
-        } catch {
-          /* ignore */
-        }
-      }
-    }
+  if (Archify.view.__duaerEmbedNoZoom) return;
+  Archify.view.reveal = function duaerNoZoomReveal() {
+    /* desk: click opens present fullscreen instead */
   };
-  Archify.view.__duaerEmbedZoom = true;
+  Archify.view.__duaerEmbedNoZoom = true;
 }
 
 function runViewerScript(code, scopedDocument) {
@@ -325,7 +286,7 @@ function runViewerScript(code, scopedDocument) {
     `"use strict";\n${code}\n;return typeof Archify !== "undefined" ? Archify : null;`,
   );
   const Archify = runner(scopedDocument, window);
-  installDesktopReveal(Archify);
+  disableEmbedNodeZoom(Archify);
   return Archify;
 }
 

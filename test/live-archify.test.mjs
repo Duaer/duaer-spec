@@ -340,8 +340,11 @@ test("live sources wire architecture API + desk panel", () => {
     path.join(ROOT, "web/live-dev/architecture-mount.mjs"),
     "utf8",
   );
-  assert.match(mount, /attachShadow|archify-root|focus-chip|runViewerScript|scopeArchifyCss/);
-  assert.match(mount, /data-motion-capable|installDesktopReveal|bodyHtml|btn-preset/);
+  assert.match(mount, /attachShadow|archify-root|runViewerScript|scopeArchifyCss/);
+  assert.match(mount, /data-motion-capable|disableEmbedNodeZoom|bodyHtml|btn-preset/);
+  assert.match(mount, /__duaerEmbedNoZoom|duaerNoZoomReveal/);
+  assert.doesNotMatch(mount, /installDesktopReveal|__duaerEmbedZoom/);
+  assert.match(mount, /\.focus-chip\s*\{\s*display:\s*none\s*!important/);
   assert.match(mount, /100vh|100dvh|duaer-arch-host-chrome|height:\s*auto\s*!important/);
   assert.doesNotMatch(mount, /arch-passport/);
 });
