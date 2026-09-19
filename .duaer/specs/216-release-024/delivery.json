@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T14:05:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": ["npm test (177 pass)", "gh release v0.24.0", "npm view duaer-spec version → 0.24.0"],
+    "result": "pass"
+  },
+  "summary": "Released 0.24.0 (deploy employee + common locales) to GitHub and npm."
+}
