@@ -83,6 +83,8 @@ Open **Employees** in the top bar. Runtime is still Cursor Agent or Claude Code;
 
 With multiple workers, the **last lane** owns functional regression (and deploy tasks); implement work stays on earlier lanes. With one worker, the same CLI session runs roles in task order.
 
+Before a job can stay accepted, the desk runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
+
 ### Deploy: supported hosts
 
 Before kickoff, pick a **planned host** on the desk. Coding follows that platform; the **Deployer** employee publishes and writes the public URL into delivery preview.

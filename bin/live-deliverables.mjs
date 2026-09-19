@@ -27,6 +27,20 @@ function pickLang(lang, map) {
   return map[l] ?? map.zh;
 }
 
+function verifyEvidenceLines(delivery) {
+  const v = delivery?.verification;
+  if (!v || typeof v !== "object") return "";
+  const lines = [];
+  if (v.result) lines.push(`verify: ${v.result}`);
+  if (v.waiver) lines.push(`waiver: ${v.waiver}`);
+  const cmds = Array.isArray(v.commands) ? v.commands : [];
+  for (const c of cmds) {
+    if (!c || !c.command) continue;
+    lines.push(`${c.command} → ${c.exitCode}`);
+  }
+  return lines.length ? `\n${lines.join("\n")}` : "";
+}
+
 function fmtAt(iso, lang) {
   if (!iso) return "—";
   try {
@@ -474,7 +488,7 @@ export function buildDeliverablesModel(session, opts = {}) {
                 delivery.acceptedAt
                   ? `\n${pickLang(lang, { en: "Accepted", ja: "受入", zh: "验收" })}: ${delivery.acceptedAt}`
                   : ""
-              }`
+              }${verifyEvidenceLines(delivery)}`
             : job?.jobStatus
               ? `${pickLang(lang, { en: "Job status", ja: "ジョブ状態", zh: "工单状态" })}: ${job.jobStatus}`
               : "",

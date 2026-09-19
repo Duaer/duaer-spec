@@ -92,6 +92,23 @@ local **`develop`**:
 A waiver must state: which level, why it cannot run now, and the follow-up.
 “Too slow” alone is not enough if a subset command exists.
 
+## Machine accept gate (live desk)
+
+Product repos that ship through Duaer-spec FDE keep a short contract at
+`.duaer/memory/verify.json`:
+
+```json
+{ "commands": ["npm test"], "timeoutSec": 600 }
+```
+
+When tasks are complete, or an employee writes `delivery.json` `accepted`, the
+desk runs those commands in the worktree. A non-zero exit, or a missing /
+invalid file, sets status back to `open` and stores the command, exit code, and
+output tail on `delivery.verification`. Docs-only work with no commands uses
+`{ "waiver": "docs-only" }`. The first command list is frozen for that dispatch
+so a later waiver cannot replace it. `npx duaer-spec update` does not overwrite
+an existing `verify.json`.
+
 ## Adopter profiles
 
 Thick product examples (e.g. `examples/dianwu-flow/testing.md`) may add L5+

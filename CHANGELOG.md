@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: desk machine verify gate
+
+- Before delivery can stay `accepted`, the desk runs `.duaer/memory/verify.json` in the worktree
+- A failing or missing contract reopens `accepted` and records command, exit code, and output tail
+- The all-tasks-done stamp-accept nudge is removed; `update` keeps an existing product `verify.json`
+
 ## 0.24.1 — 2026-09-19
 
 ### Docs: explain Functional regression digital employee

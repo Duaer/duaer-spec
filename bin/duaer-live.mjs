@@ -28,6 +28,11 @@ import {
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
 import {
+  evaluateVerifyGate,
+  regressionLane,
+  verifyNudgePrompt,
+} from "./live-verify-gate.mjs";
+import {
   deployPromptForTarget,
   isDeployPlanned,
   normalizeDeployTarget,
@@ -3691,7 +3696,7 @@ Brief: ${featureDir}
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
 4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话（不要挂起；编排器用 --continue 放行）；若已无后续波次则继续完成 stamp accepted
 4b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个勾选项只覆盖一个验收点；进度只能用 tasks.md 的 - [ ]/- [x] 监控（立刻勾选，不要攒到最后）；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
-5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet
+5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet。台面会按产品仓 .duaer/memory/verify.json 自己跑 commands；退出码非 0 或缺少契约时会把 accepted 打回 open。不要把已有 commands 改成 waiver 来跳过
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
@@ -5036,6 +5041,8 @@ function advanceOrchestration(live, {
   featureDir,
   terminalsByLane = {},
   accepted = false,
+  verifyNudge = null,
+  workerCount: workerCountHint = 0,
 } = {}) {
   if (accepted) {
     return live.job.orchestration || live.job.dispatch?.orchestration || null;
@@ -5138,58 +5145,42 @@ ${DISPATCH_MUST_FINISH_RULES}
     }
   }
 
-  // All tasks checked but delivery still open → nudge idle lane once to stamp accept.
-  const allTasksDone =
-    progress &&
-    Number(progress.total) > 0 &&
-    Number(progress.done) >= Number(progress.total);
-  const nudgeLane = "w1";
-  const acceptFp = "__ACCEPT_NUDGE__";
-  const priorNudge = Array.isArray(releasedWaves[nudgeLane])
-    ? releasedWaves[nudgeLane]
-    : [];
-  if (
-    allTasksDone &&
-    !accepted &&
-    agentId &&
-    worktreePath &&
-    !priorNudge.includes(acceptFp)
-  ) {
-    const brief = featureDir || dispatch.featureDir || "";
-    const prompt = `Duaer
-
-编排器催办：tasks.md 已全部勾选，但 delivery.json 尚未 accepted。工作目录: ${worktreePath}
-Brief: ${brief}
-
-立刻完成验收收尾（不要再改无关功能）：
-1. 更新产品 README（若尚未反映本次交付）
-2. 启动可打开的服务（若是 HTTP），确认能打开
-3. stamp delivery.json 为 accepted，必须写入 preview.url
-4. 最终只输出：✅ Job accepted — ready for your review.
-5. 禁止输出 Job not accepted yet / ⏳ not accepted
-
-${DISPATCH_MUST_FINISH_RULES}
-`;
-    const wLog =
-      workerCount === 1
-        ? path.join(brief, "agent-launch.log")
-        : path.join(brief, `agent-launch-${nudgeLane}.log`);
-    try {
-      launchAgent({
-        agentId,
+  // Machine verify failed or the contract is missing → tell the regression lane once.
+  // Do not ask the employee to stamp accepted; the desk reopens a bad stamp.
+  if (verifyNudge?.fingerprint && agentId && worktreePath) {
+    const nudgeLane = regressionLane(workerCountHint || workerCount);
+    const priorNudge = Array.isArray(releasedWaves[nudgeLane])
+      ? releasedWaves[nudgeLane]
+      : [];
+    if (!priorNudge.includes(verifyNudge.fingerprint)) {
+      const brief = featureDir || dispatch.featureDir || "";
+      const prompt = verifyNudgePrompt({
+        nudge: verifyNudge,
         worktreePath,
-        agentPrompt: prompt,
-        logPath: wLog,
         featureDir: brief,
-        continueSession: true,
-        queueLane: workerCount > 1 ? nudgeLane : null,
       });
-      releasedWaves[nudgeLane] = [...priorNudge, acceptFp];
-      changed = true;
-    } catch (err) {
-      errors.push(
-        `accept-nudge: ${err?.message || String(err || "launch failed")}`,
-      );
+      const laneCount = workerCountHint || workerCount;
+      const wLog =
+        laneCount === 1
+          ? path.join(brief, "agent-launch.log")
+          : path.join(brief, `agent-launch-${nudgeLane}.log`);
+      try {
+        launchAgent({
+          agentId,
+          worktreePath,
+          agentPrompt: prompt,
+          logPath: wLog,
+          featureDir: brief,
+          continueSession: true,
+          queueLane: laneCount > 1 ? nudgeLane : null,
+        });
+        releasedWaves[nudgeLane] = [...priorNudge, verifyNudge.fingerprint];
+        changed = true;
+      } catch (err) {
+        errors.push(
+          `verify-nudge: ${err?.message || String(err || "launch failed")}`,
+        );
+      }
     }
   }
 
@@ -5366,7 +5357,82 @@ function dispatchStatus(jobId) {
   let progress = parseTasksProgress(tasksRaw, {
     revision: activeRevision > 0 ? activeRevision : 0,
   });
-  const accepted = deliveryAccepted && !activelyRevising;
+  let accepted = deliveryAccepted && !activelyRevising;
+  let verifyGate = null;
+  let verifyNudge = null;
+  const allTasksDone =
+    Number(progress.total) > 0 && Number(progress.done) >= Number(progress.total);
+  if (worktreeExists && dispatch.worktreePath) {
+    const gate = evaluateVerifyGate({
+      repoRoot: dispatch.worktreePath,
+      delivery,
+      allTasksDone,
+      deliveryAccepted: delivery?.status === "accepted",
+      skip: activelyRevising,
+      terminalBusy: terminalWorking,
+      frozen: dispatch.verifyFrozen || null,
+      previous: dispatch.verifyGate || null,
+    });
+    verifyGate = gate.verifyGate || null;
+    verifyNudge = gate.nudge || null;
+    const nextDispatch = { ...dispatch };
+    let dispatchDirty = false;
+    if (gate.frozen && JSON.stringify(gate.frozen) !== JSON.stringify(dispatch.verifyFrozen || null)) {
+      nextDispatch.verifyFrozen = gate.frozen;
+      dispatchDirty = true;
+    }
+    if (gate.state && JSON.stringify(gate.state) !== JSON.stringify(dispatch.verifyGate || null)) {
+      nextDispatch.verifyGate = gate.state;
+      dispatchDirty = true;
+    }
+    if (gate.action === "write" && gate.delivery && deliveryPath) {
+      delivery = gate.delivery;
+      try {
+        fs.writeFileSync(
+          deliveryPath,
+          `${JSON.stringify(delivery, null, 2)}\n`,
+          "utf8",
+        );
+      } catch {
+        // keep in-memory delivery even if the stamp file cannot be rewritten
+      }
+      if (delivery.status !== "accepted") accepted = false;
+    }
+    if (accepted && verifyGate && verifyGate.result && verifyGate.result !== "pass") {
+      accepted = false;
+    }
+    if (!accepted && live.job.status === "accepted" && verifyGate && verifyGate.result !== "pass") {
+      try {
+        const nextJob = {
+          ...live.job,
+          status: "dispatched",
+          dispatch: dispatchDirty ? nextDispatch : live.job.dispatch,
+        };
+        fs.writeFileSync(
+          live.jobPath,
+          `${JSON.stringify(nextJob, null, 2)}\n`,
+          "utf8",
+        );
+        live.job = nextJob;
+        dispatchDirty = false;
+      } catch {
+        // ignore
+      }
+    }
+    if (dispatchDirty) {
+      try {
+        const nextJob = { ...live.job, dispatch: nextDispatch };
+        fs.writeFileSync(
+          live.jobPath,
+          `${JSON.stringify(nextJob, null, 2)}\n`,
+          "utf8",
+        );
+        live.job = nextJob;
+      } catch {
+        // ignore
+      }
+    }
+  }
   if (accepted) {
     if (tasksPath) reconcileTasksMdOnAccept(tasksPath);
     if (tasksPath && fs.existsSync(tasksPath)) {
@@ -5545,6 +5611,8 @@ function dispatchStatus(jobId) {
     featureDir,
     terminalsByLane: orchTerminals,
     accepted,
+    verifyNudge,
+    workerCount,
   });
 
   const workers = buildWorkersProgress({
@@ -5571,6 +5639,7 @@ function dispatchStatus(jobId) {
       orchestration,
     },
     delivery,
+    verifyGate,
     progress,
     workers,
     orchestration,

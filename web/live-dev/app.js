@@ -5749,6 +5749,17 @@ function fillRunProgress(block, data) {
         })
       : `${done}/${total} · ${progress.current || ""}`;
   }
+  const gate = data?.verifyGate;
+  if (block.summary && gate && gate.result && gate.result !== "pass") {
+    const line =
+      gate.result === "fail"
+        ? t("verify.fail", {
+            command: gate.command || "",
+            code: String(gate.exitCode ?? ""),
+          })
+        : t(gate.result === "invalid" ? "verify.invalid" : "verify.missing");
+    block.summary.textContent = `${block.summary.textContent} · ${line}`;
+  }
   if (block.activity) {
     const act = data?.activity;
     const line =

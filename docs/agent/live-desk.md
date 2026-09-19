@@ -101,9 +101,12 @@ Kickoff owns Brief creation and dispatch:
   prompt-only hope). Assignment inherits the first dependency’s worker when
   possible so chained work stays on-lane.
 - **Must finish:** prompts forbid ending with `Job not accepted yet`. Workers
-  complete every assigned task and stamp `delivery.json` `accepted`. If the
-  checklist is fully checked but delivery is still open, status poll nudges
-  an idle lane once to stamp accept.
+  complete every assigned task and stamp `delivery.json` `accepted`. The desk
+  then runs `.duaer/memory/verify.json` in the worktree. A non-zero exit, or a
+  missing contract, reopens `accepted` and enqueues the failure on the
+  regression lane. It does not nudge the employee to stamp accept. A
+  `docs-only` waiver (no commands) is the only skip. The first command list is
+  frozen so a later waiver cannot replace it.
 - **Execution graph:** kickoff shows the task path with the **same Archify
   renderer and layered layout** as the system architecture diagram; employee
   count uses chips (1 serial / 2–4 parallel).

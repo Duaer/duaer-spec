@@ -16,7 +16,7 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { spawn } from 'node:child_process'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   checkForUpdate,
@@ -150,19 +150,28 @@ function copyPath(from, to, { force }) {
   if (!existsSync(from)) {
     throw new Error(`Package missing required path: ${from}`)
   }
-  if (existsSync(to) && !force) {
-    const st = statSync(to)
-    if (st.isDirectory()) {
-      for (const name of readdirSync(from)) {
-        copyPath(join(from, name), join(to, name), { force })
-      }
-      return { skipped: false, merged: true }
+  const srcIsDir = statSync(from).isDirectory()
+  if (srcIsDir) {
+    ensureDir(to)
+    for (const name of readdirSync(from)) {
+      copyPath(join(from, name), join(to, name), { force })
     }
+    return { skipped: false, merged: true }
+  }
+  if (
+    existsSync(to) &&
+    basename(to) === 'verify.json' &&
+    basename(dirname(to)) === 'memory'
+  ) {
+    console.log(`skip (keep): ${to}`)
+    return { skipped: true }
+  }
+  if (existsSync(to) && !force) {
     console.log(`skip (exists): ${to}  (use --force to overwrite)`)
     return { skipped: true }
   }
   ensureDir(dirname(to))
-  cpSync(from, to, { recursive: true, force: true })
+  cpSync(from, to, { force: true })
   return { skipped: false }
 }
 

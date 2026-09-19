@@ -1,0 +1,4 @@
+{
+  "commands": ["npm test"],
+  "timeoutSec": 600
+}
