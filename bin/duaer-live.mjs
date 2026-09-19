@@ -6663,6 +6663,25 @@ function cmdConfig(opts) {
   }
 }
 
+function openDeskInBrowser(url) {
+  const target = String(url || "").trim();
+  if (!target) return;
+  try {
+    if (process.platform === "darwin") {
+      spawn("open", [target], { detached: true, stdio: "ignore" }).unref();
+    } else if (process.platform === "win32") {
+      spawn("cmd", ["/c", "start", "", target], {
+        detached: true,
+        stdio: "ignore",
+      }).unref();
+    } else {
+      spawn("xdg-open", [target], { detached: true, stdio: "ignore" }).unref();
+    }
+  } catch {
+    /* ignore — operator can open the printed URL */
+  }
+}
+
 function serve(port) {
   if (!fs.existsSync(WEB_ROOT)) {
     console.error("Missing web/live-dev");
@@ -6682,19 +6701,19 @@ function serve(port) {
   });
 
   server.listen(port, "127.0.0.1", () => {
+    const deskUrl = `http://127.0.0.1:${port}`;
     const cfg = publicConfig();
-    console.log(`Duaer-spec FDE  http://127.0.0.1:${port}`);
+    console.log(`Duaer-spec FDE  ${deskUrl}`);
     console.log(`隔离目录  ${liveRoot()}`);
     console.log(`Brief 写入 ${jobsRoot()}  （不会写入你当前业务仓库）`);
     if (!cfg.ready) {
-      console.log(`
-模型未配置。请先：
-  duaer live config --provider deepseek --api-key <key>
-  或页面里点「DeepSeek」再填 Key。
-`);
+      console.log(
+        `模型尚未配置 — 已打开台面，请在页面「设置」里填写模型后保存。`,
+      );
     } else {
       console.log(`模型      ${cfg.model} @ ${cfg.baseUrl}`);
     }
+    openDeskInBrowser(deskUrl);
     scheduleUpdateHint();
     void refreshUpdateInfo({ force: false });
     // Background: every 10 days check/upgrade Cursor Agent / Claude Code CLIs

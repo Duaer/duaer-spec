@@ -132,6 +132,7 @@ the table for their app.
 | E2E-150 | Requirements click-to-edit then blur without changes keeps field text (no wipe) | `npm run test:live` + manual |
 | E2E-151 | Modular `[模块]` card fields render section titles + numbered acceptance lists | `npm test` + `npm run test:live` |
 | E2E-152 | Project portfolio shows delivery status chips + open deliverables; Progress shows stage next-action | `npm test` + `npm run test:live` |
+| E2E-153 | `duaer live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -309,3 +310,4 @@ the table for their app.
 | E2E-150 | `186-req-edit-wipe` | click-edit blur must not wipe fields |
 | E2E-151 | `187-req-card-modules` | modular `[模块]` structured sections |
 | E2E-152 | `189-fde-portfolio` | portfolio status + delivery cockpit |
+| E2E-153 | `190-live-open-no-model` | live opens desk without model gate |

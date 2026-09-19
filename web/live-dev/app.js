@@ -2716,10 +2716,6 @@ function syncDrawerBackdrop() {
 function setSettingsOpen(open) {
   if (!el.settingsPanel) return;
   const want = Boolean(open);
-  if (!want && !state.ready) {
-    // First-time config: keep drawer open until saved.
-    return;
-  }
   if (want && el.historyPanel && !el.historyPanel.hidden) {
     el.historyPanel.hidden = true;
     if (el.historyToggle) {
@@ -2731,7 +2727,7 @@ function setSettingsOpen(open) {
     el.cfgOpen.setAttribute("aria-expanded", want ? "true" : "false");
   }
   if (el.settingsClose) {
-    el.settingsClose.hidden = !state.ready;
+    el.settingsClose.hidden = false;
   }
   syncDrawerBackdrop();
 }
@@ -2814,10 +2810,14 @@ function showSetup(cfg) {
   fillAwsFields(cfg);
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
-  if (!state.ready) {
-    if (el.desk) el.desk.hidden = true;
-  }
+  // Always show the desk; open Settings so the operator can fill the model.
+  if (el.desk) el.desk.hidden = false;
+  state.ready = false;
+  syncComposerEnabled();
   setSettingsOpen(true);
+  if (el.meta) {
+    el.meta.textContent = t("setup.hintOpenSettings");
+  }
 }
 
 function showDesk(cfg) {

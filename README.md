@@ -61,16 +61,18 @@ Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 **Duaer-spec FDE** = Field Development Environment.
 
 ```bash
-# DeepSeek (recommended)
+# Start anytime (opens the desk even if the model is not configured yet)
+duaer live
+
+# In the page Settings, or via CLI:
 duaer live config --provider deepseek --api-key sk-...
 
 # Remember a product repo for dispatch (optional; run inside that repo)
 duaer live repo add
-
-duaer live
 ```
 
-Open the printed URL (default `http://127.0.0.1:8787`). The desk is **full-width**
+`duaer live` opens the browser to the desk URL (default `http://127.0.0.1:8787`).
+If the model is missing, use **Settings** in the page. The desk is **full-width**
 with three columns: **chat** | **modules / confirm / architecture / kickoff /
 revise** | **task progress**. Detail:
 [`docs/agent/live-desk.md`](docs/agent/live-desk.md).

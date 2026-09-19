@@ -4,6 +4,10 @@ Field Development Environment for digital employees. Config and Briefs live unde
 `~/.duaer/live/`. Product work runs in isolated worktrees inside the chosen
 product repo.
 
+`duaer live` always starts the desk and opens the browser URL. A missing model
+does not block startup — the Settings drawer opens so the operator can save
+credentials, then chat.
+
 Also see root [`README.md`](../../README.md) (EN) / [`README.zh-CN.md`](../../README.zh-CN.md).
 
 ## Layout

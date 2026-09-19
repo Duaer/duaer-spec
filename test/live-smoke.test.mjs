@@ -299,6 +299,12 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /hasAliyunCredentials|hasCloudflareCredentials|hasAwsCredentials/);
   assert.match(js, /visibleDeployHostIds/);
   assert.match(js, /setup\.guideOther|cfgOpen|setSettingsOpen/);
+  assert.match(js, /setup\.hintOpenSettings|el\.desk\.hidden\s*=\s*false/);
+  assert.doesNotMatch(
+    js,
+    /First-time config:\s*keep drawer open until saved/,
+  );
+  assert.match(liveBin, /openDeskInBrowser|模型尚未配置/);
   assert.match(html, /architecturePanel|architectureFrame/);
   assert.match(js, /beginArchitectureDesign|\/api\/architecture\/render/);
   assert.match(html, /id="projectTitle"/);
