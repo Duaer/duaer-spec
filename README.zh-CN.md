@@ -56,7 +56,10 @@ npx duaer-spec update
 **Duaer-spec FDE** = Field Development Environment（现场开发）。
 
 ```bash
-# DeepSeek（推荐）
+# 启动（任意目录都行，不会写入当前项目；未配模型也会打开台面）
+duaer live
+
+# 在打开的页面「设置」里填模型，或用 CLI：
 duaer live config --provider deepseek --api-key sk-...
 
 # 在产品仓登记，派工时点选（可选）
@@ -64,12 +67,10 @@ duaer live repo add
 
 # 或任意 OpenAI 兼容接口
 duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
-
-# 启动（任意目录都行，不会写入当前项目）
-duaer live
 ```
 
-浏览器打开提示地址（默认 `http://127.0.0.1:8787`）。台面**全屏宽**，三列：
+启动后会自动打开浏览器（默认 `http://127.0.0.1:8787`）。未配置模型时请在页面
+**设置**里填写并保存。台面**全屏宽**，三列：
 **对话** | **模块 / 确认 / 架构 / 开工 / 改进** | **任务进度**。细则见
 [`docs/agent/live-desk.md`](docs/agent/live-desk.md)。
 
