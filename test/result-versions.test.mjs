@@ -43,6 +43,9 @@ test("desk UI: 打开看看 + version list + clear 续派中 on accept", () => {
   assert.match(APP, /function renderPreviewVersions\b/);
   assert.match(APP, /function openResultFolder\b/);
   assert.match(APP, /ensureAndOpenPreview|\/api\/preview\/ensure/);
+  assert.match(APP, /openedPreferred|preferred\.startsWith\("\/"\)/);
+  assert.match(APP, /chatPreviewHref/);
+  assert.match(APP, /isLocalHttpPreview/);
   assert.match(APP, /refreshPreviewServiceStatus|\/api\/preview\/status/);
   assert.match(APP, /state\.reviseDispatching\s*=\s*false/);
   assert.match(APP, /data\?\.results/);

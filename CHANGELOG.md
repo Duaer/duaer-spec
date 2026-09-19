@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: 打开看看 opens the focused preview URL
+
+- Result-bar open uses `lastPreviewUrl` for `/api/…` and public https; local
+  services still go through `/api/preview/ensure` without overwriting focus
+- Chat「打开看看」keeps same-origin `/api/…` hrefs (no baked host)
+
 ### Fix: task path diagram without redundant Archify labels
 
 - Drop edge `depends` labels, legend cards, and subtitle on the kickoff task graph

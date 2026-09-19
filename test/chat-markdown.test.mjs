@@ -63,6 +63,13 @@ test("renderChatMarkdown markdown link with /api/ href", () => {
   );
 });
 
+test("accepted preview chat parts keep /api/ paths root-relative", () => {
+  const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  assert.match(app, /Keep desk-served paths root-relative/);
+  assert.match(app, /if \(u\.startsWith\("\/"\)\) return u;/);
+  assert.match(app, /openedPreferred/);
+});
+
 test("renderChatMarkdown does not nest-break http://…/api/result/… links", () => {
   const url =
     "http://127.0.0.1:8787/api/result/056-pdf/r1/docs/ui/alignment-spec.md";

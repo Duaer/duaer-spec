@@ -5821,19 +5821,29 @@ function startPreviewStatusPoll() {
   }, 4000);
 }
 
-/** Absolute href for chat preview links (http(s) or /api/…). */
+/** Absolute or same-origin href for chat preview links (http(s) or /api/…). */
 function chatPreviewHref(url) {
   const u = String(url || "").trim();
   if (!u) return "";
   if (/^https?:\/\//i.test(u)) return u;
-  if (u.startsWith("/")) {
-    try {
-      return new URL(u, window.location.origin).href;
-    } catch {
-      return u;
-    }
-  }
+  // Keep desk-served paths root-relative so the host matches the open desk.
+  if (u.startsWith("/")) return u;
   return "";
+}
+
+function isLocalHttpPreview(url) {
+  return /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(
+    String(url || "").trim(),
+  );
+}
+
+function openPreviewHref(url) {
+  const u = String(url || "").trim();
+  if (!u) return;
+  const abs = /^https?:\/\//i.test(u)
+    ? u
+    : new URL(u, window.location.origin).href;
+  window.open(abs, "_blank", "noopener");
 }
 
 /** Accepted-bubble link text + optional open chip for relative paths. */
@@ -5867,6 +5877,23 @@ async function ensureAndOpenPreview({ open = true } = {}) {
     addBubble("bot", t("preview.startFail", { msg: t("err.noJob") }));
     return null;
   }
+  const preferred = String(state.lastPreviewUrl || "").trim();
+
+  // Focused desk snapshot / artifact / same-origin path: open that URL as-is.
+  // Do not re-resolve delivery (latest revise may point at a different file).
+  if (preferred.startsWith("/")) {
+    paintPreviewServiceUi({ url: preferred, local: false, listening: null });
+    if (open) openPreviewHref(preferred);
+    return { ok: true, preview: { url: preferred }, openedPreferred: true };
+  }
+
+  // Public / non-local http(s): open focused URL directly.
+  if (preferred && /^https?:\/\//i.test(preferred) && !isLocalHttpPreview(preferred)) {
+    paintPreviewServiceUi({ url: preferred, local: false, listening: null });
+    if (open) openPreviewHref(preferred);
+    return { ok: true, preview: { url: preferred }, openedPreferred: true };
+  }
+
   setPreviewOpenBusy(true);
   setServiceDot("busy");
   paintServiceStatusLine(t("preview.starting"));
@@ -5879,11 +5906,16 @@ async function ensureAndOpenPreview({ open = true } = {}) {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.error || "ensure failed");
-    const url = body.preview?.url || state.lastPreviewUrl || "";
-    if (url) state.lastPreviewUrl = url;
+    // Prefer the focused local service URL over whatever delivery currently says.
+    const ensured = String(body.preview?.url || "").trim();
+    const url =
+      preferred && isLocalHttpPreview(preferred)
+        ? preferred
+        : ensured || preferred;
+    if (url && !preferred) state.lastPreviewUrl = url;
     paintPreviewServiceUi({
       url,
-      local: /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/i.test(url),
+      local: isLocalHttpPreview(url),
       listening: Boolean(body.alreadyRunning || body.started || body.ok),
       canStart: false,
     });
@@ -5891,12 +5923,7 @@ async function ensureAndOpenPreview({ open = true } = {}) {
       paintServiceStatusLine(t("preview.ready"));
       setServiceDot("up");
     }
-    if (open && url) {
-      const abs = /^https?:\/\//i.test(url)
-        ? url
-        : new URL(url, window.location.origin).href;
-      window.open(abs, "_blank", "noopener");
-    }
+    if (open && url) openPreviewHref(url);
     void refreshPreviewServiceStatus();
     return body;
   } catch (err) {
