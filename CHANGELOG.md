@@ -8,7 +8,7 @@
 - Pick is async (no spawnSync on the HTTP thread)
 - Clicking the readonly parent path also opens the picker
 
-## 0.22.0 — 2026-09-19
+### Feat: digital employee directory + role specialization
 
 - Top bar **数字员工** drawer lists Implementer and Functional regression
 - Kickoff tasks carry `role: implement | verify-l3`; multi-worker puts
