@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T13:20:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": ["npm test (173 pass)", "gh release v0.23.0", "npm view duaer-spec version → 0.23.0"],
+    "result": "pass"
+  },
+  "summary": "Released 0.23.0 to GitHub and npm (employee directory, picker, arch fullscreen, orch deadlock)."
+}
