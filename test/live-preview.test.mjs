@@ -68,7 +68,32 @@ test("resolvePreviewPayload auto-service when no page", () => {
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test("resolvePreviewPayload serves index.html artifact", () => {
+test("resolvePreviewPayload ignores docs .md and prefers project start URL", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  fs.writeFileSync(
+    path.join(root, "README.md"),
+    "Open http://localhost:3210\n",
+    "utf8",
+  );
+  fs.mkdirSync(path.join(root, "docs", "ui"), { recursive: true });
+  fs.writeFileSync(
+    path.join(root, "docs", "ui", "alignment-spec.md"),
+    "# spec\n",
+    "utf8",
+  );
+  fs.mkdirSync(path.join(root, "public"), { recursive: true });
+  fs.writeFileSync(path.join(root, "public", "index.html"), "<h1>x</h1>\n", "utf8");
+  const got = resolvePreviewPayload({
+    delivery: { preview: { url: "docs/ui/alignment-spec.md" } },
+    worktreePath: root,
+    jobId: "056-pdf",
+  });
+  assert.equal(got.url, "http://localhost:3210");
+  assert.equal(got.kind, "external");
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("resolvePreviewPayload serves index.html when no local service", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
   fs.writeFileSync(path.join(root, "index.html"), "<h1>hi</h1>\n", "utf8");
   const got = resolvePreviewPayload({
@@ -79,6 +104,25 @@ test("resolvePreviewPayload serves index.html artifact", () => {
   assert.match(got.url, /\/api\/artifact\/job-html\/index\.html$/);
   assert.equal(got.kind, "artifact");
   fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("isOpenableProductPreview and pickOpenableResultEntry", async () => {
+  const { isOpenableProductPreview, pickOpenableResultEntry } = await import(
+    "../bin/live-preview.mjs"
+  );
+  assert.equal(isOpenableProductPreview("http://localhost:3210"), true);
+  assert.equal(isOpenableProductPreview("index.html"), true);
+  assert.equal(isOpenableProductPreview("docs/ui/alignment-spec.md"), false);
+  const pick = pickOpenableResultEntry([
+    { revision: 0, url: "http://localhost:3210", kind: "external" },
+    {
+      revision: 1,
+      url: "/api/result/j/r1/docs/ui/alignment-spec.md",
+      path: "docs/ui/alignment-spec.md",
+      kind: "artifact",
+    },
+  ]);
+  assert.equal(pick.url, "http://localhost:3210");
 });
 
 test("live prompts require starting the service before accept", () => {

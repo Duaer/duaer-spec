@@ -80,7 +80,7 @@ import {
   pendingWaveReleases,
   waveForWorker,
 } from "./live-orchestrate.mjs";
-import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus } from "./live-preview.mjs";
+import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus, pickOpenableResultEntry, isOpenableProductPreview } from "./live-preview.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -3628,7 +3628,7 @@ Brief: ${featureDir}
 4b. 拆任务：每个勾选项只覆盖一个可独立验收的功能点；不要把多项验收揉进同一条；不要人为限制条数（不必卡在 12 条内）。若仍偏粗，先按 Acceptance 扩成「一条功能一勾选」（仍用 T00x），保存后再做；小步勾选，不要攒到最后一次勾完
 5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
-6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：页面用相对路径如 index.html；HTTP 服务用可打开地址如 http://localhost:8788——不要因「没有页面」而省略
+6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
 7. 合入 develop 并 handoff 清理 worktree
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
@@ -4244,7 +4244,7 @@ ${restated.keep}
 1. 只做本轮 Revision ${revN} 范围，不要重做无关功能
 2. 立刻把 tasks.md 里 R${revN}-* 勾成 - [x]（Duaer-spec FDE 靠此显示细粒度进度）
 2b. 拆任务：每个 R${revN}-* 只覆盖一个可独立验收的改动；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按本轮 acceptance 扩成「一条改动一勾选」（仍用 R${revN}-*），保存后再做；小步勾选
-3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url（页面路径或 http://localhost:… 服务地址，必填）；若是服务须先启动并可打开。禁止以 Job not accepted yet 收尾
+3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url 为可打开的成品入口（http://localhost:… 或 HTML 页面，必填；禁止用 docs/**/*.md 当预览）；若是服务须先启动并可打开。禁止以 Job not accepted yet 收尾
 3b. 交付前必须更新产品仓 README（说明文档）以反映本轮改动后的行为/用法；需求变了就改 README，不要只改代码。英文 README 不得出现中文；中文说明用 README.zh-CN.md（或项目既有约定）
 4. 按 testing.md 做风险验证（若有）
 5. 不要推远程除非用户明确要求部署/发布
@@ -5401,17 +5401,39 @@ function dispatchStatus(jobId) {
     revision: resultRevision,
     accepted,
   });
-  // Prefer latest snapshot URL when we recorded one for this revision.
+  // Prefer openable product URL (service / HTML). Never promote docs (.md) snapshots.
   let previewOut = showPreview ? preview : null;
   if (previewOut && accepted && results.length) {
     const latest = results[results.length - 1];
-    if (latest?.url && Number(latest.revision) === resultRevision) {
+    const latestOpenable =
+      latest?.url &&
+      Number(latest.revision) === resultRevision &&
+      (/^https?:\/\//i.test(String(latest.url)) ||
+        isOpenableProductPreview(latest.path || "") ||
+        /\.html?(?:$|[?#])/i.test(String(latest.url)));
+    if (latestOpenable) {
       previewOut = {
         ...previewOut,
         url: latest.url,
         label: latest.label || previewOut.label,
         kind: latest.kind || previewOut.kind,
+        path: latest.path || previewOut.path || null,
       };
+    } else {
+      const openable = pickOpenableResultEntry(results);
+      const previewAlreadyOpenable =
+        /^https?:\/\//i.test(String(previewOut.url || "")) ||
+        isOpenableProductPreview(previewOut.path || "") ||
+        /\.html?(?:$|[?#])/i.test(String(previewOut.url || ""));
+      if (!previewAlreadyOpenable && openable?.url) {
+        previewOut = {
+          ...previewOut,
+          url: openable.url,
+          label: openable.label || previewOut.label,
+          kind: openable.kind || previewOut.kind,
+          path: openable.path || null,
+        };
+      }
     }
   }
   // After worktree cleanup with no previewable snapshot, hide dead current link.

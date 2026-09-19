@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: 打开看看 prefers project start URL over docs paths
+
+- Ignore non-HTML `delivery.preview.url` (e.g. `docs/**/*.md`) for primary open
+- Prefer inferred localhost service over static HTML candidates when both exist
+- Status preview / chat link stay on the runnable product URL
+
 ### Fix: 打开看看 opens the focused preview URL
 
 - Result-bar open uses `lastPreviewUrl` for `/api/…` and public https; local

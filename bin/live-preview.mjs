@@ -18,6 +18,44 @@ const PREVIEW_CANDIDATES = [
   "demo.html",
 ];
 
+/**
+ * True when a delivery preview path/URL is an openable product (page or http),
+ * not a docs/source artifact (.md, .json, …).
+ * @param {string} raw
+ * @returns {boolean}
+ */
+export function isOpenableProductPreview(raw) {
+  const s = String(raw || "").trim();
+  if (!s) return false;
+  if (/^https?:\/\//i.test(s)) return true;
+  const rel = s
+    .replace(/^\.\//, "")
+    .replace(/^\/+/, "")
+    .split("?")[0]
+    .split("#")[0]
+    .toLowerCase();
+  if (!rel || rel.includes("..")) return false;
+  return /\.html?$/i.test(rel);
+}
+
+/**
+ * Pick the newest result entry that opens as a product (http or HTML).
+ * @param {Array<object>} results
+ * @returns {object|null}
+ */
+export function pickOpenableResultEntry(results) {
+  const list = Array.isArray(results) ? results : [];
+  for (let i = list.length - 1; i >= 0; i -= 1) {
+    const e = list[i];
+    if (!e?.url) continue;
+    if (/^https?:\/\//i.test(String(e.url))) return e;
+    if (isOpenableProductPreview(e.path || e.url)) return e;
+    // /api/artifact|result/.../*.html
+    if (/\.html?(?:$|[?#])/i.test(String(e.url))) return e;
+  }
+  return null;
+}
+
 const README_NAMES = ["README.md", "README.zh-CN.md", "readme.md", "Readme.md"];
 const SERVER_ENTRY_CANDIDATES = [
   "server.mjs",
@@ -148,7 +186,7 @@ export function resolvePreviewPayload({ delivery, worktreePath, jobId }) {
   }
 
   let rel = null;
-  if (raw) {
+  if (raw && isOpenableProductPreview(raw)) {
     const s = String(raw).trim().replace(/^\.\//, "");
     if (path.isAbsolute(s) && worktreePath) {
       const abs = path.resolve(s);
@@ -158,16 +196,6 @@ export function resolvePreviewPayload({ delivery, worktreePath, jobId }) {
       }
     } else if (!s.includes("..")) {
       rel = s.replace(/^\/+/, "");
-    }
-  }
-
-  if (!rel && worktreePath && fs.existsSync(worktreePath)) {
-    for (const cand of PREVIEW_CANDIDATES) {
-      const full = path.join(worktreePath, cand);
-      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
-        rel = cand;
-        break;
-      }
     }
   }
 
@@ -186,14 +214,37 @@ export function resolvePreviewPayload({ delivery, worktreePath, jobId }) {
     };
   }
 
+  // Prefer the project start URL (npm start / README localhost) over a static
+  // HTML candidate when both exist —「打开看看」is the runnable product.
   const serviceUrl = inferLocalServiceUrl(worktreePath);
   if (serviceUrl) {
     return {
       url: serviceUrl,
       label,
-      source: raw ? "delivery" : "auto-service",
+      source: raw ? "delivery-fallback-service" : "auto-service",
       kind: "external",
     };
+  }
+
+  if (worktreePath && fs.existsSync(worktreePath)) {
+    for (const cand of PREVIEW_CANDIDATES) {
+      const full = path.join(worktreePath, cand);
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+        if (!jobId) break;
+        const safeJob = encodeURIComponent(jobId);
+        const safeRel = cand
+          .split("/")
+          .map((p) => encodeURIComponent(p))
+          .join("/");
+        return {
+          url: `/api/artifact/${safeJob}/${safeRel}`,
+          label,
+          source: "auto",
+          kind: "artifact",
+          path: cand,
+        };
+      }
+    }
   }
 
   return null;
