@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T14:12:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": ["npm test (177 pass)", "gh release v0.24.1", "npm view duaer-spec version → 0.24.1"],
+    "result": "pass"
+  },
+  "summary": "Released 0.24.1 (Functional regression employee docs) to GitHub and npm."
+}
