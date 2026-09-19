@@ -6,6 +6,17 @@
 import { escapeHtml } from "./structured-html.mjs";
 
 /**
+ * Trim trailing punctuation commonly stuck to pasted URLs.
+ * @param {string} url
+ * @returns {{ href: string, trail: string }}
+ */
+function splitUrlTrail(url) {
+  const raw = String(url || "");
+  const clean = raw.replace(/[.,;:!?）】」』》\]]+$/g, "");
+  return { href: clean, trail: raw.slice(clean.length) };
+}
+
+/**
  * @param {string} text
  * @returns {string} HTML safe for bubble innerHTML
  */
@@ -26,11 +37,31 @@ export function renderChatMarkdown(text) {
     return `<code class="chat-inline-code">${code}</code>`;
   });
 
-  // Links [label](https://...) — http(s) only
+  // Links [label](https://...|/api/...) — http(s) or same-origin API paths
   html = html.replace(
-    /\[([^\n\]]{1,200})\]\((https?:\/\/[^\s)<]{1,500})\)/g,
+    /\[([^\n\]]{1,200})\]\((https?:\/\/[^\s)<]{1,500}|\/api\/[^\s)<]{1,500})\)/g,
     (_m, label, url) =>
       `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`,
+  );
+
+  // Bare http(s) URLs (skip ones already inside href="...")
+  html = html.replace(
+    /(^|[^"'>=])(https?:\/\/[^\s<]+)/g,
+    (_m, pre, url) => {
+      const { href, trail } = splitUrlTrail(url);
+      if (!href) return _m;
+      return `${pre}<a href="${href}" target="_blank" rel="noopener noreferrer">${href}</a>${trail}`;
+    },
+  );
+
+  // Bare /api/artifact|result/... paths (desk-served previews)
+  html = html.replace(
+    /(^|[^"'>=])(\/api\/(?:artifact|result)\/[^\s<]+)/g,
+    (_m, pre, url) => {
+      const { href, trail } = splitUrlTrail(url);
+      if (!href) return _m;
+      return `${pre}<a href="${href}" target="_blank" rel="noopener noreferrer">${href}</a>${trail}`;
+    },
   );
 
   // Bold **...** or __...__

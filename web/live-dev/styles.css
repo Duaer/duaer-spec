@@ -943,9 +943,11 @@ body.history-open {
 }
 
 .bubble-body a {
-  color: inherit;
+  color: var(--register, #0d6e6e);
   text-decoration: underline;
   text-underline-offset: 2px;
+  cursor: pointer;
+  word-break: break-all;
 }
 
 .bubble.streaming::after {

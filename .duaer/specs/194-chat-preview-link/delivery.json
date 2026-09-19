@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T03:25:00.000Z",
+  "verification": {
+    "L0": "node --check web/live-dev/chat-markdown.mjs; node --check web/live-dev/app.js",
+    "L1": "node --test test/chat-markdown.test.mjs",
+    "L3": "npm run test:live",
+    "result": "pass"
+  },
+  "summary": "Accepted chat bubble preview URL is clickable (markdown + bare URL auto-link)."
+}

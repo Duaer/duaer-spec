@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: clickable preview URL in accepted chat bubble
+
+- Bare `http(s)://` and `/api/artifact|result/…` URLs become links in chat
+- Accepted「打开看看」message uses a real `<a href>` (relative paths get an open chip)
+
 ### Fix: FDE dispatch must finish every task
 
 - Kickoff / wave / continue / revise prompts forbid `Job not accepted yet` as a final handoff

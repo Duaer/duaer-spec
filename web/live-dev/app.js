@@ -5754,6 +5754,47 @@ function startPreviewStatusPoll() {
   }, 4000);
 }
 
+/** Absolute href for chat preview links (http(s) or /api/…). */
+function chatPreviewHref(url) {
+  const u = String(url || "").trim();
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("/")) {
+    try {
+      return new URL(u, window.location.origin).href;
+    } catch {
+      return u;
+    }
+  }
+  return "";
+}
+
+/** Accepted-bubble link text + optional open chip for relative paths. */
+function acceptedPreviewChatParts(previewUrl) {
+  const raw = String(previewUrl || "").trim();
+  const href = chatPreviewHref(raw);
+  if (href) {
+    return {
+      link: t("preview.linkMd", { label: t("preview.view"), url: href }),
+      actions: [],
+    };
+  }
+  if (raw) {
+    return {
+      link: t("preview.link", { url: raw }),
+      actions: [
+        {
+          label: t("preview.view"),
+          onClick: () => {
+            void ensureAndOpenPreview({ open: true });
+          },
+        },
+      ],
+    };
+  }
+  return { link: t("preview.missing"), actions: [] };
+}
+
 async function ensureAndOpenPreview({ open = true } = {}) {
   if (!state.jobId) {
     addBubble("bot", t("preview.startFail", { msg: t("err.noJob") }));
@@ -6655,10 +6696,10 @@ function startStatusPoll() {
         if (!acceptedNotified || data.revision !== lastRevision) {
           acceptedNotified = true;
           lastRevision = data.revision || 0;
-          const link = data.preview?.url
-            ? t("preview.link", { url: data.preview.url })
-            : t("preview.missing");
-          addBubble("bot", `${t("bot.accepted")}${link}`);
+          const { link, actions } = acceptedPreviewChatParts(
+            data.preview?.url || state.lastPreviewUrl || "",
+          );
+          addBubble("bot", `${t("bot.accepted")}${link}`, { actions });
         }
         clearInterval(state.statusTimer);
         state.statusTimer = null;
