@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.22.0 — 2026-09-19
+
 ### Feat: Japanese (ja) live desk locale
 
 - Language select adds 日本語; catalog covers all en keys
