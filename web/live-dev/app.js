@@ -23,6 +23,7 @@ import {
   architectureKeyFromArchitectureUrl,
 } from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
+import { buildTaskGraphSvg } from "./task-graph.mjs";
 
 const FALLBACK_PROVIDERS = [
   {
@@ -310,9 +311,10 @@ const el = {
   cardTitle: document.getElementById("cardTitle"),
   moduleTabs: document.getElementById("moduleTabs"),
   moduleMeta: document.getElementById("moduleMeta"),
-  workerCount: document.getElementById("workerCount"),
+  workerCountList: document.getElementById("workerCountList"),
   taskPoolPreview: document.getElementById("taskPoolPreview"),
   taskPoolList: document.getElementById("taskPoolList"),
+  taskGraphMount: document.getElementById("taskGraphMount"),
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
@@ -914,35 +916,65 @@ function mergeModulesFromChatPayload(data) {
   renderModuleTabs();
 }
 
-function previewTaskPoolLines() {
-  ensureModulesSeed();
-  const confirmed = state.modules.filter((m) => m.status === "confirmed");
-  if (!confirmed.length) return [];
-  const lines = [];
-  let n = 1;
-  let prevVerify = null;
-  for (const m of confirmed) {
-    const impl = `T${String(n++).padStart(3, "0")}`;
-    const acc = `T${String(n++).padStart(3, "0")}`;
-    const ver = `T${String(n++).padStart(3, "0")}`;
-    const dep = prevVerify ? ` ← ${prevVerify}` : "";
-    lines.push(`${impl} [${m.id}] Implement «${m.title}»${dep}`);
-    lines.push(`${acc} [${m.id}] Acceptance «${m.title}» ← ${impl}`);
-    lines.push(`${ver} [${m.id}] Verify «${m.title}» ← ${acc}`);
-    prevVerify = ver;
+function previewTaskPoolLines(tasks) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  return list.map((t) => {
+    const deps =
+      t.dependsOn?.length > 0 ? ` ← ${t.dependsOn.join(", ")}` : "";
+    const wid = t.workerId ? ` · ${t.workerId}` : "";
+    const mod = t.moduleId ? ` [${t.moduleId}]` : "";
+    return `${t.id}${mod}${wid} ${t.title}${deps}`;
+  });
+}
+
+function renderWorkerCountList() {
+  if (!el.workerCountList) return;
+  el.workerCountList.replaceChildren();
+  const cur = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
+  state.workerCount = cur;
+  for (let n = 1; n <= 4; n += 1) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "worker-count-chip";
+    b.setAttribute("aria-pressed", n === cur ? "true" : "false");
+    b.setAttribute("aria-label", String(n));
+    const num = document.createElement("span");
+    num.textContent = String(n);
+    b.appendChild(num);
+    const sub = document.createElement("span");
+    sub.className = "w-label";
+    sub.textContent =
+      n === 1 ? t("dispatch.workerSerial") : t("dispatch.workerParallel");
+    b.appendChild(sub);
+    b.addEventListener("click", () => {
+      state.workerCount = n;
+      renderWorkerCountList();
+      syncTaskPoolPreview();
+    });
+    el.workerCountList.appendChild(b);
   }
-  return lines;
 }
 
 function syncTaskPoolPreview() {
-  if (!el.taskPoolPreview || !el.taskPoolList) return;
-  const lines = previewTaskPoolLines();
-  if (!lines.length || !state.locked) {
+  if (!el.taskPoolPreview) return;
+  ensureModulesSeed();
+  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (!confirmed.length || !state.locked) {
     el.taskPoolPreview.hidden = true;
+    if (el.taskGraphMount) el.taskGraphMount.innerHTML = "";
+    if (el.taskPoolList) el.taskPoolList.textContent = "";
     return;
   }
   el.taskPoolPreview.hidden = false;
-  el.taskPoolList.textContent = lines.join("\n");
+  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
+  const graph = buildTaskGraphSvg(confirmed, workerCount);
+  state.taskPool = { version: 1, tasks: graph.tasks };
+  if (el.taskGraphMount) {
+    el.taskGraphMount.innerHTML = graph.svg;
+  }
+  if (el.taskPoolList) {
+    el.taskPoolList.textContent = previewTaskPoolLines(graph.tasks).join("\n");
+  }
 }
 
 function reviseCardValues() {
@@ -2160,7 +2192,8 @@ function clearDeskWorkspace() {
   }
   if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
   if (el.taskPoolList) el.taskPoolList.textContent = "";
-  if (el.workerCount) el.workerCount.value = "1";
+  if (el.taskGraphMount) el.taskGraphMount.innerHTML = "";
+  renderWorkerCountList();
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.reviseStuckHint = false;
@@ -2396,7 +2429,7 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     state.taskPool = data.taskPool || null;
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
-    if (el.workerCount) el.workerCount.value = String(state.workerCount);
+    renderWorkerCountList();
     applySavedCardFields(data.card, data.reviseCard);
     applyActiveModuleToFields();
     renderModuleTabs();
@@ -4341,7 +4374,7 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
-  if (el.workerCount) el.workerCount.value = String(state.workerCount || 1);
+  renderWorkerCountList();
   syncDispatchProjectLine();
   syncTaskPoolPreview();
   if (el.startCommand && !el.startCommand.value.trim()) {
@@ -5091,7 +5124,7 @@ el.doDispatch.addEventListener("click", async () => {
   }
   ensureStartCommandPrefix();
   const startCommand = el.startCommand?.value?.trim() || "";
-  const workerCount = Number(el.workerCount?.value || state.workerCount || 1);
+  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
   state.workerCount = workerCount;
   el.dispatchErr.hidden = true;
   el.doDispatch.disabled = true;
@@ -7382,6 +7415,8 @@ onLocaleChange(() => {
   syncReviseCardChrome();
   paintDeliveryCockpit();
   renderProjectList();
+  renderWorkerCountList();
+  syncTaskPoolPreview();
   if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
     renderPreview(state.lastStatus);
   } else {
@@ -7401,6 +7436,7 @@ applyDomI18n();
 syncChatPlaceholder();
 wireReqSections();
 syncComposerEnabled();
+renderWorkerCountList();
 wirePanelScrollHold(el.cardPanel);
 wirePanelScrollHold(el.progressCol);
 

@@ -168,19 +168,16 @@
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
             </div>
-            <div id="taskPoolPreview" class="task-pool-preview" hidden>
-              <p class="agent-pick-label" data-i18n="dispatch.taskPool">任务池（依赖 / 并行）</p>
-              <pre id="taskPoolList" class="task-pool-list"></pre>
-            </div>
             <div class="field worker-count-field">
               <span data-i18n="dispatch.workerCount">数字员工数量</span>
               <p class="hint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
-              <select id="workerCount" aria-label="worker count">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-              </select>
+              <div id="workerCountList" class="worker-count-list" role="radiogroup" aria-label="worker count"></div>
+            </div>
+            <div id="taskPoolPreview" class="task-pool-preview" hidden>
+              <p class="agent-pick-label" data-i18n="dispatch.taskGraph">任务执行路径</p>
+              <p class="hint" data-i18n="dispatch.taskGraphHint">按依赖分层；色条表示数字员工分工</p>
+              <div id="taskGraphMount" class="task-graph-mount"></div>
+              <pre id="taskPoolList" class="task-pool-list" hidden></pre>
             </div>
             <div id="repoPickBlock" class="repo-pick-block">
               <div class="repo-actions" id="repoPickActions">

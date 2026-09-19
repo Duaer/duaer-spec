@@ -1,5 +1,5 @@
 {
-  "feature": "195-chat-link-garble",
-  "spec": ".duaer/specs/195-chat-link-garble/spec.md",
-  "updatedAt": "2026-09-19T03:30:00.000Z"
+  "feature": "196-task-exec-graph",
+  "spec": ".duaer/specs/196-task-exec-graph/spec.md",
+  "updatedAt": "2026-09-19T03:40:00.000Z"
 }

@@ -1236,9 +1236,78 @@ a.btn[hidden] {
   background: transparent;
 }
 
-.worker-count-field select {
-  margin-top: 0.35rem;
-  max-width: 6rem;
+.worker-count-field {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.worker-count-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.4rem 0 0.15rem;
+}
+
+.worker-count-chip {
+  appearance: none;
+  min-width: 2.6rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+
+.worker-count-chip:hover,
+.worker-count-chip:focus-visible {
+  border-color: var(--register);
+  outline: none;
+}
+
+.worker-count-chip[aria-pressed="true"] {
+  border-color: var(--register);
+  color: var(--register);
+  background: rgba(47, 158, 143, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(47, 158, 143, 0.35);
+}
+
+.worker-count-chip .w-label {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--mute);
+  margin-top: 0.15rem;
+  letter-spacing: 0;
+}
+
+.worker-count-chip[aria-pressed="true"] .w-label {
+  color: color-mix(in srgb, var(--register) 75%, var(--mute));
+}
+
+.task-graph-mount {
+  display: block;
+  width: 100%;
+  min-height: 8rem;
+  margin: 0.45rem 0 0.35rem;
+  border: 1px solid var(--line);
+  background: #020617;
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 2px;
+}
+
+.task-graph-mount .task-graph-svg {
+  display: block;
+  min-width: 100%;
+}
+
+.task-graph-mount:empty {
+  display: none;
 }
 
 .progress-col {

@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T03:50:00.000Z",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js; node --check web/live-dev/task-graph.mjs",
+    "L1": "node --test test/task-graph.test.mjs",
+    "L3": "npm run test:live",
+    "result": "pass"
+  },
+  "summary": "Worker count chips + SVG task dependency execution graph on kickoff."
+}

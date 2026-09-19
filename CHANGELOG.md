@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: worker chips + task dependency execution graph
+
+- Digital-employee count uses chip radiogroup (串行 / 并行 labels)
+- Kickoff shows SVG task path graph by dependsOn; colors follow worker lanes
+
 ### Fix: garbled chat preview links for /api/result URLs
 
 - Stop nesting bare `/api/result/…` auto-links inside `http://host/api/result/…` hrefs
