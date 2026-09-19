@@ -1585,49 +1585,113 @@ const DISPATCH_MUST_FINISH_RULES = `
 function pickFolderNative(promptText = "选择产品仓库") {
   const prompt = String(promptText || "选择产品仓库").trim() || "选择产品仓库";
   if (process.platform === "darwin") {
-    const r = spawnSync(
-      "osascript",
-      ["-e", `POSIX path of (choose folder with prompt ${JSON.stringify(prompt)})`],
-      { encoding: "utf8", timeout: 300000 },
-    );
-    const err = String(r.stderr || "").trim();
-    const out = String(r.stdout || "").trim();
-    if (r.status !== 0) {
-      if (
-        /User canceled|cancelled|canceled|取消/i.test(err) ||
-        /User canceled|cancelled|canceled|取消/i.test(out)
-      ) {
-        const e = new Error("已取消选择");
-        e.code = "CANCELLED";
-        throw e;
-      }
-      throw new Error(err || out || "无法打开系统文件夹选择");
-    }
-    if (!out) {
-      const e = new Error("已取消选择");
-      e.code = "CANCELLED";
-      throw e;
-    }
-    return normalizeRepoPath(out);
+    // Activate Finder so the sheet is frontmost (LaunchAgent / browser often
+    // leave a bare `choose folder` dialog buried behind Cursor / Chrome).
+    const script = `
+tell application "Finder"
+  activate
+  try
+    set theFolder to choose folder with prompt ${JSON.stringify(prompt)}
+    return POSIX path of theFolder
+  on error errMsg number errNum
+    if errNum is -128 then
+      error "User canceled" number -128
+    end if
+    error errMsg number errNum
+  end try
+end tell
+`.trim();
+    return new Promise((resolve, reject) => {
+      const child = spawn("osascript", ["-e", script], {
+        env: process.env,
+      });
+      let stdout = "";
+      let stderr = "";
+      const timer = setTimeout(() => {
+        try {
+          child.kill("SIGTERM");
+        } catch {
+          /* ignore */
+        }
+        reject(new Error("选择文件夹超时"));
+      }, 300000);
+      child.stdout.on("data", (d) => {
+        stdout += d;
+      });
+      child.stderr.on("data", (d) => {
+        stderr += d;
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        const err = String(stderr || "").trim();
+        const out = String(stdout || "").trim();
+        if (code !== 0) {
+          if (
+            /User canceled|cancelled|canceled|取消|-128/i.test(err) ||
+            /User canceled|cancelled|canceled|取消|-128/i.test(out)
+          ) {
+            const e = new Error("已取消选择");
+            e.code = "CANCELLED";
+            reject(e);
+            return;
+          }
+          reject(new Error(err || out || "无法打开系统文件夹选择"));
+          return;
+        }
+        if (!out) {
+          const e = new Error("已取消选择");
+          e.code = "CANCELLED";
+          reject(e);
+          return;
+        }
+        resolve(normalizeRepoPath(out));
+      });
+    });
   }
   if (process.platform === "linux") {
-    const r = spawnSync(
-      "zenity",
-      ["--file-selection", "--directory", `--title=${prompt}`],
-      { encoding: "utf8", timeout: 300000 },
-    );
-    if (r.status !== 0) {
-      const e = new Error("已取消选择");
-      e.code = "CANCELLED";
-      throw e;
-    }
-    return normalizeRepoPath(String(r.stdout || "").trim());
+    return new Promise((resolve, reject) => {
+      const child = spawn(
+        "zenity",
+        ["--file-selection", "--directory", `--title=${prompt}`],
+        { env: process.env },
+      );
+      let stdout = "";
+      const timer = setTimeout(() => {
+        try {
+          child.kill("SIGTERM");
+        } catch {
+          /* ignore */
+        }
+        reject(new Error("选择文件夹超时"));
+      }, 300000);
+      child.stdout.on("data", (d) => {
+        stdout += d;
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (code !== 0) {
+          const e = new Error("已取消选择");
+          e.code = "CANCELLED";
+          reject(e);
+          return;
+        }
+        resolve(normalizeRepoPath(String(stdout || "").trim()));
+      });
+    });
   }
   const e = new Error(
     "当前系统暂不支持弹窗选文件夹，请用扫描列表或：duaer live repo add",
   );
   e.code = "UNSUPPORTED";
-  throw e;
+  return Promise.reject(e);
 }
 
 function listReposForUi() {
@@ -6048,7 +6112,7 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/repos/pick") {
     let chosen = null;
     try {
-      chosen = pickFolderNative();
+      chosen = await pickFolderNative();
       const probe = probeRepo(chosen, {
         bootstrap: true,
         exact: true,
@@ -6537,7 +6601,7 @@ async function handleApi(req, res) {
 
   if (req.method === "POST" && url.pathname === "/api/projects/pick-root") {
     try {
-      const chosen = pickFolderNative("选择产品父目录");
+      const chosen = await pickFolderNative("选择产品父目录");
       const abs = path.resolve(String(chosen || "").trim()).replace(/[\\/]+$/, "");
       if (!abs || !fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
         throw new Error("请选择一个有效的文件夹");

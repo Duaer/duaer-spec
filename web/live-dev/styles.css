@@ -1803,6 +1803,14 @@ a.btn[hidden] {
   margin-bottom: 0.75rem;
 }
 
+.projects-root-field {
+  cursor: pointer;
+}
+
+.projects-root-field:disabled {
+  cursor: wait;
+}
+
 .repo-actions .btn {
   min-width: auto;
   flex: 1;

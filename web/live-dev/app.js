@@ -5198,6 +5198,7 @@ el.pickProjectsRoot?.addEventListener("click", async () => {
     el.pickProjectsRoot.disabled = true;
     el.pickProjectsRoot.textContent = t("dispatch.pickProjectsRootBusy");
   }
+  if (el.projectsRoot) el.projectsRoot.disabled = true;
   try {
     const res = await fetch("/api/projects/pick-root", { method: "POST" });
     const data = await res.json().catch(() => ({}));
@@ -5226,7 +5227,19 @@ el.pickProjectsRoot?.addEventListener("click", async () => {
       el.pickProjectsRoot.disabled = false;
       el.pickProjectsRoot.textContent = t("dispatch.pickProjectsRoot");
     }
+    if (el.projectsRoot) el.projectsRoot.disabled = false;
   }
+});
+
+el.projectsRoot?.addEventListener("click", () => {
+  if (el.pickProjectsRoot?.disabled) return;
+  el.pickProjectsRoot?.click();
+});
+el.projectsRoot?.addEventListener("keydown", (ev) => {
+  if (ev.key !== "Enter" && ev.key !== " ") return;
+  ev.preventDefault();
+  if (el.pickProjectsRoot?.disabled) return;
+  el.pickProjectsRoot?.click();
 });
 
 el.clearProjectsRoot?.addEventListener("click", async () => {

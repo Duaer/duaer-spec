@@ -77,16 +77,24 @@ test("live sources wire product dir ensure", () => {
   assert.match(live, /projectsRoot/);
   assert.match(live, /\/api\/projects\/pick-root/);
   assert.match(live, /选择产品父目录/);
+  assert.match(live, /tell application "Finder"/);
+  assert.match(live, /await pickFolderNative/);
+  assert.doesNotMatch(
+    live,
+    /spawnSync\(\s*"osascript"/,
+  );
   const html = fs.readFileSync(
     path.join(ROOT, "web/live-dev/index.html"),
     "utf8",
   );
   assert.match(html, /id="projectsRoot"/);
   assert.match(html, /readonly/);
+  assert.match(html, /projects-root-field/);
   assert.match(html, /id="pickProjectsRoot"/);
   assert.match(html, /id="clearProjectsRoot"/);
   assert.doesNotMatch(html, /id="saveProjectsRoot"/);
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /\/api\/projects\/pick-root/);
   assert.match(js, /pickProjectsRoot/);
+  assert.match(js, /el\.projectsRoot\?\.addEventListener\("click"/);
 });

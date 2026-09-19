@@ -2,7 +2,13 @@
 
 ## Unreleased
 
-### Feat: digital employee directory + role specialization
+### Fix: projects parent folder picker frontmost + clickable path
+
+- macOS folder dialog activates Finder so it is not buried behind the browser
+- Pick is async (no spawnSync on the HTTP thread)
+- Clicking the readonly parent path also opens the picker
+
+## 0.22.0 — 2026-09-19
 
 - Top bar **数字员工** drawer lists Implementer and Functional regression
 - Kickoff tasks carry `role: implement | verify-l3`; multi-worker puts

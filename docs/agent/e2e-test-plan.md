@@ -133,7 +133,7 @@ the table for their app.
 | E2E-151 | Modular `[模块]` card fields render section titles + numbered acceptance lists | `npm test` + `npm run test:live` |
 | E2E-152 | Project portfolio shows delivery status chips + open deliverables; Progress shows stage next-action | `npm test` + `npm run test:live` |
 | E2E-153 | `duaer live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
-| E2E-154 | 产品父目录 is read-only; 选择… opens native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
+| E2E-154 | 产品父目录 is read-only; 选择… or path click opens frontmost native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
 | E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; all-tasks-done nudges stamp accept | `npm test` + `npm run test:live` |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
