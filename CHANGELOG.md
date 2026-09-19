@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.23.1 — 2026-09-19
+
 ### Docs: plain-language feature overview in READMEs
 
 - Chinese「我们有什么」and English「What you get」list desk + employee capabilities
