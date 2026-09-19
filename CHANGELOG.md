@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Docs: plain-language feature overview in READMEs
+
+- Chinese「我们有什么」and English「What you get」list desk + employee capabilities
+  without jargon-first flow dumps
+
 ## 0.23.0 — 2026-09-19
 
 ### Fix: orchestration wave release no longer deadlocks on silent wait

@@ -45,6 +45,40 @@ Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
 
 Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 
+## What you get (plain language)
+
+After install, these are the capabilities you actually use:
+
+### In your editor: a digital employee that delivers
+
+- **You talk; it runs the process.** No slash commands, no “you must run Spec phases.”
+- **Clarify before coding.** It turns your ask into: what to build, what not to build, how we know it’s done.
+- **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
+- **Works in many hosts.** Cursor, Claude Code, Codex, Copilot, Windsurf, Cline, Continue, Gemini, Aider.
+
+### In the browser: Duaer-spec FDE (live desk)
+
+A local web desk (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
+
+- **Projects.** Create and switch projects; each keeps its own chat and progress.
+- **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed.
+- **Split big work into modules.** Confirm module by module; nothing starts until you kick off after the ones you care about are confirmed.
+- **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed.
+- **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
+- **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
+- **Employee roles.** Top-bar **digital employee** directory: Implementer builds features; Functional regression verifies against acceptance and testing rules. Optional parallel workers on the same CLI.
+- **zh-CN / en / ja UI.** Desk copy follows the language you pick.
+- **Deliverables and results.** Open a deliverables page (requirements, architecture, tasks, delivery); when done, open the page or the project folder.
+- **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on the same job without starting from scratch.
+- **Hosting when you need it.** Cloudflare / Alibaba Cloud / AWS / GitHub Pages; default is GitHub Actions when unset.
+
+### Repo habits (for humans and employees)
+
+- **Clear branches:** `main` for production, `develop` for day-to-day, short `feat`/`fix` branches merge back to `develop`.
+- **Isolated changes:** each request uses its own worktree; after merge, clean up and hand local services back to the primary checkout.
+
+The sections below are **how to run it**; this section is **what it can do**.
+
 ## What the employee does (by itself)
 
 1. Turns your ask into a Brief with **checkable acceptance**  

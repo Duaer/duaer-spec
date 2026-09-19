@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T13:30:00.000Z",
+  "verification": {
+    "levels": ["L0"],
+    "commands": ["rg -n '我们有什么|What you get' README.zh-CN.md README.md"],
+    "result": "pass"
+  },
+  "summary": "READMEs list product capabilities in plain language (editor employee + live desk)."
+}
