@@ -1,6 +1,6 @@
 # Tasks — 192-release-020
 
 - [x] Brief
-- [ ] Bump 0.20.0 + CHANGELOG
-- [ ] Merge to develop; promote main; push; tag; gh release
-- [ ] Watch npm publish / stamp delivery
+- [x] Bump 0.20.0 + CHANGELOG
+- [x] Merge to develop; promote main; push; tag; gh release
+- [x] Watch npm publish / stamp delivery

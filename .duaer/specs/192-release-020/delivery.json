@@ -1,0 +1,19 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T02:48:00.000Z",
+  "summary": "0.20.0 shipped: develop+main pushed, tag v0.20.0, GitHub Release, npm publish success.",
+  "verification": {
+    "commands": [
+      "git push origin develop main v0.20.0",
+      "gh release create v0.20.0",
+      "gh run view 35416594850 (Publish npm package success)",
+      "npm view duaer-spec version → 0.20.0"
+    ],
+    "result": "pass"
+  },
+  "npm": {
+    "url": "https://www.npmjs.com/package/duaer-spec/v/0.20.0",
+    "label": "npm 0.20.0"
+  },
+  "release": "https://github.com/fujiezee/duaer-spec/releases/tag/v0.20.0"
+}
