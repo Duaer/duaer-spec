@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: garbled chat preview links for /api/result URLs
+
+- Stop nesting bare `/api/result/…` auto-links inside `http://host/api/result/…` hrefs
+- Accepted bubble shows a single clean「打开看看」link
+
 ### Fix: clickable preview URL in accepted chat bubble
 
 - Bare `http(s)://` and `/api/artifact|result/…` URLs become links in chat

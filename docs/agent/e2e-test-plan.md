@@ -136,6 +136,7 @@ the table for their app.
 | E2E-154 | 产品父目录 is read-only; 选择… opens native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
 | E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; all-tasks-done nudges stamp accept | `npm test` + `npm run test:live` |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
+| E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
@@ -317,3 +318,4 @@ the table for their app.
 | E2E-154 | `191-projects-root-pick` | projectsRoot via native folder pick |
 | E2E-155 | `193-dispatch-must-accept` | forbid early not-accepted; accept nudge |
 | E2E-156 | `194-chat-preview-link` | accepted bubble clickable preview URL |
+| E2E-157 | `195-chat-link-garble` | no nested /api/result link garble |

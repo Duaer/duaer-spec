@@ -307,7 +307,7 @@ const zhCN = {
   "preview.serviceChecking": "检查中…",
   "preview.auto": "网页",
   "preview.link": "\n打开看看：{url}",
-  "preview.linkMd": "\n{label}：[{url}]({url})",
+  "preview.linkMd": "\n[{label}]({url})",
   "preview.missing":
     "\n还没有可打开的地址。请让数字员工把服务跑起来，并写上打开地址。",
   "preview.autoService": "本地服务",
@@ -832,7 +832,7 @@ const en = {
   "preview.serviceChecking": "Checking…",
   "preview.auto": "page",
   "preview.link": "\nOpen: {url}",
-  "preview.linkMd": "\n{label}: [{url}]({url})",
+  "preview.linkMd": "\n[{label}]({url})",
   "preview.missing":
     "\nStill nothing to open. Ask the employee to start the service and set its address.",
   "preview.autoService": "local service",

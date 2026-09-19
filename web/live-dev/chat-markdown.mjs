@@ -24,7 +24,6 @@ export function renderChatMarkdown(text) {
   const raw = String(text ?? "");
   if (!raw) return "";
 
-  // Escape, then restore intentional newlines as <br>
   let html = escapeHtml(raw);
 
   // Fenced code blocks ```...``` (before inline)
@@ -44,9 +43,27 @@ export function renderChatMarkdown(text) {
       `<a href="${url}" target="_blank" rel="noopener noreferrer">${label}</a>`,
   );
 
-  // Bare http(s) URLs (skip ones already inside href="...")
+  // Park code / anchors so bare-URL pass cannot nest-break href="http://…/api/result/…"
+  const slots = [];
   html = html.replace(
-    /(^|[^"'>=])(https?:\/\/[^\s<]+)/g,
+    /<pre class="chat-code">[\s\S]*?<\/pre>|<code class="chat-inline-code">[\s\S]*?<\/code>|<a\b[^>]*>[\s\S]*?<\/a>/g,
+    (m) => {
+      const i = slots.length;
+      slots.push(m);
+      return `\0P${i}\0`;
+    },
+  );
+
+  // Bare http(s) URLs
+  html = html.replace(/(^|[^"'>=\w/])(https?:\/\/[^\s<]+)/g, (_m, pre, url) => {
+    const { href, trail } = splitUrlTrail(url);
+    if (!href) return _m;
+    return `${pre}<a href="${href}" target="_blank" rel="noopener noreferrer">${href}</a>${trail}`;
+  });
+
+  // Bare /api/artifact|result/... — not mid-URL (no letter/digit/./: before /)
+  html = html.replace(
+    /(^|[^"'>=\w.:])(\/api\/(?:artifact|result)\/[^\s<]+)/g,
     (_m, pre, url) => {
       const { href, trail } = splitUrlTrail(url);
       if (!href) return _m;
@@ -54,15 +71,7 @@ export function renderChatMarkdown(text) {
     },
   );
 
-  // Bare /api/artifact|result/... paths (desk-served previews)
-  html = html.replace(
-    /(^|[^"'>=])(\/api\/(?:artifact|result)\/[^\s<]+)/g,
-    (_m, pre, url) => {
-      const { href, trail } = splitUrlTrail(url);
-      if (!href) return _m;
-      return `${pre}<a href="${href}" target="_blank" rel="noopener noreferrer">${href}</a>${trail}`;
-    },
-  );
+  html = html.replace(/\0P(\d+)\0/g, (_m, i) => slots[Number(i)] || "");
 
   // Bold **...** or __...__
   html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");

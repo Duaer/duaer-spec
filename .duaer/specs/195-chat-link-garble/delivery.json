@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T03:35:00.000Z",
+  "verification": {
+    "L1": "node --test test/chat-markdown.test.mjs",
+    "L3": "npm run test:live",
+    "result": "pass"
+  },
+  "summary": "Fix nested /api/result auto-link garble in chat preview URLs."
+}

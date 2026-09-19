@@ -63,6 +63,37 @@ test("renderChatMarkdown markdown link with /api/ href", () => {
   );
 });
 
+test("renderChatMarkdown does not nest-break http://…/api/result/… links", () => {
+  const url =
+    "http://127.0.0.1:8787/api/result/056-pdf/r1/docs/ui/alignment-spec.md";
+  const html = renderChatMarkdown(`打开看看：[打开看看](${url})`);
+  assert.equal((html.match(/<a\b/g) || []).length, 1);
+  assert.ok(html.includes(`href="${url}"`));
+  assert.ok(html.includes(">打开看看</a>"));
+  assert.doesNotMatch(html, /href="http:\/\/127\.0\.0\.1:8787<a/);
+  assert.doesNotMatch(html, /target="_blank"[^<]*target="_blank"/);
+});
+
+test("renderChatMarkdown prior label：[url](url) form stays one clean link", () => {
+  const url =
+    "http://127.0.0.1:8787/api/result/056-pdf/r1/docs/ui/alignment-spec.md";
+  // Old i18n shaped text that triggered the garble
+  const html = renderChatMarkdown(`打开看看：[${url}](${url})`);
+  assert.equal((html.match(/<a\b/g) || []).length, 1);
+  assert.ok(html.includes(`href="${url}"`));
+  assert.doesNotMatch(html, /href="http:\/\/127\.0\.0\.1:8787<a/);
+  assert.doesNotMatch(html, /\/api\/result\/[^"<]*" target="_blank"[^>]*>\/api\/result/);
+});
+
+test("renderChatMarkdown bare full result URL stays one link", () => {
+  const url =
+    "http://127.0.0.1:8787/api/result/056-pdf/r1/docs/ui/alignment-spec.md";
+  const html = renderChatMarkdown(`打开看看：${url}`);
+  assert.equal((html.match(/<a\b/g) || []).length, 1);
+  assert.ok(html.includes(`href="${url}"`));
+  assert.doesNotMatch(html, /href="http:\/\/127\.0\.0\.1:8787<a/);
+});
+
 test("live sources wire chat markdown into bubbles", () => {
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /renderChatMarkdown/);
