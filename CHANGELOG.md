@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.23.0 — 2026-09-19
+
 ### Fix: orchestration wave release no longer deadlocks on silent wait
 
 - Next ready wave is FIFO-enqueued even when the Terminal lane is busy
