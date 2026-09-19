@@ -90,8 +90,9 @@ Kickoff owns Brief creation and dispatch:
   complete every assigned task and stamp `delivery.json` `accepted`. If the
   checklist is fully checked but delivery is still open, status poll nudges
   an idle lane once to stamp accept.
-- **Execution graph:** kickoff shows a dependency SVG (architecture-panel look)
-  colored by worker lane; employee count uses chips (1 serial / 2–4 parallel).
+- **Execution graph:** kickoff shows the task path with the **same Archify
+  renderer and layered layout** as the system architecture diagram; employee
+  count uses chips (1 serial / 2–4 parallel).
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 

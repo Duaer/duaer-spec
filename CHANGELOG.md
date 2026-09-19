@@ -2,10 +2,16 @@
 
 ## Unreleased
 
+### Feat: task execution graph uses Archify (same as architecture)
+
+- Kickoff task path renders via `/api/architecture/render` + architecture mount
+- Left-to-right layered layout and visual effect match the system architecture diagram
+- Display edges are transitively reduced so Archify routing stays valid
+
 ### Feat: worker chips + task dependency execution graph
 
 - Digital-employee count uses chip radiogroup (串行 / 并行 labels)
-- Kickoff shows SVG task path graph by dependsOn; colors follow worker lanes
+- Kickoff shows task path by dependsOn; colors follow worker lanes
 
 ### Fix: garbled chat preview links for /api/result URLs
 

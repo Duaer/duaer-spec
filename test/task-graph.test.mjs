@@ -6,9 +6,10 @@ import { fileURLToPath } from "node:url";
 import {
   assignPreviewWorkers,
   buildPreviewPoolFromModules,
-  buildTaskGraphSvg,
-  layoutTaskGraph,
+  buildTaskArchitectureIr,
+  taskPoolToArchitectureIr,
 } from "../web/live-dev/task-graph.mjs";
+import { sanitizeArchitectureIr } from "../bin/live-archify.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -48,31 +49,67 @@ test("assignPreviewWorkers fans modules across workers", () => {
   assert.ok(modWorkers.size >= 2);
 });
 
-test("layoutTaskGraph layers by dependsOn", () => {
-  const pool = buildPreviewPoolFromModules(modules);
-  const assigned = assignPreviewWorkers(pool, 2);
-  const layout = layoutTaskGraph(assigned.tasks);
-  assert.ok(layout.nodes.length === assigned.tasks.length);
-  assert.ok(layout.edges.length > 0);
-  const ranks = layout.nodes.map((n) => n.rank);
-  assert.ok(Math.max(...ranks) > 0);
-});
-
-test("buildTaskGraphSvg returns one svg with nodes", () => {
-  const { svg, tasks } = buildTaskGraphSvg(modules, 2);
-  assert.match(svg, /<svg class="task-graph-svg"/);
-  assert.match(svg, /T001/);
+test("taskPoolToArchitectureIr is Archify-sanitizable", () => {
+  const { ir, tasks } = buildTaskArchitectureIr(modules, 2, {
+    title: "任务执行路径",
+  });
   assert.ok(tasks.length > 0);
-  assert.doesNotMatch(svg, /<script/i);
+  assert.equal(ir.diagram_type, "architecture");
+  assert.ok(ir.components.length >= tasks.length);
+  assert.ok(ir.connections.length > 0);
+  const clean = sanitizeArchitectureIr(ir);
+  assert.ok(clean);
+  assert.ok(clean.components.length > 0);
+  assert.ok(clean.connections.length > 0);
 });
 
-test("live sources wire worker chips and task graph", () => {
+test("taskPoolToArchitectureIr maps dependsOn to connections", () => {
+  const ir = taskPoolToArchitectureIr(
+    [
+      { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+      { id: "T002", title: "B", dependsOn: ["T001"], workerId: "w1" },
+    ],
+    { workerCount: 1, title: "Test" },
+  );
+  assert.equal(ir.connections[0].from, "T001");
+  assert.equal(ir.connections[0].to, "T002");
+});
+
+test("taskPoolToArchitectureIr drops transitive edges for Archify routing", () => {
+  const ir = taskPoolToArchitectureIr(
+    [
+      { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+      { id: "T002", title: "B", dependsOn: ["T001"], workerId: "w1" },
+      { id: "T003", title: "C", dependsOn: ["T001", "T002"], workerId: "w1" },
+    ],
+    { workerCount: 1, title: "Test" },
+  );
+  const pairs = ir.connections.map((c) => `${c.from}->${c.to}`);
+  assert.deepEqual(pairs, ["T001->T002", "T002->T003"]);
+  assert.ok(ir.components.every((c) => Array.isArray(c.pos)));
+});
+
+test("taskPoolToArchitectureIr lanes workers on Y axis", () => {
+  const ir = taskPoolToArchitectureIr(
+    [
+      { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+      { id: "T002", title: "B", dependsOn: [], workerId: "w2" },
+    ],
+    { workerCount: 2, title: "Test" },
+  );
+  const a = ir.components.find((c) => c.id === "T001");
+  const b = ir.components.find((c) => c.id === "T002");
+  assert.equal(a.pos[0], b.pos[0]);
+  assert.ok(b.pos[1] > a.pos[1]);
+  assert.equal(ir.boundaries.length, 2);
+});
+
+test("live sources wire Archify task graph mount", () => {
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
-  const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
-  assert.match(html, /id="workerCountList"/);
   assert.match(html, /id="taskGraphMount"/);
-  assert.doesNotMatch(html, /id="workerCount"/);
-  assert.match(app, /renderWorkerCountList|buildTaskGraphSvg/);
-  assert.match(css, /\.worker-count-chip|\.task-graph-mount/);
+  assert.match(html, /architecture-mount/);
+  assert.match(app, /buildTaskArchitectureIr|\/api\/architecture\/render/);
+  assert.match(app, /mountArchitectureDiagram\(el\.taskGraphMount/);
+  assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });

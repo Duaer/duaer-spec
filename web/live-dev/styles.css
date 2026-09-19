@@ -1289,25 +1289,24 @@ a.btn[hidden] {
   color: color-mix(in srgb, var(--register) 75%, var(--mute));
 }
 
+/* Same chrome as .architecture-mount (Archify embed). */
 .task-graph-mount {
   display: block;
   width: 100%;
-  min-height: 8rem;
-  margin: 0.45rem 0 0.35rem;
+  min-height: 0;
+  height: auto;
+  margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
-  background: #020617;
-  overflow-x: auto;
-  overflow-y: hidden;
-  border-radius: 2px;
+  background: #0b1118;
+  overflow: visible;
 }
 
-.task-graph-mount .task-graph-svg {
-  display: block;
-  min-width: 100%;
-}
-
-.task-graph-mount:empty {
-  display: none;
+.task-graph-mount[hidden] {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+  background: transparent;
 }
 
 .progress-col {

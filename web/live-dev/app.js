@@ -23,7 +23,7 @@ import {
   architectureKeyFromArchitectureUrl,
 } from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
-import { buildTaskGraphSvg } from "./task-graph.mjs";
+import { buildTaskArchitectureIr } from "./task-graph.mjs";
 
 const FALLBACK_PROVIDERS = [
   {
@@ -51,6 +51,10 @@ const state = {
   /** Kickoff: how many same-CLI digital employees (1..N). */
   workerCount: 1,
   taskPool: null,
+  /** Monotonic seq so stale Archify task-graph renders are ignored. */
+  taskGraphRenderSeq: 0,
+  /** Last mounted task-graph architecture URL. */
+  taskGraphUrl: null,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -956,24 +960,53 @@ function renderWorkerCountList() {
 }
 
 function syncTaskPoolPreview() {
+  void syncTaskPoolPreviewAsync();
+}
+
+async function syncTaskPoolPreviewAsync() {
   if (!el.taskPoolPreview) return;
   ensureModulesSeed();
   const confirmed = state.modules.filter((m) => m.status === "confirmed");
   if (!confirmed.length || !state.locked) {
     el.taskPoolPreview.hidden = true;
-    if (el.taskGraphMount) el.taskGraphMount.innerHTML = "";
+    state.taskGraphUrl = null;
+    clearArchitectureMount(el.taskGraphMount);
     if (el.taskPoolList) el.taskPoolList.textContent = "";
     return;
   }
   el.taskPoolPreview.hidden = false;
   const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
-  const graph = buildTaskGraphSvg(confirmed, workerCount);
-  state.taskPool = { version: 1, tasks: graph.tasks };
-  if (el.taskGraphMount) {
-    el.taskGraphMount.innerHTML = graph.svg;
-  }
+  const built = buildTaskArchitectureIr(confirmed, workerCount, {
+    title: t("dispatch.taskGraph"),
+    locale: getLocale(),
+  });
+  state.taskPool = { version: 1, tasks: built.tasks };
   if (el.taskPoolList) {
-    el.taskPoolList.textContent = previewTaskPoolLines(graph.tasks).join("\n");
+    el.taskPoolList.textContent = previewTaskPoolLines(built.tasks).join("\n");
+  }
+  if (!el.taskGraphMount || !built.ir?.components?.length) {
+    clearArchitectureMount(el.taskGraphMount);
+    return;
+  }
+  const seq = ++state.taskGraphRenderSeq;
+  try {
+    const res = await fetch("/api/architecture/render", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ir: built.ir }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (seq !== state.taskGraphRenderSeq) return;
+    if (!res.ok) throw new Error(data.error || "render failed");
+    state.taskGraphUrl = data.url || null;
+    await mountArchitectureDiagram(el.taskGraphMount, {
+      url: data.url,
+      ir: null,
+    });
+  } catch {
+    if (seq !== state.taskGraphRenderSeq) return;
+    state.taskGraphUrl = null;
+    clearArchitectureMount(el.taskGraphMount);
   }
 }
 
@@ -2192,7 +2225,8 @@ function clearDeskWorkspace() {
   }
   if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
   if (el.taskPoolList) el.taskPoolList.textContent = "";
-  if (el.taskGraphMount) el.taskGraphMount.innerHTML = "";
+  state.taskGraphUrl = null;
+  clearArchitectureMount(el.taskGraphMount);
   renderWorkerCountList();
   state.reviseLocked = false;
   state.reviseDispatching = false;

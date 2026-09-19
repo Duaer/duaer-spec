@@ -194,7 +194,7 @@ const zhCN = {
   "result.allModulesExtra": "可开始架构设计。",
   "dispatch.taskPool": "任务池（依赖 / 并行）",
   "dispatch.taskGraph": "任务执行路径",
-  "dispatch.taskGraphHint": "按依赖分层；色条表示数字员工分工",
+  "dispatch.taskGraphHint": "与系统架构图同一套 Archify 排版；色条表示数字员工分工",
   "dispatch.workerCount": "数字员工数量",
   "dispatch.workerCountHint": "默认 1 人串行推进；可并行时选多人（同一 CLI）",
   "dispatch.workerSerial": "串行",
@@ -715,7 +715,7 @@ const en = {
   "result.allModulesExtra": "Architecture design can start.",
   "dispatch.taskPool": "Task pool (deps / parallel)",
   "dispatch.taskGraph": "Task execution path",
-  "dispatch.taskGraphHint": "Layered by dependsOn; colors show worker lanes",
+  "dispatch.taskGraphHint": "Same Archify layout as system architecture; colors show worker lanes",
   "dispatch.workerCount": "Digital employees",
   "dispatch.workerCountHint":
     "Default 1 serial; pick more when tasks can run in parallel (same CLI)",

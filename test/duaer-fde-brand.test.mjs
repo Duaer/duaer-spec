@@ -28,7 +28,7 @@ test("Duaer-spec FDE brand appears in desk UI and CLI", () => {
   assert.match(html, /id="chatEmpty"/);
 
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
-  assert.match(live, /Duaer-spec FDE {2}http:\/\/127\.0\.0\.1/);
+  assert.match(live, /Duaer-spec FDE {2}\$\{deskUrl\}/);
   assert.match(live, /你是「Duaer-spec FDE」/);
 
   const cli = fs.readFileSync(path.join(ROOT, "bin/duaer.mjs"), "utf8");
