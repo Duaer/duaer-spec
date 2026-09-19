@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: common live-desk locales beyond zh/en/ja
+
+- Language select adds 繁體中文 / 한국어 / Español / Português / Français /
+  Deutsch / Русский / Tiếng Việt (full catalog parity with English)
+- Browser language detection covers the new codes
+
 ### Feat: deploy digital employee + documented hosting options
 
 - Employee directory adds **Deployer** (`role: deploy`); deploy tasks use that role

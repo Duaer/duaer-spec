@@ -1,10 +1,31 @@
 /**
- * Duaer-spec FDE (live desk) i18n — zh-CN (default) + en + ja.
+ * Duaer-spec FDE (live desk) i18n — zh-CN (default) + zh-TW + en + ja + ko +
+ * es + pt-BR + fr + de + ru + vi.
  */
 
 import { ja } from "./i18n-ja.js";
+import { ko } from "./i18n-ko.js";
+import { zhTW } from "./i18n-zh-TW.js";
+import { es } from "./i18n-es.js";
+import { ptBR } from "./i18n-pt-BR.js";
+import { fr } from "./i18n-fr.js";
+import { de } from "./i18n-de.js";
+import { ru } from "./i18n-ru.js";
+import { vi } from "./i18n-vi.js";
 
-export const LOCALES = ["zh-CN", "en", "ja"];
+export const LOCALES = [
+  "zh-CN",
+  "zh-TW",
+  "en",
+  "ja",
+  "ko",
+  "es",
+  "pt-BR",
+  "fr",
+  "de",
+  "ru",
+  "vi",
+];
 
 const STORAGE_KEY = "duaer.live.locale";
 
@@ -1094,7 +1115,19 @@ const en = {
   "err.autoFix": "Auto-fix failed",
 };
 
-const catalogs = { "zh-CN": zhCN, en, ja };
+const catalogs = {
+  "zh-CN": zhCN,
+  "zh-TW": zhTW,
+  en,
+  ja,
+  ko,
+  es,
+  "pt-BR": ptBR,
+  fr,
+  de,
+  ru,
+  vi,
+};
 
 let locale = "zh-CN";
 const listeners = new Set();
@@ -1111,8 +1144,16 @@ export function detectLocale() {
     // ignore
   }
   const nav = String(navigator.language || navigator.userLanguage || "").toLowerCase();
+  if (nav === "zh-tw" || nav === "zh-hk" || nav.includes("hant")) return "zh-TW";
   if (nav.startsWith("zh")) return "zh-CN";
   if (nav.startsWith("ja")) return "ja";
+  if (nav.startsWith("ko")) return "ko";
+  if (nav.startsWith("es")) return "es";
+  if (nav.startsWith("pt")) return "pt-BR";
+  if (nav.startsWith("fr")) return "fr";
+  if (nav.startsWith("de")) return "de";
+  if (nav.startsWith("ru")) return "ru";
+  if (nav.startsWith("vi")) return "vi";
   return "en";
 }
 

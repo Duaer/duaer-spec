@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T14:00:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": ["npm test (177 pass)", "key parity 493 for 8 new locales"],
+    "result": "pass"
+  },
+  "summary": "Added ko/zh-TW/es/pt-BR/fr/de/ru/vi live-desk locales with full English key parity."
+}

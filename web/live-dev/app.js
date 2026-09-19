@@ -29,20 +29,36 @@ import { EMPLOYEE_CATALOG } from "./employee-catalog.mjs";
 /** Deliverables API lang: en | ja | zh */
 function deliverablesLang() {
   const loc = getLocale();
-  if (loc === "en") return "en";
-  if (loc === "ja") return "ja";
-  return "zh";
+  if (loc === "en" || loc === "ja") return loc;
+  if (loc === "zh-TW" || loc === "zh-CN") return "zh";
+  // Other desk locales: deliverables page uses English stage chrome for now.
+  return "en";
 }
 
 function localeListJoin(items) {
-  return items.join(getLocale() === "en" ? ", " : "、");
+  const loc = getLocale();
+  if (loc === "zh-CN" || loc === "zh-TW" || loc === "ja" || loc === "ko") {
+    return items.join("、");
+  }
+  return items.join(", ");
 }
 
 function localeDateTag() {
   const loc = getLocale();
-  if (loc === "en") return "en-US";
-  if (loc === "ja") return "ja-JP";
-  return "zh-CN";
+  const map = {
+    en: "en-US",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    "zh-CN": "zh-CN",
+    "zh-TW": "zh-TW",
+    es: "es-ES",
+    "pt-BR": "pt-BR",
+    fr: "fr-FR",
+    de: "de-DE",
+    ru: "ru-RU",
+    vi: "vi-VN",
+  };
+  return map[loc] || "en-US";
 }
 
 const FALLBACK_PROVIDERS = [

@@ -317,7 +317,11 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
       title,
       quality_profile: "standard",
       locale:
-        opts.locale === "en" || opts.locale === "ja" ? opts.locale : "zh-CN",
+        ["en", "ja", "ko", "es", "pt-BR", "fr", "de", "ru", "vi", "zh-TW"].includes(
+          opts.locale,
+        )
+          ? opts.locale
+          : "zh-CN",
       viewBox: [
         Math.max(320, originX + (maxRank + 1) * colW + 80),
         Math.max(240, originY + (maxLane + 1) * rowH + 160),

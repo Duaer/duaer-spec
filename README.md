@@ -67,7 +67,7 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
 - **Employee roles.** Top-bar **digital employee** directory: **Implementer** builds features; **Functional regression** verifies against acceptance and testing rules; **Deployer** ships to the planned host. Optional parallel workers on the same CLI.
-- **zh-CN / en / ja UI.** Desk copy follows the language you pick.
+- **Locales.** Desk UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
 - **Deliverables and results.** Open a deliverables page (requirements, architecture, tasks, delivery); when done, open the page or the project folder.
 - **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on the same job without starting from scratch.
 
