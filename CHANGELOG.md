@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.24.0 — 2026-09-19
+
 ### Feat: common live-desk locales beyond zh/en/ja
 
 - Language select adds 繁體中文 / 한국어 / Español / Português / Français /
@@ -13,6 +15,10 @@
 - Employee directory adds **Deployer** (`role: deploy`); deploy tasks use that role
 - Multi-worker puts deploy (with verify-l3) on the last lane
 - READMEs list supported hosts: none / GitHub Pages / Cloudflare / 阿里云 / AWS
+
+### Docs: drop meta labels from README feature headings
+
+- Section titles are「我们有什么」/「What you get」without a meta tag in the title
 
 ## 0.23.1 — 2026-09-19
 
