@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "190-live-open-no-model",
+  "acceptedAt": "2026-09-19T02:45:00.000Z",
+  "verification": {
+    "L1": "node --test test/live-open-no-model.test.mjs",
+    "L3": "npm run test:live"
+  }
+}
