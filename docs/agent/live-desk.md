@@ -14,7 +14,24 @@ Three columns:
 |---|---|
 | Chat | Project dialogue; Markdown bubbles; messy multi-topic talk |
 | Center | Module tabs + confirm cards → architecture → kickoff / revise |
-| Progress | **View deliverables** (opens generated HTML) · `tasks.md` polling · result bar |
+| Progress | Delivery cockpit (stages + next action) · **View deliverables** · `tasks.md` polling · result bar |
+
+## Project portfolio
+
+The **Projects** drawer lists remembered product folders. Each row shows a
+**delivery status** chip (`drafting` / `confirming` / `building` / `delivered` /
+`revising`) derived from the per-project session under
+`~/.duaer/live/project-chats/`. When the session has anything to show, a short
+**Deliverables** control opens the dossier without hunting through progress.
+
+`GET /api/projects` includes `deliveryStatus`, `nextAction`, and
+`hasDeliverables` on each project row.
+
+## Delivery cockpit (Progress)
+
+With an active project, Progress shows a stage strip (requirements →
+architecture → kickoff → delivery → revise) and one **next action** line in
+plain language. **View deliverables** stays the primary CTA above the strip.
 
 ## Stage deliverables page
 

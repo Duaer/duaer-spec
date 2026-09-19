@@ -558,6 +558,64 @@ body {
   border-color: var(--lock);
 }
 
+.project-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.project-row.is-active .project-item {
+  border-color: var(--lock);
+}
+
+.project-row .project-item {
+  width: 100%;
+}
+
+.project-status {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid rgba(63, 86, 108, 0.65);
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: var(--mute);
+}
+
+.project-status.is-drafting {
+  color: #9fb0c0;
+}
+
+.project-status.is-confirming {
+  border-color: rgba(47, 158, 143, 0.55);
+  color: #9fe8dc;
+}
+
+.project-status.is-building {
+  border-color: rgba(212, 168, 75, 0.65);
+  color: #e8c87a;
+}
+
+.project-status.is-delivered {
+  border-color: rgba(47, 158, 143, 0.8);
+  background: rgba(47, 158, 143, 0.12);
+  color: #9fe8dc;
+}
+
+.project-status.is-revising {
+  border-color: rgba(127, 149, 168, 0.8);
+  color: #c5d4e0;
+}
+
+.project-deliverables {
+  align-self: flex-start;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.55rem;
+  background: rgba(47, 158, 143, 0.1);
+  border-color: var(--lock);
+  color: #9fe8dc;
+}
+
 .dispatch-project-summary {
   margin: 0 0 0.85rem;
   padding: 0.55rem 0.65rem;
@@ -1223,6 +1281,58 @@ a.btn[hidden] {
 
 .deliverables-open[hidden] {
   display: none !important;
+}
+
+.deliverables-open.primary {
+  font-weight: 650;
+}
+
+.delivery-cockpit {
+  flex-shrink: 0;
+  margin: 0.55rem 0 0.35rem;
+  padding: 0.5rem 0.55rem;
+  border: 1px solid rgba(63, 86, 108, 0.55);
+  background: rgba(8, 14, 20, 0.35);
+}
+
+.delivery-cockpit[hidden] {
+  display: none !important;
+}
+
+.delivery-stages {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.delivery-stage {
+  margin: 0;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid rgba(63, 86, 108, 0.55);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--mute);
+}
+
+.delivery-stage.is-partial {
+  border-color: rgba(212, 168, 75, 0.65);
+  color: #e8c87a;
+}
+
+.delivery-stage.is-done {
+  border-color: rgba(47, 158, 143, 0.75);
+  background: rgba(47, 158, 143, 0.14);
+  color: #9fe8dc;
+}
+
+.delivery-next {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink);
 }
 
 .progress-col .card-title {

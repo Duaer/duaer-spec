@@ -81,9 +81,10 @@ mock LLM — no paid API).
 
 **Flow**
 
-1. Open or create a **project**, then chat. Messy multi-topic talk is fine: the
-   desk evolves **`modules[]`** (tabs). Chat bubbles render **Markdown**
-   (`**bold**`, code, links).  
+1. Open or create a **project**, then chat. The **Projects** drawer shows each
+   project’s **delivery status**; open **Deliverables** when the session has
+   content. Messy multi-topic talk is fine: the desk evolves **`modules[]`**
+   (tabs). Chat bubbles render **Markdown** (`**bold**`, code, links).  
 2. Per module: fill the confirm card (goal / out-of-scope / **checkable**
    acceptance / assumptions). Vague acceptance fails the gate; validate must
    pass before **Confirm**. Confirming a module **locks that card only** — it
@@ -104,11 +105,12 @@ mock LLM — no paid API).
    - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FDE setup page guide covers the same.  
 6. Edit the start command (must begin with `Duaer`) → kickoff creates
    `.worktree/feat-*` and opens **Terminal** for each worker lane.  
-7. Watch progress in the right column (`tasks.md`). **View deliverables** (above
-   progress) opens a generated HTML page of stage artifacts (requirements doc
-   timeline, confirmation, architecture, task pool, delivery). On delivery,
-   workers update the product **README** before `delivery.json` is `accepted`.
-   Then open **Results** (**View result** when a page exists, otherwise **Open
+7. Progress shows a **next-action** stage strip, then `tasks.md` polling.
+   **View deliverables** (above progress) opens a generated HTML page of stage
+   artifacts (requirements doc timeline, confirmation, architecture, task pool,
+   delivery). On delivery, workers update the product **README** before
+   `delivery.json` is `accepted`. Then open **Results** (**View result** when a
+   page exists, otherwise **Open
    project folder**).  
 8. If the result is not right: **Continue improving (left chat)** → confirm the
    revise card (same validate gate) → re-confirm architecture (keep or redesign)
