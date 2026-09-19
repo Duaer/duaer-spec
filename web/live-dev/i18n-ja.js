@@ -198,7 +198,7 @@ export const ja = {
   "dispatch.taskGraph": "タスク実行パス",
   "dispatch.taskGraphHint": "システムアーキテクチャと同じレイアウト；色はワーカーレーン。図をクリックで全画面",
   "dispatch.workerCount": "デジタル従業員",
-  "dispatch.workerCountHint": "既定は 1 の直列；並列可能なとき人数を増やす（同一 CLI）",
+  "dispatch.workerCountHint": "既定は 1 の直列；複数時は最終レーンが機能回帰（verify-l3）",
   "dispatch.workerSerial": "直列",
   "dispatch.workerParallel": "並列",
   "dispatch.needModules": "先に全モジュールを確認してください",
