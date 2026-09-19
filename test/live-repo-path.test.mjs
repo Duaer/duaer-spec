@@ -75,9 +75,18 @@ test("live sources wire product dir ensure", () => {
   assert.match(live, /ensureProductDir/);
   assert.match(live, /resolveProductRepoPath/);
   assert.match(live, /projectsRoot/);
+  assert.match(live, /\/api\/projects\/pick-root/);
+  assert.match(live, /选择产品父目录/);
   const html = fs.readFileSync(
     path.join(ROOT, "web/live-dev/index.html"),
     "utf8",
   );
   assert.match(html, /id="projectsRoot"/);
+  assert.match(html, /readonly/);
+  assert.match(html, /id="pickProjectsRoot"/);
+  assert.match(html, /id="clearProjectsRoot"/);
+  assert.doesNotMatch(html, /id="saveProjectsRoot"/);
+  const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  assert.match(js, /\/api\/projects\/pick-root/);
+  assert.match(js, /pickProjectsRoot/);
 });

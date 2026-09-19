@@ -133,10 +133,11 @@ the table for their app.
 | E2E-151 | Modular `[模块]` card fields render section titles + numbered acceptance lists | `npm test` + `npm run test:live` |
 | E2E-152 | Project portfolio shows delivery status chips + open deliverables; Progress shows stage next-action | `npm test` + `npm run test:live` |
 | E2E-153 | `duaer live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
+| E2E-154 | 产品父目录 is read-only; 选择… opens native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
-| E2E-077 | Missing product path auto-created; projectsRoot saves parent; relative name creates under parent | `npm test` + manual |
+| E2E-077 | Missing product path auto-created; projectsRoot via native folder pick (no typing); relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
 | E2E-075 | DeepSeek Terminal launch uses `deepseek -w <worktree> --yolo` (not `--workspace`); job exits 0 when CLI present | `npm test` + manual |
 | E2E-074 | Missing git: auto-install then init; worker CLIs versioned; 10-day auto-upgrade stamp under `~/.duaer/cli-tools-check.json` (opt-out `DUAER_NO_CLI_UPGRADE=1`) | `npm test` + manual |
@@ -311,3 +312,4 @@ the table for their app.
 | E2E-151 | `187-req-card-modules` | modular `[模块]` structured sections |
 | E2E-152 | `189-fde-portfolio` | portfolio status + delivery cockpit |
 | E2E-153 | `190-live-open-no-model` | live opens desk without model gate |
+| E2E-154 | `191-projects-root-pick` | projectsRoot via native folder pick |

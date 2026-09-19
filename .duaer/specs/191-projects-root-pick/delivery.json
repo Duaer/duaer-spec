@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T02:45:00.000Z",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs; node --check web/live-dev/app.js",
+    "L1": "node --test test/live-repo-path.test.mjs test/live-projects.test.mjs",
+    "L3": "npm run test:live",
+    "result": "pass"
+  },
+  "summary": "产品父目录 uses native folder pick (选择…/清除); no path typing."
+}

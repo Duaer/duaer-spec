@@ -1573,11 +1573,12 @@ function discoverRepos({ max = 40 } = {}) {
   );
 }
 
-function pickFolderNative() {
+function pickFolderNative(promptText = "选择产品仓库") {
+  const prompt = String(promptText || "选择产品仓库").trim() || "选择产品仓库";
   if (process.platform === "darwin") {
     const r = spawnSync(
       "osascript",
-      ["-e", 'POSIX path of (choose folder with prompt "选择产品仓库")'],
+      ["-e", `POSIX path of (choose folder with prompt ${JSON.stringify(prompt)})`],
       { encoding: "utf8", timeout: 300000 },
     );
     const err = String(r.stderr || "").trim();
@@ -1603,7 +1604,7 @@ function pickFolderNative() {
   if (process.platform === "linux") {
     const r = spawnSync(
       "zenity",
-      ["--file-selection", "--directory", "--title=选择产品仓库"],
+      ["--file-selection", "--directory", `--title=${prompt}`],
       { encoding: "utf8", timeout: 300000 },
     );
     if (r.status !== 0) {
@@ -6424,6 +6425,31 @@ async function handleApi(req, res) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "activate project failed",
         code: err?.code || undefined,
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/projects/pick-root") {
+    try {
+      const chosen = pickFolderNative("选择产品父目录");
+      const abs = path.resolve(String(chosen || "").trim()).replace(/[\\/]+$/, "");
+      if (!abs || !fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
+        throw new Error("请选择一个有效的文件夹");
+      }
+      const next = writeConfig({ projectsRoot: abs });
+      send(res, 200, {
+        ok: true,
+        projectsRoot: abs,
+        ...publicConfig(next),
+        ...listProjectsPayload(),
+      });
+    } catch (err) {
+      const code = err && err.code;
+      send(res, 400, {
+        error: err instanceof Error ? err.message : "pick root failed",
+        cancelled: code === "CANCELLED",
+        code: code || undefined,
       });
     }
     return;

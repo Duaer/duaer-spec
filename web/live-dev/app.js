@@ -215,7 +215,8 @@ const el = {
   repoList: document.getElementById("repoList"),
   repoPath: document.getElementById("repoPath"),
   projectsRoot: document.getElementById("projectsRoot"),
-  saveProjectsRoot: document.getElementById("saveProjectsRoot"),
+  pickProjectsRoot: document.getElementById("pickProjectsRoot"),
+  clearProjectsRoot: document.getElementById("clearProjectsRoot"),
   projectFolder: document.getElementById("projectFolder"),
   projectTitle: document.getElementById("projectTitle"),
   projectDescription: document.getElementById("projectDescription"),
@@ -4989,36 +4990,65 @@ el.architectureRetry?.addEventListener("click", () => {
   retryArchitectureDesign();
 });
 
-el.saveProjectsRoot?.addEventListener("click", async () => {
+el.pickProjectsRoot?.addEventListener("click", async () => {
   if (el.historyErr) el.historyErr.hidden = true;
   if (el.dispatchErr) el.dispatchErr.hidden = true;
+  if (el.pickProjectsRoot) {
+    el.pickProjectsRoot.disabled = true;
+    el.pickProjectsRoot.textContent = t("dispatch.pickProjectsRootBusy");
+  }
   try {
-    const res = await fetch("/api/config", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        projectsRoot: (el.projectsRoot?.value || "").trim(),
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || t("dispatch.projectsRootFail"));
+    const res = await fetch("/api/projects/pick-root", { method: "POST" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      if (data.cancelled) return;
+      throw new Error(data.error || t("dispatch.projectsRootPickFail"));
+    }
     if (el.projectsRoot) el.projectsRoot.value = data.projectsRoot || "";
     state.lastCfg = { ...(state.lastCfg || {}), ...data };
+    if (Array.isArray(data.projects)) {
+      state.projects = data.projects;
+      renderProjectList();
+    }
     if (el.historyErr) {
       el.historyErr.hidden = false;
       el.historyErr.textContent = t("dispatch.projectsRootSaved");
-    } else if (el.dispatchStatus) {
-      el.dispatchStatus.hidden = false;
-      el.dispatchStatus.textContent = t("dispatch.projectsRootSaved");
     }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (el.historyErr) {
       el.historyErr.hidden = false;
       el.historyErr.textContent = msg;
-    } else if (el.dispatchErr) {
-      el.dispatchErr.hidden = false;
-      el.dispatchErr.textContent = msg;
+    }
+  } finally {
+    if (el.pickProjectsRoot) {
+      el.pickProjectsRoot.disabled = false;
+      el.pickProjectsRoot.textContent = t("dispatch.pickProjectsRoot");
+    }
+  }
+});
+
+el.clearProjectsRoot?.addEventListener("click", async () => {
+  if (el.historyErr) el.historyErr.hidden = true;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ projectsRoot: "" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("dispatch.projectsRootFail"));
+    if (el.projectsRoot) el.projectsRoot.value = "";
+    state.lastCfg = { ...(state.lastCfg || {}), ...data };
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent = t("dispatch.projectsRootCleared");
+    }
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (el.historyErr) {
+      el.historyErr.hidden = false;
+      el.historyErr.textContent = msg;
     }
   }
 });

@@ -341,10 +341,18 @@
         <p class="project-section-label" data-i18n="project.createTitle">新建 / 打开项目</p>
         <label class="field">
           <span data-i18n="dispatch.projectsRoot">产品父目录</span>
-          <input id="projectsRoot" type="text" data-i18n-placeholder="dispatch.projectsRootPh" placeholder="/Users/…/Projects" autocomplete="off" />
+          <input
+            id="projectsRoot"
+            type="text"
+            readonly
+            data-i18n-placeholder="dispatch.projectsRootEmpty"
+            placeholder="尚未选择"
+            autocomplete="off"
+          />
         </label>
         <div class="repo-actions repo-root-actions">
-          <button type="button" class="btn" id="saveProjectsRoot" data-i18n="dispatch.saveProjectsRoot">保存父目录</button>
+          <button type="button" class="btn primary" id="pickProjectsRoot" data-i18n="dispatch.pickProjectsRoot">选择…</button>
+          <button type="button" class="btn" id="clearProjectsRoot" data-i18n="dispatch.clearProjectsRoot">清除</button>
         </div>
         <label class="field">
           <span data-i18n="project.folderLabel">目录名或绝对路径</span>
