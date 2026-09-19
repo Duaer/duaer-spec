@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: task path diagram without redundant Archify labels
+
+- Drop edge `depends` labels, legend cards, and subtitle on the kickoff task graph
+
 ### Feat: task execution graph uses Archify (same as architecture)
 
 - Kickoff task path renders via `/api/architecture/render` + architecture mount

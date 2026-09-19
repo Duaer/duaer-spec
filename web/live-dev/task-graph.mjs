@@ -266,7 +266,6 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     id: `e${i + 1}`,
     from: e.from,
     to: e.to,
-    label: "depends",
     variant: "default",
   }));
 
@@ -288,17 +287,6 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     }
   }
 
-  const cards = [
-    {
-      dot: "cyan",
-      title: workerCount > 1 ? "Workers" : "Serial",
-      items:
-        workerCount > 1
-          ? Array.from({ length: workerCount }, (_, i) => `w${i + 1}`)
-          : ["w1"],
-    },
-  ];
-
   const maxRank = Math.max(0, ...[...ranks.values(), 0]);
   const maxLane = Math.max(0, workerCount - 1);
 
@@ -307,10 +295,6 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     diagram_type: "architecture",
     meta: {
       title,
-      subtitle:
-        workerCount > 1
-          ? `${workerCount} parallel workers`
-          : "1 worker · serial",
       quality_profile: "standard",
       locale: opts.locale === "en" ? "en" : "zh-CN",
       viewBox: [
@@ -321,7 +305,7 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     components,
     connections,
     boundaries,
-    cards,
+    cards: [],
   };
 }
 

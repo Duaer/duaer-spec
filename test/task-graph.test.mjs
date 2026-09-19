@@ -104,6 +104,19 @@ test("taskPoolToArchitectureIr lanes workers on Y axis", () => {
   assert.equal(ir.boundaries.length, 2);
 });
 
+test("taskPoolToArchitectureIr has no edge labels or legend cards", () => {
+  const ir = taskPoolToArchitectureIr(
+    [
+      { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+      { id: "T002", title: "B", dependsOn: ["T001"], workerId: "w1" },
+    ],
+    { workerCount: 1, title: "Test" },
+  );
+  assert.equal(ir.cards.length, 0);
+  assert.equal(ir.meta.subtitle, undefined);
+  assert.ok(ir.connections.every((c) => !c.label));
+});
+
 test("live sources wire Archify task graph mount", () => {
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");

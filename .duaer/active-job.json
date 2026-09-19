@@ -1,5 +1,5 @@
 {
-  "feature": "197-task-graph-archify",
-  "spec": ".duaer/specs/197-task-graph-archify/spec.md",
-  "updatedAt": "2026-09-19T04:00:00.000Z"
+  "featureDir": ".duaer/specs/198-task-graph-labels",
+  "slug": "198-task-graph-labels",
+  "branch": "fix/task-graph-labels"
 }

@@ -138,7 +138,7 @@ the table for their app.
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
-| E2E-159 | Task execution path uses Archify mount/layout like system architecture | `npm test` + `npm run test:live` |
+| E2E-159 | Task execution path uses Archify mount/layout like system architecture (no edge/legend clutter) | `npm test` + `npm run test:live` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
 | E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |

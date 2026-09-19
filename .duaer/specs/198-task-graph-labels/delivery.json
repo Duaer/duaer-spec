@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T03:25:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --test test/task-graph.test.mjs",
+      "renderArchitectureHtml smoke (no depends/Workers)",
+      "npm run test:live"
+    ]
+  }
+}
