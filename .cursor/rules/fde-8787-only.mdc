@@ -16,14 +16,16 @@ Managed by LaunchAgent `com.duaer.live8787`.
 - Check / restart with `launchctl kickstart -k "gui/$(id -u)/com.duaer.live8787"`
 - Verify with `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8787/`
 - After merge handoff, restart that LaunchAgent only (see `.duaer/handoff.json`)
+- Open architecture / 派工图 via desk `POST /api/open-external` (OS browser on :8787)
 
 ## Do not
 
 - Start `node bin/duaer-live.mjs` on any port other than **8787**
 - Start a second desk when 8787 is already listening
-- Open Cursor Browser / Simple Browser just to “check the desk” (shows random
-  high ports like `:62489` and confuses the operator)
+- Use Cursor Browser / Simple Browser / browser MCP to open the desk or
+  architecture present pages — Cursor proxies those as random high ports
+  (`:62489`, `:64074`, …). That is **not** a second FDE server.
 - Treat product preview ports (3000, 8081, …) as the FDE desk
 
-Interactive `duaer live` may still open the browser once; LaunchAgent sets
+Interactive `duaer live` may still open the OS browser once; LaunchAgent sets
 `DUAER_LIVE_NO_BROWSER=1` so kickstart does not spam tabs.

@@ -43,7 +43,11 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(I18N, /"dispatch\.center":\s*"调度中心"/);
   assert.match(APP, /architectureOpenFullscreen/);
   assert.match(APP, /function openDispatchCenterPage/);
-  assert.match(APP, /window\.open\(`\/dispatch-center\.html/);
+  assert.match(APP, /function openExternalDeskUrl/);
+  assert.match(APP, /function toDeskExternalHref/);
+  assert.match(APP, /DESK_ORIGIN\s*=\s*"http:\/\/127\.0\.0\.1:8787"/);
+  assert.match(APP, /\/api\/open-external/);
+  assert.match(APP, /openExternalDeskUrl\(/);
   assert.match(APP, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
   assert.match(APP, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
   assert.match(APP, /lastJobProgress/);
@@ -51,9 +55,18 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.doesNotMatch(APP, /setDispatchCenterOpen/);
   assert.match(pageJs, /mountArchitectureDiagram\(mount/);
   assert.match(pageJs, /openArchitecturePresent/);
+  assert.match(pageJs, /function toDeskExternalHref/);
+  assert.match(pageJs, /DESK_ORIGIN\s*=\s*"http:\/\/127\.0\.0\.1:8787"/);
+  assert.match(pageJs, /\/api\/open-external/);
   assert.match(pageJs, /noZoom:\s*true/);
   assert.match(pageJs, /searchParams\.set\("present",\s*"1"\)/);
   assert.match(pageJs, /searchParams\.set\("noz",\s*"1"\)/);
+  assert.match(APP, /new URL\(raw,\s*DESK_ORIGIN\)/);
+  assert.match(pageJs, /new URL\(raw,\s*DESK_ORIGIN\)/);
+  assert.doesNotMatch(
+    APP.slice(APP.indexOf("function architecturePresentUrl"), APP.indexOf("function openArchitecturePresent")),
+    /window\.location\.origin/,
+  );
   assert.match(APP, /stopPropagation\(\)/);
   assert.match(APP, /addEventListener\(\s*"click",[\s\S]*?true\s*\)/);
   assert.match(CSS, /architecture-mount-clickable/);
