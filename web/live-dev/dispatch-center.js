@@ -184,19 +184,6 @@ async function fetchJobProgress(jobId) {
   }
 }
 
-function toPresentHref(url) {
-  const raw = String(url || "").trim();
-  if (!raw) return "";
-  try {
-    const u = new URL(raw, location.origin);
-    u.searchParams.set("present", "1");
-    u.searchParams.set("noz", "1");
-    return u.pathname + u.search;
-  } catch {
-    return raw;
-  }
-}
-
 async function mountGraphIr(ir, seq) {
   const res = await fetch("/api/architecture/render", {
     method: "POST",
