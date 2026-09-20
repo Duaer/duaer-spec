@@ -1,1 +1,5 @@
-{"feature":"259-voice-guide-stt","specPath":".duaer/specs/259-voice-guide-stt/spec.md","source":"chat"}
+{
+  "feature": "260-release-026",
+  "branch": "feat/release-026",
+  "worktree": ".worktree/feat-release-026"
+}

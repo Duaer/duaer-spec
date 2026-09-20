@@ -2,11 +2,14 @@
 
 ## Unreleased
 
+## 0.26.0 — 2026-09-20
+
 ### Feat: speech recognition (STT) model for composer Record
 
 - Settings: configure STT Base URL / API Key / Model (OpenAI-compatible
   `/audio/transcriptions`, e.g. whisper-1)
 - Record captures audio; stop decodes via `/api/transcribe` into the composer
+- When STT is unset, Record guides the operator to Settings
 
 ### Feat: composer Record to collect requirements by speech
 
@@ -17,13 +20,13 @@
 
 - Stage tabs: Dispatch graph | Architecture
 - Architecture loads that project’s saved `architecture.url`; empty hint when missing
+- Fullscreen control removed from the architecture stage (open the saved URL)
 
-### Fix: remove Fullscreen button from dispatch center architecture view
+### Fix: rename product surface 台面 → 控制台
 
 - User-facing Chinese copy uses **控制台** (brand: **Duaer 控制台**)
 - English parallel uses **console** (**Duaer console**) instead of desk
 - DOM ids / `deskKind` / `live-desk.md` path unchanged
-
 
 ### Docs: Cursor + Claude Code primary; no professional workflow required
 
