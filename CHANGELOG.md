@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.25.1 — 2026-09-20
+
 ### Fix: architecture chat must not keep a false “diagram ready” line
 
 - When chat claims the diagram is ready but no renderable IR/URL arrives, the

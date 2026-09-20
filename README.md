@@ -63,7 +63,7 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
 - **Projects.** Create and switch projects; each keeps its own chat and progress.
 - **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed.
 - **Split big work into modules.** Confirm module by module; nothing starts until you kick off after the ones you care about are confirmed.
-- **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed.
+- **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed. If chat claims the diagram is ready but the middle panel is empty, the same bubble offers Regenerate — it does not leave a false “ready” line.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
 - **Employee roles.** Top-bar **digital employee** directory (Implementer / Functional regression / Deployer). Optional parallel workers on the same CLI. See the next section.
