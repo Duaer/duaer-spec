@@ -214,6 +214,7 @@ export const vi = {
   "dispatch.confirmWorkersGraph": "Xác nhận số lượng và tạo đồ thị",
   "dispatch.graphBuilding": "Đang tạo đồ thị…",
   "dispatch.graphBuildFail": "Tạo đồ thị thất bại",
+  "dispatch.graphBuildFailDetail": "Tạo đồ thị thất bại: {msg}",
   "dispatch.graphBuilt": "Đồ thị sẵn sàng cho {n} nhân viên số",
   "dispatch.recommendWorkers": "Gợi ý: {n} (theo độ rộng song song)",
   "dispatch.needGraphConfirm": "Hãy xác nhận số lượng và tạo đồ thị trước",

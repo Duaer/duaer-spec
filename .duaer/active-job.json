@@ -1,4 +1,5 @@
 {
-  "feature": "230-graph-confirm-busy",
-  "updatedAt": "2026-09-20T03:15:00.000Z"
+  "feature": "231-graph-edge-spacing",
+  "specPath": ".duaer/specs/231-graph-edge-spacing/spec.md",
+  "source": "chat"
 }

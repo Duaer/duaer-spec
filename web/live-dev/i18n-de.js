@@ -214,6 +214,7 @@ export const de = {
   "dispatch.confirmWorkersGraph": "Anzahl bestätigen und Graph erzeugen",
   "dispatch.graphBuilding": "Graph wird erzeugt…",
   "dispatch.graphBuildFail": "Graph konnte nicht erzeugt werden",
+  "dispatch.graphBuildFailDetail": "Graph fehlgeschlagen: {msg}",
   "dispatch.graphBuilt": "Graph bereit für {n} digitale Mitarbeiter",
   "dispatch.recommendWorkers": "Empfohlen: {n} (parallele Breite)",
   "dispatch.needGraphConfirm": "Zuerst Anzahl bestätigen und Graph erzeugen",

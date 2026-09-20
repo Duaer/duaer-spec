@@ -1202,11 +1202,13 @@ async function confirmWorkersAndBuildGraph() {
     state.dispatchGraphReady = false;
     state.dispatchGraphUrl = null;
     syncOpenTaskGraphButton();
+    const msg =
+      err instanceof Error ? err.message : t("dispatch.graphBuildFail");
     if (el.dispatchErr) {
       el.dispatchErr.hidden = false;
-      el.dispatchErr.textContent =
-        err instanceof Error ? err.message : t("dispatch.graphBuildFail");
+      el.dispatchErr.textContent = msg;
     }
+    addBubble("bot", t("dispatch.graphBuildFailDetail", { msg }));
   } finally {
     state.dispatchGraphBuilding = false;
     setConfirmWorkersGraphBusy(false);

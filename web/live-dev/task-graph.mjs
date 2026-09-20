@@ -306,11 +306,13 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
   const title = String(opts.title || "Task execution path").slice(0, 120);
   const ranks = dependencyRanks(list);
 
-  const colW = 220;
-  const rowH = 130;
+  // Archify widens boxes up to 200px (repairArchitectureGeometry). Keep a ≥24px
+  // clear edge: colW must be > MAX_COMPONENT_W + 24 (use +80 like system layout).
+  const colW = 280;
+  const rowH = 150;
   const originX = 48;
   const originY = 96;
-  const size = [150, 64];
+  const size = [140, 56];
 
   const components = [];
   for (const t of list) {

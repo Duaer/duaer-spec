@@ -214,6 +214,7 @@ export const ja = {
   "dispatch.confirmWorkersGraph": "人数を確定して派工図を生成",
   "dispatch.graphBuilding": "派工図を生成中…",
   "dispatch.graphBuildFail": "派工図の生成に失敗しました",
+  "dispatch.graphBuildFailDetail": "派工図の生成に失敗しました：{msg}",
   "dispatch.graphBuilt": "{n} 人分の派工図を生成しました。表示または起動できます",
   "dispatch.recommendWorkers": "推奨 {n} 人（並列幅より）",
   "dispatch.needGraphConfirm": "先に人数を確定して派工図を生成してください",

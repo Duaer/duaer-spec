@@ -214,6 +214,7 @@ export const ru = {
   "dispatch.confirmWorkersGraph": "Подтвердить число и построить граф",
   "dispatch.graphBuilding": "Строим граф…",
   "dispatch.graphBuildFail": "Не удалось построить граф",
+  "dispatch.graphBuildFailDetail": "Не удалось построить граф: {msg}",
   "dispatch.graphBuilt": "Граф готов для {n} цифровых сотрудников",
   "dispatch.recommendWorkers": "Рекомендуется: {n} (по ширине параллели)",
   "dispatch.needGraphConfirm": "Сначала подтвердите число и постройте граф",

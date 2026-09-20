@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: dispatch graph Archify edge spacing
+
+- Task-pool IR column width 280px so Archify edges stay ≥24px after box widen
+- Confirm failures post a chat bubble with the Archify error (not only a flash)
+
 ### Fix: confirm workers graph button spins until render finishes
 
 - 「确认人数并生成派工图」shows a busy spinner while Archify renders

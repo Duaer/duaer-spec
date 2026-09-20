@@ -104,6 +104,22 @@ test("assignPreviewWorkers fans modules across workers", () => {
   assert.ok(modWorkers.size >= 2);
 });
 
+test("taskPoolToArchitectureIr keeps Archify edge clearance", () => {
+  const pool = buildPreviewPoolFromModules(modules);
+  const assigned = assignPreviewWorkers(pool, 1);
+  const ir = taskPoolToArchitectureIr(assigned.tasks, {
+    title: "任务执行路径",
+    workerCount: 1,
+  });
+  const byId = Object.fromEntries(ir.components.map((c) => [c.id, c]));
+  // Consecutive ranks must leave ≥24px after Archify widens boxes to 200px.
+  const a = byId.T001;
+  const b = byId.T002;
+  assert.ok(a && b);
+  const gap = b.pos[0] - a.pos[0];
+  assert.ok(gap >= 224, `col spacing ${gap} must be >= 224 (200+24)`);
+});
+
 test("taskPoolToArchitectureIr is Archify-sanitizable", () => {
   const { ir, tasks } = buildTaskArchitectureIr(modules, 2, {
     title: "任务执行路径",

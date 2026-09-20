@@ -214,6 +214,7 @@ export const es = {
   "dispatch.confirmWorkersGraph": "Confirmar número y generar grafo",
   "dispatch.graphBuilding": "Generando el grafo…",
   "dispatch.graphBuildFail": "Error al generar el grafo",
+  "dispatch.graphBuildFailDetail": "Error al generar el grafo: {msg}",
   "dispatch.graphBuilt": "Grafo listo para {n} empleados digitales",
   "dispatch.recommendWorkers": "Recomendado: {n} (ancho paralelo)",
   "dispatch.needGraphConfirm": "Confirma el número y genera el grafo primero",
