@@ -38,23 +38,26 @@ function setCurrentPath(path) {
   history.replaceState(null, "", u);
 }
 
-function architecturePresentUrl(url) {
+function architecturePresentUrl(url, opts = {}) {
   const raw = String(url || "").trim();
   if (!raw) return "";
   try {
     const u = new URL(raw, window.location.origin);
     u.searchParams.delete("embed");
     u.searchParams.set("present", "1");
+    if (opts.noZoom) u.searchParams.set("noz", "1");
+    else u.searchParams.delete("noz");
     return u.href;
   } catch {
     const base = raw.split("#")[0];
     const join = base.includes("?") ? "&" : "?";
-    return `${base}${join}present=1`;
+    const noz = opts.noZoom ? "&noz=1" : "";
+    return `${base}${join}present=1${noz}`;
   }
 }
 
-function openArchitecturePresent(url) {
-  const href = architecturePresentUrl(url);
+function openArchitecturePresent(url, opts = {}) {
+  const href = architecturePresentUrl(url, opts);
   if (!href) return;
   window.open(href, "_blank", "noopener");
 }
@@ -72,7 +75,7 @@ function bindArchitecturePresentClick(host, getUrl) {
       if (!href) return;
       ev.preventDefault();
       ev.stopPropagation();
-      openArchitecturePresent(href);
+      openArchitecturePresent(href, { noZoom: true });
     },
     true,
   );

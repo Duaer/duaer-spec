@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: dispatch graph present does not zoom on node click
+
+- 「查看派工图」opens `present=1&noz=1`: full canvas, passport stays, no camera enlarge
+
 ### Fix: dispatch graph opens Archify present fullscreen
 
 - 「查看派工图」opens the same `?present=1` fullscreen canvas as system architecture

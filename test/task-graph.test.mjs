@@ -204,7 +204,7 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(page, /mountArchitectureDiagram\(mount/);
   assert.match(page, /openArchitecturePresent|present/);
   assert.match(app, /window\.open\(`\/dispatch-center\.html/);
-  assert.match(app, /openArchitecturePresent\(url\)/);
+  assert.match(app, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });

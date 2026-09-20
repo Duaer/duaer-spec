@@ -42,6 +42,7 @@ import {
 } from "./deploy-targets.mjs";
 import {
   injectDuaerEmbedPatches,
+  injectDuaerPresentNoZoom,
   renderArchitectureHtml,
   architectureStoreDir,
 } from "./live-archify.mjs";
@@ -6312,7 +6313,10 @@ async function handleApi(req, res) {
       res.end(fs.readFileSync(file));
       return;
     }
-    const html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));
+    let html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));
+    if (url.searchParams.get("noz") === "1") {
+      html = injectDuaerPresentNoZoom(html);
+    }
     res.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",

@@ -12,12 +12,14 @@ import {
   injectDuaerEmbedNodeZoom,
   injectDuaerEmbedPassportExpand,
   injectDuaerEmbedPatches,
+  injectDuaerPresentNoZoom,
   layoutArchitectureIr,
   renderArchitectureHtml,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
   DUAER_EMBED_ZOOM_SCRIPT_ID,
   DUAER_EMBED_EXPAND_SCRIPT_ID,
+  DUAER_PRESENT_NO_ZOOM_SCRIPT_ID,
   DUAER_ARCH_EMBED_MESSAGE_SOURCE,
 } from "../bin/live-archify.mjs";
 import {
@@ -308,6 +310,19 @@ test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
   assert.match(expandOnce, /diagram-container/);
 });
 
+test("injectDuaerPresentNoZoom clamps reveal scale for dispatch present", () => {
+  const raw = `<!doctype html><html><head></head><body></body></html>`;
+  const once = injectDuaerPresentNoZoom(raw);
+  assert.match(once, new RegExp(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`));
+  assert.match(once, /maxScale:\s*1/);
+  assert.match(once, /__duaerPresentNoZoom/);
+  assert.equal(
+    injectDuaerPresentNoZoom(once).split(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`)
+      .length - 1,
+    1,
+  );
+});
+
 test("live sources wire architecture API + desk panel", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
@@ -335,6 +350,8 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
   assert.match(live, /injectDuaerEmbedPatches/);
+  assert.match(live, /injectDuaerPresentNoZoom/);
+  assert.match(live, /searchParams\.get\("noz"\)/);
   assert.match(live, /\.json\$\/i|architecture\/.*\.json/);
   const mount = fs.readFileSync(
     path.join(ROOT, "web/live-dev/architecture-mount.mjs"),
