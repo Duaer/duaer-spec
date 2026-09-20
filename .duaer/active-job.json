@@ -1,5 +1,1 @@
-{
-  "feature": "256-chat-voice",
-  "specPath": ".duaer/specs/256-chat-voice/spec.md",
-  "source": "chat"
-}
+{"feature":"257-composer-voice-compact","specPath":".duaer/specs/257-composer-voice-compact/spec.md","source":"chat"}

@@ -1311,12 +1311,32 @@ body.history-open {
 
 .composer {
   display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 0.55rem;
-  padding: 0.85rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem;
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, #162331 0%, #13202b 100%);
   align-items: end;
+}
+
+.composer #input {
+  min-width: 0;
+  width: 100%;
+}
+
+.composer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+  align-self: end;
+}
+
+.composer-actions .btn {
+  padding: 0.32rem 0.55rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  min-height: 0;
+  width: 100%;
 }
 
 .composer #voice[aria-pressed="true"] {
