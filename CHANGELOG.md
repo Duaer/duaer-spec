@@ -2,26 +2,19 @@
 
 ## Unreleased
 
-### Fix: keep 再改一版 / 修 bug on the result bar after deploy
+## 0.25.0 — 2026-09-20
 
-- Result CTAs stay available whenever the result bar is visible (deploy / revise
-  wave no longer hides them)
+### Feat: bug path, project timeline, and desk navigation
 
-### Fix: keep chat quick-nav visible inside the chat column
+- Bug path: defect card → skip architecture by default → short pool → `fix/`
+  (optional hotfix from `main`)
+- Bug chat autofills project delivery context (URL / start scripts / env) instead
+  of re-asking
+- Bug CTA sits with Revise again on the result bar; CTAs stay after deploy
+- Project timeline: initial / revision N / defect sorted by time (deliverables)
+- Chat-edge quick nav jumps to chat bottom · confirm card · result · progress
 
-- Pin「导航」inside the chat panel (no half-clip under the middle column)
-- Open the menu inward over the chat log
-
-### Feat: project timeline + chat quick nav
-
-- Deliverables timeline merges 初版 / 改进 / 缺陷 and sorts by time
-- Chat column edge「导航」jumps to chat bottom · confirm card · result · progress
-
-### Fix: bug chat autofills project delivery facts
-
-- Defect dialogue no longer re-asks URL / start scripts / env / suspected cause /
-  online-emergency when the active project already has delivery context
-- Validate gates filter those issue phrases and enrich `assumptions`
+### Feat / Fix: dispatch center and desk ops (also in this release)
 
 ### Fix: opaque sticky result bar
 
