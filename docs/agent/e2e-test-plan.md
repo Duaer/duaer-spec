@@ -141,6 +141,7 @@ the table for their app.
 | E2E-169 | Dispatch center opens `/dispatch-center.html` in a new page: 100px project rail and the selected project's graph; desk is not covered by an overlay | `npm test` |
 | E2E-170 | Unchecked released wave is enqueued again when the lane is idle and the queue is empty | `npm test` |
 | E2E-171 | Creating or switching project ignores a stale status poll so 派工进度 does not pollute the new desk | `npm test` |
+| E2E-172 | Desk sessions use SQLite; legacy project-chats JSON imports on first open; schema_version migrations run | `npm test` |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
@@ -346,3 +347,4 @@ the table for their app.
 | E2E-169 | `223-dispatch-center` / `224-dispatch-center-page` | dispatch center is its own page with the selected project's graph |
 | E2E-170 | `225-wave-retry` | idle lane requeues an unchecked released wave |
 | E2E-171 | `226-progress-pollute` | stale status poll cannot refill another project's progress |
+| E2E-172 | `227-desk-sqlite` | desk.sqlite + JSON import + schema migrations |

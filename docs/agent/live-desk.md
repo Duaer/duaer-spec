@@ -24,8 +24,9 @@ Three columns:
 
 The **Projects** drawer lists remembered product folders. Each row shows a
 **delivery status** chip (`drafting` / `confirming` / `building` / `delivered` /
-`revising`) derived from the per-project session under
-`~/.duaer/live/project-chats/`. When the session has anything to show, a short
+`revising`) derived from the per-project session in
+`~/.duaer/live/desk.sqlite` (legacy `project-chats/*.json` is imported on
+first open). When the session has anything to show, a short
 **Deliverables** control opens the dossier without hunting through progress.
 
 `GET /api/projects` includes `deliveryStatus`, `nextAction`, and

@@ -11,6 +11,7 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "../bin/live-project-chat.mjs";
+import { closeDeskDb } from "../bin/live-desk-db.mjs";
 
 test("projectChatKey is stable and path-based", () => {
   const a = projectChatKey("/Users/me/Projects/foo");
@@ -72,6 +73,8 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
   assert.equal(loaded.agentId, "cursor-agent");
   assert.equal(loaded.validate.status, "passed");
   assert.equal(loaded.validate.summary, "ok");
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -92,6 +95,8 @@ test("dispatchPhase done round-trips in project chat", () => {
     dispatchPhase: "working",
   });
   assert.equal(readProjectChat(root, projectPath).dispatchPhase, null);
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -119,6 +124,8 @@ test("architecture mode and messages round-trip", () => {
   assert.equal(loaded.architecture.status, "designing");
   assert.equal(loaded.architectureMessages.length, 2);
   assert.equal(loaded.architectureMessages[1].content, "先问前端还是后端？");
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -145,6 +152,8 @@ test("architecturePrevious round-trips in project chat", () => {
   assert.equal(loaded.architecturePrevious.url, "/api/architecture/old.html");
   assert.equal(loaded.architecturePrevious.summary, "old");
   assert.equal(loaded.architecture.url, "/api/architecture/new.html");
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -157,6 +166,8 @@ test("checking validate status is not restored (stored as idle)", () => {
   });
   const loaded = readProjectChat(root, projectPath);
   assert.equal(loaded.validate.status, "idle");
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -171,6 +182,15 @@ test("live sources wire project desk session API + client persist", () => {
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /persistProjectChat|loadProjectChatIntoUi/);
   assert.match(js, /clearDeskWorkspace|stopStatusPoll/);
+  const chatSrc = fs.readFileSync(
+    path.join(ROOT, "bin/live-project-chat.mjs"),
+    "utf8",
+  );
+  assert.match(chatSrc, /loadSessionPayload|saveSessionPayload|live-desk-db/);
+  const deskDb = fs.readFileSync(path.join(ROOT, "bin/live-desk-db.mjs"), "utf8");
+  assert.match(deskDb, /DESK_SCHEMA_VERSION/);
+  assert.match(deskDb, /importLegacyProjectChats/);
+  assert.match(deskDb, /migrateDeskSchema/);
   assert.match(js, /schedulePersistProjectDesk/);
   assert.match(js, /applySavedCardFields/);
   assert.match(js, /restoreValidateGate/);
@@ -221,6 +241,8 @@ test("reviseCards architecture snapshot round-trips", () => {
   assert.equal(loaded.reviseCards[0].architecture.changed, true);
   assert.equal(loaded.initialArchitecture.url, "/arch/v0.html");
   assert.equal(loaded.reviseExpanded["1"], false);
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
 });
 
@@ -299,6 +321,8 @@ test("reviseCards round-trip and legacy lastRevision migrate", () => {
   assert.equal(migrated.reviseCards.length, 1);
   assert.equal(migrated.reviseCards[0].revision, 3);
   assert.equal(migrated.reviseCards[0].goal, "legacy change");
+  closeDeskDb(root);
+
   fs.rmSync(root, { recursive: true, force: true });
   fs.rmSync(legacyRoot, { recursive: true, force: true });
 });

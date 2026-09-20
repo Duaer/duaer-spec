@@ -1,10 +1,8 @@
 /**
- * Persist per-project desk session under ~/.duaer/live/project-chats/.
- * Includes chat, confirm/revise cards, and job binding for progress.
+ * Persist per-project desk session (chat + requirements + job).
+ * Storage: ~/.duaer/live/desk.sqlite (see live-desk-db.mjs).
  */
 
-import { createHash } from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import {
   clipModules,
@@ -12,15 +10,15 @@ import {
   clipTaskPool,
   clipWorkerCount,
 } from "./live-modules.mjs";
+import { projectChatKey } from "./live-project-chat-key.mjs";
+import {
+  loadSessionPayload,
+  saveSessionPayload,
+} from "./live-desk-db.mjs";
 
-export function projectChatKey(projectPath) {
-  const abs = String(projectPath || "")
-    .trim()
-    .replace(/[\\/]+$/, "");
-  if (!abs) return "";
-  return createHash("sha256").update(abs).digest("hex").slice(0, 24);
-}
+export { projectChatKey } from "./live-project-chat-key.mjs";
 
+/** @deprecated Prefer SQLite; kept for tests and legacy path discovery. */
 export function projectChatPath(liveRoot, projectPath) {
   const key = projectChatKey(projectPath);
   if (!key) return null;
@@ -262,11 +260,12 @@ function normalizeModulesFields(raw) {
  * @returns {ReturnType<typeof emptySession>}
  */
 export function readProjectChat(liveRoot, projectPath) {
-  const file = projectChatPath(liveRoot, projectPath);
   const empty = emptySession(projectPath);
-  if (!file || !fs.existsSync(file)) return empty;
+  const abs = String(projectPath || "").trim();
+  if (!abs || !liveRoot) return empty;
   try {
-    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const raw = loadSessionPayload(liveRoot, abs);
+    if (!raw || typeof raw !== "object") return empty;
     const modFields = normalizeModulesFields(raw);
     return {
       projectPath: String(raw.projectPath || projectPath || "").trim(),
@@ -314,13 +313,11 @@ export function readProjectChat(liveRoot, projectPath) {
 
 export function writeProjectChat(liveRoot, payload) {
   const projectPath = String(payload.projectPath || "").trim();
-  const file = projectChatPath(liveRoot, projectPath);
-  if (!file) {
+  if (!projectPath || !liveRoot) {
     const e = new Error("projectPath required");
     e.code = "EMPTY_PATH";
     throw e;
   }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
   const modFields = normalizeModulesFields(payload);
   const doc = {
     projectPath,
@@ -363,6 +360,6 @@ export function writeProjectChat(liveRoot, payload) {
     architectureMessages: clipMessages(payload.architectureMessages),
     dispatchPhase: payload.dispatchPhase === "done" ? "done" : null,
   };
-  fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+  saveSessionPayload(liveRoot, doc);
   return doc;
 }

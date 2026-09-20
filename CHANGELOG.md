@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Feat: desk project sessions in SQLite
+
+- Project desk sessions live in `~/.duaer/live/desk.sqlite` (Node built-in `node:sqlite`)
+- Existing `project-chats/*.json` import automatically on first desk open; JSON files are kept
+- Schema is versioned; later duaer-spec releases run migrations on open
+- Requires Node `>=22.5.0`
+
 ### Fix: new project no longer keeps the previous 派工进度
 
 - Status poll ignores responses after the desk switches to another project (or clears jobId)
