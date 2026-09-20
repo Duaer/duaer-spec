@@ -3441,6 +3441,19 @@ async function loadConfig() {
   showUpdateNotice(cfg.update);
   if (cfg.ready) showDesk(cfg);
   else showSetup(cfg);
+  applyOpenPanelFromQuery();
+}
+
+/** From dispatch-center top nav: /?open=projects|employees|settings */
+function applyOpenPanelFromQuery() {
+  const u = new URL(location.href);
+  const open = String(u.searchParams.get("open") || "").trim();
+  if (!open) return;
+  u.searchParams.delete("open");
+  history.replaceState(null, "", u);
+  if (open === "projects") setHistoryOpen(true);
+  else if (open === "employees") setEmployeeOpen(true);
+  else if (open === "settings") setSettingsOpen(true);
 }
 
 el.saveCfg.addEventListener("click", async () => {

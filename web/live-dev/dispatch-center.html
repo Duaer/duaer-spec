@@ -10,11 +10,78 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=dispatch-stage-1" />
+    <link rel="stylesheet" href="/styles.css?v=dispatch-nav-1" />
   </head>
   <body class="dispatch-center-page">
-    <header class="dispatch-center-top">
-      <h1 data-i18n="dispatch.center">调度中心</h1>
+    <header class="top">
+      <div class="top-row">
+        <a class="top-lead top-lead-link" href="/" data-i18n-aria="header.brandProduct" aria-label="Duaer-spec">
+          <p class="brand">
+            <span data-i18n="header.brandProduct">Duaer-spec</span>
+            <span class="brand-fde" data-i18n="header.brandFde">FDE</span>
+          </p>
+          <p class="flow-line">
+            <span class="mark" data-i18n="header.mark">现场开发</span>
+            <span class="flow-sep" aria-hidden="true">·</span>
+            <span class="tag" data-i18n="header.tag">规范需求 → 可检查验收 → 派工 → 满意成品 → 可继续改进</span>
+          </p>
+        </a>
+        <div class="top-actions">
+          <button
+            type="button"
+            class="top-btn"
+            id="dispatchCenterToggle"
+            data-i18n="dispatch.center"
+            aria-current="page"
+          >
+            调度中心
+          </button>
+          <p id="projectBadge" class="project-badge" data-i18n="project.noneBadge">未选项目</p>
+          <button type="button" class="top-btn" id="historyToggle" data-i18n="project.toggle">
+            项目
+          </button>
+          <button
+            type="button"
+            class="top-btn"
+            id="employeeToggle"
+            data-i18n="employee.toggle"
+          >
+            数字员工
+          </button>
+          <button type="button" class="top-btn" id="cfgOpen" data-i18n="setup.open">
+            设置
+          </button>
+          <label class="lang-switch">
+            <span class="sr-only" data-i18n="lang.label">语言</span>
+            <select id="langSelect" class="top-btn" aria-label="Language">
+              <option value="zh-CN">中文</option>
+              <option value="zh-TW">繁體中文</option>
+              <option value="en">English</option>
+              <option value="ja">日本語</option>
+              <option value="ko">한국어</option>
+              <option value="es">Español</option>
+              <option value="pt-BR">Português</option>
+              <option value="fr">Français</option>
+              <option value="de">Deutsch</option>
+              <option value="ru">Русский</option>
+              <option value="vi">Tiếng Việt</option>
+            </select>
+          </label>
+          <a
+            id="githubStars"
+            class="top-btn github-btn"
+            href="https://github.com/fujiezee/duaer-spec"
+            target="_blank"
+            rel="noopener noreferrer"
+            data-i18n-aria="github.aria"
+            aria-label="GitHub 项目"
+          >
+            <span data-i18n="github.label">GitHub</span>
+            <span class="github-star" aria-hidden="true">★</span>
+            <span id="githubStarCount" class="github-count">—</span>
+          </a>
+        </div>
+      </div>
     </header>
     <div id="dispatchCenter" class="dispatch-center">
       <aside class="dispatch-center-rail" data-i18n-aria="dispatch.center" aria-label="调度中心">
@@ -25,6 +92,6 @@
         <div id="taskGraphMount" class="task-graph-mount architecture-mount"></div>
       </div>
     </div>
-    <script type="module" src="/dispatch-center.js?v=dispatch-stage-1"></script>
+    <script type="module" src="/dispatch-center.js?v=dispatch-nav-1"></script>
   </body>
 </html>

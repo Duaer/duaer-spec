@@ -241,13 +241,17 @@ test("live sources wire Archify task graph mount", () => {
   );
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(html, /id="taskGraphMount"/);
+  assert.match(html, /class="top"/);
+  assert.match(html, /id="langSelect"/);
   assert.match(html, /architecture-mount/);
   assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
   assert.match(page, /mountArchitectureDiagram\(mount,\s*\{\s*url,\s*ir:\s*null,\s*stage:\s*true\s*\}\)/);
+  assert.match(page, /wireTopNav|goDesk/);
   assert.doesNotMatch(page, /openArchitecturePresent|openExternalDeskUrl/);
   assert.match(app, /openExternalDeskUrl\([\s\S]*dispatch-center\.html/);
   assert.match(app, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
   assert.match(app, /openDispatchCenterPage\(state\.projectPath\)/);
+  assert.match(app, /applyOpenPanelFromQuery/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });
