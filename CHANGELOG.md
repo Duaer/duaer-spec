@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: dispatch-center node click zooms again
+
+- Stage view keeps Archify reveal and frames the clicked node (scale up to 2.6)
+- Desk architecture embeds still open present instead of zooming in place
+
 ### Fix: dispatch center shows the graph on the page
 
 - Battlefield fills the dispatch-center stage; node clicks stay there

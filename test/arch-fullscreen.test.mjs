@@ -56,6 +56,7 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.doesNotMatch(APP, /setDispatchCenterOpen/);
   assert.match(pageJs, /mountArchitectureDiagram\(mount/);
   assert.match(pageJs, /stage:\s*true/);
+  assert.match(pageJs, /architecture-mount\.mjs\?v=node-zoom-1/);
   assert.doesNotMatch(pageJs, /openArchitecturePresent|openExternalDeskUrl|\/api\/open-external/);
   assert.doesNotMatch(page, /architecture-mount-clickable/);
   assert.match(APP, /new URL\(raw,\s*DESK_ORIGIN\)/);

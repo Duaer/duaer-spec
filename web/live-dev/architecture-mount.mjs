@@ -353,7 +353,26 @@ function disableEmbedNodeZoom(Archify) {
   Archify.view.__duaerEmbedNoZoom = true;
 }
 
-function runViewerScript(code, scopedDocument) {
+/**
+ * Dispatch-center stage is already full page. Clicking a node should still
+ * enlarge that node (Archify reveal), including hubs that would stay at scale 1.
+ */
+function enableStageNodeZoom(Archify) {
+  if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
+  if (Archify.view.__duaerStageZoom) return;
+  const original = Archify.view.reveal;
+  Archify.view.reveal = function duaerStageZoomReveal(ids, options) {
+    const opts = Object.assign({}, options || {}, {
+      includeNeighbors: false,
+      maxScale: 2.6,
+      padding: 28,
+    });
+    return original.call(this, ids, opts);
+  };
+  Archify.view.__duaerStageZoom = true;
+}
+
+function runViewerScript(code, scopedDocument, opts = {}) {
   if (!code) return null;
   const runner = new Function(
     "document",
@@ -361,7 +380,8 @@ function runViewerScript(code, scopedDocument) {
     `"use strict";\n${code}\n;return typeof Archify !== "undefined" ? Archify : null;`,
   );
   const Archify = runner(scopedDocument, window);
-  disableEmbedNodeZoom(Archify);
+  if (opts.zoom) enableStageNodeZoom(Archify);
+  else disableEmbedNodeZoom(Archify);
   return Archify;
 }
 
@@ -432,7 +452,9 @@ export async function mountArchitectureDiagram(host, opts = {}) {
 
   const scopedDocument = createScopedDocument(rootEl, shadow);
   try {
-    host._archify = runViewerScript(parsed.main, scopedDocument);
+    host._archify = runViewerScript(parsed.main, scopedDocument, {
+      zoom: Boolean(opts.stage),
+    });
   } catch (err) {
     console.warn("archify viewer init failed", err);
     host._archify = null;

@@ -21,7 +21,7 @@ import {
   mountArchitectureDiagram,
   clearArchitectureMount,
   architectureKeyFromArchitectureUrl,
-} from "./architecture-mount.mjs";
+} from "./architecture-mount.mjs?v=node-zoom-1";
 import { enrichChatOptions } from "./choice-options.mjs";
 import {
   annotateParallelTasks,
