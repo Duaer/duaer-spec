@@ -1,12 +1,15 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   blockedTasks,
   doneIdsFromProgress,
   fingerprintWave,
+  finishedWaveBlocksQueue,
   isReady,
   pendingWaveReleases,
   readyTasks,
+  runningWaveIdsFromScript,
   waveForWorker,
   workerOrchestrationState,
 } from "../bin/live-orchestrate.mjs";
@@ -115,4 +118,65 @@ test("workerOrchestrationState waiting_deps", () => {
     }),
     "done",
   );
+});
+
+test("runningWaveIdsFromScript reads the launched wave, not the owned list", () => {
+  const script = `你负责的全部任务：T001, T002, T003。
+当前编排波次（只做这些）：
+- T002: Satisfy acceptance
+`;
+  assert.deepEqual(runningWaveIdsFromScript(script), ["T002"]);
+});
+
+test("finishedWaveBlocksQueue preempts only a checked running wave with a waiter", () => {
+  const done = new Set(["T001"]);
+  assert.equal(
+    finishedWaveBlocksQueue({
+      busy: true,
+      queueDepth: 1,
+      runningWaveIds: ["T001"],
+      doneSet: done,
+    }),
+    true,
+  );
+  assert.equal(
+    finishedWaveBlocksQueue({
+      busy: true,
+      queueDepth: 1,
+      runningWaveIds: ["T002"],
+      doneSet: done,
+    }),
+    false,
+  );
+  assert.equal(
+    finishedWaveBlocksQueue({
+      busy: true,
+      queueDepth: 0,
+      runningWaveIds: ["T001"],
+      doneSet: done,
+    }),
+    false,
+  );
+  assert.equal(
+    finishedWaveBlocksQueue({
+      busy: false,
+      queueDepth: 1,
+      runningWaveIds: ["T001"],
+      doneSet: done,
+    }),
+    false,
+  );
+});
+
+test("desk status path calls finishedWaveBlocksQueue before preempt", () => {
+  const src = readFileSync(
+    new URL("../bin/duaer-live.mjs", import.meta.url),
+    "utf8",
+  );
+  const gate = src.indexOf("finishedWaveBlocksQueue(");
+  const preempt = src.indexOf(
+    "finished wave still holds the lane; next job is queued",
+  );
+  assert.ok(gate > 0);
+  assert.ok(preempt > gate);
 });

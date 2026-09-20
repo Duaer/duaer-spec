@@ -174,6 +174,49 @@ export function pendingWaveReleases(input = {}) {
 }
 
 /**
+ * Task ids of the wave the running Terminal script was launched for.
+ * Matches kickoff / continue lines like `- T002: …`, not the owned-task list.
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function runningWaveIdsFromScript(text) {
+  const ids = [];
+  const re = /^- (T\d+):/gm;
+  let match;
+  const src = String(text || "");
+  while ((match = re.exec(src))) {
+    const id = normId(match[1]);
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * The lane is still busy on a wave whose tasks are already checked, while
+ * another job waits. Do not preempt when the running script's wave is still
+ * open — that session is the work in progress, even if an earlier wave is done.
+ * @param {{
+ *   busy?: boolean,
+ *   queueDepth?: number,
+ *   runningWaveIds?: string[],
+ *   doneSet?: Set<string>|Iterable<string>,
+ * }} input
+ */
+export function finishedWaveBlocksQueue(input = {}) {
+  if (!input.busy) return false;
+  if (!(Number(input.queueDepth) > 0)) return false;
+  const doneSet =
+    input.doneSet instanceof Set
+      ? input.doneSet
+      : new Set([...(input.doneSet || [])].map(normId).filter(Boolean));
+  const ids = (Array.isArray(input.runningWaveIds) ? input.runningWaveIds : [])
+    .map(normId)
+    .filter(Boolean);
+  if (!ids.length) return false;
+  return ids.every((id) => doneSet.has(id));
+}
+
+/**
  * Orchestration lane state for a worker.
  * @param {{
  *   ownedTotal: number,

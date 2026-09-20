@@ -82,8 +82,10 @@ import { rolePromptZh } from "../web/live-dev/employee-catalog.mjs";
 import {
   doneIdsFromProgress,
   fingerprintWave,
+  finishedWaveBlocksQueue,
   orchestrationSummary,
   pendingWaveReleases,
+  runningWaveIdsFromScript,
   waveForWorker,
 } from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus, pickOpenableResultEntry, isOpenableProductPreview } from "./live-preview.mjs";
@@ -2686,16 +2688,19 @@ function pidAlive(pid) {
  * agent/claude orphans (never the Terminal runner.command). Leave
  * running.cmd on disk for the long-lived runner to clean up.
  */
-function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null } = {}) {
+function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null, reason = null } = {}) {
   const runningPath = path.join(queueDir, "running.cmd");
   if (!fs.existsSync(runningPath)) {
     return { preempted: false, reason: "idle" };
   }
   const stamp = new Date().toISOString();
+  const note =
+    reason ||
+    "priorAccepted revise must not wait forever behind leftover agent";
   if (logPath) {
     appendLaunchLog(
       logPath,
-      `[${stamp}] preempt busy runner — priorAccepted revise must not wait forever behind leftover agent`,
+      `[${stamp}] preempt busy runner — ${note}`,
     );
   }
   const killed = [];
@@ -5184,6 +5189,57 @@ ${DISPATCH_MUST_FINISH_RULES}
     }
   }
 
+  // A finished wave often prints "exit" and stays up. The next job is already
+  // queued; SIGTERM the leftover session so the runner can dequeue it.
+  // Only when running.cmd's own wave ids are all checked — never the session
+  // that is still working the latest wave.
+  const waveExitPreemptAt = {
+    ...(prev.waveExitPreemptAt && typeof prev.waveExitPreemptAt === "object"
+      ? prev.waveExitPreemptAt
+      : {}),
+  };
+  const WAVE_EXIT_PREEMPT_COOLDOWN_MS = 8000;
+  for (let w = 1; w <= workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const lane = workerCount > 1 ? workerId : null;
+    const qdir = terminalQueueDir(worktreePath, lane);
+    const snap = terminalQueueSnapshot(worktreePath, lane);
+    let runningText = "";
+    try {
+      runningText = fs.readFileSync(path.join(qdir, "running.cmd"), "utf8");
+    } catch {
+      runningText = "";
+    }
+    if (
+      !finishedWaveBlocksQueue({
+        busy: snap.busy,
+        queueDepth: snap.queueDepth,
+        runningWaveIds: runningWaveIdsFromScript(runningText),
+        doneSet,
+      })
+    ) {
+      continue;
+    }
+    const lastAt = Date.parse(waveExitPreemptAt[workerId] || "") || 0;
+    if (Date.now() - lastAt < WAVE_EXIT_PREEMPT_COOLDOWN_MS) continue;
+    const brief = featureDir || dispatch.featureDir || "";
+    const wLog = brief
+      ? workerCount === 1
+        ? path.join(brief, "agent-launch.log")
+        : path.join(brief, `agent-launch-${workerId}.log`)
+      : null;
+    const pre = preemptBusyTerminalJob(qdir, {
+      worktreePath,
+      logPath: wLog,
+      reason: "finished wave still holds the lane; next job is queued",
+    });
+    waveExitPreemptAt[workerId] = new Date().toISOString();
+    changed = true;
+    if (!pre.preempted) {
+      errors.push(`${workerId}: wave-exit preempt found no process`);
+    }
+  }
+
   const summary = orchestrationSummary({
     pool,
     doneSet,
@@ -5193,6 +5249,7 @@ ${DISPATCH_MUST_FINISH_RULES}
   const nextOrch = {
     version: 1,
     releasedWaves,
+    waveExitPreemptAt,
     updatedAt: new Date().toISOString(),
     summary,
     pending: pending.map((p) => ({

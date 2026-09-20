@@ -98,7 +98,10 @@ Kickoff owns Brief creation and dispatch:
 - **Wave orchestration:** kickoff and status polls only release tasks whose
   `dependsOn` are already `[x]` in `tasks.md`. When a wave completes, the desk
   enqueues `--continue` on the owning lane with the next ready wave (no
-  prompt-only hope). Assignment inherits the first dependency’s worker when
+  prompt-only hope). If that lane is still busy on a wave whose tasks are
+  already checked, the desk preempts the leftover CLI so the queued continue
+  can start. It does not preempt a session whose own wave is still open.
+  Assignment inherits the first dependency’s worker when
   possible so chained work stays on-lane.
 - **Must finish:** prompts forbid ending with `Job not accepted yet`. Workers
   complete every assigned task and stamp `delivery.json` `accepted`. The desk

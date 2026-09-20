@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: finished wave releases the Terminal for the next job
+
+- When a wave's tasks are checked and the next `--continue` is already queued, the desk preempts the leftover CLI instead of waiting for it to exit
+- A session whose own wave is still open is not preempted
+
 ### Fix: project activate click shows feedback in the drawer
 
 - Missing path, name, or description is shown in the project drawer, not only in chat behind it
