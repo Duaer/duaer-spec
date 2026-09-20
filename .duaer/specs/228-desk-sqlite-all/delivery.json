@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T02:50:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1"],
+    "commands": [
+      "node --check bin/live-desk-db.mjs bin/duaer-live.mjs",
+      "node --test test/live-desk-db.test.mjs (7 pass)",
+      "npm test (197 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Config, repos, and live jobs join project sessions in desk.sqlite with legacy import; live root remains per-machine and never packaged."
+}
