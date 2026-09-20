@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T05:10:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check web/live-dev/dispatch-center.js web/live-dev/app.js web/live-dev/architecture-mount.mjs",
+      "node --test test/arch-fullscreen.test.mjs test/task-graph.test.mjs test/live-archify.test.mjs",
+      "npm test (205 pass)",
+      "npm run test:live (1 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Dispatch center shows the task graph on its own large stage. Viewing or clicking it no longer opens a second present window."
+}
