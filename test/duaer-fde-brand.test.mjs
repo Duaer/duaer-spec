@@ -16,10 +16,10 @@ test("Duaer-spec FDE brand appears in desk UI and CLI", () => {
   assert.match(i18n, /"doc\.title":\s*"Duaer-spec FDE"/);
   assert.match(i18n, /"header\.mark":\s*"Field Development Environment"/);
   assert.match(i18n, /"header\.mark":\s*"现场开发"/);
-  assert.match(i18n, /"setup\.hint":\s*"先接好 Duaer 台面模型/);
-  assert.match(i18n, /"setup\.hint":\s*"Connect a Duaer desk model first/);
-  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer 台面模型/);
-  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer desk model/);
+  assert.match(i18n, /"setup\.hint":\s*"先接好 Duaer 控制台模型/);
+  assert.match(i18n, /"setup\.hint":\s*"Connect a Duaer console model first/);
+  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer 控制台模型/);
+  assert.match(i18n, /"setup\.guideDeskTitle":\s*"Duaer console model/);
 
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /<title>Duaer-spec FDE<\/title>/);
@@ -36,7 +36,7 @@ test("Duaer-spec FDE brand appears in desk UI and CLI", () => {
 
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   assert.match(readme, /docs\/assets\/duaer-spec-fde\.svg/);
-  assert.match(readme, /## Duaer-spec FDE \(live desk\)/);
+  assert.match(readme, /## Duaer-spec FDE \(live console\)/);
   const brandSvg = fs.readFileSync(path.join(ROOT, "docs/assets/duaer-spec-fde.svg"), "utf8");
   assert.match(brandSvg, /#e05a2b/);
   assert.match(brandSvg, />FDE</);

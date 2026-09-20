@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Docs / UI: rename product surface 台面 → 控制台
+
+- User-facing Chinese copy uses **控制台** (brand: **Duaer 控制台**)
+- English parallel uses **console** (**Duaer console**) instead of desk
+- DOM ids / `deskKind` / `live-desk.md` path unchanged
+
+
 ### Docs: Cursor + Claude Code primary; no professional workflow required
 
 - README / ADOPT lead with Cursor and Claude Code; humans need not learn Spec

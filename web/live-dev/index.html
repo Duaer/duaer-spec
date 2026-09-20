@@ -476,7 +476,7 @@
         <p class="meta" id="historyDetailMeta"></p>
         <pre id="historyDetailBody" class="history-detail-body"></pre>
         <button type="button" class="btn confirm" id="historyRestore" data-i18n="project.restore">
-          恢复到当前桌面
+          恢复到当前控制台
         </button>
       </div>
     </aside>
@@ -506,10 +506,10 @@
         </button>
       </div>
       <div class="settings-body" id="setup">
-        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Duaer 台面模型，再在台面说需求。写入 ~/.duaer/live/config.json</p>
+        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Duaer 控制台模型，再在控制台说需求。写入 ~/.duaer/live/config.json</p>
 
         <details class="setup-block" id="setupModelBlock" open>
-          <summary class="setup-block-sum" data-i18n="setup.modelBlock">台面模型</summary>
+          <summary class="setup-block-sum" data-i18n="setup.modelBlock">控制台模型</summary>
           <div class="setup-block-body">
             <div class="field">
               <span data-i18n="setup.provider">服务商</span>
@@ -631,7 +631,7 @@
         <details class="setup-block setup-guide-block" id="setupGuideBlock">
           <summary class="setup-block-sum" data-i18n="setup.guideTitle">派工与模型说明</summary>
           <div class="setup-block-body setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
-            <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 台面聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+            <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 控制台聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
 
             <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
             <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
@@ -643,7 +643,7 @@
 
             <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
             <ul class="setup-guide-list">
-              <li data-i18n="setup.guideOther1">Duaer 台面用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+              <li data-i18n="setup.guideOther1">Duaer 控制台用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
               <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
               <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FDE 只负责启动 agent</li>
             </ul>

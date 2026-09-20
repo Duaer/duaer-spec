@@ -129,8 +129,8 @@ copy limited to the information and actions users need to complete the task:
 
 **Duaer brand (site-wide):** Visible live-desk / FDE copy that names the
 product surface must include **Duaer** (or **Duaer-spec FDE** where that full
-mark is already used). Do not write anonymous「台面」/ “desk” alone for this
-product’s chat surface or model setup — prefer「Duaer 台面」/ “Duaer desk”.
+mark is already used). Do not write anonymous「控制台」/ “console” alone for this
+product’s chat surface or model setup — prefer「Duaer 控制台」/ “Duaer console”.
 Branding is a short name signal, not a slogan paragraph.
 
 ## Mandatory branch model

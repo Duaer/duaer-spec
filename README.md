@@ -44,7 +44,7 @@ Then use **Cursor** or **Claude Code** — describe what you want in plain
 language. You do not need to learn Spec phases or slash commands.
 
 `init` / `update` also write optional adapters for other editors (see
-[`ADOPT.md`](ADOPT.md)). FDE desk dispatch launches **Cursor Agent** or
+[`ADOPT.md`](ADOPT.md)). FDE console dispatch launches **Cursor Agent** or
 **Claude Code** only.
 
 Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
@@ -60,18 +60,18 @@ After install, these are the capabilities you actually use:
 - **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
 - **Supported in Cursor and Claude Code.** Install once, then speak there — no professional Spec workflow required. (Optional adapters for other editors: [`ADOPT.md`](ADOPT.md).)
 
-### In the browser: Duaer-spec FDE (live desk)
+### In the browser: Duaer-spec FDE (live console)
 
-A local web desk (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
+A local web console (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
 
 - **Projects.** Create and switch projects; each keeps its own chat and progress.
 - **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed.
 - **Split big work into modules.** Confirm module by module; nothing starts until you kick off after the ones you care about are confirmed.
 - **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed. If chat claims the diagram is ready but the middle panel is empty, the same bubble offers Regenerate — it does not leave a false “ready” line.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
-- **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
+- **Visible task progress.** Work is a checklist; each finished item is checked off and the console refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
 - **Employee roles.** Top-bar **digital employee** directory (Implementer / Functional regression / Deployer). Optional parallel workers on the same CLI. See the next section.
-- **Locales.** Desk UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
+- **Locales.** Console UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
 - **Deliverables and results.** Open a deliverables page (requirements timeline,
   architecture, tasks, delivery); when done, open the page or the project folder.
 - **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on
@@ -82,7 +82,7 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
   facts autofill; defects join the same project timeline as revisions.
 - **Quick nav.** Chat-column edge control jumps to chat bottom · confirm card ·
   result · progress.
-- **Dispatch center.** Own page for the task graph with desk top nav; long chains
+- **Dispatch center.** Own page for the task graph with console top nav; long chains
   wrap; nodes show live status.
 
 ### Digital employees: three roles
@@ -97,19 +97,19 @@ Open **Employees** in the top bar. Runtime is still Cursor Agent or Claude Code;
 
 With multiple workers, the **last lane** owns functional regression (and deploy tasks); implement work stays on earlier lanes. With one worker, the same CLI session runs roles in task order.
 
-Before a job can stay accepted, the desk runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
+Before a job can stay accepted, the console runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
 
 ### Deploy: supported hosts
 
-Before kickoff, pick a **planned host** on the desk. Coding follows that platform; the **Deployer** employee publishes and writes the public URL into delivery preview.
+Before kickoff, pick a **planned host** on the console. Coding follows that platform; the **Deployer** employee publishes and writes the public URL into delivery preview.
 
 | Option | Good for | You prepare |
 |---|---|---|
 | **No deploy yet** | Local delivery only | Nothing |
 | **GitHub Pages** | Static / docs sites; default when hosting is implied but no host was chosen | GitHub repo + `gh` auth |
-| **Cloudflare** | Pages for static; Workers for edge APIs | API Token + Account ID in desk Settings |
-| **Alibaba Cloud** | OSS (+ CDN) for static; Function Compute and similar for APIs | AccessKey in desk Settings |
-| **AWS** | S3 + CloudFront for static; Amplify / Lambda and similar when needed | Access keys in desk Settings |
+| **Cloudflare** | Pages for static; Workers for edge APIs | API Token + Account ID in console Settings |
+| **Alibaba Cloud** | OSS (+ CDN) for static; Function Compute and similar for APIs | AccessKey in console Settings |
+| **AWS** | S3 + CloudFront for static; Amplify / Lambda and similar when needed | Access keys in console Settings |
 
 Detail: [`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md) · GitHub default path: [`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)
 
@@ -130,13 +130,13 @@ The sections below are **how to run it**; this section is **what it can do**.
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
-## Duaer-spec FDE (live desk)
+## Duaer-spec FDE (live console)
 
 Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
 **Duaer-spec FDE** = Field Development Environment.
 
 ```bash
-# Start anytime (opens the desk even if the model is not configured yet)
+# Start anytime (opens the console even if the model is not configured yet)
 duaer live
 
 # In the page Settings, or via CLI:
@@ -146,21 +146,21 @@ duaer live config --provider deepseek --api-key sk-...
 duaer live repo add
 ```
 
-`duaer live` opens the browser to the desk URL (default `http://127.0.0.1:8787`).
-If the model is missing, use **Settings** in the page. The desk is **full-width**
+`duaer live` opens the browser to the console URL (default `http://127.0.0.1:8787`).
+If the model is missing, use **Settings** in the page. The console is **full-width**
 with three columns: **chat** | **modules / confirm / architecture / kickoff /
 revise** | **task progress**. Detail:
 [`docs/agent/live-desk.md`](docs/agent/live-desk.md).
 
 **Verify (maintainers / agents):** after Duaer-spec FDE UI or validate-gate changes,
-run `npm run test:live` (L3 smoke: desk shell markers + `/api/validate` with a
+run `npm run test:live` (L3 smoke: console shell markers + `/api/validate` with a
 mock LLM — no paid API).
 
 **Flow**
 
 1. Open or create a **project**, then chat. The **Projects** drawer shows each
    project’s **delivery status**; open **Deliverables** when the session has
-   content. Messy multi-topic talk is fine: the desk evolves **`modules[]`**
+   content. Messy multi-topic talk is fine: the console evolves **`modules[]`**
    (tabs). Chat bubbles render **Markdown** (`**bold**`, code, links).  
 2. Per module: fill the confirm card (goal / out-of-scope / **checkable**
    acceptance / assumptions). Vague acceptance fails the gate; validate must
@@ -194,7 +194,7 @@ mock LLM — no paid API).
    → relaunch on the same worktree (preempt leftover Agents before enqueue).
    Progress tracks this revision’s `R{n}-*` tasks. Failed launch rolls back the
    Brief Revision; status shows Terminal busy/queue per lane.  
-9. If the job needs hosting / a public URL, pick a **planned host** on the desk
+9. If the job needs hosting / a public URL, pick a **planned host** on the console
    (Cloudflare / Alibaba Cloud / AWS / GitHub Pages) so code matches that
    platform ([`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md)).
    Default when unspecified: **GitHub CLI (`gh`) + Actions**

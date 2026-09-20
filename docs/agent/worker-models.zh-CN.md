@@ -1,13 +1,13 @@
 # 数字员工 CLI 与其他模型
 
-FDE 派工用的是 **Terminal 里的数字员工 CLI**，和台面聊天用的 **Desk 模型 API** 不是一回事。
+FDE 派工用的是 **Terminal 里的数字员工 CLI**，和控制台聊天用的 **Desk 模型 API** 不是一回事。
 
 | 层级 | 作用 | 例子 |
 |---|---|---|
 | Desk 模型 | FDE 对话 / 确认卡校验（HTTP） | DeepSeek API、OpenAI、自建网关 |
 | 数字员工 CLI | 真正改产品仓库的 coding agent | **Cursor Agent**、**Claude Code** |
 
-开工时可启 **1..N** 个**同一种** CLI（不可混用）；并行时各占一条 Terminal 队列泳道。台面流程见英文 [`live-desk.md`](live-desk.md)。
+开工时可启 **1..N** 个**同一种** CLI（不可混用）；并行时各占一条 Terminal 队列泳道。控制台流程见英文 [`live-desk.md`](live-desk.md)。
 
 第三方包 `deepseek` / `deepseek-tui`（现已改名 Codewhale）**不是** DeepSeek 官方 CLI，FDE **不再**把它当作数字员工。要用 DeepSeek **模型**写代码：把 Claude Code（或其它支持的工具）接到 DeepSeek 官方接口。
 

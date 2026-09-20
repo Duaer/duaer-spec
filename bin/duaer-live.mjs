@@ -718,7 +718,7 @@ const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 b
    - outOfScope = 本次不改什么
    - acceptance = 怎么算修好（复现关闭 + 可核对结果/命令）
    - assumptions = 环境 / 疑似原因 / 是否线上紧急（优先写入系统给的「项目交付上下文」）
-4. **禁止向用户追问**网页/成品 URL、服务启动命令或脚本、机器/端口/依赖等运行环境、疑似原因、是否线上紧急——这些由台面从项目交付自动补齐。疑似原因未知时写「待复现定位」；线上紧急默认「否」（从 develop 出 fix/），仅当用户明确说线上/生产/紧急才标「是」。
+4. **禁止向用户追问**网页/成品 URL、服务启动命令或脚本、机器/端口/依赖等运行环境、疑似原因、是否线上紧急——这些由控制台从项目交付自动补齐。疑似原因未知时写「待复现定位」；线上紧急默认「否」（从 develop 出 fix/），仅当用户明确说线上/生产/紧急才标「是」。
 5. ready=true 表示缺陷卡可确认。不要催派工。不要写代码。不要假设用户没给的仓库路径（上下文里有则直接用）。
 6. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）。
 7. 输出格式（严格）：
@@ -795,7 +795,7 @@ const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即
 1. goal 是否写清现象与复现（可执行，不要堆无关功能）
 2. acceptance 是否可客观检查：复现关闭 + 打开/看到/命令通过等；禁止仅「修好了/更好用」
 3. outOfScope 是否划清本次不改什么（可简短）
-4. assumptions：环境/URL/启动/紧急/疑似原因由台面交付上下文补齐——**禁止**因缺少网页地址、启动命令、运行环境、疑似原因、是否线上紧急而 failed
+4. assumptions：环境/URL/启动/紧急/疑似原因由控制台交付上下文补齐——**禁止**因缺少网页地址、启动命令、运行环境、疑似原因、是否线上紧急而 failed
 
 规则：
 - 若小改即可通过：修订四块，passed=true；assumptions 空缺时写入合理默认（疑似原因=待复现定位；线上紧急=否）
@@ -3817,7 +3817,7 @@ Brief: ${featureDir}
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
 4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话（不要挂起；编排器用 --continue 放行）；若已无后续波次则继续完成 stamp accepted
 4b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个勾选项只覆盖一个验收点；进度只能用 tasks.md 的 - [ ]/- [x] 监控（立刻勾选，不要攒到最后）；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
-5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet。台面会按产品仓 .duaer/memory/verify.json 自己跑 commands；退出码非 0 或缺少契约时会把 accepted 打回 open。不要把已有 commands 改成 waiver 来跳过
+5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet。控制台会按产品仓 .duaer/memory/verify.json 自己跑 commands；退出码非 0 或缺少契约时会把 accepted 打回 open。不要把已有 commands 改成 waiver 来跳过
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
@@ -7358,7 +7358,7 @@ function serve(port) {
     console.log(`Brief 写入 ${jobsRoot()}  （不会写入你当前业务仓库）`);
     if (!cfg.ready) {
       console.log(
-        `模型尚未配置 — 已打开台面，请在页面「设置」里填写模型后保存。`,
+        `模型尚未配置 — 已打开控制台，请在页面「设置」里填写模型后保存。`,
       );
     } else {
       console.log(`模型      ${cfg.model} @ ${cfg.baseUrl}`);

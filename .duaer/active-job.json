@@ -1,5 +1,5 @@
 {
-  "feature": "253-docs-cursor-claude",
-  "specPath": ".duaer/specs/253-docs-cursor-claude/spec.md",
+  "feature": "254-console-rename",
+  "specPath": ".duaer/specs/254-console-rename/spec.md",
   "source": "chat"
 }

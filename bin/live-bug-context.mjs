@@ -127,7 +127,7 @@ export function collectBugProjectContext(input = {}) {
  */
 export function formatBugProjectContextBlock(ctx) {
   const c = ctx && typeof ctx === "object" ? ctx : {};
-  const lines = ["【项目交付上下文——已从台面/交付得知，禁止再向用户追问这些项】"];
+  const lines = ["【项目交付上下文——已从控制台/交付得知，禁止再向用户追问这些项】"];
   if (c.projectPath) lines.push(`- 仓库路径: ${c.projectPath}`);
   if (c.previewUrl) lines.push(`- 成品/预览地址: ${c.previewUrl}`);
   else if (c.inferredPreviewUrl) {

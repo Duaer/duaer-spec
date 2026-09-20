@@ -360,7 +360,7 @@ Brief: ${featureDir || ""}
 产品仓需要 \`.duaer/memory/verify.json\`。
 - 有可跑测试时写入 { "commands": ["<真实命令>"] }（例如 npm test）
 - 只有纯文档、没有可跑命令时才允许 { "waiver": "docs-only" }
-不要 stamp delivery.json 为 accepted。台面会自己复跑；失败会把 accepted 打回 open。
+不要 stamp delivery.json 为 accepted。控制台会自己复跑；失败会把 accepted 打回 open。
 `;
   }
   return `Duaer
@@ -373,6 +373,6 @@ Brief: ${featureDir || ""}
 输出尾部:
 ${nudge.tail || "(无)"}
 
-修好并使上述命令退出码为 0。不要把已有 commands 改成 waiver 来跳过。不要 stamp accepted；台面会复跑，通过后才允许 accepted。
+修好并使上述命令退出码为 0。不要把已有 commands 改成 waiver 来跳过。不要 stamp accepted；控制台会复跑，通过后才允许 accepted。
 `;
 }

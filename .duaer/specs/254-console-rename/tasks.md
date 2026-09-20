@@ -1,0 +1,4 @@
+- [x] T001 i18n + HTML: 台面/desk → 控制台/console
+- [x] T002 README / worker-models / brand rules
+- [x] T003 Server/user prompts + employee-catalog
+- [x] T004 Tests + CHANGELOG; stamp delivery

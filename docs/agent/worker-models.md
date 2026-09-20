@@ -1,11 +1,11 @@
 # Worker CLIs and other models
 
 FDE launches **digital employees** with Terminal CLIs. That is separate from the
-**desk LLM** used for chat / confirm validation.
+**console LLM** used for chat / confirm validation.
 
 | Layer | What | Examples |
 |---|---|---|
-| Desk LLM | OpenAI-compatible HTTP API for the FDE UI | DeepSeek API, OpenAI, custom gateway |
+| Console LLM | OpenAI-compatible HTTP API for the FDE UI | DeepSeek API, OpenAI, custom gateway |
 | Worker CLI | Coding agent that edits the product worktree | **Cursor Agent**, **Claude Code** |
 
 On kickoff, FDE can launch **1..N** workers of the **same** CLI (not mixed).
@@ -18,7 +18,7 @@ Claude Code (or another supported agent) at DeepSeek’s official API.
 
 The FDE **Configure model** screen includes the same guide below the form.
 
-## Desk LLM (FDE chat)
+## Console LLM (FDE chat)
 
 On the FDE setup page:
 

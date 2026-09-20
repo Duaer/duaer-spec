@@ -55,12 +55,12 @@ export function rolePromptZh(roles) {
   }
   if (set.has(EMPLOYEE_ROLES.VERIFY_L3)) {
     parts.push(
-      "【角色·功能回归】只做 role=verify-l3 任务：对照 Acceptance，按产品 .duaer/memory/testing.md 跑确定性回归（优先 Playwright / npm test / npm run test:live 等 L0–L3）；写/补测试、执行并记录证据；不要改业务功能范围。失败则留下可复现说明，不要 stamp accepted。台面会自己跑 .duaer/memory/verify.json；退出码非 0 会把 accepted 打回 open。不要把已有 commands 改成 waiver。",
+      "【角色·功能回归】只做 role=verify-l3 任务：对照 Acceptance，按产品 .duaer/memory/testing.md 跑确定性回归（优先 Playwright / npm test / npm run test:live 等 L0–L3）；写/补测试、执行并记录证据；不要改业务功能范围。失败则留下可复现说明，不要 stamp accepted。控制台会自己跑 .duaer/memory/verify.json；退出码非 0 会把 accepted 打回 open。不要把已有 commands 改成 waiver。",
     );
   }
   if (set.has(EMPLOYEE_ROLES.DEPLOY)) {
     parts.push(
-      "【角色·部署】只做 role=deploy 任务：按台面选定的计划托管平台（Cloudflare / 阿里云 / AWS / GitHub Pages）完成上线；把公网 URL 写入 delivery.preview.url；不要改业务功能范围。密钥只用环境变量 / 平台密钥管理，不进仓库。",
+      "【角色·部署】只做 role=deploy 任务：按控制台选定的计划托管平台（Cloudflare / 阿里云 / AWS / GitHub Pages）完成上线；把公网 URL 写入 delivery.preview.url；不要改业务功能范围。密钥只用环境变量 / 平台密钥管理，不进仓库。",
     );
   }
   return parts.join("\n");

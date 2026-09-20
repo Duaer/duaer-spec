@@ -419,7 +419,7 @@ export function buildDeliverablesModel(session, opts = {}) {
             ? pickLang(lang, {
                 en: "Architecture confirmed on the desk.",
                 ja: "デスクでアーキテクチャを確認済みです。",
-                zh: "已在台面确认架构。",
+                zh: "已在控制台确认架构。",
               })
             : "",
         },
