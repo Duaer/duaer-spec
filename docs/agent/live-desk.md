@@ -102,6 +102,8 @@ Kickoff owns Brief creation and dispatch:
   the desk preempts the leftover CLI. A script that only `cat`s the prompt
   file still counts: the next wave is queued only after this one is checked.
   It does not preempt a session whose named wave is still open.
+  If a released wave is still unchecked and the lane is idle (nothing running,
+  nothing queued), the desk drops that fingerprint and enqueues it again.
   Assignment inherits the first dependency’s worker when
   possible so chained work stays on-lane.
 - **Must finish:** prompts forbid ending with `Job not accepted yet`. Workers

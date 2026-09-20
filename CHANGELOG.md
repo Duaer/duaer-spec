@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: requeue a released wave when the Terminal is idle
+
+- An unchecked wave that was already released is enqueued again when nothing is running and the queue is empty
+
 ### Feat: dispatch center for the task graph
 
 - Top bar and the dispatch card open `/dispatch-center.html` as its own page

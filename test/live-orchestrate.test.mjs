@@ -10,6 +10,7 @@ import {
   pendingWaveReleases,
   readyTasks,
   runningWaveIdsFromScript,
+  undoneReleasedFingerprints,
   waveForWorker,
   workerOrchestrationState,
 } from "../bin/live-orchestrate.mjs";
@@ -188,4 +189,27 @@ test("desk status path calls finishedWaveBlocksQueue before preempt", () => {
   );
   assert.ok(gate > 0);
   assert.ok(preempt > gate);
+});
+
+test("undoneReleasedFingerprints drops only open task waves", () => {
+  const done = new Set(["T001", "T006"]);
+  assert.deepEqual(
+    undoneReleasedFingerprints(["T001", "T006", "T007", "VERIFY:FAIL:npm test:1"], done),
+    ["T007"],
+  );
+  assert.deepEqual(undoneReleasedFingerprints(["T001,T002"], new Set(["T001"])), [
+    "T001,T002",
+  ]);
+  assert.deepEqual(undoneReleasedFingerprints(["T001"], done), []);
+});
+
+test("desk drops an idle undone wave before the next release", () => {
+  const src = readFileSync(
+    new URL("../bin/duaer-live.mjs", import.meta.url),
+    "utf8",
+  );
+  const drop = src.indexOf("undoneReleasedFingerprints(");
+  const release = src.indexOf("pendingWaveReleases(");
+  assert.ok(drop > 0);
+  assert.ok(release > drop);
 });

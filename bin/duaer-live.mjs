@@ -86,6 +86,7 @@ import {
   orchestrationSummary,
   pendingWaveReleases,
   runningWaveIdsFromScript,
+  undoneReleasedFingerprints,
   waveForWorker,
 } from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus, pickOpenableResultEntry, isOpenableProductPreview } from "./live-preview.mjs";
@@ -5072,6 +5073,34 @@ function advanceOrchestration(live, {
       ? prev.releasedWaves
       : {}),
   };
+  const waveRetryAt = {
+    ...(prev.waveRetryAt && typeof prev.waveRetryAt === "object"
+      ? prev.waveRetryAt
+      : {}),
+  };
+  // A released wave whose boxes are still open, with nothing running and
+  // nothing queued, was lost (runner died or the job vanished). Drop the
+  // fingerprint so the next release can enqueue it again.
+  const WAVE_RETRY_COOLDOWN_MS = 20000;
+  let changed = false;
+  for (let w = 1; w <= workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const lane = workerCount > 1 ? workerId : null;
+    const snap = terminalQueueSnapshot(worktreePath, lane);
+    const idle = !snap.busy && !(Number(snap.queueDepth) > 0);
+    if (!idle) continue;
+    const prior = Array.isArray(releasedWaves[workerId])
+      ? releasedWaves[workerId]
+      : [];
+    const stale = undoneReleasedFingerprints(prior, doneSet);
+    if (!stale.length) continue;
+    const lastAt = Date.parse(waveRetryAt[workerId] || "") || 0;
+    if (Date.now() - lastAt < WAVE_RETRY_COOLDOWN_MS) continue;
+    const drop = new Set(stale);
+    releasedWaves[workerId] = prior.filter((fp) => !drop.has(fp));
+    waveRetryAt[workerId] = new Date().toISOString();
+    changed = true;
+  }
   const pending = pendingWaveReleases({
     pool,
     workerCount,
@@ -5087,7 +5116,6 @@ function advanceOrchestration(live, {
     dispatch.launch?.agentId ||
     dispatch.launches?.find((l) => l?.agentId)?.agentId ||
     null;
-  let changed = false;
   const errors = [];
 
   for (const item of pending) {
@@ -5250,6 +5278,7 @@ ${DISPATCH_MUST_FINISH_RULES}
     version: 1,
     releasedWaves,
     waveExitPreemptAt,
+    waveRetryAt,
     updatedAt: new Date().toISOString(),
     summary,
     pending: pending.map((p) => ({

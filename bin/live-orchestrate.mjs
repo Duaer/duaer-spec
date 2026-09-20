@@ -174,6 +174,30 @@ export function pendingWaveReleases(input = {}) {
 }
 
 /**
+ * Released task-wave fingerprints whose tasks are not all checked.
+ * Ignores non-task fingerprints such as VERIFY nudges.
+ * @param {string[]|undefined} releasedFingerprints
+ * @param {Set<string>|Iterable<string>} doneSet
+ * @returns {string[]}
+ */
+export function undoneReleasedFingerprints(releasedFingerprints, doneSet) {
+  const done =
+    doneSet instanceof Set
+      ? doneSet
+      : new Set([...(doneSet || [])].map(normId).filter(Boolean));
+  return (Array.isArray(releasedFingerprints) ? releasedFingerprints : []).filter(
+    (fp) => {
+      const ids = String(fp || "")
+        .split(",")
+        .map(normId)
+        .filter(Boolean);
+      if (!ids.length || !ids.every((id) => /^T\d+$/.test(id))) return false;
+      return !ids.every((id) => done.has(id));
+    },
+  );
+}
+
+/**
  * Task ids of the wave the running Terminal script was launched for.
  * Matches kickoff / continue lines like `- T002: …`, not the owned-task list.
  * @param {string} text
