@@ -7198,6 +7198,14 @@ function formatHistoryTime(iso) {
   }
 }
 
+function showHistoryErr(message) {
+  if (!el.historyErr) return;
+  const text = String(message || "").trim();
+  el.historyErr.hidden = !text;
+  el.historyErr.textContent = text;
+  if (text) el.historyErr.scrollIntoView({ block: "nearest" });
+}
+
 function setHistoryOpen(open) {
   if (!el.historyPanel) return;
   const want = Boolean(open);
@@ -7390,7 +7398,7 @@ function renderProjectConversations() {
 async function activateProjectPath(pathOrName, meta = {}) {
   const raw = String(pathOrName || "").trim();
   if (!raw) {
-    addBubble("bot", t("project.needName"));
+    showHistoryErr(t("project.needName"));
     return;
   }
   const requireMeta = meta.requireMeta !== false;
@@ -7398,14 +7406,16 @@ async function activateProjectPath(pathOrName, meta = {}) {
   const description = String(meta.description ?? "").trim();
   if (requireMeta) {
     if (!title) {
-      addBubble("bot", t("project.needTitle"));
+      showHistoryErr(t("project.needTitle"));
       return;
     }
     if (!description) {
-      addBubble("bot", t("project.needDesc"));
+      showHistoryErr(t("project.needDesc"));
       return;
     }
   }
+  if (el.projectActivate) el.projectActivate.disabled = true;
+  showHistoryErr(t("project.working"));
   try {
     // Save outgoing project chat before switching.
     if (state.projectPath) await persistProjectChat();
@@ -7432,6 +7442,7 @@ async function activateProjectPath(pathOrName, meta = {}) {
     }
     renderProjectList();
     renderProjectConversations();
+    showHistoryErr("");
     setHistoryOpen(false);
     syncComposerEnabled();
     const name = data.title || data.name || data.path;
@@ -7466,6 +7477,8 @@ async function activateProjectPath(pathOrName, meta = {}) {
       "bot",
       err instanceof Error ? err.message : t("project.fail"),
     );
+  } finally {
+    if (el.projectActivate) el.projectActivate.disabled = false;
   }
 }
 
@@ -7651,7 +7664,9 @@ el.projectBrowse?.addEventListener("click", async () => {
       const title = (el.projectTitle?.value || "").trim();
       const description = (el.projectDescription?.value || "").trim();
       if (!title || !description) {
-        addBubble("bot", t("project.needTitle") + " / " + t("project.needDesc"));
+        showHistoryErr(
+          !title ? t("project.needTitle") : t("project.needDesc"),
+        );
         return;
       }
       await activateProjectPath(data.path, {

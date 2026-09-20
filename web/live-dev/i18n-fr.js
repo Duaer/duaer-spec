@@ -54,6 +54,7 @@ export const fr = {
   "project.needTitle": "Saisissez un nom de projet",
   "project.needDesc": "Saisissez une courte description de contexte",
   "project.activate": "Utiliser comme projet actuel",
+  "project.working": "Changement de projet…",
   "project.browse": "Parcourir…",
   "project.createHint": "Les nouveaux projets nécessitent un nom et un contexte. Les noms courts sont créés sous le dossier parent.",
   "project.gateHint": "Aucun projet — touchez Projets (en haut à droite)",

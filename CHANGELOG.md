@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: project activate click shows feedback in the drawer
+
+- Missing path, name, or description is shown in the project drawer, not only in chat behind it
+- The activate button disables while the switch is in flight
+- The project drawer scrolls so the button stays reachable
+
 ### Feat: desk machine verify gate
 
 - Before delivery can stay `accepted`, the desk runs `.duaer/memory/verify.json` in the worktree

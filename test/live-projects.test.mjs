@@ -84,6 +84,10 @@ test("live sources wire project-first APIs and UI", () => {
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(js, /project\.kickoff|sendChat\(/);
   assert.match(js, /activateProjectPath|loadProjectsPanel/);
+  assert.match(js, /showHistoryErr\(t\("project\.needTitle"\)\)/);
+  assert.match(js, /project\.working/);
+  const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
+  assert.match(css, /\.history-drawer\s*\{[^}]*overflow-y:\s*auto/);
   assert.match(js, /chatAllowed[\s\S]*projectPath/);
   assert.match(js, /deliveryStatus|paintDeliveryCockpit|deriveProjectDeliveryStatus/);
   assert.match(html, /id="deliveryCockpit"|id="deliveryStages"/);

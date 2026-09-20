@@ -54,6 +54,7 @@ export const vi = {
   "project.needTitle": "Nhập tên dự án",
   "project.needDesc": "Nhập mô tả nền tảng ngắn",
   "project.activate": "Dùng làm dự án hiện tại",
+  "project.working": "Đang chuyển dự án…",
   "project.browse": "Duyệt…",
   "project.createHint": "Dự án mới cần tên và nền tảng. Tên ngắn sẽ được tạo trong thư mục cha.",
   "project.gateHint": "Chưa có dự án — chạm Dự án (góc trên phải)",

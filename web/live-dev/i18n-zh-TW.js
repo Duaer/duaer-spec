@@ -54,6 +54,7 @@ export const zhTW = {
   "project.needTitle": "請輸入專案名稱",
   "project.needDesc": "請輸入簡短背景說明",
   "project.activate": "設為目前專案",
+  "project.working": "正在切換專案…",
   "project.browse": "瀏覽…",
   "project.createHint": "新專案需名稱與背景。短名稱會建立在上層資料夾下。",
   "project.gateHint": "尚無專案 — 點右上角「專案」",

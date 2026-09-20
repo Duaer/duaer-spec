@@ -54,6 +54,7 @@ export const ru = {
   "project.needTitle": "Введите название проекта",
   "project.needDesc": "Введите краткое описание фона",
   "project.activate": "Сделать текущим проектом",
+  "project.working": "Переключение проекта…",
   "project.browse": "Обзор…",
   "project.createHint": "Новому проекту нужны имя и фон. Короткие имена создаются в родительской папке.",
   "project.gateHint": "Проекта ещё нет — нажмите «Проекты» (справа вверху)",

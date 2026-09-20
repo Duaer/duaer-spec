@@ -54,6 +54,7 @@ export const ptBR = {
   "project.needTitle": "Informe um nome de projeto",
   "project.needDesc": "Informe uma descrição curta de contexto",
   "project.activate": "Usar como projeto atual",
+  "project.working": "Trocando de projeto…",
   "project.browse": "Procurar…",
   "project.createHint": "Projetos novos precisam de nome e contexto. Nomes curtos são criados na pasta pai.",
   "project.gateHint": "Nenhum projeto ainda — toque em Projetos (canto superior direito)",

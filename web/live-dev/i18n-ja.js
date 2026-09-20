@@ -54,6 +54,7 @@ export const ja = {
   "project.needTitle": "プロジェクト名を入力してください",
   "project.needDesc": "短い背景説明を入力してください",
   "project.activate": "現在のプロジェクトにする",
+  "project.working": "プロジェクトを切り替えています…",
   "project.browse": "参照…",
   "project.createHint": "新規プロジェクトには名前と背景が必要です。短い名前は親フォルダ配下に作成されます。",
   "project.gateHint": "プロジェクトがありません — 右上の「プロジェクト」をタップ",

@@ -54,6 +54,7 @@ export const ko = {
   "project.needTitle": "프로젝트 이름을 입력하세요",
   "project.needDesc": "짧은 배경 설명을 입력하세요",
   "project.activate": "현재 프로젝트로 사용",
+  "project.working": "프로젝트를 전환하는 중…",
   "project.browse": "찾아보기…",
   "project.createHint": "새 프로젝트에는 이름과 배경이 필요합니다. 짧은 이름은 상위 폴더 아래에 만들어집니다.",
   "project.gateHint": "아직 프로젝트 없음 — 오른쪽 위「프로젝트」를 탭하세요",

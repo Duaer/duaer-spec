@@ -54,6 +54,7 @@ export const de = {
   "project.needTitle": "Projektnamen eingeben",
   "project.needDesc": "Kurze Hintergrundbeschreibung eingeben",
   "project.activate": "Als aktuelles Projekt verwenden",
+  "project.working": "Projekt wird gewechselt…",
   "project.browse": "Durchsuchen…",
   "project.createHint": "Neue Projekte brauchen Name und Hintergrund. Kurze Namen werden unter dem übergeordneten Ordner erstellt.",
   "project.gateHint": "Noch kein Projekt — tippen Sie Projekte (oben rechts)",

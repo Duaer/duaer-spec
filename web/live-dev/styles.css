@@ -315,7 +315,8 @@ body {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .settings-drawer.history-drawer {
@@ -367,6 +368,11 @@ body {
   gap: 0.75rem;
   margin-bottom: 0.85rem;
   flex-shrink: 0;
+  position: sticky;
+  top: -1.15rem;
+  z-index: 1;
+  background: var(--plate);
+  padding-top: 0.15rem;
 }
 
 .history-head .mark {
