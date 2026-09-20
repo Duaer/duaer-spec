@@ -1,5 +1,5 @@
 {
-  "feature": "247-timeline-quicknav",
-  "specPath": ".duaer/specs/247-timeline-quicknav/spec.md",
+  "feature": "248-quicknav-visible",
+  "specPath": ".duaer/specs/248-quicknav-visible/spec.md",
   "source": "chat"
 }
