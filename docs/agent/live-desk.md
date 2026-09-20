@@ -113,10 +113,10 @@ Kickoff owns Brief creation and dispatch:
   frozen so a later waiver cannot replace it.
 - **Execution graph:** kickoff shows the task path with the **same Archify
   renderer and layered layout** as the system architecture diagram; employee
-  count uses chips (1 serial / 2–4 parallel). The desk does not leave that
-  diagram under the dispatch card. **Dispatch center** in the top bar opens
+  count uses chips (1 serial / 2–4 parallel). The desk does not embed that
+  diagram. **Dispatch center** opens `/dispatch-center.html` in a new page:
   a 100px project rail and the selected project's graph. The dispatch card
-  has a button that opens the same view on the current project.
+  button opens the same page for the current project.
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 

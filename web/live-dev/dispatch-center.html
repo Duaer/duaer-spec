@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>调度中心</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/styles.css?v=dispatch-center-page-1" />
+  </head>
+  <body class="dispatch-center-page">
+    <header class="dispatch-center-top">
+      <h1 data-i18n="dispatch.center">调度中心</h1>
+    </header>
+    <div id="dispatchCenter" class="dispatch-center">
+      <aside class="dispatch-center-rail" data-i18n-aria="dispatch.center" aria-label="调度中心">
+        <div id="dispatchCenterProjects"></div>
+      </aside>
+      <div class="dispatch-center-stage">
+        <p id="dispatchCenterEmpty" class="hint" hidden></p>
+        <div id="taskGraphMount" class="task-graph-mount architecture-mount architecture-mount-clickable"></div>
+      </div>
+    </div>
+    <script type="module" src="/dispatch-center.js?v=dispatch-center-page-1"></script>
+  </body>
+</html>

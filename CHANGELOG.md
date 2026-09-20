@@ -4,8 +4,8 @@
 
 ### Feat: dispatch center for the task graph
 
-- Top bar opens a 100px project rail and that project's dispatch graph
-- The dispatch card hint is a button that opens the same view on the current project
+- Top bar and the dispatch card open `/dispatch-center.html` as its own page
+- That page lists projects in a 100px rail and shows the selected project's graph
 
 ### Fix: finished wave releases the Terminal for the next job
 

@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=dispatch-center-1" />
+    <link rel="stylesheet" href="/styles.css?v=dispatch-center-page-1" />
   </head>
   <body>
     <div class="shell">
@@ -33,7 +33,6 @@
               class="top-btn"
               id="dispatchCenterToggle"
               data-i18n="dispatch.center"
-              aria-expanded="false"
             >
               调度中心
             </button>
@@ -87,16 +86,6 @@
       </header>
 
       <p id="updateNotice" class="update-notice" hidden role="status"></p>
-
-      <div id="dispatchCenter" class="dispatch-center" hidden>
-        <aside class="dispatch-center-rail" data-i18n-aria="dispatch.center" aria-label="调度中心">
-          <div id="dispatchCenterProjects"></div>
-        </aside>
-        <div class="dispatch-center-stage">
-          <p id="dispatchCenterEmpty" class="hint" hidden></p>
-          <div id="taskGraphMount" class="task-graph-mount architecture-mount architecture-mount-clickable"></div>
-        </div>
-      </div>
 
       <main id="desk" class="layout" hidden>
         <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
@@ -612,6 +601,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=dispatch-center-1"></script>
+    <script type="module" src="/app.js?v=dispatch-center-page-1"></script>
   </body>
 </html>

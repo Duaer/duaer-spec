@@ -139,11 +139,20 @@ test("taskPoolToArchitectureIr has no edge labels or legend cards", () => {
 });
 
 test("live sources wire Archify task graph mount", () => {
-  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
+  const html = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/dispatch-center.html"),
+    "utf8",
+  );
+  const page = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/dispatch-center.js"),
+    "utf8",
+  );
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(html, /id="taskGraphMount"/);
   assert.match(html, /architecture-mount/);
-  assert.match(app, /buildTaskArchitectureIr|\/api\/architecture\/render/);
-  assert.match(app, /mountArchitectureDiagram\(el\.taskGraphMount/);
+  assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
+  assert.match(page, /mountArchitectureDiagram\(mount/);
+  assert.match(app, /window\.open\(`\/dispatch-center\.html/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
+  assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });

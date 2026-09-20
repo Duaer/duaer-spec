@@ -22,19 +22,33 @@ test("architecturePresentUrl sets present=1 without embed", () => {
 });
 
 test("desk wires click + fullscreen button for architecture", () => {
+  const page = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/dispatch-center.html"),
+    "utf8",
+  );
+  const pageJs = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/dispatch-center.js"),
+    "utf8",
+  );
   assert.match(HTML, /id="architectureOpenFullscreen"/);
   assert.match(HTML, /architecture-mount-clickable/);
   assert.match(HTML, /id="dispatchCenterToggle"/);
   assert.match(HTML, /id="openTaskGraph"/);
-  assert.match(HTML, /id="dispatchCenter"/);
+  assert.doesNotMatch(HTML, /id="dispatchCenter"/);
+  assert.match(page, /id="dispatchCenter"/);
+  assert.match(page, /id="taskGraphMount"/);
+  assert.match(page, /class="dispatch-center-page"/);
   assert.match(I18N, /"arch\.openFullscreen":\s*"全屏查看"/);
   assert.match(I18N, /点击图可新页面全屏查看/);
   assert.match(I18N, /"dispatch\.center":\s*"调度中心"/);
   assert.match(APP, /architectureOpenFullscreen/);
-  assert.match(APP, /setDispatchCenterOpen/);
-  assert.match(APP, /bindArchitecturePresentClick\(\s*el\.taskGraphMount/);
+  assert.match(APP, /function openDispatchCenterPage/);
+  assert.match(APP, /window\.open\(`\/dispatch-center\.html/);
+  assert.doesNotMatch(APP, /setDispatchCenterOpen/);
+  assert.match(pageJs, /mountArchitectureDiagram\(mount/);
   assert.match(APP, /stopPropagation\(\)/);
   assert.match(APP, /addEventListener\(\s*"click",[\s\S]*?true\s*\)/);
   assert.match(CSS, /architecture-mount-clickable/);
   assert.match(CSS, /grid-template-columns:\s*100px/);
+  assert.match(CSS, /dispatch-center-page/);
 });
