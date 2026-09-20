@@ -197,6 +197,10 @@
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
             </div>
+            <label id="bugHotfixRow" class="bug-hotfix-row" hidden>
+              <input type="checkbox" id="bugHotfix" />
+              <span data-i18n="dispatch.bugHotfix">线上紧急：从 main 出 fix 分支</span>
+            </label>
             <div class="field task-decompose-field" id="taskDecomposeField">
               <div class="task-decompose-head">
                 <span data-i18n="dispatch.decomposeTitle">任务拆解</span>
@@ -615,6 +619,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=progress-pollute-1"></script>
+    <script type="module" src="/app.js?v=bug-dispatch-1"></script>
   </body>
 </html>

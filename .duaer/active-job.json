@@ -1,5 +1,5 @@
 {
-  "feature": "241-graph-wrap",
-  "specPath": ".duaer/specs/241-graph-wrap/spec.md",
+  "feature": "239-bug-dispatch",
+  "specPath": ".duaer/specs/239-bug-dispatch/spec.md",
   "source": "chat"
 }

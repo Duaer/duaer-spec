@@ -27,6 +27,7 @@ import {
   annotateParallelTasks,
   assignPreviewWorkers,
   buildPreviewPoolFromModules,
+  buildPreviewPoolForBug,
   buildTaskArchitectureIr,
   recommendWorkerCount,
   taskPoolToArchitectureIr,
@@ -88,6 +89,10 @@ const state = {
   ready: false,
   locked: false,
   busy: false,
+  /** feature | bug — bug skips architecture by default and uses fix/ branches */
+  deskKind: "feature",
+  /** When deskKind=bug: base worktree on main (production hotfix) */
+  bugHotfix: false,
   /** Modular requirements: [{ id, title, status, card, dependsOn }] */
   modules: [],
   activeModuleId: null,
@@ -362,6 +367,8 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
+  bugHotfix: document.getElementById("bugHotfix"),
+  bugHotfixRow: document.getElementById("bugHotfixRow"),
   moduleTabs: document.getElementById("moduleTabs"),
   moduleMeta: document.getElementById("moduleMeta"),
   workerCountList: document.getElementById("workerCountList"),
@@ -867,7 +874,7 @@ function renderModuleTabs() {
   if (!el.moduleTabs) return;
   ensureModulesSeed();
   const list = state.modules;
-  el.moduleTabs.hidden = list.length < 1;
+  el.moduleTabs.hidden = state.deskKind === "bug" || list.length < 1;
   el.moduleTabs.replaceChildren();
   for (const m of list) {
     const btn = document.createElement("button");
@@ -915,6 +922,28 @@ function renderModuleTabs() {
 
 function mergeModulesFromChatPayload(data) {
   ensureModulesSeed();
+  if (state.deskKind === "bug") {
+    const card = {
+      goal: String(data.goal || data.modules?.[0]?.goal || data.modules?.[0]?.card?.goal || activeModule()?.card?.goal || ""),
+      outOfScope: String(data.outOfScope || data.modules?.[0]?.outOfScope || data.modules?.[0]?.card?.outOfScope || activeModule()?.card?.outOfScope || ""),
+      acceptance: String(data.acceptance || data.modules?.[0]?.acceptance || data.modules?.[0]?.card?.acceptance || activeModule()?.card?.acceptance || ""),
+      assumptions: String(data.assumptions || data.modules?.[0]?.assumptions || data.modules?.[0]?.card?.assumptions || activeModule()?.card?.assumptions || ""),
+    };
+    const prev = activeModule();
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: prev?.status === "confirmed" ? "confirmed" : "draft",
+        card: prev?.status === "confirmed" ? prev.card : card,
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    if (prev?.status !== "confirmed") applyActiveModuleToFields();
+    renderModuleTabs();
+    return;
+  }
   const incoming = Array.isArray(data.modules) ? data.modules : null;
   if (incoming && incoming.length) {
     const byId = new Map(state.modules.map((m) => [m.id, m]));
@@ -1103,7 +1132,10 @@ function decomposeTasksFromModules() {
     renderTaskPoolList([]);
     return null;
   }
-  const pool = buildPreviewPoolFromModules(confirmed);
+  const pool =
+    state.deskKind === "bug"
+      ? buildPreviewPoolForBug(confirmed)
+      : buildPreviewPoolFromModules(confirmed);
   const annotated = annotateParallelTasks(pool.tasks);
   state.taskPool = { version: 1, tasks: annotated };
   applyRecommendedWorkerCount(annotated);
@@ -1771,13 +1803,94 @@ function restoreConfirmCardFromOriginal() {
 
 /** Top confirm card chrome never becomes 改进卡. */
 function applyConfirmCardChrome() {
-  if (el.cardMark) el.cardMark.textContent = t("card.mark");
-  if (el.cardTitle) el.cardTitle.textContent = t("card.title");
-  if (el.lblGoal) el.lblGoal.textContent = t("card.goal");
-  if (el.lblOut) el.lblOut.textContent = t("card.out");
-  if (el.lblAccept) el.lblAccept.textContent = t("card.accept");
-  if (el.acceptHint) el.acceptHint.textContent = t("card.acceptHint");
-  if (el.lblAssume) el.lblAssume.textContent = t("card.assume");
+  const bug = state.deskKind === "bug";
+  if (el.cardMark) el.cardMark.textContent = t(bug ? "card.bugMark" : "card.mark");
+  if (el.cardTitle) el.cardTitle.textContent = t(bug ? "card.bugTitle" : "card.title");
+  if (el.lblGoal) el.lblGoal.textContent = t(bug ? "card.bugGoal" : "card.goal");
+  if (el.lblOut) el.lblOut.textContent = t(bug ? "card.bugOut" : "card.out");
+  if (el.lblAccept) el.lblAccept.textContent = t(bug ? "card.bugAccept" : "card.accept");
+  if (el.acceptHint) el.acceptHint.textContent = t(bug ? "card.bugAcceptHint" : "card.acceptHint");
+  if (el.lblAssume) el.lblAssume.textContent = t(bug ? "card.bugAssume" : "card.assume");
+  if (el.confirm && !modulesAllConfirmedLocal()) {
+    el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
+  }
+  syncBugHotfixUi();
+}
+
+function syncBugHotfixUi() {
+  const show = state.deskKind === "bug";
+  if (el.bugHotfixRow) el.bugHotfixRow.hidden = !show;
+  if (el.bugHotfix) {
+    el.bugHotfix.checked = Boolean(state.bugHotfix);
+    el.bugHotfix.disabled = state.dispatchPhase === "done" || state.busy;
+  }
+}
+
+function isBugIntentText(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  if (s === t("chat.optBug")) return true;
+  return /修一个\s*bug|修\s*bug|fix a bug|修复缺陷|我想修 bug|バグを直|오류를|ошибк/i.test(s);
+}
+
+function isFeatureIntentText(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  return (
+    s === t("chat.optFeature") ||
+    s === t("chat.optChange") ||
+    s === t("chat.optScript")
+  );
+}
+
+function enterDeskKind(kind) {
+  if (state.locked) return;
+  const next = kind === "bug" ? "bug" : "feature";
+  if (state.deskKind === next && next === "feature") return;
+  state.deskKind = next;
+  if (next === "bug") {
+    const card = activeModule()?.card || {
+      goal: "",
+      outOfScope: "",
+      acceptance: "",
+      assumptions: "",
+    };
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: "draft",
+        card,
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    applyActiveModuleToFields();
+  }
+  applyConfirmCardChrome();
+  renderModuleTabs();
+  schedulePersistProjectDesk();
+}
+
+function skipArchitectureForBug() {
+  if (state.deskKind !== "bug") return;
+  state.architecture = {
+    status: "confirmed",
+    ir: null,
+    viewBox: null,
+    fingerprint: "bug-skip",
+    url: null,
+    summary: t("arch.bugSkippedSummary"),
+    confirmed: true,
+  };
+  state.mode = "specify";
+  if (el.dispatch) el.dispatch.hidden = false;
+  syncArchitecturePanel("bug-skip");
+  syncDispatchProjectLine();
+  syncTaskPoolPreview();
+  syncOpenTaskGraphButton();
+  void loadAgents();
+  schedulePersistProjectDesk();
 }
 
 function cardFingerprint(v) {
@@ -1949,7 +2062,10 @@ async function runValidate(kind, expectedFp) {
     const res = await fetch("/api/validate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(v),
+      body: JSON.stringify({
+        ...v,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+      }),
     });
     const data = await res.json();
     if (seq !== state.validateSeq) return;
@@ -2234,6 +2350,8 @@ function appendOptionChips(host, options) {
         syncComposerEnabled();
         return;
       }
+      if (isBugIntentText(opt)) enterDeskKind("bug");
+      else if (isFeatureIntentText(opt)) enterDeskKind("feature");
       el.input.value = opt;
       el.form.requestSubmit();
     });
@@ -2451,6 +2569,8 @@ async function persistProjectChat() {
         activeModuleId: state.activeModuleId,
         taskPool: state.taskPool,
         workerCount: state.workerCount || 1,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        bugHotfix: Boolean(state.bugHotfix),
         dispatchGraphReady: Boolean(state.dispatchGraphReady),
         dispatchGraphUrl: state.dispatchGraphUrl || null,
         reviseCard: reviseCardValues(),
@@ -2574,6 +2694,8 @@ function clearDeskWorkspace() {
   state.rawAsk = "";
   state.jobId = null;
   state.locked = false;
+  state.deskKind = "feature";
+  state.bugHotfix = false;
   state.modules = [];
   state.activeModuleId = null;
   state.workerCount = 1;
@@ -2832,6 +2954,8 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     state.taskPool = data.taskPool || null;
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
+    state.deskKind = data.deskKind === "bug" ? "bug" : "feature";
+    state.bugHotfix = Boolean(data.bugHotfix);
     state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
     state.dispatchGraphUrl = String(data.dispatchGraphUrl || "").trim() || null;
     if (state.taskPool?.tasks?.length) {
@@ -2929,13 +3053,18 @@ async function loadProjectChatIntoUi(projectPath) {
       !state.architecture.confirmed &&
       state.mode !== "revise"
     ) {
-      beginArchitectureDesign({
-        kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
-      });
-      if (state.architectureMessages.some((m) => m.role === "assistant")) {
-        maybeNudgeArchitectureContinue();
+      if (state.deskKind === "bug") {
+        skipArchitectureForBug();
+      } else {
+        beginArchitectureDesign({
+          kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
+        });
+        if (state.architectureMessages.some((m) => m.role === "assistant")) {
+          maybeNudgeArchitectureContinue();
+        }
       }
     }
+    applyConfirmCardChrome();
     return state.messages.length;
   } catch {
     clearDeskWorkspace();
@@ -2960,6 +3089,10 @@ async function sendChat(userText) {
   addBubble("user", userText);
   if (state.mode !== "revise" && state.mode !== "architecture" && !state.rawAsk) {
     state.rawAsk = userText;
+  }
+  if (state.mode === "specify" && !state.locked) {
+    if (isBugIntentText(userText)) enterDeskKind("bug");
+    else if (isFeatureIntentText(userText)) enterDeskKind("feature");
   }
   void persistProjectChat();
 
@@ -2989,6 +3122,7 @@ async function sendChat(userText) {
             : state.mode === "architecture"
               ? "architecture"
               : "specify",
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         deployTarget: state.deployTarget || "none",
         stream: true,
       }),
@@ -3810,6 +3944,7 @@ el.confirm.addEventListener("click", async () => {
         moduleId: state.activeModuleId || active?.id || "main",
         activeModuleId: state.activeModuleId || active?.id || "main",
         modules: state.modules,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         rawAsk: state.rawAsk || v.goal,
         projectPath: state.projectPath || undefined,
         repoPath: state.projectPath || undefined,
@@ -3891,7 +4026,11 @@ async function autoHandleFromGate(kind, btn) {
     const res = await fetch("/api/validate/fix", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...v, issues }),
+      body: JSON.stringify({
+        ...v,
+        issues,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+      }),
     });
     const data = await res.json();
     if (data.card) applyCard(data.card, { skipValidate: true });
@@ -4026,7 +4165,12 @@ async function applyConfirmSuccess(data) {
   }
   void persistProjectChat();
   if (allDone) {
-    beginArchitectureDesign({ kickoff: true });
+    if (state.deskKind === "bug" || data.needDispatch) {
+      skipArchitectureForBug();
+      addBubble("bot", t("bot.bugReadyDispatch"));
+    } else {
+      beginArchitectureDesign({ kickoff: true });
+    }
   }
 }
 
@@ -4211,21 +4355,25 @@ function syncArchitecturePanel(kind) {
   }
   if (el.architectureConfirm) {
     const canConfirm = a.status === "preview" && a.url && !a.confirmed;
-    el.architectureConfirm.hidden = !canConfirm && a.status !== "confirmed";
-    if (a.confirmed) {
+    const bugSkip = state.deskKind === "bug" && a.confirmed && !a.url;
+    el.architectureConfirm.hidden =
+      (!canConfirm && a.status !== "confirmed") || bugSkip;
+    if (a.confirmed && !bugSkip) {
       el.architectureConfirm.hidden = false;
       el.architectureConfirm.disabled = true;
       el.architectureConfirm.textContent = t("arch.confirmed");
-    } else {
+    } else if (!bugSkip) {
       el.architectureConfirm.disabled = !canConfirm || state.busy;
       el.architectureConfirm.textContent = t("arch.confirm");
     }
   }
   if (el.architectureRedesign) {
     const canRedesign =
-      Boolean(a.url) &&
+      (Boolean(a.url) ||
+        (state.deskKind === "bug" && a.confirmed)) &&
       (a.confirmed || state.revisePlanConfirmed) &&
-      (state.mode === "revise" ||
+      (state.deskKind === "bug" ||
+        state.mode === "revise" ||
         state.mode === "architecture" ||
         state.reviseLocked ||
         state.lastDeliveryAccepted ||
@@ -4233,6 +4381,11 @@ function syncArchitecturePanel(kind) {
         state.lastStatus === "revising");
     el.architectureRedesign.hidden = !canRedesign;
     el.architectureRedesign.disabled = state.busy;
+    if (state.deskKind === "bug" && a.confirmed && !a.url) {
+      el.architectureRedesign.textContent = t("arch.bugOptionalDesign");
+    } else {
+      el.architectureRedesign.textContent = t("arch.redesign");
+    }
   }
   if (el.architectureRetry) {
     const showRetry =
@@ -4246,7 +4399,9 @@ function syncArchitecturePanel(kind) {
     el.architectureRetry.disabled = state.busy;
   }
   if (el.architectureHint) {
-    if (kind === "missing") {
+    if (kind === "bug-skip" || (state.deskKind === "bug" && a.confirmed && !a.url)) {
+      el.architectureHint.textContent = t("arch.bugSkipHint");
+    } else if (kind === "missing") {
       el.architectureHint.textContent = t("arch.hintMissing");
     } else if (kind === "stale") {
       el.architectureHint.textContent = t("arch.hintStale");
@@ -4727,7 +4882,11 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
       const res = await fetch("/api/validate/fix", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...v, issues }),
+        body: JSON.stringify({
+          ...v,
+          issues,
+          deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        }),
       });
       const data = await res.json();
       if (data.card) applyCard(data.card, { skipValidate: true });
@@ -4763,6 +4922,7 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
         moduleId: state.activeModuleId || "main",
         activeModuleId: state.activeModuleId || "main",
         modules: state.modules,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         rawAsk: state.rawAsk || v.goal,
       }),
     });
@@ -5504,6 +5664,11 @@ el.architectureConfirm?.addEventListener("click", () => {
   confirmArchitecture();
 });
 
+el.bugHotfix?.addEventListener("change", () => {
+  state.bugHotfix = Boolean(el.bugHotfix.checked);
+  schedulePersistProjectDesk();
+});
+
 el.architectureRedesign?.addEventListener("click", () => {
   if (state.busy) return;
   beginArchitectureDesign({ kickoff: true });
@@ -5667,6 +5832,8 @@ el.doDispatch.addEventListener("click", async () => {
         architectureIr: null,
         modules: state.modules,
         workerCount,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        bugHotfix: Boolean(state.bugHotfix),
         rawAsk: state.rawAsk || "",
       }),
     });
@@ -8039,6 +8206,7 @@ el.projectBrowse?.addEventListener("click", async () => {
 
 onLocaleChange(() => {
   syncDynamicI18n();
+  applyConfirmCardChrome();
   syncReviseCardChrome();
   paintDeliveryCockpit();
   renderProjectList();

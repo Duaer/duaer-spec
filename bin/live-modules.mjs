@@ -228,6 +228,102 @@ export function aggregateModulesCard(modules) {
 }
 
 /**
+ * Short defect task pool: reproduce → fix → acceptance atoms → regress → README → stamp.
+ * Used when desk kind is bug (not the modular feature implement chain).
+ */
+export function buildBugTaskPool(modules, { deployNeeded = false, deployTaskText = null } = {}) {
+  const list = clipModules(modules).filter((m) => m.status === "confirmed");
+  const card =
+    list[0]?.card ||
+    ({ goal: "", outOfScope: "", acceptance: "", assumptions: "" });
+  const modId = list[0]?.id || "bug";
+  const title = String(list[0]?.title || "Bug").slice(0, 80);
+  const tasks = [];
+  let n = 1;
+  const push = (partial) => {
+    const id = `T${String(n).padStart(3, "0")}`;
+    n += 1;
+    const task = {
+      id,
+      moduleId: partial.moduleId || null,
+      title: String(partial.title || "").slice(0, 200),
+      dependsOn: Array.isArray(partial.dependsOn)
+        ? partial.dependsOn.filter(Boolean)
+        : [],
+      role: clipEmployeeRole(partial.role),
+      status: "queued",
+      workerId: null,
+    };
+    tasks.push(task);
+    return task;
+  };
+
+  const repro = push({
+    moduleId: modId,
+    title: `Reproduce defect «${title}»: ${truncate(card.goal, 100)}`,
+    dependsOn: [],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
+  });
+  const fix = push({
+    moduleId: modId,
+    title: `Fix defect «${title}»`,
+    dependsOn: [repro.id],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
+  });
+  let prevId = fix.id;
+  const acceptLines = splitAcceptanceLines(card.acceptance);
+  if (acceptLines.length) {
+    for (const line of acceptLines) {
+      const acc = push({
+        moduleId: modId,
+        title: `Satisfy acceptance (alone) «${title}»: ${truncate(line, 120)}`,
+        dependsOn: [prevId],
+        role: EMPLOYEE_ROLES.IMPLEMENT,
+      });
+      prevId = acc.id;
+    }
+  }
+  const verify = push({
+    moduleId: null,
+    title:
+      "Regression verify against testing.md (repro closed; L0–L3 when applicable)",
+    dependsOn: [prevId],
+    role: EMPLOYEE_ROLES.VERIFY_L3,
+  });
+  const readme = push({
+    moduleId: null,
+    title:
+      "Update product README if the fix changes run/docs (else note N/A)",
+    dependsOn: [verify.id],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
+  });
+  push({
+    moduleId: null,
+    title:
+      "Stamp delivery.json accepted with verification evidence (preview.url when applicable)",
+    dependsOn: [readme.id],
+    role: EMPLOYEE_ROLES.IMPLEMENT,
+  });
+  if (deployNeeded) {
+    push({
+      moduleId: null,
+      title:
+        deployTaskText ||
+        "Deploy with GitHub CLI (`gh`) + Actions; write public URL to preview.url",
+      dependsOn: [tasks[tasks.length - 1].id],
+      role: EMPLOYEE_ROLES.DEPLOY,
+    });
+  }
+
+  return {
+    version: 1,
+    kind: "bug",
+    createdAt: new Date().toISOString(),
+    tasks,
+  };
+}
+
+/**
  * Build a dependency-aware task pool from confirmed modules.
  * Default: later modules depend on the previous module's verify task (serial chain),
  * unless module.dependsOn lists other module ids (then depend on those modules' verify tasks).

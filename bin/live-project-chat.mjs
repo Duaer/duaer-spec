@@ -226,6 +226,8 @@ function emptySession(projectPath = "") {
     taskPool: null,
     workerCount: 1,
     dispatchGraphReady: false,
+    deskKind: "feature",
+    bugHotfix: false,
     reviseCard: clipCard(null),
     reviseCards: [],
     reviseDraft: null,
@@ -280,6 +282,8 @@ export function readProjectChat(liveRoot, projectPath) {
       taskPool: clipTaskPool(raw.taskPool),
       workerCount: clipWorkerCount(raw.workerCount),
       dispatchGraphReady: Boolean(raw.dispatchGraphReady),
+      deskKind: String(raw.deskKind || "").trim() === "bug" ? "bug" : "feature",
+      bugHotfix: Boolean(raw.bugHotfix),
       reviseCard: clipCard(raw.reviseCard),
       reviseCards: migrateReviseCards(
         raw.reviseCards,
@@ -335,6 +339,8 @@ export function writeProjectChat(liveRoot, payload) {
     taskPool: clipTaskPool(payload.taskPool),
     workerCount: clipWorkerCount(payload.workerCount),
     dispatchGraphReady: Boolean(payload.dispatchGraphReady),
+    deskKind: String(payload.deskKind || "").trim() === "bug" ? "bug" : "feature",
+    bugHotfix: Boolean(payload.bugHotfix),
     reviseCard: clipCard(payload.reviseCard),
     reviseCards: migrateReviseCards(
       payload.reviseCards,

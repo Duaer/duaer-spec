@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: bug dispatch path on Duaer desk
+
+- Chat「我要修一个 bug」sets defect card; default skip architecture; short task pool
+- Kickoff uses `fix/` from develop (optional hotfix from `main`)
+- Feature modular + architecture path unchanged
+
 ### Feat: dispatch graph wraps columns and refreshes status live
 
 - Long task chains wrap after 4 columns instead of one endless row

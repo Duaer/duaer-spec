@@ -7,6 +7,7 @@ import {
   annotateParallelTasks,
   assignPreviewWorkers,
   buildPreviewPoolFromModules,
+  buildPreviewPoolForBug,
   buildTaskArchitectureIr,
   recommendWorkerCount,
   resolveTaskRunStatuses,
@@ -308,4 +309,34 @@ test("desk wires decompose → recommend workers → graph confirm", () => {
   assert.match(js, /recommendWorkerCount/);
   assert.match(css, /duaer-btn-spin|is-busy/);
   assert.match(js, /annotateParallelTasks/);
+});
+
+test("buildPreviewPoolForBug starts with reproduce then fix", () => {
+  const pool = buildPreviewPoolForBug([
+    {
+      id: "bug",
+      title: "Defect",
+      status: "confirmed",
+      card: {
+        goal: "Crash",
+        acceptance: "No crash on save",
+        outOfScope: "",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  assert.equal(pool.kind, "bug");
+  assert.match(pool.tasks[0].title, /Reproduce/);
+  assert.match(pool.tasks[1].title, /Fix/);
+});
+
+test("desk wires bug dispatch skip-architecture helpers", () => {
+  const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
+  assert.match(js, /deskKind/);
+  assert.match(js, /skipArchitectureForBug/);
+  assert.match(js, /enterDeskKind/);
+  assert.match(js, /buildPreviewPoolForBug/);
+  assert.match(html, /id="bugHotfix"/);
 });
