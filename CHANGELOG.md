@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: opaque sticky result bar
+
+- Result bar fill is solid (plate + lock tint) so scrolled content does not bleed through
+
 ### Fix: move 修 bug CTA next to 再改一版
 
 - Remove top kind chips; 「修 bug」uses the same bottom revise-cta slots

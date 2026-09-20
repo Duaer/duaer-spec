@@ -2668,11 +2668,12 @@ a.btn[hidden] {
   margin-top: auto;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--lock);
-  background: rgba(47, 158, 143, 0.1);
+  /* Opaque fill so scrolled content does not show through. */
+  background: color-mix(in srgb, var(--lock) 22%, var(--plate));
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
-  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.35);
 }
 
 .preview-bar {

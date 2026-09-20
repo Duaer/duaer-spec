@@ -324,6 +324,14 @@ test("result bar sits below dispatch and sticks to column bottom", () => {
   assert.ok(previewAt > dispatchClose, "preview is after dispatch section");
   assert.match(css, /\.preview-panel\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.preview-panel\s*\{[^}]*bottom:\s*0/s);
+  assert.match(
+    css,
+    /\.preview-panel\s*\{[^}]*background:\s*color-mix\([^;]*var\(--plate\)/s,
+  );
+  assert.doesNotMatch(
+    css,
+    /\.preview-panel\s*\{[^}]*background:\s*rgba\([^)]+,\s*0\.\d+\s*\)/s,
+  );
 });
 
 test("desk wires decompose → recommend workers → graph confirm", () => {

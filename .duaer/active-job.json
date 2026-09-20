@@ -1,5 +1,1 @@
-{
-  "feature": "244-bug-btn-bottom",
-  "specPath": ".duaer/specs/244-bug-btn-bottom/spec.md",
-  "source": "chat"
-}
+{"feature":"245-preview-opaque","specPath":".duaer/specs/245-preview-opaque/spec.md","source":"chat"}
