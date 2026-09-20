@@ -2192,6 +2192,8 @@ async function runValidate(kind, expectedFp) {
       body: JSON.stringify({
         ...v,
         deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();
@@ -3252,6 +3254,8 @@ async function sendChat(userText) {
               : "specify",
         deskKind: state.deskKind === "bug" ? "bug" : "feature",
         deployTarget: state.deployTarget || "none",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
         stream: true,
       }),
     });
@@ -4076,6 +4080,7 @@ el.confirm.addEventListener("click", async () => {
         rawAsk: state.rawAsk || v.goal,
         projectPath: state.projectPath || undefined,
         repoPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();
@@ -4158,6 +4163,8 @@ async function autoHandleFromGate(kind, btn) {
         ...v,
         issues,
         deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();
@@ -5014,6 +5021,8 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
           ...v,
           issues,
           deskKind: state.deskKind === "bug" ? "bug" : "feature",
+          projectPath: state.projectPath || undefined,
+          previewUrl: state.lastPreviewUrl || undefined,
         }),
       });
       const data = await res.json();
@@ -5052,6 +5061,8 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
         modules: state.modules,
         deskKind: state.deskKind === "bug" ? "bug" : "feature",
         rawAsk: state.rawAsk || v.goal,
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();

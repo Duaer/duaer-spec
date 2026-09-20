@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: bug chat autofills project delivery facts
+
+- Defect dialogue no longer re-asks URL / start scripts / env / suspected cause /
+  online-emergency when the active project already has delivery context
+- Validate gates filter those issue phrases and enrich `assumptions`
+
 ### Fix: opaque sticky result bar
 
 - Result bar fill is solid (plate + lock tint) so scrolled content does not bleed through

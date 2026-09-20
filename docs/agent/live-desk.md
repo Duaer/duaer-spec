@@ -85,7 +85,11 @@ The middle column shows a **修 bug** button in the same bottom CTA row as
 the bottom strip under results; after delivery it sits beside「再改一版」.
 
 1. One **defect card** (symptom / out of scope / fixed-when / env). No multi-module
-   growth from chat.
+   growth from chat. **Project delivery facts** (preview URL, start scripts,
+   local path/port hints) are injected into chat + `assumptions` automatically —
+   do not re-ask the operator. Suspected cause defaults to「待复现定位」; online
+   emergency defaults to **no** (fix from develop) unless the user says
+   production/urgent.
 2. After confirm, **architecture is skipped by default** (operator may still
    design if contracts or security change).
 3. Kickoff builds a short pool: reproduce → fix → acceptance atoms → regress →

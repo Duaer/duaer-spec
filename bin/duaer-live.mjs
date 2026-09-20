@@ -105,6 +105,12 @@ import {
   waveForWorker,
 } from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus, pickOpenableResultEntry, isOpenableProductPreview } from "./live-preview.mjs";
+import {
+  collectBugProjectContext,
+  enrichBugAssumptions,
+  filterBugDeliveryFactIssues,
+  formatBugProjectContextBlock,
+} from "./live-bug-context.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -705,16 +711,17 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
 const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 bug，不是做新功能。通过多轮对话整理成一张可派工的缺陷卡，使数字员工能复现、修复并回归。
 
 规则：
-1. 缺关键信息时每次只问 1 个卡点（现象 / 复现步骤 / 期望与实际 / 影响面）；信息够时不要用「请从多种方案里选」代替可检查验收。
+1. 缺关键信息时每次只问 1 个卡点，且卡点只能是：现象 / 复现步骤 / 期望与实际 / 影响面。信息够时不要用「请从多种方案里选」代替可检查验收。
 2. 只维护**一个**模块：id 固定为 bug（title 可用「缺陷」）。禁止拆多模块。
 3. 四块语义：
    - goal = 缺陷现象与复现（可执行）
    - outOfScope = 本次不改什么
    - acceptance = 怎么算修好（复现关闭 + 可核对结果/命令）
-   - assumptions = 环境 / 疑似原因 / 是否线上紧急
-4. ready=true 表示缺陷卡可确认。不要催派工。不要写代码。不要假设仓库路径。
-5. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）。
-6. 输出格式（严格）：
+   - assumptions = 环境 / 疑似原因 / 是否线上紧急（优先写入系统给的「项目交付上下文」）
+4. **禁止向用户追问**网页/成品 URL、服务启动命令或脚本、机器/端口/依赖等运行环境、疑似原因、是否线上紧急——这些由台面从项目交付自动补齐。疑似原因未知时写「待复现定位」；线上紧急默认「否」（从 develop 出 fix/），仅当用户明确说线上/生产/紧急才标「是」。
+5. ready=true 表示缺陷卡可确认。不要催派工。不要写代码。不要假设用户没给的仓库路径（上下文里有则直接用）。
+6. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）。
+7. 输出格式（严格）：
    - 先写对用户说的纯文本
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）：
@@ -787,12 +794,12 @@ const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即
 检查：
 1. goal 是否写清现象与复现（可执行，不要堆无关功能）
 2. acceptance 是否可客观检查：复现关闭 + 打开/看到/命令通过等；禁止仅「修好了/更好用」
-3. outOfScope 是否划清本次不改什么
-4. assumptions 是否合理（环境、疑似原因、是否线上紧急）
+3. outOfScope 是否划清本次不改什么（可简短）
+4. assumptions：环境/URL/启动/紧急/疑似原因由台面交付上下文补齐——**禁止**因缺少网页地址、启动命令、运行环境、疑似原因、是否线上紧急而 failed
 
 规则：
-- 若小改即可通过：修订四块，passed=true
-- 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
+- 若小改即可通过：修订四块，passed=true；assumptions 空缺时写入合理默认（疑似原因=待复现定位；线上紧急=否）
+- 仅当 goal 或 acceptance 不可执行时 passed=false，issues 只列这类问题
 - 不要写代码。不要催派工。
 - 只输出一个 JSON，不要 markdown 围栏：
 {"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
@@ -801,8 +808,8 @@ const BUG_FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷卡修正助手�
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
-2. 保持用户原意；缺信息时写合理可检查默认，并写进 assumptions
-3. 不要写代码。不要假设仓库路径。
+2. 保持用户原意；缺信息时写合理可检查默认，并写进 assumptions（URL/启动/环境用上下文；疑似原因默认待复现定位；线上紧急默认否）
+3. 不要写代码。不要向用户索要已交付过的地址或启动命令。
 4. 只输出一个 JSON，不要 markdown 围栏：
 {"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
@@ -1251,7 +1258,7 @@ function localAcceptCheck(card, { kind = "feature" } = {}) {
   return issues;
 }
 
-async function autoAcceptCard(cfg, card, { kind = "feature" } = {}) {
+async function autoAcceptCard(cfg, card, { kind = "feature", projectContext = null } = {}) {
   const local = localAcceptCheck(card, { kind });
   if (local.length) {
     return {
@@ -1264,12 +1271,16 @@ async function autoAcceptCard(cfg, card, { kind = "feature" } = {}) {
       assumptions: card.assumptions,
     };
   }
+  const ctxNote =
+    kind === "bug" && projectContext
+      ? `\n\n${formatBugProjectContextBlock(projectContext)}\n验收时不要因缺少 URL/启动/环境/疑似原因/线上紧急而 failed。`
+      : "";
   const content = await callChatModel(
     cfg,
     [
       {
         role: "user",
-        content: `请验收以下${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}`,
+        content: `请验收以下${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}${ctxNote}`,
       },
     ],
     kind === "bug" ? BUG_ACCEPT_PROMPT : ACCEPT_PROMPT,
@@ -1278,13 +1289,19 @@ async function autoAcceptCard(cfg, card, { kind = "feature" } = {}) {
 }
 
 /** Validate card without writing Brief — used to gate human confirm/revise send. */
-async function validateCardOnly(cfg, card, { kind = "feature" } = {}) {
-  const normalized = {
+async function validateCardOnly(cfg, card, { kind = "feature", projectContext = null } = {}) {
+  let normalized = {
     goal: String(card.goal || "").trim(),
     outOfScope: String(card.outOfScope || "").trim(),
     acceptance: String(card.acceptance || "").trim(),
     assumptions: String(card.assumptions || "").trim(),
   };
+  if (kind === "bug" && projectContext) {
+    normalized = {
+      ...normalized,
+      assumptions: enrichBugAssumptions(normalized.assumptions, projectContext),
+    };
+  }
   if (!normalized.goal || !normalized.acceptance) {
     const goalLabel = kind === "bug" ? "「缺陷现象」" : "「要做什么」";
     const acceptLabel = kind === "bug" ? "「修好标准」" : "「验收标准」";
@@ -1298,15 +1315,40 @@ async function validateCardOnly(cfg, card, { kind = "feature" } = {}) {
       ...normalized,
     };
   }
-  const review = await autoAcceptCard(cfg, normalized, { kind });
+  const review = await autoAcceptCard(cfg, normalized, { kind, projectContext });
+  let issues = Array.isArray(review.issues) ? review.issues : [];
+  let assumptions = String(review.assumptions || normalized.assumptions || "").trim();
+  let passed = Boolean(review.passed);
+  if (kind === "bug") {
+    issues = filterBugDeliveryFactIssues(issues);
+    assumptions = enrichBugAssumptions(assumptions, projectContext || {});
+    if (!passed && issues.length === 0) {
+      const local = localAcceptCheck(
+        {
+          goal: review.goal || normalized.goal,
+          outOfScope: review.outOfScope || normalized.outOfScope,
+          acceptance: review.acceptance || normalized.acceptance,
+          assumptions,
+        },
+        { kind },
+      );
+      if (!local.length) {
+        passed = true;
+      } else {
+        issues = local;
+      }
+    }
+  }
   return {
-    passed: Boolean(review.passed),
-    summary: review.summary || (review.passed ? "自动验收通过" : "自动验收未通过"),
-    issues: review.issues || [],
-    goal: review.goal,
-    outOfScope: review.outOfScope,
-    acceptance: review.acceptance,
-    assumptions: review.assumptions,
+    passed,
+    summary:
+      review.summary ||
+      (passed ? "自动验收通过" : "自动验收未通过"),
+    issues,
+    goal: review.goal || normalized.goal,
+    outOfScope: review.outOfScope || normalized.outOfScope,
+    acceptance: review.acceptance || normalized.acceptance,
+    assumptions,
   };
 }
 
@@ -1319,13 +1361,17 @@ class ValidateGateError extends Error {
   }
 }
 
-async function autoFixConfirmCard(cfg, card, issues, { kind = "feature" } = {}) {
+async function autoFixConfirmCard(cfg, card, issues, { kind = "feature", projectContext = null } = {}) {
+  const ctxNote =
+    kind === "bug" && projectContext
+      ? `\n\n${formatBugProjectContextBlock(projectContext)}`
+      : "";
   const content = await callChatModel(
     cfg,
     [
       {
         role: "user",
-        content: `${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。`,
+        content: `${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。${ctxNote}`,
       },
     ],
     kind === "bug" ? BUG_FIX_ACCEPT_PROMPT : FIX_ACCEPT_PROMPT,
@@ -1336,12 +1382,16 @@ async function autoFixConfirmCard(cfg, card, issues, { kind = "feature" } = {}) 
   } catch {
     obj = {};
   }
+  let assumptions = String(obj.assumptions || card.assumptions || "").trim();
+  if (kind === "bug") {
+    assumptions = enrichBugAssumptions(assumptions, projectContext || {});
+  }
   return {
     summary: String(obj.summary || "已按 issues 修订确认卡").trim(),
     goal: String(obj.goal || card.goal || "").trim(),
     outOfScope: String(obj.outOfScope || card.outOfScope || "").trim(),
     acceptance: String(obj.acceptance || card.acceptance || "").trim(),
-    assumptions: String(obj.assumptions || card.assumptions || "").trim(),
+    assumptions,
   };
 }
 
@@ -5999,11 +6049,20 @@ async function handleApi(req, res) {
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
           : deskKind === "bug"
-            ? `当前缺陷卡草稿：\n${JSON.stringify({
+            ? `${formatBugProjectContextBlock(
+                collectBugProjectContext({
+                  projectPath:
+                    body.projectPath ||
+                    cfg.activeProjectPath ||
+                    "",
+                  previewUrl: body.previewUrl || "",
+                  startCommand: body.startCommand || "",
+                }),
+              )}\n\n当前缺陷卡草稿：\n${JSON.stringify({
                 modules: modules || [],
                 activeModuleId: activeModuleId || "bug",
                 card,
-              })}\n只维护 id=bug 的一个模块。更新四块；ready=true 表示缺陷卡可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`
+              })}\n只维护 id=bug 的一个模块。把交付上下文写入 assumptions，不要再问用户 URL/启动/环境/疑似原因/是否紧急。更新四块；ready=true 表示缺陷卡可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`
             : `当前模块清单与确认卡草稿：\n${JSON.stringify({
               modules: modules || [],
               activeModuleId: activeModuleId || null,
@@ -6065,7 +6124,18 @@ async function handleApi(req, res) {
         String(body.deskKind || body.kind || "").trim() === "bug"
           ? "bug"
           : "feature";
-      const review = await validateCardOnly(cfg, card, { kind: deskKind });
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const review = await validateCardOnly(cfg, card, {
+        kind: deskKind,
+        projectContext,
+      });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -6109,10 +6179,24 @@ async function handleApi(req, res) {
         String(body.deskKind || body.kind || "").trim() === "bug"
           ? "bug"
           : "feature";
-      const fixed = await autoFixConfirmCard(cfg, card, issues, {
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const filteredIssues =
+        deskKind === "bug" ? filterBugDeliveryFactIssues(issues) : issues;
+      const fixed = await autoFixConfirmCard(cfg, card, filteredIssues, {
         kind: deskKind,
+        projectContext,
       });
-      const review = await validateCardOnly(cfg, fixed, { kind: deskKind });
+      const review = await validateCardOnly(cfg, fixed, {
+        kind: deskKind,
+        projectContext,
+      });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -6160,7 +6244,18 @@ async function handleApi(req, res) {
         String(body.deskKind || body.kind || "").trim() === "bug"
           ? "bug"
           : "feature";
-      const review = await autoAcceptCard(cfg, card, { kind: deskKind });
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const review = await validateCardOnly(cfg, card, {
+        kind: deskKind,
+        projectContext,
+      });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
@@ -6265,10 +6360,24 @@ async function handleApi(req, res) {
         String(body.deskKind || body.kind || "").trim() === "bug"
           ? "bug"
           : "feature";
-      const fixed = await autoFixConfirmCard(cfg, card, issues, {
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const filteredIssues =
+        deskKind === "bug" ? filterBugDeliveryFactIssues(issues) : issues;
+      const fixed = await autoFixConfirmCard(cfg, card, filteredIssues, {
         kind: deskKind,
+        projectContext,
       });
-      const review = await autoAcceptCard(cfg, fixed, { kind: deskKind });
+      const review = await validateCardOnly(cfg, fixed, {
+        kind: deskKind,
+        projectContext,
+      });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
