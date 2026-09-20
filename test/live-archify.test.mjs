@@ -67,6 +67,38 @@ test("layoutArchitectureIr finishes on cyclic connections", () => {
   assert.ok(Array.isArray(ir.meta.viewBox));
 });
 
+test("sanitizeArchitectureIr drops unpinned component sources", () => {
+  const dirty = {
+    diagram_type: "architecture",
+    meta: { title: "Tasks", repository: { url: "not-a-pin" } },
+    components: [
+      {
+        id: "T001",
+        type: "external",
+        label: "T001",
+        sources: [{ path: "run/waiting", label: "等待中" }],
+      },
+    ],
+    connections: [],
+  };
+  for (const clean of [sanitizeArchitectureIr(dirty), sanitizeBrowser(dirty)]) {
+    assert.equal(clean.meta.repository, undefined);
+    assert.equal(clean.components[0].sources, undefined);
+  }
+  const pinned = sanitizeArchitectureIr({
+    ...dirty,
+    meta: {
+      title: "Tasks",
+      repository: {
+        url: "https://github.com/example/repo",
+        revision: "a".repeat(40),
+      },
+    },
+  });
+  assert.ok(pinned.meta.repository);
+  assert.equal(pinned.components[0].sources.length, 1);
+});
+
 test("sanitizeArchitectureIr drops extras in server and browser", () => {
   const dirty = {
     ready: true,

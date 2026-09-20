@@ -129,6 +129,8 @@ export function sanitizeArchitectureIr(raw) {
     })
     .filter((c) => c.title);
 
+  dropUnpinnedRepositoryEvidence(meta, components);
+
   return {
     schema_version: 1,
     diagram_type: "architecture",
@@ -138,6 +140,19 @@ export function sanitizeArchitectureIr(raw) {
     boundaries,
     cards,
   };
+}
+
+function dropUnpinnedRepositoryEvidence(meta, components) {
+  const repo = meta.repository;
+  const pinned =
+    repo &&
+    typeof repo === "object" &&
+    /^[a-f0-9]{40}$/i.test(String(repo.revision || "")) &&
+    typeof repo.url === "string" &&
+    repo.url.trim().length > 0;
+  if (pinned) return;
+  delete meta.repository;
+  for (const c of components) delete c.sources;
 }
 
 export function extractArchitectureIr(text) {

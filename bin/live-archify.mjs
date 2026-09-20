@@ -149,6 +149,11 @@ export function sanitizeArchitectureIr(raw) {
     })
     .filter((c) => c.title);
 
+  // Archify treats any component.sources as repository evidence and then
+  // requires /meta/repository (full SHA + --repo-root). Dispatch-graph status
+  // paths are not repo files — drop them unless the pin is complete.
+  dropUnpinnedRepositoryEvidence(meta, components);
+
   const out = {
     schema_version: 1,
     diagram_type: "architecture",
@@ -172,6 +177,20 @@ export function sanitizeArchitectureIr(raw) {
     };
   }
   return out;
+}
+
+/** Keep sources only when Archify can verify a pinned repository. */
+function dropUnpinnedRepositoryEvidence(meta, components) {
+  const repo = meta.repository;
+  const pinned =
+    repo &&
+    typeof repo === "object" &&
+    /^[a-f0-9]{40}$/i.test(String(repo.revision || "")) &&
+    typeof repo.url === "string" &&
+    repo.url.trim().length > 0;
+  if (pinned) return;
+  delete meta.repository;
+  for (const c of components) delete c.sources;
 }
 
 export function archifyHome() {

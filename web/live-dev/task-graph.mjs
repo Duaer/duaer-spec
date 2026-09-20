@@ -386,7 +386,9 @@ function transitiveReduce(edges) {
  * Map assigned tasks → Archify architecture IR (same renderer as system arch).
  * Explicit positions: X = dependency rank, Y = worker lane — same layered look
  * as system architecture; transitive-reduced edges keep Archify routing valid.
- * Node tag + sources carry run status for the click passport card.
+ * Node tag + sublabel carry run status for the click passport.
+ * Do not set component.sources — Archify treats those as repository evidence
+ * and fails with "Repository evidence requires /meta/repository."
  * @param {Array<object>} tasks
  * @param {{ title?: string, workerCount?: number, locale?: string, progress?: { tasks?: Array<{ id?: string, done?: boolean }> } | null }} [opts]
  */
@@ -421,17 +423,10 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
       id,
       type,
       label: id,
-      sublabel: taskTitle,
+      sublabel: taskTitle ? `${taskTitle} · ${wid}` : wid,
       tag: statusLabel,
       pos: [originX + r * colW, originY + lane * rowH],
       size: [...size],
-      sources: [
-        { path: `run/${runStatus}`, label: statusLabel },
-        { path: `worker/${wid}`, label: wid },
-        ...(String(t.title || "").trim()
-          ? [{ path: `task/${id}`, label: String(t.title || "").slice(0, 48) }]
-          : []),
-      ],
     });
   }
 
