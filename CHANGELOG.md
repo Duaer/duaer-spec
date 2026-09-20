@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: dispatch center shows the graph on the page
+
+- Battlefield fills the dispatch-center stage; node clicks stay there
+- View graph opens the dispatch center instead of a second present window
+
 ### Fix: dispatch graph no longer requires /meta/repository
 
 - Task nodes carry status on `tag` and worker on `sublabel`, not Archify `sources`

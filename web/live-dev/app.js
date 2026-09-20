@@ -1252,13 +1252,7 @@ async function openDispatchGraphPresent() {
     return;
   }
   try {
-    const url =
-      (await refreshDispatchGraphWithProgress()) ||
-      String(state.dispatchGraphUrl || "").trim();
-    if (url) {
-      openArchitecturePresent(url, { noZoom: true });
-      return;
-    }
+    await refreshDispatchGraphWithProgress();
   } catch (err) {
     const msg =
       err instanceof Error ? err.message : t("dispatch.graphBuildFail");

@@ -49,20 +49,17 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(APP, /\/api\/open-external/);
   assert.match(APP, /openExternalDeskUrl\(/);
   assert.match(APP, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
-  assert.match(APP, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
+  assert.match(APP, /openDispatchCenterPage\(state\.projectPath\)/);
+  assert.match(APP, /function openArchitecturePresent\b/);
   assert.match(APP, /lastJobProgress/);
   assert.match(APP, /opts\.noZoom|noz/);
   assert.doesNotMatch(APP, /setDispatchCenterOpen/);
   assert.match(pageJs, /mountArchitectureDiagram\(mount/);
-  assert.match(pageJs, /openArchitecturePresent/);
-  assert.match(pageJs, /function toDeskExternalHref/);
-  assert.match(pageJs, /DESK_ORIGIN\s*=\s*"http:\/\/127\.0\.0\.1:8787"/);
-  assert.match(pageJs, /\/api\/open-external/);
-  assert.match(pageJs, /noZoom:\s*true/);
-  assert.match(pageJs, /searchParams\.set\("present",\s*"1"\)/);
-  assert.match(pageJs, /searchParams\.set\("noz",\s*"1"\)/);
+  assert.match(pageJs, /stage:\s*true/);
+  assert.doesNotMatch(pageJs, /openArchitecturePresent|openExternalDeskUrl|\/api\/open-external/);
+  assert.doesNotMatch(page, /architecture-mount-clickable/);
   assert.match(APP, /new URL\(raw,\s*DESK_ORIGIN\)/);
-  assert.match(pageJs, /new URL\(raw,\s*DESK_ORIGIN\)/);
+  assert.doesNotMatch(pageJs, /new URL\(raw,\s*DESK_ORIGIN\)/);
   assert.doesNotMatch(
     APP.slice(APP.indexOf("function architecturePresentUrl"), APP.indexOf("function openArchitecturePresent")),
     /window\.location\.origin/,

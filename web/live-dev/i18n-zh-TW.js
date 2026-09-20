@@ -202,7 +202,7 @@ export const zhTW = {
   "result.allModulesExtra": "可開始架構設計。",
   "dispatch.taskPool": "任務池（依賴／平行）",
   "dispatch.taskGraph": "任務執行路徑",
-  "dispatch.taskGraphHint": "與系統架構相同版面；顏色表示工作者泳道。開啟全螢幕可點節點",
+  "dispatch.taskGraphHint": "與系統架構相同版面；顏色表示狀態。在調度中心整頁查看，點節點看詳情",
   "dispatch.center": "調度中心",
   "dispatch.openGraph": "查看派工圖",
   "dispatch.centerEmpty": "還沒有派工圖",

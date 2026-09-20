@@ -243,11 +243,11 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(html, /id="taskGraphMount"/);
   assert.match(html, /architecture-mount/);
   assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
-  assert.match(page, /mountArchitectureDiagram\(mount/);
-  assert.match(page, /openArchitecturePresent|present/);
+  assert.match(page, /mountArchitectureDiagram\(mount,\s*\{\s*url,\s*ir:\s*null,\s*stage:\s*true\s*\}\)/);
+  assert.doesNotMatch(page, /openArchitecturePresent|openExternalDeskUrl/);
   assert.match(app, /openExternalDeskUrl\([\s\S]*dispatch-center\.html/);
   assert.match(app, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
-  assert.match(app, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
+  assert.match(app, /openDispatchCenterPage\(state\.projectPath\)/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });

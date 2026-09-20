@@ -202,7 +202,7 @@ export const ja = {
   "result.allModulesExtra": "アーキテクチャ設計を開始できます。",
   "dispatch.taskPool": "タスクプール（依存 / 並列）",
   "dispatch.taskGraph": "タスク実行パス",
-  "dispatch.taskGraphHint": "システムアーキテクチャと同じレイアウト；色はワーカーレーン。全画面表示でノードをクリック可能",
+  "dispatch.taskGraphHint": "システムアーキテクチャと同じレイアウト。ディスパッチセンターのページいっぱいに表示。ノードをクリックで詳細",
   "dispatch.center": "派遣センター",
   "dispatch.openGraph": "派遣図を見る",
   "dispatch.centerEmpty": "派遣図はまだありません",
