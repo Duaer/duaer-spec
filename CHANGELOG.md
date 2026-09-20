@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: new project no longer keeps the previous 派工进度
+
+- Status poll ignores responses after the desk switches to another project (or clears jobId)
+
 ### Fix: requeue a released wave when the Terminal is idle
 
 - An unchecked wave that was already released is enqueued again when nothing is running and the queue is empty

@@ -6893,10 +6893,16 @@ function startStatusPoll() {
   let acceptedNotified = false;
   let lastRevision = -1;
   const tick = async () => {
-    if (!state.jobId) return;
+    const polledJobId = state.jobId;
+    if (!polledJobId) return;
     try {
-      const res = await fetch(`/api/status?jobId=${encodeURIComponent(state.jobId)}`);
+      const res = await fetch(
+        `/api/status?jobId=${encodeURIComponent(polledJobId)}`,
+      );
+      // Project switch / clearDeskWorkspace may have moved on while we waited.
+      if (state.jobId !== polledJobId) return;
       const data = await res.json();
+      if (state.jobId !== polledJobId) return;
       if (!res.ok) return;
       applyDispatchStateFromStatus(data);
       renderProgress(data);
@@ -6938,6 +6944,7 @@ function startStatusPoll() {
       } else {
         state.reviseStuckHint = false;
       }
+      if (state.jobId !== polledJobId) return;
       renderRevisePanel(data);
       if (data.status === "accepted" && data.delivery?.status === "accepted") {
         el.dispatchStatus.textContent = t("status.acceptedRevise", { rev });

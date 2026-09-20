@@ -175,6 +175,8 @@ test("live sources wire project desk session API + client persist", () => {
   assert.match(js, /applySavedCardFields/);
   assert.match(js, /restoreValidateGate/);
   assert.match(js, /startStatusPoll/);
+  assert.match(js, /polledJobId/);
+  assert.match(js, /state\.jobId !== polledJobId/);
   assert.match(js, /dispatchPhase|markDispatchDone|applyDispatchStateFromStatus/);
   assert.match(js, /appendReviseMessagesToLog|restoreReviseDeskUi/);
   assert.match(js, /reviseCards|reviseDraft|upsertReviseCardEntry/);
