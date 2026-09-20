@@ -5191,8 +5191,8 @@ ${DISPATCH_MUST_FINISH_RULES}
 
   // A finished wave often prints "exit" and stays up. The next job is already
   // queued; SIGTERM the leftover session so the runner can dequeue it.
-  // Only when running.cmd's own wave ids are all checked — never the session
-  // that is still working the latest wave.
+  // Scripts usually cat a prompt file (no - T00N: line). A waiter is enough.
+  // A script that names a still-open wave is left alone.
   const waveExitPreemptAt = {
     ...(prev.waveExitPreemptAt && typeof prev.waveExitPreemptAt === "object"
       ? prev.waveExitPreemptAt

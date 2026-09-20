@@ -137,7 +137,7 @@ the table for their app.
 | E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; desk verify gate replaces the stamp-accept nudge | `npm test` + `npm run test:live` |
 | E2E-166 | Desk runs `.duaer/memory/verify.json` before accept sticks; fail or missing contract reopens delivery and records command exit codes | `npm test` |
 | E2E-167 | Use-as-current-project: missing name or description shows in the project drawer; button disables while switching; drawer scrolls | `npm test` |
-| E2E-168 | Finished wave still holding the Terminal is preempted once the next job is queued; an open wave is not killed | `npm test` |
+| E2E-168 | Finished wave still holding the Terminal is preempted once the next job is queued; a named open wave is not killed; a `cat` prompt script with a waiter is preempted | `npm test` |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |

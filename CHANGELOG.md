@@ -6,6 +6,7 @@
 
 - When a wave's tasks are checked and the next `--continue` is already queued, the desk preempts the leftover CLI instead of waiting for it to exit
 - A session whose own wave is still open is not preempted
+- A Terminal script that only `cat`s the prompt file (no `- T00N:` line) is still preempted when a job is waiting
 
 ### Fix: project activate click shows feedback in the drawer
 

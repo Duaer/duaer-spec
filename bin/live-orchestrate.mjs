@@ -192,9 +192,11 @@ export function runningWaveIdsFromScript(text) {
 }
 
 /**
- * The lane is still busy on a wave whose tasks are already checked, while
- * another job waits. Do not preempt when the running script's wave is still
- * open — that session is the work in progress, even if an earlier wave is done.
+ * The lane is still busy while another job waits. When the running script
+ * names its wave (`- T002:`), preempt only if those ids are already checked.
+ * Terminal jobs usually `cat` a prompt file that the next enqueue overwrites,
+ * so the script itself has no wave ids — a waiter is enough: the desk only
+ * queues the next wave after this one is checked.
  * @param {{
  *   busy?: boolean,
  *   queueDepth?: number,
@@ -205,14 +207,14 @@ export function runningWaveIdsFromScript(text) {
 export function finishedWaveBlocksQueue(input = {}) {
   if (!input.busy) return false;
   if (!(Number(input.queueDepth) > 0)) return false;
+  const ids = (Array.isArray(input.runningWaveIds) ? input.runningWaveIds : [])
+    .map(normId)
+    .filter(Boolean);
+  if (!ids.length) return true;
   const doneSet =
     input.doneSet instanceof Set
       ? input.doneSet
       : new Set([...(input.doneSet || [])].map(normId).filter(Boolean));
-  const ids = (Array.isArray(input.runningWaveIds) ? input.runningWaveIds : [])
-    .map(normId)
-    .filter(Boolean);
-  if (!ids.length) return false;
   return ids.every((id) => doneSet.has(id));
 }
 

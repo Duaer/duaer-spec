@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T01:32:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": ["node --check bin/live-orchestrate.mjs", "npm test (188 pass)"],
+    "result": "pass"
+  },
+  "summary": "A queued continue preempts a leftover CLI even when running.cmd only cats the prompt file."
+}

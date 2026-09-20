@@ -151,6 +151,15 @@ test("finishedWaveBlocksQueue preempts only a checked running wave with a waiter
   assert.equal(
     finishedWaveBlocksQueue({
       busy: true,
+      queueDepth: 1,
+      runningWaveIds: [],
+      doneSet: done,
+    }),
+    true,
+  );
+  assert.equal(
+    finishedWaveBlocksQueue({
+      busy: true,
       queueDepth: 0,
       runningWaveIds: ["T001"],
       doneSet: done,
