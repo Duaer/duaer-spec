@@ -13,6 +13,9 @@ test("duaer-live opens desk URL without model gate on serve", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /function openDeskInBrowser/);
   assert.match(live, /openDeskInBrowser\(deskUrl\)/);
+  assert.match(live, /DUAER_LIVE_NO_BROWSER/);
+  assert.match(live, /EADDRINUSE/);
+  assert.match(live, /Do not start another duaer-live on a different port/);
   assert.match(live, /模型尚未配置/);
   assert.doesNotMatch(
     live,

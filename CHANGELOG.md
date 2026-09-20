@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: FDE desk stays on port 8787 only
+
+- Agents must not spawn alternate desk ports; LaunchAgent uses `DUAER_LIVE_NO_BROWSER`
+- Occupied 8787 prints reuse/kickstart hint instead of inviting another port
+
 ### Fix: dispatch graph Archify edge spacing
 
 - Task-pool IR column width 280px so Archify edges stay ≥24px after box widen

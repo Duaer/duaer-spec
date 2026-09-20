@@ -6,9 +6,13 @@ directory is **per-machine only** — it is never part of the npm package; each
 user starts with an empty live root. Product work runs in isolated worktrees
 inside the chosen product repo.
 
-`duaer live` always starts the desk and opens the browser URL. A missing model
-does not block startup — the Settings drawer opens so the operator can save
+`duaer live` starts the desk on **port 8787** (`http://127.0.0.1:8787`). A missing
+model does not block startup — the Settings drawer opens so the operator can save
 credentials, then chat.
+
+**Agents:** do not start a second desk or use another port. Prefer LaunchAgent
+`com.duaer.live8787`. Interactive `duaer live` may open the browser once;
+`DUAER_LIVE_NO_BROWSER=1` (set on the LaunchAgent) skips auto-open on restart.
 
 Also see root [`README.md`](../../README.md) (EN) / [`README.zh-CN.md`](../../README.zh-CN.md).
 

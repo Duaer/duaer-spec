@@ -6953,6 +6953,12 @@ function cmdConfig(opts) {
 function openDeskInBrowser(url) {
   const target = String(url || "").trim();
   if (!target) return;
+  // LaunchAgent / handoff restarts set this so kickstart does not spam new tabs
+  // (Cursor Browser often surfaces those as random high ports like :62489).
+  const skip =
+    process.env.DUAER_LIVE_NO_BROWSER === "1" ||
+    process.env.DUAER_LIVE_NO_BROWSER === "true";
+  if (skip) return;
   try {
     if (process.platform === "darwin") {
       spawn("open", [target], { detached: true, stdio: "ignore" }).unref();
@@ -6985,6 +6991,20 @@ function serve(port) {
       return;
     }
     send(res, 405, { error: "method not allowed" });
+  });
+
+  server.on("error", (err) => {
+    if (err && err.code === "EADDRINUSE") {
+      console.error(
+        `Port ${port} already in use — FDE desk stays at http://127.0.0.1:8787.`,
+      );
+      console.error(
+        `Reuse LaunchAgent: launchctl kickstart -k "gui/$(id -u)/com.duaer.live8787"`,
+      );
+      console.error("Do not start another duaer-live on a different port.");
+      process.exit(1);
+    }
+    throw err;
   });
 
   server.listen(port, "127.0.0.1", () => {

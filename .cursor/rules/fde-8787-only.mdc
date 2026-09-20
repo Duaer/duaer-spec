@@ -1,0 +1,29 @@
+---
+description: FDE live desk is only http://127.0.0.1:8787 — never alternate ports
+alwaysApply: true
+---
+
+# FDE desk port (8787 only)
+
+The Duaer-spec FDE desk has **one** URL:
+
+`http://127.0.0.1:8787`
+
+Managed by LaunchAgent `com.duaer.live8787`.
+
+## Do
+
+- Check / restart with `launchctl kickstart -k "gui/$(id -u)/com.duaer.live8787"`
+- Verify with `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8787/`
+- After merge handoff, restart that LaunchAgent only (see `.duaer/handoff.json`)
+
+## Do not
+
+- Start `node bin/duaer-live.mjs` on any port other than **8787**
+- Start a second desk when 8787 is already listening
+- Open Cursor Browser / Simple Browser just to “check the desk” (shows random
+  high ports like `:62489` and confuses the operator)
+- Treat product preview ports (3000, 8081, …) as the FDE desk
+
+Interactive `duaer live` may still open the browser once; LaunchAgent sets
+`DUAER_LIVE_NO_BROWSER=1` so kickstart does not spam tabs.
