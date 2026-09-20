@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: project timeline + chat quick nav
+
+- Deliverables timeline merges 初版 / 改进 / 缺陷 and sorts by time
+- Chat column edge「导航」jumps to chat bottom · confirm card · result · progress
+
 ### Fix: bug chat autofills project delivery facts
 
 - Defect dialogue no longer re-asks URL / start scripts / env / suspected cause /

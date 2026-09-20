@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=preview-opaque-1" />
+    <link rel="stylesheet" href="/styles.css?v=timeline-quicknav-1" />
   </head>
   <body>
     <div class="shell">
@@ -95,6 +95,35 @@
 
       <main id="desk" class="layout" hidden>
         <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
+          <div class="chat-quicknav" id="chatQuickNavWrap">
+            <button
+              type="button"
+              class="chat-quicknav-btn"
+              id="chatQuickNav"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="chatQuickNavMenu"
+              data-i18n="chat.quickNav"
+              data-i18n-title="chat.quickNavHint"
+              title="快速导航"
+            >
+              导航
+            </button>
+            <div id="chatQuickNavMenu" class="chat-quicknav-menu" hidden role="menu">
+              <button type="button" role="menuitem" data-nav="chat" data-i18n="chat.navChat">
+                对话底部
+              </button>
+              <button type="button" role="menuitem" data-nav="card" data-i18n="chat.navCard">
+                确认卡
+              </button>
+              <button type="button" role="menuitem" data-nav="result" data-i18n="chat.navResult">
+                结果
+              </button>
+              <button type="button" role="menuitem" data-nav="progress" data-i18n="chat.navProgress">
+                进度
+              </button>
+            </div>
+          </div>
           <div id="log" class="log">
             <div id="chatEmpty" class="chat-empty">
               <ol class="chat-empty-steps" data-i18n-aria="chat.emptyStepsAria" aria-label="怎么用">
@@ -636,6 +665,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=bug-chat-autofill-1"></script>
+    <script type="module" src="/app.js?v=timeline-quicknav-1"></script>
   </body>
 </html>

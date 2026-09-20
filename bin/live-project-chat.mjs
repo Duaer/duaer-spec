@@ -51,8 +51,49 @@ function clipReviseCardEntry(entry) {
     acceptance: card.acceptance,
     assumptions: card.assumptions,
   };
+  const at = String(entry.at || "").trim();
+  if (at) out.at = at.slice(0, 40);
   if (arch) out.architecture = arch;
   return out;
+}
+
+/** Confirmed defect cards on the same project timeline as revisions. */
+function clipBugCardEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const card = clipCard(entry);
+  if (!card.goal && !card.acceptance) return null;
+  const seq = Math.max(1, Math.floor(Number(entry.seq) || 0));
+  const id = String(entry.id || `bug-${seq || Date.now()}`).slice(0, 80);
+  const out = {
+    id,
+    seq: seq || 1,
+    goal: card.goal,
+    outOfScope: card.outOfScope,
+    acceptance: card.acceptance,
+    assumptions: card.assumptions,
+  };
+  const at = String(entry.at || "").trim();
+  if (at) out.at = at.slice(0, 40);
+  return out;
+}
+
+function clipBugCards(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of list) {
+    const entry = clipBugCardEntry(raw);
+    if (!entry || seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    out.push(entry);
+  }
+  out.sort((a, b) => {
+    const ta = Date.parse(a.at || "");
+    const tb = Date.parse(b.at || "");
+    if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
+    return (a.seq || 0) - (b.seq || 0);
+  });
+  return out.slice(-40);
 }
 
 function clipArchitectureSnapshot(arch) {
@@ -230,6 +271,7 @@ function emptySession(projectPath = "") {
     bugHotfix: false,
     reviseCard: clipCard(null),
     reviseCards: [],
+    bugCards: [],
     reviseDraft: null,
     reviseCardFocus: null,
     initialArchitecture: null,
@@ -290,6 +332,7 @@ export function readProjectChat(liveRoot, projectPath) {
         raw.lastRevision,
         clipCard(raw.reviseCard),
       ),
+      bugCards: clipBugCards(raw.bugCards),
       reviseDraft: clipReviseDraft(raw.reviseDraft),
       reviseCardFocus: clipReviseCardFocus(raw.reviseCardFocus),
       initialArchitecture: clipArchitectureSnapshot(raw.initialArchitecture),
@@ -347,6 +390,7 @@ export function writeProjectChat(liveRoot, payload) {
       payload.lastRevision,
       clipCard(payload.reviseCard),
     ),
+    bugCards: clipBugCards(payload.bugCards),
     reviseDraft: clipReviseDraft(payload.reviseDraft),
     reviseCardFocus: clipReviseCardFocus(payload.reviseCardFocus),
     initialArchitecture: clipArchitectureSnapshot(payload.initialArchitecture),
