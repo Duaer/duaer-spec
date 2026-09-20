@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: merge project badge into one top-nav button
+
+- One control shows the active project (or “no project”) and opens the project drawer
+- Same control on the dispatch-center top nav
+
 ### Feat: dispatch graph wraps columns and refreshes status live
 
 - Long task chains wrap after 4 columns instead of one endless row

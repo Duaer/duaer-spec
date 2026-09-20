@@ -387,7 +387,8 @@ const el = {
   employeePanel: document.getElementById("employeePanel"),
   employeeClose: document.getElementById("employeeClose"),
   employeeList: document.getElementById("employeeList"),
-  projectBadge: document.getElementById("projectBadge"),
+  /** Same node as historyToggle — label shows the active project. */
+  projectBadge: document.getElementById("historyToggle"),
   historyPanel: document.getElementById("historyPanel"),
   historyBackdrop: document.getElementById("historyBackdrop"),
   historyClose: document.getElementById("historyClose"),
@@ -627,17 +628,18 @@ function syncComposerEnabled() {
 }
 
 function syncProjectBadge() {
-  if (!el.projectBadge) return;
+  const btn = el.historyToggle || el.projectBadge;
+  if (!btn) return;
   if (state.projectPath) {
-    el.projectBadge.textContent = t("project.activeBadge", {
+    btn.textContent = t("project.activeBadge", {
       name: state.projectName || state.projectPath,
     });
-    el.projectBadge.classList.add("is-active");
-    el.projectBadge.classList.remove("is-empty");
+    btn.classList.add("is-active");
+    btn.classList.remove("is-empty");
   } else {
-    el.projectBadge.textContent = t("project.noneBadge");
-    el.projectBadge.classList.add("is-empty");
-    el.projectBadge.classList.remove("is-active");
+    btn.textContent = t("project.noneBadge");
+    btn.classList.add("is-empty");
+    btn.classList.remove("is-active");
   }
 }
 
