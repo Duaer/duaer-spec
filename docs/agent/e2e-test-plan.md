@@ -154,9 +154,10 @@ the table for their app.
 | E2E-182 | Dispatch center shows the task graph on the page; no extra present window | `npm test` |
 | E2E-183 | Dispatch center node click enlarges the node on the stage | `npm test` + manual |
 | E2E-184 | Dispatch center shows the same top nav as the desk | `npm test` |
-| E2E-185 | Dispatch graph wraps long chains; node status updates live on the stage | `npm test` + manual |
+| E2E-185 | Dispatch graph snake-wraps long chains with side-aware edges; node status updates live | `npm test` + manual |
 | E2E-186 | Bug path: defect card → skip architecture by default → short pool → `fix/` (optional hotfix from main) | `npm test` + `npm run test:live` + manual |
 | E2E-187 | Top nav merges project badge + Projects into one button | `npm test` + `npm run test:live` |
+| E2E-188 | Result bar sticks to the bottom of the middle column (below revise) | `npm test` + manual |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -379,4 +380,5 @@ the table for their app.
 | E2E-185 | `241-graph-wrap` | wrap columns + live node status |
 | E2E-186 | `239-bug-dispatch` | defect card, skip arch, fix/ branch |
 | E2E-187 | `242-project-btn` | one project button in the top nav |
+| E2E-188 | `243-graph-result-bar` | snake-wrap graph restore + result bar at bottom |
 

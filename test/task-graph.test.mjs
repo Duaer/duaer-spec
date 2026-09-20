@@ -233,14 +233,16 @@ test("taskPoolToArchitectureIr embeds status in tag not repository sources", () 
   assert.equal(clean.meta.repository, undefined);
 });
 
-test("wrapRankToGrid wraps after maxCols", () => {
+test("wrapRankToGrid snake-wraps odd bands", () => {
   assert.deepEqual(wrapRankToGrid(0, 4), { col: 0, band: 0 });
   assert.deepEqual(wrapRankToGrid(3, 4), { col: 3, band: 0 });
-  assert.deepEqual(wrapRankToGrid(4, 4), { col: 0, band: 1 });
-  assert.deepEqual(wrapRankToGrid(5, 4), { col: 1, band: 1 });
+  // Odd band reverses so wrap edge stays same column (vertical).
+  assert.deepEqual(wrapRankToGrid(4, 4), { col: 3, band: 1 });
+  assert.deepEqual(wrapRankToGrid(5, 4), { col: 2, band: 1 });
+  assert.deepEqual(wrapRankToGrid(8, 4), { col: 0, band: 2 });
 });
 
-test("taskPoolToArchitectureIr wraps long chains to next band", () => {
+test("taskPoolToArchitectureIr wraps long chains with snake + side edges", () => {
   const tasks = [];
   for (let i = 1; i <= 6; i += 1) {
     tasks.push({
@@ -255,11 +257,18 @@ test("taskPoolToArchitectureIr wraps long chains to next band", () => {
     title: "Wrap",
     maxCols: 4,
   });
-  const a = ir.components.find((c) => c.id === "T001");
+  const d = ir.components.find((c) => c.id === "T004");
   const e = ir.components.find((c) => c.id === "T005");
-  assert.ok(a && e);
-  assert.equal(a.pos[0], e.pos[0]);
-  assert.ok(e.pos[1] > a.pos[1]);
+  assert.ok(d && e);
+  // Snake: T004 (rank3) and T005 (rank4) share the rightmost column.
+  assert.equal(d.pos[0], e.pos[0]);
+  assert.ok(e.pos[1] > d.pos[1]);
+  const wrapEdge = ir.connections.find(
+    (c) => c.from === "T004" && c.to === "T005",
+  );
+  assert.ok(wrapEdge);
+  assert.equal(wrapEdge.fromSide, "bottom");
+  assert.equal(wrapEdge.toSide, "top");
   const xs = ir.components.map((c) => c.pos[0]);
   const uniqueX = new Set(xs);
   assert.ok(uniqueX.size <= 4);
@@ -292,6 +301,29 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(app, /applyOpenPanelFromQuery/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
+  assert.match(
+    fs.readFileSync(path.join(ROOT, "web/live-dev/task-graph.mjs"), "utf8"),
+    /fromSide|toSide|band % 2/,
+  );
+});
+
+test("result bar sits below dispatch and sticks to column bottom", () => {
+  const html = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/index.html"),
+    "utf8",
+  );
+  const css = fs.readFileSync(
+    path.join(ROOT, "web/live-dev/styles.css"),
+    "utf8",
+  );
+  const dispatchClose = html.indexOf('</section>', html.indexOf('id="dispatch"'));
+  const previewAt = html.indexOf('id="previewPanel"');
+  const reviseAt = html.indexOf('id="revisePanel"');
+  assert.ok(previewAt > 0 && reviseAt > 0 && dispatchClose > 0);
+  assert.ok(reviseAt < dispatchClose, "revise stays inside dispatch");
+  assert.ok(previewAt > dispatchClose, "preview is after dispatch section");
+  assert.match(css, /\.preview-panel\s*\{[^}]*position:\s*sticky/s);
+  assert.match(css, /\.preview-panel\s*\{[^}]*bottom:\s*0/s);
 });
 
 test("desk wires decompose → recommend workers → graph confirm", () => {

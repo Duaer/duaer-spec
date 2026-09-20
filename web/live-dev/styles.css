@@ -1327,6 +1327,8 @@ a.btn[hidden] {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
 }
 
 .module-tabs {
@@ -2651,13 +2653,18 @@ a.btn[hidden] {
 }
 
 .preview-panel {
-  margin-top: 0.85rem;
+  /* Keep result bar at the bottom of the middle column while scrolling. */
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-top: auto;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--lock);
   background: rgba(47, 158, 143, 0.1);
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.12);
 }
 
 .preview-bar {

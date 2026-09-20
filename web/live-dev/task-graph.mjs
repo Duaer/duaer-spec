@@ -330,6 +330,9 @@ export const TASK_GRAPH_MAX_COLS = 4;
 
 /**
  * Map dependency rank → wrapped column + band (new row of columns).
+ * Odd bands reverse (snake / boustrophedon) so a wrap edge stays in the same
+ * column and runs vertical — Archify clean-flow rejects a full-width
+ * right→left jump from the end of one row to the start of the next.
  * @param {number} rank
  * @param {number} [maxCols]
  * @returns {{ col: number, band: number }}
@@ -337,7 +340,10 @@ export const TASK_GRAPH_MAX_COLS = 4;
 export function wrapRankToGrid(rank, maxCols = TASK_GRAPH_MAX_COLS) {
   const cols = Math.max(2, Number(maxCols) || TASK_GRAPH_MAX_COLS);
   const r = Math.max(0, Number(rank) || 0);
-  return { col: r % cols, band: Math.floor(r / cols) };
+  const band = Math.floor(r / cols);
+  const indexInBand = r % cols;
+  const col = band % 2 === 0 ? indexInBand : cols - 1 - indexInBand;
+  return { col, band };
 }
 
 /**
@@ -537,12 +543,40 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
       rawEdges.push({ from, to });
     }
   }
-  const connections = transitiveReduce(rawEdges).map((e, i) => ({
-    id: `e${i + 1}`,
-    from: e.from,
-    to: e.to,
-    variant: "default",
-  }));
+  /** @type {Map<string, { pos: number[] }>} */
+  const posById = new Map(components.map((c) => [c.id, c]));
+  const connections = transitiveReduce(rawEdges).map((e, i) => {
+    const edge = {
+      id: `e${i + 1}`,
+      from: e.from,
+      to: e.to,
+      variant: "default",
+    };
+    const a = posById.get(e.from);
+    const b = posById.get(e.to);
+    if (a?.pos && b?.pos) {
+      const dx = b.pos[0] - a.pos[0];
+      const dy = b.pos[1] - a.pos[1];
+      // Explicit sides keep Archify clean-flow happy on snake wrap
+      // (vertical wrap + leftward odd-band edges).
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        if (dy >= 0) {
+          edge.fromSide = "bottom";
+          edge.toSide = "top";
+        } else {
+          edge.fromSide = "top";
+          edge.toSide = "bottom";
+        }
+      } else if (dx >= 0) {
+        edge.fromSide = "right";
+        edge.toSide = "left";
+      } else {
+        edge.fromSide = "left";
+        edge.toSide = "right";
+      }
+    }
+    return edge;
+  });
 
   const boundaries = [];
   if (workerCount > 1) {
@@ -576,8 +610,8 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     meta: {
       title,
       subtitle: zh
-        ? "节点颜色与标签=进度（已完成/进行中/等待中）· 过长链路自动换行"
-        : "Node color + tag = progress · Long chains wrap to the next row",
+        ? "节点颜色与标签=进度（已完成/进行中/等待中）· 过长链路蛇形换行"
+        : "Node color + tag = progress · Long chains snake-wrap",
       quality_profile: "standard",
       locale:
         ["en", "ja", "ko", "es", "pt-BR", "fr", "de", "ru", "vi", "zh-TW"].includes(
