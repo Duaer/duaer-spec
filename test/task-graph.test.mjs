@@ -203,7 +203,7 @@ test("resolveTaskRunStatuses marks done running waiting", () => {
   assert.equal(statuses.get("T003"), "running");
 });
 
-test("taskPoolToArchitectureIr embeds status in tag and sources", () => {
+test("taskPoolToArchitectureIr embeds status in tag not repository sources", () => {
   const ir = taskPoolToArchitectureIr(
     [
       { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
@@ -222,8 +222,12 @@ test("taskPoolToArchitectureIr embeds status in tag and sources", () => {
   assert.equal(b.tag, "进行中");
   assert.equal(a.type, "database");
   assert.equal(b.type, "backend");
-  assert.ok(a.sources.some((s) => s.label === "已完成"));
-  assert.ok(b.sources.some((s) => s.label === "进行中"));
+  assert.match(a.sublabel, /w1/);
+  assert.equal(a.sources, undefined);
+  assert.equal(b.sources, undefined);
+  const clean = sanitizeArchitectureIr(ir);
+  assert.ok(clean.components.every((c) => c.sources == null));
+  assert.equal(clean.meta.repository, undefined);
 });
 
 test("live sources wire Archify task graph mount", () => {

@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T04:05:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/live-archify.mjs web/live-dev/architecture-ir.mjs web/live-dev/task-graph.mjs",
+      "node --test test/task-graph.test.mjs test/live-archify.test.mjs",
+      "npm test (205 pass)",
+      "npm run test:live (1 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Dispatch graph no longer sends Archify component sources, so render does not require /meta/repository. Status stays on the node tag."
+}

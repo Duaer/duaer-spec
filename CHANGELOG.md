@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: dispatch graph no longer requires /meta/repository
+
+- Task nodes carry status on `tag` and worker on `sublabel`, not Archify `sources`
+- Sanitize drops unpinned `sources` so render does not demand repository evidence
+
 ### Fix: open architecture / 派工图 via OS browser on :8787
 
 - `POST /api/open-external` remaps localhost proxy ports onto `:8787` and runs OS `open`
