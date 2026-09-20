@@ -245,6 +245,7 @@ const el = {
   autoFixRevise: document.getElementById("autoFixRevise"),
   meta: document.getElementById("meta"),
   send: document.getElementById("send"),
+  voice: document.getElementById("voice"),
   cfgProviders: document.getElementById("cfgProviders"),
   cfgBase: document.getElementById("cfgBase"),
   cfgKey: document.getElementById("cfgKey"),
@@ -699,6 +700,11 @@ function chatBlockReason() {
 function syncComposerEnabled() {
   const ok = chatAllowed();
   if (el.send) el.send.disabled = !ok;
+  if (el.voice) {
+    const voiceOk = Boolean(state.ready && state.projectPath && !state.busy);
+    el.voice.disabled = !voiceOk;
+    if (!voiceOk) stopVoiceInput({ keepLabel: true });
+  }
   if (el.input) el.input.disabled = !state.ready || !state.projectPath;
   syncChatPlaceholder();
   syncProjectGateHint();
@@ -4122,8 +4128,157 @@ el.form.addEventListener("submit", (e) => {
   }
   const text = el.input.value.trim();
   if (!text) return;
+  stopVoiceInput({ keepLabel: true });
   el.input.value = "";
   void sendChat(text);
+});
+
+/** @type {SpeechRecognition|null} */
+let voiceRecognition = null;
+let voiceBaseText = "";
+let voiceListening = false;
+
+function speechRecognitionCtor() {
+  const w = window;
+  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
+}
+
+function speechLangForLocale() {
+  const loc = getLocale();
+  const map = {
+    "zh-CN": "zh-CN",
+    "zh-TW": "zh-TW",
+    en: "en-US",
+    ja: "ja-JP",
+    ko: "ko-KR",
+    es: "es-ES",
+    "pt-BR": "pt-BR",
+    fr: "fr-FR",
+    de: "de-DE",
+    ru: "ru-RU",
+    vi: "vi-VN",
+  };
+  return map[loc] || "zh-CN";
+}
+
+function syncVoiceButtonUi() {
+  if (!el.voice) return;
+  el.voice.setAttribute("aria-pressed", voiceListening ? "true" : "false");
+  el.voice.textContent = voiceListening ? t("chat.voiceListening") : t("chat.voice");
+  el.voice.title = t("chat.voiceHint");
+}
+
+function stopVoiceInput({ keepLabel = false } = {}) {
+  if (voiceRecognition) {
+    try {
+      voiceRecognition.onresult = null;
+      voiceRecognition.onerror = null;
+      voiceRecognition.onend = null;
+      voiceRecognition.stop();
+    } catch {
+      /* ignore */
+    }
+    voiceRecognition = null;
+  }
+  voiceListening = false;
+  if (!keepLabel) syncVoiceButtonUi();
+  else if (el.voice) {
+    el.voice.setAttribute("aria-pressed", "false");
+    el.voice.textContent = t("chat.voice");
+  }
+}
+
+function appendVoiceTranscript(chunk, { final: isFinal } = {}) {
+  if (!el.input || !chunk) return;
+  const piece = String(chunk).trim();
+  if (!piece) return;
+  const base = voiceBaseText;
+  const sep = base && !/\s$/.test(base) ? " " : "";
+  el.input.value = `${base}${sep}${piece}`;
+  if (isFinal) {
+    voiceBaseText = el.input.value.trim();
+    if (voiceBaseText) voiceBaseText += " ";
+  }
+  try {
+    el.input.focus();
+    el.input.setSelectionRange(el.input.value.length, el.input.value.length);
+  } catch {
+    /* ignore */
+  }
+}
+
+function startVoiceInput() {
+  const Ctor = speechRecognitionCtor();
+  if (!Ctor) {
+    addBubble("bot", t("chat.voiceUnsupported"));
+    return;
+  }
+  if (!state.ready || !state.projectPath || state.busy) {
+    explainChatBlocked();
+    return;
+  }
+  stopVoiceInput({ keepLabel: true });
+  voiceBaseText = String(el.input?.value || "").trim();
+  if (voiceBaseText) voiceBaseText += " ";
+  const rec = new Ctor();
+  voiceRecognition = rec;
+  rec.lang = speechLangForLocale();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.onresult = (ev) => {
+    let interim = "";
+    let finalChunk = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const row = ev.results[i];
+      const text = String(row?.[0]?.transcript || "");
+      if (!text) continue;
+      if (row.isFinal) finalChunk += text;
+      else interim += text;
+    }
+    if (finalChunk) appendVoiceTranscript(finalChunk, { final: true });
+    else if (interim) appendVoiceTranscript(interim, { final: false });
+  };
+  rec.onerror = (ev) => {
+    const code = String(ev?.error || "");
+    stopVoiceInput();
+    if (code === "not-allowed" || code === "service-not-allowed") {
+      addBubble("bot", t("chat.voiceDenied"));
+    } else if (code && code !== "aborted" && code !== "no-speech") {
+      addBubble("bot", t("chat.voiceError", { msg: code }));
+    }
+  };
+  rec.onend = () => {
+    if (voiceRecognition === rec) {
+      voiceListening = false;
+      voiceRecognition = null;
+      syncVoiceButtonUi();
+    }
+  };
+  try {
+    rec.start();
+    voiceListening = true;
+    syncVoiceButtonUi();
+  } catch (err) {
+    stopVoiceInput();
+    addBubble(
+      "bot",
+      t("chat.voiceError", {
+        msg: err instanceof Error ? err.message : String(err || "start"),
+      }),
+    );
+  }
+}
+
+function toggleVoiceInput() {
+  if (voiceListening) {
+    stopVoiceInput();
+    return;
+  }
+  startVoiceInput();
+}
+
+el.voice?.addEventListener("click", () => {
+  toggleVoiceInput();
 });
 
 if (el.input) {
@@ -4137,6 +4292,7 @@ if (el.input) {
     }
     const text = el.input.value.trim();
     if (!text) return;
+    stopVoiceInput({ keepLabel: true });
     el.input.value = "";
     void sendChat(text);
   });
@@ -8493,6 +8649,7 @@ onLocaleChange(() => {
   renderProjectList();
   renderWorkerCountList();
   syncTaskPoolPreview();
+  syncVoiceButtonUi();
   if (el.employeePanel && !el.employeePanel.hidden) renderEmployeeList();
   if (el.previewPanel && !el.previewPanel.hidden && state.lastStatus) {
     renderPreview(state.lastStatus);

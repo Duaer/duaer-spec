@@ -1311,11 +1311,18 @@ body.history-open {
 
 .composer {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   gap: 0.55rem;
   padding: 0.85rem;
   border-top: 1px solid var(--line);
   background: linear-gradient(180deg, #162331 0%, #13202b 100%);
+  align-items: end;
+}
+
+.composer #voice[aria-pressed="true"] {
+  border-color: var(--register);
+  color: var(--register);
+  background: color-mix(in srgb, var(--register) 14%, transparent);
 }
 
 textarea,

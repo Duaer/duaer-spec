@@ -65,7 +65,7 @@ After install, these are the capabilities you actually use:
 A local web console (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
 
 - **Projects.** Create and switch projects; each keeps its own chat and progress.
-- **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed.
+- **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed. Beside **Send**, tap **Record** to dictate requirements into the composer (browser speech recognition), edit the text, then send as usual.
 - **Split big work into modules.** Confirm module by module; nothing starts until you kick off after the ones you care about are confirmed.
 - **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed. If chat claims the diagram is ready but the middle panel is empty, the same bubble offers Regenerate — it does not leave a false “ready” line.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: composer Record to collect requirements by speech
+
+- Voice control beside Send fills the chat input via browser SpeechRecognition
+- Listening state visible; unsupported / denied mic shows a short bot notice
+
 ### Feat: dispatch center can view system architecture per project
 
 - Stage tabs: Dispatch graph | Architecture

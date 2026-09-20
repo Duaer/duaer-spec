@@ -263,6 +263,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /USER_SCROLL_HOLD_MS|wirePanelScrollHold|progressFocusKey/);
   assert.match(js, /wasHidden/);
   assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
+  assert.match(html, /id="voice"|data-i18n="chat\.voice"/);
+  assert.match(js, /startVoiceInput|stopVoiceInput|speechRecognitionCtor|syncVoiceButtonUi/);
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
@@ -279,6 +281,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
   assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏还没有/);
+  assert.match(i18nSrc, /chat\.voice|chat\.voiceListening|chat\.voiceHint/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);

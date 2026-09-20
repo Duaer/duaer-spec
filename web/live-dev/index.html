@@ -128,7 +128,7 @@
             <div id="chatEmpty" class="chat-empty">
               <ol class="chat-empty-steps" data-i18n-aria="chat.emptyStepsAria" aria-label="怎么用">
                 <li data-i18n="chat.emptyStep1">先点「项目」选择或新建产品目录</li>
-                <li data-i18n="chat.emptyStep2">用大白话说想要什么</li>
+                <li data-i18n="chat.emptyStep2">用大白话说想要什么（也可点「录音」口述）</li>
                 <li data-i18n="chat.emptyStep3">确认后派工，数字员工按验收去做</li>
               </ol>
               <p class="chat-empty-hint" id="projectGateHint" data-i18n="project.gateHint">尚未选择项目 — 点右上角「项目」</p>
@@ -144,6 +144,18 @@
               autocomplete="off"
               disabled
             ></textarea>
+            <button
+              type="button"
+              class="btn"
+              id="voice"
+              data-i18n="chat.voice"
+              data-i18n-title="chat.voiceHint"
+              title="录音说出需求"
+              disabled
+              aria-pressed="false"
+            >
+              录音
+            </button>
             <button type="submit" class="btn primary" id="send" data-i18n="chat.send" disabled>
               发送
             </button>

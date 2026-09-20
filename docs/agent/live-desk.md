@@ -22,7 +22,7 @@ Three columns:
 
 | Column | Role |
 |---|---|
-| Chat | Project dialogue; Markdown bubbles; messy multi-topic talk |
+| Chat | Project dialogue; Markdown bubbles; messy multi-topic talk. Composer **Record** (next to Send) uses browser SpeechRecognition to dictate requirements into `#input`, then Send as usual. Unsupported / denied mic shows a short bot notice. |
 | Center | Module tabs + confirm cards → architecture → kickoff / revise |
 | Progress | Delivery cockpit (stages + next action) · **View deliverables** · `tasks.md` polling · result bar |
 
@@ -185,7 +185,8 @@ Additional notes:
 Touching live desk UI / protocol UX: L0 + **`npm run test:live`** (L3) per
 [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md). Catalog rows:
 E2E-135…E2E-139 (modular / pool / README-on-delivery / chat Markdown / lanes),
-E2E-145 (multi-worker progress lanes), E2E-146 (wave orchestration).
+E2E-145 (multi-worker progress lanes), E2E-146 (wave orchestration),
+E2E-197 (composer Record / voice input).
 
 ## Related
 
