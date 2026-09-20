@@ -249,6 +249,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /wireChatQuickNav/);
   assert.match(js, /appendBugCardEntry/);
   assert.match(js, /jumpQuickNav/);
+  assert.match(js, /accepted \|\| previewVisible/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
   assert.match(js, /card\.lockHintModuleDone/);

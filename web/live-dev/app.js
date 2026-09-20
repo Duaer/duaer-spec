@@ -1928,18 +1928,15 @@ function syncStartBugFixButtons() {
   }
   const dialoguing = state.mode === "revise" || state.reviseDialogueOpen;
   const accepted = Boolean(state.lastDeliveryAccepted);
-  const revising =
-    Boolean(state.reviseLocked) ||
-    Boolean(state.lastRevision) ||
-    state.mode === "revise";
+  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+  // Same gate as「再改一版」: result bar (or prior accept) keeps the path open
+  // after deploy / while another wave is revising.
   const showWithRevise =
     Boolean(state.projectPath) &&
     !dialoguing &&
-    accepted &&
-    (!revising || state.reviseStuckHint);
+    (accepted || previewVisible || state.reviseStuckHint);
   const showEarly =
-    Boolean(state.projectPath) && !state.locked && !accepted;
-  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+    Boolean(state.projectPath) && !state.locked && !accepted && !previewVisible;
   if (el.startBugFix) {
     el.startBugFix.hidden = !(showWithRevise && previewVisible);
     el.startBugFix.disabled = state.busy || state.reviseDispatching;
@@ -2475,6 +2472,7 @@ function syncReviseDispatchButton(ready) {
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
+  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
   if (el.reviseHint) {
     if (revising && state.reviseStuckHint && !dialoguing) {
       el.reviseHint.textContent = t("revise.hintStuck");
@@ -2495,9 +2493,12 @@ function syncReviseDispatchButton(ready) {
     }
   }
   if (el.startReviseChat || el.startReviseChatAlt) {
+    // Result bar stays the home for next iterate / bug — deploy or an in-flight
+    // revise wave must not hide the CTAs (only an active dialogue does).
     const showCta =
-      !dialoguing && accepted && (!revising || state.reviseStuckHint);
-    const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+      Boolean(state.projectPath) &&
+      !dialoguing &&
+      (accepted || previewVisible || state.reviseStuckHint);
     if (el.startReviseChat) {
       el.startReviseChat.hidden = !(showCta && previewVisible);
       // Keep clickable while chat is busy — disabled buttons swallow clicks.
