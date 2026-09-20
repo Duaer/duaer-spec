@@ -554,6 +554,38 @@
           </div>
         </details>
 
+        <details class="setup-block" id="setupSttBlock">
+          <summary class="setup-block-sum" data-i18n="setup.sttBlock">语音识别模型</summary>
+          <div class="setup-block-body">
+            <p class="hint tight" data-i18n="setup.sttHint">录音结束后用此模型解码成文字。需兼容 OpenAI `/v1/audio/transcriptions`（如 whisper-1）。</p>
+            <label class="field">
+              <span>STT Base URL</span>
+              <input id="cfgSttBase" type="url" placeholder="https://api.openai.com/v1" />
+            </label>
+            <label class="field">
+              <span>STT API Key</span>
+              <input id="cfgSttKey" type="password" placeholder="sk-…" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>STT Model</span>
+              <input id="cfgSttModel" type="text" placeholder="whisper-1" />
+            </label>
+            <div class="setup-host-actions">
+              <button type="button" class="btn confirm" id="saveSttCfg" data-i18n="setup.sttSave">保存语音模型</button>
+              <button type="button" class="btn" id="clearSttCfg" data-i18n="setup.sttClear">清除</button>
+            </div>
+            <p id="sttCfgMsg" class="hint" hidden></p>
+            <details class="setup-howto">
+              <summary data-i18n="setup.howtoFill">怎么填？</summary>
+              <ol class="setup-howto-list">
+                <li data-i18n="setup.howtoStt1">OpenAI：Base URL 填 https://api.openai.com/v1，Model 填 whisper-1</li>
+                <li data-i18n="setup.howtoStt2">其它兼容服务（Groq / 本地 Whisper 等）填对应 Base URL 与模型名</li>
+                <li data-i18n="setup.howtoStt3">与上方控制台聊天模型分开；未配置时录音仍可试浏览器识别</li>
+              </ol>
+            </details>
+          </div>
+        </details>
+
         <details class="setup-block" id="setupCloudflare">
           <summary class="setup-block-sum" data-i18n="setup.cloudflareTitle">Cloudflare 部署</summary>
           <div class="setup-block-body">

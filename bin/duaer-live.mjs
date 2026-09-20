@@ -354,6 +354,9 @@ function emptyLiveConfig() {
     baseUrl: "",
     apiKey: "",
     model: "",
+    sttBaseUrl: "",
+    sttApiKey: "",
+    sttModel: "",
     preferredAgentId: "",
     projectsRoot: "",
     activeProjectPath: "",
@@ -383,6 +386,15 @@ function readConfig() {
       baseUrl: String(raw.baseUrl || process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(raw.apiKey || process.env.DUAER_LIVE_API_KEY || "").trim(),
       model: String(raw.model || process.env.DUAER_LIVE_MODEL || "").trim(),
+      sttBaseUrl: String(
+        raw.sttBaseUrl || process.env.DUAER_LIVE_STT_BASE_URL || "",
+      ).trim(),
+      sttApiKey: String(
+        raw.sttApiKey || process.env.DUAER_LIVE_STT_API_KEY || "",
+      ).trim(),
+      sttModel: String(
+        raw.sttModel || process.env.DUAER_LIVE_STT_MODEL || "",
+      ).trim(),
       preferredAgentId: String(raw.preferredAgentId || "").trim(),
       projectsRoot: String(raw.projectsRoot || "").trim(),
       activeProjectPath: String(raw.activeProjectPath || "").trim(),
@@ -427,6 +439,9 @@ function writeConfig(partial) {
     baseUrl: pick("baseUrl"),
     apiKey: pick("apiKey"),
     model: pick("model"),
+    sttBaseUrl: pick("sttBaseUrl"),
+    sttApiKey: pick("sttApiKey"),
+    sttModel: pick("sttModel"),
     preferredAgentId: pick("preferredAgentId"),
     projectsRoot:
       partial.projectsRoot !== undefined
@@ -450,6 +465,21 @@ function writeConfig(partial) {
 
 function configReady(cfg = readConfig()) {
   return Boolean(cfg.baseUrl && cfg.apiKey && cfg.model);
+}
+
+function sttConfigReady(cfg = readConfig()) {
+  return Boolean(cfg.sttBaseUrl && cfg.sttApiKey && cfg.sttModel);
+}
+
+/** OpenAI-compatible audio transcriptions URL from a Base URL. */
+function sttTranscriptionsUrl(baseUrl) {
+  const base = String(baseUrl || "")
+    .trim()
+    .replace(/\/$/, "");
+  if (!base) return "";
+  if (/\/audio\/transcriptions$/i.test(base)) return base;
+  if (/\/v1$/i.test(base)) return `${base}/audio/transcriptions`;
+  return `${base}/v1/audio/transcriptions`;
 }
 
 /** Both AccessKey ID and Secret present → 阿里云 may appear in deploy UI. */
@@ -560,6 +590,10 @@ function publicConfig(cfg = readConfig()) {
     baseUrl: cfg.baseUrl || "",
     model: cfg.model || "",
     hasApiKey: Boolean(cfg.apiKey),
+    sttReady: sttConfigReady(cfg),
+    sttBaseUrl: cfg.sttBaseUrl || "",
+    sttModel: cfg.sttModel || "",
+    hasSttApiKey: Boolean(cfg.sttApiKey),
     hasAliyunCredentials: hasAliyunCredentials(cfg),
     hasCloudflareCredentials: hasCloudflareCredentials(cfg),
     hasAwsCredentials: hasAwsCredentials(cfg),
@@ -821,6 +855,69 @@ function llmTimeoutError(ms) {
   return new Error(
     `模型调用超过 ${Math.round(ms / 1000)} 秒未返回，已中止。请检查模型服务是否可用。`,
   );
+}
+
+/**
+ * POST audio to OpenAI-compatible /audio/transcriptions.
+ * @param {object} cfg
+ * @param {{ buffer: Buffer, mimeType?: string, filename?: string, language?: string }} audio
+ */
+async function callSttTranscribe(cfg, audio) {
+  const url = sttTranscriptionsUrl(cfg.sttBaseUrl);
+  if (!url) throw new Error("STT baseUrl missing");
+  const mime = String(audio.mimeType || "audio/webm").trim() || "audio/webm";
+  const filename =
+    String(audio.filename || "").trim() ||
+    (mime.includes("mp4") || mime.includes("m4a")
+      ? "voice.m4a"
+      : mime.includes("mpeg") || mime.includes("mp3")
+        ? "voice.mp3"
+        : mime.includes("wav")
+          ? "voice.wav"
+          : mime.includes("ogg")
+            ? "voice.ogg"
+            : "voice.webm");
+  const form = new FormData();
+  form.append("file", new Blob([audio.buffer], { type: mime }), filename);
+  form.append("model", String(cfg.sttModel).trim());
+  const lang = String(audio.language || "").trim();
+  if (lang) form.append("language", lang);
+  const ac = new AbortController();
+  const timer = setTimeout(() => ac.abort(), LLM_TIMEOUT_MS);
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${cfg.sttApiKey}`,
+      },
+      body: form,
+      signal: ac.signal,
+    });
+    const text = await res.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = null;
+    }
+    if (!res.ok) {
+      const msg =
+        (data && (data.error?.message || data.error || data.message)) ||
+        text.slice(0, 240) ||
+        `HTTP ${res.status}`;
+      throw new Error(String(msg));
+    }
+    const transcript = String(
+      data?.text || data?.transcript || data?.result || "",
+    ).trim();
+    if (!transcript) throw new Error("empty transcript");
+    return transcript;
+  } catch (err) {
+    if (err?.name === "AbortError") throw llmTimeoutError(LLM_TIMEOUT_MS);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
@@ -5884,7 +5981,9 @@ async function handleApi(req, res) {
         "awsRegion",
         "clearAwsCredentials",
       ];
+      const sttKeys = ["sttBaseUrl", "sttApiKey", "sttModel", "clearStt"];
       const noHostCreds = hostCredKeys.every((k) => body[k] === undefined);
+      const noStt = sttKeys.every((k) => body[k] === undefined);
       const onlyProjectsRoot =
         body.projectsRoot !== undefined &&
         body.baseUrl === undefined &&
@@ -5892,7 +5991,8 @@ async function handleApi(req, res) {
         body.model === undefined &&
         body.preferredAgentId === undefined &&
         body.activeProjectPath === undefined &&
-        noHostCreds;
+        noHostCreds &&
+        noStt;
       const onlyActiveProject =
         body.activeProjectPath !== undefined &&
         body.baseUrl === undefined &&
@@ -5900,7 +6000,8 @@ async function handleApi(req, res) {
         body.model === undefined &&
         body.preferredAgentId === undefined &&
         body.projectsRoot === undefined &&
-        noHostCreds;
+        noHostCreds &&
+        noStt;
       const onlyHostCreds =
         !noHostCreds &&
         body.baseUrl === undefined &&
@@ -5908,7 +6009,17 @@ async function handleApi(req, res) {
         body.model === undefined &&
         body.preferredAgentId === undefined &&
         body.projectsRoot === undefined &&
-        body.activeProjectPath === undefined;
+        body.activeProjectPath === undefined &&
+        noStt;
+      const onlyStt =
+        !noStt &&
+        body.baseUrl === undefined &&
+        body.apiKey === undefined &&
+        body.model === undefined &&
+        body.preferredAgentId === undefined &&
+        body.projectsRoot === undefined &&
+        body.activeProjectPath === undefined &&
+        noHostCreds;
       let projectsRoot = body.projectsRoot;
       if (projectsRoot !== undefined) {
         const raw = String(projectsRoot || "").trim();
@@ -5966,6 +6077,23 @@ async function handleApi(req, res) {
           hostPartial.awsRegion = body.awsRegion;
         }
       }
+      const sttPartial = {};
+      if (body.clearStt) {
+        sttPartial.sttBaseUrl = "";
+        sttPartial.sttApiKey = "";
+        sttPartial.sttModel = "";
+      } else {
+        if (body.sttBaseUrl !== undefined) {
+          sttPartial.sttBaseUrl = body.sttBaseUrl;
+        }
+        if (body.sttModel !== undefined) {
+          sttPartial.sttModel = body.sttModel;
+        }
+        if (body.sttApiKey !== undefined) {
+          const sttKey = String(body.sttApiKey || "").trim();
+          if (sttKey) sttPartial.sttApiKey = sttKey;
+        }
+      }
       const next = writeConfig({
         baseUrl: body.baseUrl,
         apiKey: body.apiKey,
@@ -5974,8 +6102,9 @@ async function handleApi(req, res) {
         projectsRoot,
         activeProjectPath,
         ...hostPartial,
+        ...sttPartial,
       });
-      if (onlyProjectsRoot || onlyActiveProject || onlyHostCreds) {
+      if (onlyProjectsRoot || onlyActiveProject || onlyHostCreds || onlyStt) {
         send(res, 200, publicConfig(next));
         return;
       }
@@ -5990,6 +6119,55 @@ async function handleApi(req, res) {
     } catch (err) {
       send(res, 400, {
         error: err instanceof Error ? err.message : "config failed",
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/transcribe") {
+    const cfg = readConfig();
+    if (!sttConfigReady(cfg)) {
+      send(res, 400, {
+        error: "请先在设置中配置语音识别模型（STT Base URL / API Key / Model）",
+        code: "NEED_STT",
+        ...publicConfig(cfg),
+      });
+      return;
+    }
+    try {
+      const body = await readJson(req);
+      const b64 = String(body.audioBase64 || body.audio || "").trim();
+      if (!b64) {
+        send(res, 400, { error: "audioBase64 required" });
+        return;
+      }
+      const raw = b64.replace(/^data:[^;]+;base64,/, "");
+      let buffer;
+      try {
+        buffer = Buffer.from(raw, "base64");
+      } catch {
+        send(res, 400, { error: "invalid audioBase64" });
+        return;
+      }
+      if (!buffer.length) {
+        send(res, 400, { error: "empty audio" });
+        return;
+      }
+      if (buffer.length > 12 * 1024 * 1024) {
+        send(res, 400, { error: "audio too large (max 12MB)" });
+        return;
+      }
+      const text = await callSttTranscribe(cfg, {
+        buffer,
+        mimeType: String(body.mimeType || body.type || "").trim(),
+        filename: String(body.filename || "").trim(),
+        language: String(body.language || "").trim(),
+      });
+      send(res, 200, { text, model: cfg.sttModel });
+    } catch (err) {
+      send(res, 502, {
+        error: err instanceof Error ? err.message : "transcribe failed",
+        code: "STT_FAILED",
       });
     }
     return;

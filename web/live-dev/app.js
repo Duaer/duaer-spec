@@ -250,6 +250,12 @@ const el = {
   cfgBase: document.getElementById("cfgBase"),
   cfgKey: document.getElementById("cfgKey"),
   cfgModel: document.getElementById("cfgModel"),
+  cfgSttBase: document.getElementById("cfgSttBase"),
+  cfgSttKey: document.getElementById("cfgSttKey"),
+  cfgSttModel: document.getElementById("cfgSttModel"),
+  saveSttCfg: document.getElementById("saveSttCfg"),
+  clearSttCfg: document.getElementById("clearSttCfg"),
+  sttCfgMsg: document.getElementById("sttCfgMsg"),
   cfgAliyunId: document.getElementById("cfgAliyunId"),
   cfgAliyunSecret: document.getElementById("cfgAliyunSecret"),
   saveAliyunCfg: document.getElementById("saveAliyunCfg"),
@@ -3638,6 +3644,16 @@ function fillCloudflareFields(cfg) {
   if (el.cfCfgMsg) el.cfCfgMsg.hidden = true;
 }
 
+function fillSttFields(cfg) {
+  if (el.cfgSttBase) el.cfgSttBase.value = cfg?.sttBaseUrl || "";
+  if (el.cfgSttModel) el.cfgSttModel.value = cfg?.sttModel || "";
+  if (el.cfgSttKey) {
+    el.cfgSttKey.value = "";
+    el.cfgSttKey.placeholder = cfg?.hasSttApiKey ? t("setup.keySaved") : "sk-…";
+  }
+  if (el.sttCfgMsg) el.sttCfgMsg.hidden = true;
+}
+
 function fillAwsFields(cfg) {
   if (el.cfgAwsId) {
     el.cfgAwsId.value = "";
@@ -3682,6 +3698,7 @@ function showSetup(cfg) {
   fillAliyunFields(cfg);
   fillCloudflareFields(cfg);
   fillAwsFields(cfg);
+  fillSttFields(cfg);
   const id = cfg?.provider || "deepseek";
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
   // Always show the desk; open Settings so the operator can fill the model.
@@ -3701,6 +3718,7 @@ function showDesk(cfg) {
   setSettingsOpen(false);
   syncGatedDeployTarget(cfg);
   renderDeployTargetList();
+  fillSttFields(cfg);
   if (el.projectsRoot) {
     el.projectsRoot.value = cfg.projectsRoot || el.projectsRoot.value || "";
   }
@@ -3849,6 +3867,82 @@ el.saveCfg.addEventListener("click", async () => {
     el.cfgErr.hidden = false;
     el.cfgErr.textContent = err instanceof Error ? err.message : String(err);
   }
+});
+
+async function saveSttCredentials({ clear = false } = {}) {
+  if (el.sttCfgMsg) el.sttCfgMsg.hidden = true;
+  if (clear) {
+    try {
+      const res = await fetch("/api/config", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ clearStt: true }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+      state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+      fillSttFields(data);
+      if (el.sttCfgMsg) {
+        el.sttCfgMsg.hidden = false;
+        el.sttCfgMsg.textContent = t("setup.sttCleared");
+      }
+    } catch (err) {
+      if (el.sttCfgMsg) {
+        el.sttCfgMsg.hidden = false;
+        el.sttCfgMsg.textContent =
+          err instanceof Error ? err.message : String(err);
+      }
+    }
+    return;
+  }
+  const baseUrl = el.cfgSttBase?.value.trim() || "";
+  const model = el.cfgSttModel?.value.trim() || "";
+  const key = el.cfgSttKey?.value.trim() || "";
+  const had = Boolean(state.lastCfg?.hasSttApiKey);
+  if (!baseUrl || !model) {
+    if (el.sttCfgMsg) {
+      el.sttCfgMsg.hidden = false;
+      el.sttCfgMsg.textContent = t("setup.sttNeedFields");
+    }
+    return;
+  }
+  if (!had && !key) {
+    if (el.sttCfgMsg) {
+      el.sttCfgMsg.hidden = false;
+      el.sttCfgMsg.textContent = t("setup.sttNeedFields");
+    }
+    return;
+  }
+  const body = { sttBaseUrl: baseUrl, sttModel: model };
+  if (key) body.sttApiKey = key;
+  try {
+    const res = await fetch("/api/config", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || t("setup.saveFail"));
+    state.lastCfg = { ...(state.lastCfg || {}), ...data, ready: state.ready };
+    fillSttFields(data);
+    if (el.sttCfgMsg) {
+      el.sttCfgMsg.hidden = false;
+      el.sttCfgMsg.textContent = t("setup.sttSaved");
+    }
+  } catch (err) {
+    if (el.sttCfgMsg) {
+      el.sttCfgMsg.hidden = false;
+      el.sttCfgMsg.textContent =
+        err instanceof Error ? err.message : String(err);
+    }
+  }
+}
+
+el.saveSttCfg?.addEventListener("click", () => {
+  void saveSttCredentials();
+});
+el.clearSttCfg?.addEventListener("click", () => {
+  void saveSttCredentials({ clear: true });
 });
 
 async function saveAliyunCredentials({ clear = false } = {}) {
@@ -4135,8 +4229,16 @@ el.form.addEventListener("submit", (e) => {
 
 /** @type {SpeechRecognition|null} */
 let voiceRecognition = null;
+/** @type {MediaRecorder|null} */
+let voiceMediaRecorder = null;
+/** @type {MediaStream|null} */
+let voiceMediaStream = null;
+/** @type {Blob[]} */
+let voiceMediaChunks = [];
 let voiceBaseText = "";
 let voiceListening = false;
+let voiceTranscribing = false;
+let voiceSttHintShown = false;
 
 function speechRecognitionCtor() {
   const w = window;
@@ -4161,11 +4263,56 @@ function speechLangForLocale() {
   return map[loc] || "zh-CN";
 }
 
+function sttLanguageCode() {
+  const loc = getLocale();
+  if (loc === "zh-CN" || loc === "zh-TW") return "zh";
+  if (loc === "pt-BR") return "pt";
+  return String(loc || "zh").split("-")[0] || "zh";
+}
+
+function sttConfigured() {
+  return Boolean(state.lastCfg?.sttReady);
+}
+
 function syncVoiceButtonUi() {
   if (!el.voice) return;
-  el.voice.setAttribute("aria-pressed", voiceListening ? "true" : "false");
-  el.voice.textContent = voiceListening ? t("chat.voiceListening") : t("chat.voice");
-  el.voice.title = t("chat.voiceHint");
+  const active = voiceListening || voiceTranscribing;
+  el.voice.setAttribute("aria-pressed", active ? "true" : "false");
+  if (voiceTranscribing) {
+    el.voice.textContent = t("chat.voiceRecognizing");
+  } else if (voiceListening) {
+    el.voice.textContent = t("chat.voiceListening");
+  } else {
+    el.voice.textContent = t("chat.voice");
+  }
+  el.voice.title = sttConfigured()
+    ? t("chat.voiceHintStt")
+    : t("chat.voiceHint");
+}
+
+function releaseVoiceMedia() {
+  if (voiceMediaRecorder) {
+    try {
+      voiceMediaRecorder.ondataavailable = null;
+      voiceMediaRecorder.onstop = null;
+      voiceMediaRecorder.onerror = null;
+      if (voiceMediaRecorder.state !== "inactive") voiceMediaRecorder.stop();
+    } catch {
+      /* ignore */
+    }
+    voiceMediaRecorder = null;
+  }
+  if (voiceMediaStream) {
+    for (const track of voiceMediaStream.getTracks()) {
+      try {
+        track.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    voiceMediaStream = null;
+  }
+  voiceMediaChunks = [];
 }
 
 function stopVoiceInput({ keepLabel = false } = {}) {
@@ -4180,7 +4327,9 @@ function stopVoiceInput({ keepLabel = false } = {}) {
     }
     voiceRecognition = null;
   }
+  releaseVoiceMedia();
   voiceListening = false;
+  voiceTranscribing = false;
   if (!keepLabel) syncVoiceButtonUi();
   else if (el.voice) {
     el.voice.setAttribute("aria-pressed", "false");
@@ -4207,15 +4356,171 @@ function appendVoiceTranscript(chunk, { final: isFinal } = {}) {
   }
 }
 
-function startVoiceInput() {
-  const Ctor = speechRecognitionCtor();
-  if (!Ctor) {
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const s = String(reader.result || "");
+      const i = s.indexOf(",");
+      resolve(i >= 0 ? s.slice(i + 1) : s);
+    };
+    reader.onerror = () => reject(reader.error || new Error("read failed"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function transcribeVoiceBlob(blob) {
+  const audioBase64 = await blobToBase64(blob);
+  const res = await fetch("/api/transcribe", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      audioBase64,
+      mimeType: blob.type || "audio/webm",
+      language: sttLanguageCode(),
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    if (data.code === "NEED_STT" || res.status === 400) {
+      throw new Error(t("chat.voiceNeedStt"));
+    }
+    throw new Error(
+      String(data.error || t("chat.voiceError", { msg: `HTTP ${res.status}` })),
+    );
+  }
+  const text = String(data.text || "").trim();
+  if (!text) throw new Error(t("chat.voiceEmpty"));
+  return text;
+}
+
+async function finishMediaRecordAndTranscribe() {
+  const recorder = voiceMediaRecorder;
+  if (!recorder) {
+    voiceListening = false;
+    syncVoiceButtonUi();
+    return;
+  }
+  const blob = await new Promise((resolve) => {
+    const finish = () => {
+      const type = recorder.mimeType || "audio/webm";
+      resolve(new Blob(voiceMediaChunks.slice(), { type }));
+    };
+    if (recorder.state === "inactive") {
+      finish();
+      return;
+    }
+    recorder.onstop = finish;
+    try {
+      recorder.stop();
+    } catch {
+      finish();
+    }
+  });
+  if (voiceMediaStream) {
+    for (const track of voiceMediaStream.getTracks()) {
+      try {
+        track.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    voiceMediaStream = null;
+  }
+  voiceMediaRecorder = null;
+  voiceMediaChunks = [];
+  voiceListening = false;
+  if (!blob.size) {
+    syncVoiceButtonUi();
+    addBubble("bot", t("chat.voiceEmpty"));
+    return;
+  }
+  voiceTranscribing = true;
+  syncVoiceButtonUi();
+  try {
+    voiceBaseText = String(el.input?.value || "").trim();
+    if (voiceBaseText) voiceBaseText += " ";
+    const text = await transcribeVoiceBlob(blob);
+    appendVoiceTranscript(text, { final: true });
+  } catch (err) {
+    addBubble(
+      "bot",
+      t("chat.voiceError", {
+        msg: err instanceof Error ? err.message : String(err || "stt"),
+      }),
+    );
+  } finally {
+    voiceTranscribing = false;
+    syncVoiceButtonUi();
+  }
+}
+
+async function startMediaRecord() {
+  if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
     addBubble("bot", t("chat.voiceUnsupported"));
     return;
   }
   if (!state.ready || !state.projectPath || state.busy) {
     explainChatBlocked();
     return;
+  }
+  stopVoiceInput({ keepLabel: true });
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    voiceMediaStream = stream;
+    voiceMediaChunks = [];
+    const mimeCandidates = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ];
+    const mime = mimeCandidates.find((m) => MediaRecorder.isTypeSupported?.(m)) || "";
+    const recorder = mime
+      ? new MediaRecorder(stream, { mimeType: mime })
+      : new MediaRecorder(stream);
+    voiceMediaRecorder = recorder;
+    recorder.ondataavailable = (ev) => {
+      if (ev.data && ev.data.size) voiceMediaChunks.push(ev.data);
+    };
+    recorder.onerror = () => {
+      stopVoiceInput();
+      addBubble("bot", t("chat.voiceError", { msg: "recorder" }));
+    };
+    recorder.start(250);
+    voiceListening = true;
+    syncVoiceButtonUi();
+  } catch (err) {
+    releaseVoiceMedia();
+    voiceListening = false;
+    syncVoiceButtonUi();
+    const name = err instanceof Error ? err.name : "";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      addBubble("bot", t("chat.voiceDenied"));
+    } else {
+      addBubble(
+        "bot",
+        t("chat.voiceError", {
+          msg: err instanceof Error ? err.message : String(err || "mic"),
+        }),
+      );
+    }
+  }
+}
+
+function startBrowserSpeechFallback() {
+  const Ctor = speechRecognitionCtor();
+  if (!Ctor) {
+    addBubble("bot", t("chat.voiceNeedStt"));
+    setSettingsOpen(true);
+    return;
+  }
+  if (!state.ready || !state.projectPath || state.busy) {
+    explainChatBlocked();
+    return;
+  }
+  if (!voiceSttHintShown) {
+    voiceSttHintShown = true;
+    addBubble("bot", t("chat.voiceSttHint"));
   }
   stopVoiceInput({ keepLabel: true });
   voiceBaseText = String(el.input?.value || "").trim();
@@ -4270,11 +4575,20 @@ function startVoiceInput() {
 }
 
 function toggleVoiceInput() {
+  if (voiceTranscribing) return;
   if (voiceListening) {
+    if (voiceMediaRecorder) {
+      void finishMediaRecordAndTranscribe();
+      return;
+    }
     stopVoiceInput();
     return;
   }
-  startVoiceInput();
+  if (sttConfigured()) {
+    void startMediaRecord();
+    return;
+  }
+  startBrowserSpeechFallback();
 }
 
 el.voice?.addEventListener("click", () => {

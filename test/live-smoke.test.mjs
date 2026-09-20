@@ -265,8 +265,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /chat-empty-steps|chat\.emptyStep1/);
   assert.match(html, /id="voice"|data-i18n="chat\.voice"/);
   assert.match(html, /composer-actions/);
+  assert.match(html, /id="setupSttBlock"|id="cfgSttBase"|id="saveSttCfg"/);
   assert.match(css, /composer-actions|minmax\(0,\s*1fr\)/);
-  assert.match(js, /startVoiceInput|stopVoiceInput|speechRecognitionCtor|syncVoiceButtonUi/);
+  assert.match(js, /startMediaRecord|finishMediaRecordAndTranscribe|\/api\/transcribe|sttConfigured/);
+  assert.match(js, /stopVoiceInput|speechRecognitionCtor|syncVoiceButtonUi|startBrowserSpeechFallback/);
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
@@ -284,7 +286,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
   assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏还没有/);
   assert.match(i18nSrc, /chat\.voice|chat\.voiceListening|chat\.voiceHint/);
+  assert.match(i18nSrc, /setup\.sttBlock|chat\.voiceRecognizing|chat\.voiceNeedStt/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
+  assert.match(liveBin, /\/api\/transcribe|sttConfigReady|callSttTranscribe/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);
   assert.doesNotMatch(

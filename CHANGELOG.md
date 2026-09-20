@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: speech recognition (STT) model for composer Record
+
+- Settings: configure STT Base URL / API Key / Model (OpenAI-compatible
+  `/audio/transcriptions`, e.g. whisper-1)
+- Record captures audio; stop decodes via `/api/transcribe` into the composer
+
 ### Feat: composer Record to collect requirements by speech
 
 - Voice control beside Send fills the chat input via browser SpeechRecognition

@@ -166,7 +166,8 @@ the table for their app.
 | E2E-194 | After deploy, result bar still offers 再改一版 and 修 bug | `npm run test:live` + manual |
 | E2E-195 | Architecture claim-ready without IR rewrites the same chat bubble (no leftover false “diagram ready”) + regenerate | `npm run test:live` + manual |
 | E2E-196 | Dispatch center per-project view switch: Dispatch graph | Architecture (saved architecture.url) | `npm test` + manual |
-| E2E-197 | Composer Record + Send in compact `.composer-actions` beside `#input` (not a third full-width grid column); SpeechRecognition fills input; enable rules match Send; unsupported/denied shows bot notice | `npm run test:live` + manual |
+| E2E-197 | Composer Record + Send in compact `.composer-actions`; with STT settings configured, stop → `/api/transcribe` fills `#input`; without STT, browser speech fallback or configure hint | `npm run test:live` + manual |
+| E2E-198 | Settings speech recognition model block saves `sttBaseUrl` / `sttApiKey` / `sttModel`; publicConfig exposes `sttReady` | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -398,5 +399,6 @@ the table for their app.
 | E2E-194 | `249-result-cta-after-deploy` | result CTAs remain after deploy |
 | E2E-195 | `251-arch-claim-no-diagram` | rewrite claim-ready bubble when IR missing |
 | E2E-196 | `255-dispatch-arch-view` | dispatch center per-project architecture view |
-| E2E-197 | `256-chat-voice` | composer voice / Record beside Send |
+| E2E-197 | `256-chat-voice` / `257-composer-voice-compact` | composer voice / Record beside Send |
+| E2E-198 | `258-chat-stt` | STT model settings + /api/transcribe |
 
