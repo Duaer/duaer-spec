@@ -115,7 +115,7 @@ the table for their app.
 | E2E-133 | Settings Cloudflare / AWS credentials; options hidden until configured | `npm test` + `npm run test:live` + manual |
 | E2E-134 | Settings compact collapsible blocks + host credential tutorials | `npm run test:live` + manual |
 | E2E-135 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
-| E2E-136 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
+| E2E-136 | All modules confirmed → architecture → decompose tasks → confirm workers → dispatch graph → kickoff; 1..N same-CLI workers | `npm test` + manual |
 | E2E-137 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
 | E2E-138 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
 | E2E-139 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
@@ -134,7 +134,37 @@ the table for their app.
 | E2E-152 | Project portfolio shows delivery status chips + open deliverables; Progress shows stage next-action | `npm test` + `npm run test:live` |
 | E2E-153 | `duaer live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
 | E2E-154 | 产品父目录 is read-only; 选择… or path click opens frontmost native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
-| E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; all-tasks-done nudges stamp accept | `npm test` + `npm run test:live` |
+| E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; desk verify gate replaces the stamp-accept nudge | `npm test` + `npm run test:live` |
+| E2E-166 | Desk runs `.duaer/memory/verify.json` before accept sticks; fail or missing contract reopens delivery and records command exit codes | `npm test` |
+| E2E-167 | Use-as-current-project: missing name or description shows in the project drawer; button disables while switching; drawer scrolls | `npm test` |
+| E2E-168 | Finished wave still holding the Terminal is preempted once the next job is queued; a named open wave is not killed; a `cat` prompt script with a waiter is preempted | `npm test` |
+| E2E-169 | Dispatch center opens `/dispatch-center.html` in a new page: 100px project rail and the selected project's graph; desk is not covered by an overlay | `npm test` |
+| E2E-170 | Unchecked released wave is enqueued again when the lane is idle and the queue is empty | `npm test` |
+| E2E-171 | Creating or switching project ignores a stale status poll so 派工进度 does not pollute the new desk | `npm test` |
+| E2E-172 | Desk sessions use SQLite; legacy project-chats JSON imports on first open; schema_version migrations run | `npm test` |
+| E2E-173 | Config, repos, and live jobs import into desk.sqlite; live data is local-only (not packaged) | `npm test` |
+| E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图; revise same gate | `npm test` |
+| E2E-175 | Confirm workers → Archify accepts task IR (edge ≥24px); render failure shows in chat | `npm test` + manual |
+| E2E-176 | FDE desk only on :8787; LaunchAgent sets DUAER_LIVE_NO_BROWSER; no alternate desk ports | `npm test` |
+| E2E-177 | 「查看派工图」opens Archify present=1 fullscreen with clickable nodes (same as architecture) | `npm test` + manual |
+| E2E-178 | Dispatch graph present uses noz=1 — node passport without camera zoom | `npm test` + manual |
+| E2E-179 | Dispatch graph nodes show done / in progress / waiting; passport card lists status | `npm test` + manual |
+| E2E-180 | Architecture / 派工图 fullscreen opens via /api/open-external on :8787 (not Cursor proxy ports) | `npm test` + manual |
+| E2E-181 | Dispatch graph renders without Archify repository evidence (`/meta/repository`) | `npm test` |
+| E2E-182 | Dispatch center shows the task graph on the page; no extra present window | `npm test` |
+| E2E-183 | Dispatch center node click enlarges the node on the stage | `npm test` + manual |
+| E2E-184 | Dispatch center shows the same top nav as the desk | `npm test` |
+| E2E-185 | Dispatch graph snake-wraps long chains with side-aware edges; node status updates live | `npm test` + manual |
+| E2E-186 | Bug path: defect card → skip architecture by default → short pool → `fix/` (optional hotfix from main) | `npm test` + `npm run test:live` + manual |
+| E2E-187 | Top nav merges project badge + Projects into one button | `npm test` + `npm run test:live` |
+| E2E-188 | Middle column「修 bug」CTA sits with「再改一版」(not a top kind switch) | `npm test` + `npm run test:live` + manual |
+| E2E-189 | Result bar sticks to the bottom of the middle column (below revise) | `npm test` + manual |
+| E2E-190 | Sticky result bar uses an opaque fill (no scroll bleed-through) | `npm test` + manual |
+| E2E-191 | Bug chat / validate autofill project delivery facts (no re-ask URL/start/env) | `npm test` + `npm run test:live` + manual |
+| E2E-192 | Project timeline merges initial/revise/bug by time; chat quick-nav jumps to 4 anchors | `npm test` + `npm run test:live` + manual |
+| E2E-193 | Chat quick-nav stays visible inside chat column (not clipped/covered) | `npm run test:live` + manual |
+| E2E-194 | After deploy, result bar still offers 再改一版 and 修 bug | `npm run test:live` + manual |
+
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
@@ -304,7 +334,7 @@ the table for their app.
 | E2E-127 | `160-preview-deploy-btn` | result-bar Deploy; default Pages |
 | E2E-128 | `161-deploy-picker` | Deploy opens where-to-host dialog |
 | E2E-135 | `169-modular-fde-confirm` | modular messy chat; late kickoff |
-| E2E-136 | `169-modular-fde-confirm` | task pool + 1..N same-CLI workers |
+| E2E-136 | `169-modular-fde-confirm` / `229-task-decompose-graph` | task pool + recommend workers + graph gate |
 | E2E-137 | `170-readme-on-delivery` | README update before accepted |
 | E2E-138 | `171-chat-markdown` | safe chat Markdown bubbles |
 | E2E-139 | `173-parallel-terminal-lanes` | per-worker Terminal queue lanes |
@@ -323,7 +353,7 @@ the table for their app.
 | E2E-152 | `189-fde-portfolio` | portfolio status + delivery cockpit |
 | E2E-153 | `190-live-open-no-model` | live opens desk without model gate |
 | E2E-154 | `191-projects-root-pick` | projectsRoot via native folder pick |
-| E2E-155 | `193-dispatch-must-accept` | forbid early not-accepted; accept nudge |
+| E2E-155 | `193-dispatch-must-accept` | forbid early not-accepted; verify gate replaces stamp nudge |
 | E2E-156 | `194-chat-preview-link` | accepted bubble clickable preview URL |
 | E2E-157 | `195-chat-link-garble` | no nested /api/result link garble |
 | E2E-158 | `196-task-exec-graph` | worker chips + task dependency graph |
@@ -334,3 +364,33 @@ the table for their app.
 | E2E-163 | `203-atomic-monitorable-tasks` | atomic verifiable tasks; checkbox progress |
 | E2E-164 | `204-live-i18n-ja` | Japanese locale on live desk |
 | E2E-165 | `206-employee-directory` / `214-deploy-employee` | employee directory + verify-l3 + deploy roles |
+| E2E-166 | `219-verify-gate` | desk runs verify.json; failed or missing contract cannot stay accepted |
+| E2E-167 | `220-project-activate-click` | activate click feedback stays in the project drawer |
+| E2E-168 | `221-wave-exit-preempt` | finished wave holding the lane is preempted when the next job is queued |
+| E2E-169 | `223-dispatch-center` / `224-dispatch-center-page` | dispatch center is its own page with the selected project's graph |
+| E2E-170 | `225-wave-retry` | idle lane requeues an unchecked released wave |
+| E2E-171 | `226-progress-pollute` | stale status poll cannot refill another project's progress |
+| E2E-172 | `227-desk-sqlite` | desk.sqlite + JSON import + schema migrations |
+| E2E-173 | `228-desk-sqlite-all` | config/repos/jobs in SQLite; local-only live root |
+| E2E-174 | `229-task-decompose-graph` | decompose → recommend workers → dispatch graph |
+| E2E-175 | `231-graph-edge-spacing` | Archify edge clearance + chat error on fail |
+| E2E-176 | `232-fde-8787-only` | FDE desk port 8787 only + no browser spam |
+| E2E-177 | `233-dispatch-graph-present` | dispatch graph present fullscreen + node click |
+| E2E-178 | `234-dispatch-no-zoom` | present noz — passport without zoom |
+| E2E-179 | `235-dispatch-node-status` | node run status on graph + passport |
+| E2E-180 | `236-open-external-8787` | OS browser open for desk URLs on :8787 |
+| E2E-181 | `237-graph-repo-evidence` | task graph has no repository sources |
+| E2E-182 | `238-dispatch-stage` | dispatch center stage, no extra present window |
+| E2E-183 | `239-node-zoom` | stage node click enlarges in place |
+| E2E-184 | `240-dispatch-nav` | dispatch center top nav matches desk |
+| E2E-185 | `241-graph-wrap` | wrap columns + live node status |
+| E2E-186 | `239-bug-dispatch` | defect card, skip arch, fix/ branch |
+| E2E-187 | `242-project-btn` | one project button in the top nav |
+| E2E-188 | `243-bug-kind-toggle` / `244-bug-btn-bottom` | 修 bug CTA with 再改一版 (not top switch) |
+| E2E-189 | `243-graph-result-bar` | snake-wrap graph restore + result bar at bottom |
+| E2E-190 | `245-preview-opaque` | opaque sticky result bar |
+| E2E-191 | `246-bug-chat-autofill` | bug chat autofills delivery facts |
+| E2E-192 | `247-timeline-quicknav` | timeline sort + chat quick nav |
+| E2E-193 | `248-quicknav-visible` | quick-nav not clipped by overflow |
+| E2E-194 | `249-result-cta-after-deploy` | result CTAs remain after deploy |
+

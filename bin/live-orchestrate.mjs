@@ -174,6 +174,75 @@ export function pendingWaveReleases(input = {}) {
 }
 
 /**
+ * Released task-wave fingerprints whose tasks are not all checked.
+ * Ignores non-task fingerprints such as VERIFY nudges.
+ * @param {string[]|undefined} releasedFingerprints
+ * @param {Set<string>|Iterable<string>} doneSet
+ * @returns {string[]}
+ */
+export function undoneReleasedFingerprints(releasedFingerprints, doneSet) {
+  const done =
+    doneSet instanceof Set
+      ? doneSet
+      : new Set([...(doneSet || [])].map(normId).filter(Boolean));
+  return (Array.isArray(releasedFingerprints) ? releasedFingerprints : []).filter(
+    (fp) => {
+      const ids = String(fp || "")
+        .split(",")
+        .map(normId)
+        .filter(Boolean);
+      if (!ids.length || !ids.every((id) => /^T\d+$/.test(id))) return false;
+      return !ids.every((id) => done.has(id));
+    },
+  );
+}
+
+/**
+ * Task ids of the wave the running Terminal script was launched for.
+ * Matches kickoff / continue lines like `- T002: …`, not the owned-task list.
+ * @param {string} text
+ * @returns {string[]}
+ */
+export function runningWaveIdsFromScript(text) {
+  const ids = [];
+  const re = /^- (T\d+):/gm;
+  let match;
+  const src = String(text || "");
+  while ((match = re.exec(src))) {
+    const id = normId(match[1]);
+    if (id && !ids.includes(id)) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * The lane is still busy while another job waits. When the running script
+ * names its wave (`- T002:`), preempt only if those ids are already checked.
+ * Terminal jobs usually `cat` a prompt file that the next enqueue overwrites,
+ * so the script itself has no wave ids — a waiter is enough: the desk only
+ * queues the next wave after this one is checked.
+ * @param {{
+ *   busy?: boolean,
+ *   queueDepth?: number,
+ *   runningWaveIds?: string[],
+ *   doneSet?: Set<string>|Iterable<string>,
+ * }} input
+ */
+export function finishedWaveBlocksQueue(input = {}) {
+  if (!input.busy) return false;
+  if (!(Number(input.queueDepth) > 0)) return false;
+  const ids = (Array.isArray(input.runningWaveIds) ? input.runningWaveIds : [])
+    .map(normId)
+    .filter(Boolean);
+  if (!ids.length) return true;
+  const doneSet =
+    input.doneSet instanceof Set
+      ? input.doneSet
+      : new Set([...(input.doneSet || [])].map(normId).filter(Boolean));
+  return ids.every((id) => doneSet.has(id));
+}
+
+/**
  * Orchestration lane state for a worker.
  * @param {{
  *   ownedTotal: number,

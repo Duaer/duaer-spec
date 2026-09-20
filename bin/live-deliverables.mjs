@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { projectChatKey } from "./live-project-chat.mjs";
 import { modulesAllConfirmed, taskPoolToMarkdown } from "./live-modules.mjs";
+import { buildProjectTimelineVersions } from "./live-project-timeline.mjs";
 
 function esc(s) {
   return String(s ?? "")
@@ -25,6 +26,20 @@ function normalizeDeliverablesLang(lang) {
 function pickLang(lang, map) {
   const l = normalizeDeliverablesLang(lang);
   return map[l] ?? map.zh;
+}
+
+function verifyEvidenceLines(delivery) {
+  const v = delivery?.verification;
+  if (!v || typeof v !== "object") return "";
+  const lines = [];
+  if (v.result) lines.push(`verify: ${v.result}`);
+  if (v.waiver) lines.push(`waiver: ${v.waiver}`);
+  const cmds = Array.isArray(v.commands) ? v.commands : [];
+  for (const c of cmds) {
+    if (!c || !c.command) continue;
+    lines.push(`${c.command} → ${c.exitCode}`);
+  }
+  return lines.length ? `\n${lines.join("\n")}` : "";
 }
 
 function fmtAt(iso, lang) {
@@ -303,45 +318,46 @@ export function buildDeliverablesModel(session, opts = {}) {
   const delivery = job?.status?.delivery || null;
   const preview = job?.status?.preview || delivery?.preview || null;
 
-  const reqVersions = [];
-  if (allReq || confirmed.length) {
-    reqVersions.push({
-      id: "v0",
-      label: pickLang(lang, { en: "Initial", ja: "初版", zh: "初版" }),
-      at: s.updatedAt || null,
-      modules: (allReq ? modules : confirmed).map((m) => ({
-        id: m.id,
-        title: m.title,
-        status: m.status,
-        card: m.card || {},
-      })),
-    });
-  }
-  for (const entry of reviseCards) {
-    const rev = Number(entry.revision) || 0;
-    if (rev < 1) continue;
-    reqVersions.push({
-      id: `r${rev}`,
-      label: pickLang(lang, {
-        en: `Revision ${rev}`,
-        ja: `改訂 ${rev}`,
-        zh: `第 ${rev} 次改进`,
-      }),
-      at: entry.at || s.updatedAt || null,
-      revise: {
-        goal: entry.goal || "",
-        outOfScope: entry.outOfScope || "",
-        acceptance: entry.acceptance || "",
-        assumptions: entry.assumptions || "",
-      },
-    });
-  }
+  const reqVersions = buildProjectTimelineVersions(
+    {
+      modules,
+      confirmed,
+      allReq,
+      reviseCards,
+      bugCards: Array.isArray(s.bugCards) ? s.bugCards : [],
+      updatedAt: s.updatedAt || null,
+      initialAt: s.initialConfirmedAt || null,
+    },
+    {
+      initial: pickLang(lang, { en: "Initial", ja: "初版", zh: "初版" }),
+      revise: (rev) =>
+        pickLang(lang, {
+          en: `Revision ${rev}`,
+          ja: `改訂 ${rev}`,
+          zh: `第 ${rev} 次改进`,
+        }),
+      bug: (n) =>
+        pickLang(lang, {
+          en: `Defect ${n}`,
+          ja: `欠陥 ${n}`,
+          zh: `缺陷 ${n}`,
+        }),
+    },
+  );
 
   const stages = [
     {
       id: "requirements",
-      title: pickLang(lang, { en: "Requirements", ja: "要件", zh: "需求" }),
-      status: allReq ? "done" : confirmed.length ? "partial" : "empty",
+      title: pickLang(lang, {
+        en: "Requirements & iterations",
+        ja: "要件と改訂",
+        zh: "需求与迭代",
+      }),
+      status: allReq
+        ? "done"
+        : confirmed.length || reqVersions.length
+          ? "partial"
+          : "empty",
       artifacts: [
         {
           id: "req-doc",
@@ -474,7 +490,7 @@ export function buildDeliverablesModel(session, opts = {}) {
                 delivery.acceptedAt
                   ? `\n${pickLang(lang, { en: "Accepted", ja: "受入", zh: "验收" })}: ${delivery.acceptedAt}`
                   : ""
-              }`
+              }${verifyEvidenceLines(delivery)}`
             : job?.jobStatus
               ? `${pickLang(lang, { en: "Job status", ja: "ジョブ状態", zh: "工单状态" })}: ${job.jobStatus}`
               : "",
@@ -645,6 +661,8 @@ function renderArtifact(art, L, lang) {
             .join("")}</div>`;
         } else if (v.revise) {
           body = cardBlock(v.revise, L);
+        } else if (v.bug) {
+          body = cardBlock(v.bug, L);
         }
         return `<li class="tl-item" id="${esc(v.id)}"><div class="tl-meta"><span class="tl-label">${esc(v.label)}</span><time>${esc(fmtAt(v.at, lang))}</time></div><div class="tl-body">${body}</div></li>`;
       })

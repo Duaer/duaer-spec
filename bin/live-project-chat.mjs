@@ -1,10 +1,8 @@
 /**
- * Persist per-project desk session under ~/.duaer/live/project-chats/.
- * Includes chat, confirm/revise cards, and job binding for progress.
+ * Persist per-project desk session (chat + requirements + job).
+ * Storage: ~/.duaer/live/desk.sqlite (see live-desk-db.mjs).
  */
 
-import { createHash } from "node:crypto";
-import fs from "node:fs";
 import path from "node:path";
 import {
   clipModules,
@@ -12,15 +10,15 @@ import {
   clipTaskPool,
   clipWorkerCount,
 } from "./live-modules.mjs";
+import { projectChatKey } from "./live-project-chat-key.mjs";
+import {
+  loadSessionPayload,
+  saveSessionPayload,
+} from "./live-desk-db.mjs";
 
-export function projectChatKey(projectPath) {
-  const abs = String(projectPath || "")
-    .trim()
-    .replace(/[\\/]+$/, "");
-  if (!abs) return "";
-  return createHash("sha256").update(abs).digest("hex").slice(0, 24);
-}
+export { projectChatKey } from "./live-project-chat-key.mjs";
 
+/** @deprecated Prefer SQLite; kept for tests and legacy path discovery. */
 export function projectChatPath(liveRoot, projectPath) {
   const key = projectChatKey(projectPath);
   if (!key) return null;
@@ -53,8 +51,49 @@ function clipReviseCardEntry(entry) {
     acceptance: card.acceptance,
     assumptions: card.assumptions,
   };
+  const at = String(entry.at || "").trim();
+  if (at) out.at = at.slice(0, 40);
   if (arch) out.architecture = arch;
   return out;
+}
+
+/** Confirmed defect cards on the same project timeline as revisions. */
+function clipBugCardEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const card = clipCard(entry);
+  if (!card.goal && !card.acceptance) return null;
+  const seq = Math.max(1, Math.floor(Number(entry.seq) || 0));
+  const id = String(entry.id || `bug-${seq || Date.now()}`).slice(0, 80);
+  const out = {
+    id,
+    seq: seq || 1,
+    goal: card.goal,
+    outOfScope: card.outOfScope,
+    acceptance: card.acceptance,
+    assumptions: card.assumptions,
+  };
+  const at = String(entry.at || "").trim();
+  if (at) out.at = at.slice(0, 40);
+  return out;
+}
+
+function clipBugCards(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of list) {
+    const entry = clipBugCardEntry(raw);
+    if (!entry || seen.has(entry.id)) continue;
+    seen.add(entry.id);
+    out.push(entry);
+  }
+  out.sort((a, b) => {
+    const ta = Date.parse(a.at || "");
+    const tb = Date.parse(b.at || "");
+    if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta - tb;
+    return (a.seq || 0) - (b.seq || 0);
+  });
+  return out.slice(-40);
 }
 
 function clipArchitectureSnapshot(arch) {
@@ -227,8 +266,12 @@ function emptySession(projectPath = "") {
     activeModuleId: null,
     taskPool: null,
     workerCount: 1,
+    dispatchGraphReady: false,
+    deskKind: "feature",
+    bugHotfix: false,
     reviseCard: clipCard(null),
     reviseCards: [],
+    bugCards: [],
     reviseDraft: null,
     reviseCardFocus: null,
     initialArchitecture: null,
@@ -262,11 +305,12 @@ function normalizeModulesFields(raw) {
  * @returns {ReturnType<typeof emptySession>}
  */
 export function readProjectChat(liveRoot, projectPath) {
-  const file = projectChatPath(liveRoot, projectPath);
   const empty = emptySession(projectPath);
-  if (!file || !fs.existsSync(file)) return empty;
+  const abs = String(projectPath || "").trim();
+  if (!abs || !liveRoot) return empty;
   try {
-    const raw = JSON.parse(fs.readFileSync(file, "utf8"));
+    const raw = loadSessionPayload(liveRoot, abs);
+    if (!raw || typeof raw !== "object") return empty;
     const modFields = normalizeModulesFields(raw);
     return {
       projectPath: String(raw.projectPath || projectPath || "").trim(),
@@ -279,12 +323,16 @@ export function readProjectChat(liveRoot, projectPath) {
       activeModuleId: modFields.activeModuleId,
       taskPool: clipTaskPool(raw.taskPool),
       workerCount: clipWorkerCount(raw.workerCount),
+      dispatchGraphReady: Boolean(raw.dispatchGraphReady),
+      deskKind: String(raw.deskKind || "").trim() === "bug" ? "bug" : "feature",
+      bugHotfix: Boolean(raw.bugHotfix),
       reviseCard: clipCard(raw.reviseCard),
       reviseCards: migrateReviseCards(
         raw.reviseCards,
         raw.lastRevision,
         clipCard(raw.reviseCard),
       ),
+      bugCards: clipBugCards(raw.bugCards),
       reviseDraft: clipReviseDraft(raw.reviseDraft),
       reviseCardFocus: clipReviseCardFocus(raw.reviseCardFocus),
       initialArchitecture: clipArchitectureSnapshot(raw.initialArchitecture),
@@ -314,13 +362,11 @@ export function readProjectChat(liveRoot, projectPath) {
 
 export function writeProjectChat(liveRoot, payload) {
   const projectPath = String(payload.projectPath || "").trim();
-  const file = projectChatPath(liveRoot, projectPath);
-  if (!file) {
+  if (!projectPath || !liveRoot) {
     const e = new Error("projectPath required");
     e.code = "EMPTY_PATH";
     throw e;
   }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
   const modFields = normalizeModulesFields(payload);
   const doc = {
     projectPath,
@@ -335,12 +381,16 @@ export function writeProjectChat(liveRoot, payload) {
     activeModuleId: modFields.activeModuleId,
     taskPool: clipTaskPool(payload.taskPool),
     workerCount: clipWorkerCount(payload.workerCount),
+    dispatchGraphReady: Boolean(payload.dispatchGraphReady),
+    deskKind: String(payload.deskKind || "").trim() === "bug" ? "bug" : "feature",
+    bugHotfix: Boolean(payload.bugHotfix),
     reviseCard: clipCard(payload.reviseCard),
     reviseCards: migrateReviseCards(
       payload.reviseCards,
       payload.lastRevision,
       clipCard(payload.reviseCard),
     ),
+    bugCards: clipBugCards(payload.bugCards),
     reviseDraft: clipReviseDraft(payload.reviseDraft),
     reviseCardFocus: clipReviseCardFocus(payload.reviseCardFocus),
     initialArchitecture: clipArchitectureSnapshot(payload.initialArchitecture),
@@ -363,6 +413,6 @@ export function writeProjectChat(liveRoot, payload) {
     architectureMessages: clipMessages(payload.architectureMessages),
     dispatchPhase: payload.dispatchPhase === "done" ? "done" : null,
   };
-  fs.writeFileSync(file, `${JSON.stringify(doc, null, 2)}\n`, "utf8");
+  saveSessionPayload(liveRoot, doc);
   return doc;
 }

@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T01:25:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/duaer-live.mjs",
+      "node --check bin/live-orchestrate.mjs",
+      "npm test (188 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "A finished wave that still holds the Terminal is preempted once the next job is queued."
+}

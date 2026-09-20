@@ -9,6 +9,7 @@ import {
   confirmModuleInList,
   aggregateModulesCard,
   buildTaskPoolFromModules,
+  buildBugTaskPool,
   taskPoolToMarkdown,
   assignTasksToWorkers,
   mergeModulesFromChat,
@@ -311,4 +312,57 @@ test("live sources wire modular confirm and late kickoff", () => {
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /moduleTabs/);
   assert.match(html, /workerCount/);
+});
+
+test("buildBugTaskPool is reproduce → fix → regress (not modular implement)", () => {
+  const pool = buildBugTaskPool([
+    {
+      id: "bug",
+      title: "缺陷",
+      status: "confirmed",
+      card: {
+        goal: "Login button does nothing on Safari",
+        outOfScope: "New SSO",
+        acceptance: "Repro closed; click Login opens /home",
+        assumptions: "Safari 17",
+      },
+      dependsOn: [],
+    },
+  ]);
+  assert.equal(pool.kind, "bug");
+  assert.ok(pool.tasks.length >= 5);
+  assert.match(pool.tasks[0].title, /Reproduce/);
+  assert.match(pool.tasks[1].title, /Fix/);
+  assert.ok(pool.tasks.some((t) => /Regression|regression/i.test(t.title)));
+  assert.ok(!pool.tasks.some((t) => /Implement module/i.test(t.title)));
+});
+
+test("project chat persists deskKind bug", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-kind-"));
+  const projectPath = path.join(root, "app");
+  fs.mkdirSync(projectPath);
+  writeProjectChat(root, {
+    projectPath,
+    deskKind: "bug",
+    bugHotfix: true,
+    modules: [
+      {
+        id: "bug",
+        title: "缺陷",
+        status: "draft",
+        card: {
+          goal: "Crash on save",
+          outOfScope: "",
+          acceptance: "Save succeeds without crash",
+          assumptions: "",
+        },
+        dependsOn: [],
+      },
+    ],
+    activeModuleId: "bug",
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.deskKind, "bug");
+  assert.equal(loaded.bugHotfix, true);
+  fs.rmSync(root, { recursive: true, force: true });
 });

@@ -206,6 +206,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const html = await (await fetch(`${live.base}/`)).text();
   assert.match(html, /chat-panel/);
+  assert.match(html, /id="chatQuickNav"/);
+  assert.match(html, /data-nav="progress"/);
   assert.match(html, /card-panel/);
   assert.match(html, /progress-col/);
   assert.match(html, /req-section/);
@@ -229,6 +231,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /width:\s*100%/);
   assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.chat-quicknav/);
+  assert.match(css, /right:\s*0\.4rem/);
+  assert.doesNotMatch(css, /translate\(50%/);
   assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
   assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
   assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
@@ -241,6 +246,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /paintDeliveryCockpit|deriveProjectDeliveryStatus|deliveryStatus/);
   assert.match(css, /delivery-cockpit|project-status|project-deliverables/);
   assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
+  assert.match(js, /wireChatQuickNav/);
+  assert.match(js, /appendBugCardEntry/);
+  assert.match(js, /jumpQuickNav/);
+  assert.match(js, /accepted \|\| previewVisible/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
   assert.match(js, /card\.lockHintModuleDone/);
@@ -259,7 +268,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /buildWorkersProgress/);
   assert.match(liveBin, /advanceOrchestration|waveForWorker|releasedWaves/);
   assert.match(liveBin, /DISPATCH_MUST_FINISH_RULES|Job not accepted yet/);
-  assert.match(liveBin, /__ACCEPT_NUDGE__/);
+  assert.match(liveBin, /evaluateVerifyGate/);
+  assert.doesNotMatch(liveBin, /__ACCEPT_NUDGE__/);
+  assert.match(js, /verifyGate/);
+  assert.match(js, /verify\.fail/);
   assert.match(liveBin, /必须在 JSON 的 options|必须在 options 填/);
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
@@ -290,6 +302,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /setupCmdCursor|cursor\.com\/install/);
   assert.match(html, /@anthropic-ai\/claude-code/);
   assert.match(html, /id="cfgOpen"/);
+  assert.match(html, /id="historyToggle"/);
+  assert.match(html, /top-btn project-badge/);
+  assert.doesNotMatch(html, /id="projectBadge"/);
+  assert.match(js, /projectBadge:\s*document\.getElementById\("historyToggle"\)/);
   assert.match(html, /id="githubStars"|class="[^"]*top-btn[^"]*github-btn/);
   assert.match(html, /class="top-btn"/);
   assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);

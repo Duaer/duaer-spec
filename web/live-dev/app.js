@@ -21,9 +21,17 @@ import {
   mountArchitectureDiagram,
   clearArchitectureMount,
   architectureKeyFromArchitectureUrl,
-} from "./architecture-mount.mjs";
+} from "./architecture-mount.mjs?v=node-zoom-1";
 import { enrichChatOptions } from "./choice-options.mjs";
-import { buildTaskArchitectureIr } from "./task-graph.mjs";
+import {
+  annotateParallelTasks,
+  assignPreviewWorkers,
+  buildPreviewPoolFromModules,
+  buildPreviewPoolForBug,
+  buildTaskArchitectureIr,
+  recommendWorkerCount,
+  taskPoolToArchitectureIr,
+} from "./task-graph.mjs";
 import { EMPLOYEE_CATALOG } from "./employee-catalog.mjs";
 
 /** Deliverables API lang: en | ja | zh */
@@ -81,16 +89,23 @@ const state = {
   ready: false,
   locked: false,
   busy: false,
+  /** feature | bug — bug skips architecture by default and uses fix/ branches */
+  deskKind: "feature",
+  /** When deskKind=bug: base worktree on main (production hotfix) */
+  bugHotfix: false,
   /** Modular requirements: [{ id, title, status, card, dependsOn }] */
   modules: [],
   activeModuleId: null,
   /** Kickoff: how many same-CLI digital employees (1..N). */
   workerCount: 1,
   taskPool: null,
-  /** Monotonic seq so stale Archify task-graph renders are ignored. */
-  taskGraphRenderSeq: 0,
-  /** Last mounted task-graph architecture URL. */
-  taskGraphUrl: null,
+  /** After operator confirms worker count and builds the dispatch graph. */
+  dispatchGraphReady: false,
+  dispatchGraphBuilding: false,
+  dispatchGraphUrl: null,
+  /** Latest /api/status progress.tasks for dispatch-graph run colors. */
+  lastJobProgress: null,
+  recommendedWorkerCount: 1,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -124,7 +139,8 @@ const state = {
   lastRevision: null, // { revision, change, keep, acceptance, reason }
   /** Dispatched 改进卡 history — one entry per revision (never overwrite). */
   reviseCards: [],
-  /** In-progress draft for the next revision number (before dispatch). */
+  /** Confirmed defect cards on the project timeline (chronological with revises). */
+  bugCards: [],
   reviseDraft: null, // { revision, goal, outOfScope, acceptance, assumptions }
   /** Which revision's card is shown in the panel. */
   reviseCardFocus: null,
@@ -206,6 +222,9 @@ const el = {
   settingsClose: document.getElementById("settingsClose"),
   desk: document.getElementById("desk"),
   log: document.getElementById("log"),
+  chatQuickNav: document.getElementById("chatQuickNav"),
+  chatQuickNavMenu: document.getElementById("chatQuickNavMenu"),
+  chatQuickNavWrap: document.getElementById("chatQuickNavWrap"),
   chatEmpty: document.getElementById("chatEmpty"),
   form: document.getElementById("composer"),
   input: document.getElementById("input"),
@@ -352,12 +371,23 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
+  startBugFix: document.getElementById("startBugFix"),
+  startBugFixEarly: document.getElementById("startBugFixEarly"),
+  startBugFixAlt: document.getElementById("startBugFixAlt"),
+  bugHotfix: document.getElementById("bugHotfix"),
+  bugHotfixRow: document.getElementById("bugHotfixRow"),
+  deskBottomActions: document.getElementById("deskBottomActions"),
   moduleTabs: document.getElementById("moduleTabs"),
   moduleMeta: document.getElementById("moduleMeta"),
   workerCountList: document.getElementById("workerCountList"),
+  workerRecommendHint: document.getElementById("workerRecommendHint"),
+  confirmWorkersGraph: document.getElementById("confirmWorkersGraph"),
+  redecomposeTasks: document.getElementById("redecomposeTasks"),
   taskPoolPreview: document.getElementById("taskPoolPreview"),
   taskPoolList: document.getElementById("taskPoolList"),
-  taskGraphMount: document.getElementById("taskGraphMount"),
+  taskPoolEmpty: document.getElementById("taskPoolEmpty"),
+  dispatchCenterToggle: document.getElementById("dispatchCenterToggle"),
+  openTaskGraph: document.getElementById("openTaskGraph"),
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
@@ -372,7 +402,8 @@ const el = {
   employeePanel: document.getElementById("employeePanel"),
   employeeClose: document.getElementById("employeeClose"),
   employeeList: document.getElementById("employeeList"),
-  projectBadge: document.getElementById("projectBadge"),
+  /** Same node as historyToggle — label shows the active project. */
+  projectBadge: document.getElementById("historyToggle"),
   historyPanel: document.getElementById("historyPanel"),
   historyBackdrop: document.getElementById("historyBackdrop"),
   historyClose: document.getElementById("historyClose"),
@@ -510,6 +541,69 @@ function scrollChatToLatest() {
   el.log.scrollTop = el.log.scrollHeight;
 }
 
+function setChatQuickNavOpen(open) {
+  if (!el.chatQuickNav || !el.chatQuickNavMenu) return;
+  el.chatQuickNav.setAttribute("aria-expanded", open ? "true" : "false");
+  el.chatQuickNavMenu.hidden = !open;
+}
+
+function quickNavTarget(kind) {
+  if (kind === "chat") return el.log;
+  if (kind === "card") {
+    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
+    return el.confirm || el.cardPanel;
+  }
+  if (kind === "result") {
+    if (el.previewPanel && !el.previewPanel.hidden) return el.previewPanel;
+    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
+    return el.confirm || el.cardPanel;
+  }
+  if (kind === "progress") {
+    return activeProgressFocusEl() || el.progressCol;
+  }
+  return null;
+}
+
+function jumpQuickNav(kind) {
+  setChatQuickNavOpen(false);
+  if (kind === "chat") {
+    clearPanelUserScroll(el.log);
+    scrollChatToLatest();
+    return;
+  }
+  const target = quickNavTarget(kind);
+  if (!target) return;
+  if (kind === "progress") {
+    clearPanelUserScroll(el.progressCol);
+    scrollPanelToTarget(el.progressCol, target, { smooth: true, force: true });
+    return;
+  }
+  clearPanelUserScroll(el.cardPanel);
+  scrollPanelToTarget(el.cardPanel, target, { smooth: true, force: true });
+}
+
+function wireChatQuickNav() {
+  if (!el.chatQuickNav || el.chatQuickNav.dataset.bound === "1") return;
+  el.chatQuickNav.dataset.bound = "1";
+  el.chatQuickNav.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const open = el.chatQuickNav.getAttribute("aria-expanded") !== "true";
+    setChatQuickNavOpen(open);
+  });
+  el.chatQuickNavMenu?.addEventListener("click", (ev) => {
+    const btn = ev.target?.closest?.("[data-nav]");
+    if (!btn) return;
+    ev.preventDefault();
+    jumpQuickNav(btn.getAttribute("data-nav"));
+  });
+  document.addEventListener("click", (ev) => {
+    if (!el.chatQuickNavWrap?.contains(ev.target)) setChatQuickNavOpen(false);
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") setChatQuickNavOpen(false);
+  });
+}
+
 function syncChatPlaceholder() {
   if (!el.input) return;
   el.input.placeholder =
@@ -612,17 +706,18 @@ function syncComposerEnabled() {
 }
 
 function syncProjectBadge() {
-  if (!el.projectBadge) return;
+  const btn = el.historyToggle || el.projectBadge;
+  if (!btn) return;
   if (state.projectPath) {
-    el.projectBadge.textContent = t("project.activeBadge", {
+    btn.textContent = t("project.activeBadge", {
       name: state.projectName || state.projectPath,
     });
-    el.projectBadge.classList.add("is-active");
-    el.projectBadge.classList.remove("is-empty");
+    btn.classList.add("is-active");
+    btn.classList.remove("is-empty");
   } else {
-    el.projectBadge.textContent = t("project.noneBadge");
-    el.projectBadge.classList.add("is-empty");
-    el.projectBadge.classList.remove("is-active");
+    btn.textContent = t("project.noneBadge");
+    btn.classList.add("is-empty");
+    btn.classList.remove("is-active");
   }
 }
 
@@ -852,7 +947,7 @@ function renderModuleTabs() {
   if (!el.moduleTabs) return;
   ensureModulesSeed();
   const list = state.modules;
-  el.moduleTabs.hidden = list.length < 1;
+  el.moduleTabs.hidden = state.deskKind === "bug" || list.length < 1;
   el.moduleTabs.replaceChildren();
   for (const m of list) {
     const btn = document.createElement("button");
@@ -900,6 +995,28 @@ function renderModuleTabs() {
 
 function mergeModulesFromChatPayload(data) {
   ensureModulesSeed();
+  if (state.deskKind === "bug") {
+    const card = {
+      goal: String(data.goal || data.modules?.[0]?.goal || data.modules?.[0]?.card?.goal || activeModule()?.card?.goal || ""),
+      outOfScope: String(data.outOfScope || data.modules?.[0]?.outOfScope || data.modules?.[0]?.card?.outOfScope || activeModule()?.card?.outOfScope || ""),
+      acceptance: String(data.acceptance || data.modules?.[0]?.acceptance || data.modules?.[0]?.card?.acceptance || activeModule()?.card?.acceptance || ""),
+      assumptions: String(data.assumptions || data.modules?.[0]?.assumptions || data.modules?.[0]?.card?.assumptions || activeModule()?.card?.assumptions || ""),
+    };
+    const prev = activeModule();
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: prev?.status === "confirmed" ? "confirmed" : "draft",
+        card: prev?.status === "confirmed" ? prev.card : card,
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    if (prev?.status !== "confirmed") applyActiveModuleToFields();
+    renderModuleTabs();
+    return;
+  }
   const incoming = Array.isArray(data.modules) ? data.modules : null;
   if (incoming && incoming.length) {
     const byId = new Map(state.modules.map((m) => [m.id, m]));
@@ -970,8 +1087,80 @@ function previewTaskPoolLines(tasks) {
       t.dependsOn?.length > 0 ? ` ← ${t.dependsOn.join(", ")}` : "";
     const wid = t.workerId ? ` · ${t.workerId}` : "";
     const mod = t.moduleId ? ` [${t.moduleId}]` : "";
-    return `${t.id}${mod}${wid} ${t.title}${deps}`;
+    const par = t.parallel ? " ‖" : "";
+    return `${t.id}${mod}${wid}${par} ${t.title}${deps}`;
   });
+}
+
+function renderTaskPoolList(tasks) {
+  if (!el.taskPoolList) return;
+  el.taskPoolList.replaceChildren();
+  const list = annotateParallelTasks(tasks || []);
+  if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = list.length > 0;
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = false;
+  for (const tsk of list) {
+    const li = document.createElement("li");
+    li.className = "task-pool-item";
+    li.setAttribute("role", "listitem");
+    const id = document.createElement("span");
+    id.className = "task-pool-id";
+    id.textContent = tsk.id || "";
+    li.appendChild(id);
+    const title = document.createElement("span");
+    title.className = "task-pool-title";
+    title.textContent = tsk.title || "";
+    li.appendChild(title);
+    if (tsk.parallel) {
+      const chip = document.createElement("span");
+      chip.className = "task-pool-parallel";
+      chip.textContent = t("dispatch.parallelChip");
+      li.appendChild(chip);
+    }
+    if (tsk.dependsOn?.length) {
+      const deps = document.createElement("span");
+      deps.className = "task-pool-deps";
+      deps.textContent = `← ${tsk.dependsOn.join(", ")}`;
+      li.appendChild(deps);
+    }
+    if (tsk.workerId) {
+      const wid = document.createElement("span");
+      wid.className = "task-pool-deps";
+      wid.textContent = tsk.workerId;
+      li.appendChild(wid);
+    }
+    el.taskPoolList.appendChild(li);
+  }
+}
+
+function syncOpenTaskGraphButton() {
+  if (!el.openTaskGraph) return;
+  el.openTaskGraph.disabled = !state.dispatchGraphReady;
+}
+
+function markDispatchGraphStale() {
+  if (!state.dispatchGraphReady) {
+    syncOpenTaskGraphButton();
+    return;
+  }
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+  if (el.dispatchErr) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.graphStale");
+  }
+  schedulePersistProjectDesk();
+}
+
+function applyRecommendedWorkerCount(tasks) {
+  const rec = recommendWorkerCount(tasks, { max: 4 });
+  state.recommendedWorkerCount = rec;
+  state.workerCount = rec;
+  if (el.workerRecommendHint) {
+    el.workerRecommendHint.hidden = false;
+    el.workerRecommendHint.textContent = t("dispatch.recommendWorkers", {
+      n: String(rec),
+    });
+  }
 }
 
 function renderWorkerCountList() {
@@ -990,16 +1179,45 @@ function renderWorkerCountList() {
     b.appendChild(num);
     const sub = document.createElement("span");
     sub.className = "w-label";
-    sub.textContent =
+    let label =
       n === 1 ? t("dispatch.workerSerial") : t("dispatch.workerParallel");
+    if (n === state.recommendedWorkerCount) {
+      label = `${label} · ★`;
+    }
+    sub.textContent = label;
     b.appendChild(sub);
     b.addEventListener("click", () => {
-      state.workerCount = n;
+      if (state.workerCount !== n) {
+        state.workerCount = n;
+        markDispatchGraphStale();
+      }
       renderWorkerCountList();
-      syncTaskPoolPreview();
     });
     el.workerCountList.appendChild(b);
   }
+}
+
+function decomposeTasksFromModules() {
+  ensureModulesSeed();
+  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (!confirmed.length) {
+    state.taskPool = null;
+    renderTaskPoolList([]);
+    return null;
+  }
+  const pool =
+    state.deskKind === "bug"
+      ? buildPreviewPoolForBug(confirmed)
+      : buildPreviewPoolFromModules(confirmed);
+  const annotated = annotateParallelTasks(pool.tasks);
+  state.taskPool = { version: 1, tasks: annotated };
+  applyRecommendedWorkerCount(annotated);
+  renderWorkerCountList();
+  renderTaskPoolList(annotated);
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+  schedulePersistProjectDesk();
+  return state.taskPool;
 }
 
 function syncTaskPoolPreview() {
@@ -1010,51 +1228,162 @@ async function syncTaskPoolPreviewAsync() {
   if (!el.taskPoolPreview) return;
   ensureModulesSeed();
   const confirmed = state.modules.filter((m) => m.status === "confirmed");
-  if (!confirmed.length || !state.locked) {
-    el.taskPoolPreview.hidden = true;
-    state.taskGraphUrl = null;
-    clearArchitectureMount(el.taskGraphMount);
-    if (el.taskPoolList) el.taskPoolList.textContent = "";
+  if (!confirmed.length || !state.locked || !state.architecture?.confirmed) {
+    if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
+    renderTaskPoolList([]);
+    state.taskPool = null;
     return;
   }
-  el.taskPoolPreview.hidden = false;
+  if (state.taskPool?.tasks?.length) {
+    renderTaskPoolList(state.taskPool.tasks);
+    return;
+  }
+  decomposeTasksFromModules();
+}
+
+function setConfirmWorkersGraphBusy(busy) {
+  const btn = el.confirmWorkersGraph;
+  if (!btn) return;
+  btn.disabled = Boolean(busy);
+  btn.setAttribute("aria-busy", busy ? "true" : "false");
+  btn.classList.toggle("is-busy", Boolean(busy));
+  if (busy) {
+    btn.textContent = t("dispatch.graphBuilding");
+  } else {
+    btn.textContent = t("dispatch.confirmWorkersGraph");
+  }
+}
+
+async function confirmWorkersAndBuildGraph() {
+  if (state.dispatchGraphBuilding) return;
+  ensureModulesSeed();
+  if (!state.architecture?.confirmed) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("arch.needConfirm");
+    }
+    return;
+  }
+  if (!state.taskPool?.tasks?.length) {
+    decomposeTasksFromModules();
+  }
+  if (!state.taskPool?.tasks?.length) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("dispatch.decomposeEmpty");
+    }
+    return;
+  }
   const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
-  const built = buildTaskArchitectureIr(confirmed, workerCount, {
-    title: t("dispatch.taskGraph"),
-    locale: getLocale(),
-  });
-  state.taskPool = { version: 1, tasks: built.tasks };
-  if (el.taskPoolList) {
-    el.taskPoolList.textContent = previewTaskPoolLines(built.tasks).join("\n");
-  }
-  if (!el.taskGraphMount || !built.ir?.components?.length) {
-    clearArchitectureMount(el.taskGraphMount);
-    return;
-  }
-  const seq = ++state.taskGraphRenderSeq;
+  state.workerCount = workerCount;
+  const assigned = assignPreviewWorkers(state.taskPool, workerCount);
+  state.taskPool = { version: 1, tasks: annotateParallelTasks(assigned.tasks) };
+  renderTaskPoolList(state.taskPool.tasks);
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+
+  state.dispatchGraphBuilding = true;
+  setConfirmWorkersGraphBusy(true);
+  if (el.dispatchErr) el.dispatchErr.hidden = true;
   try {
+    const ir = taskPoolToArchitectureIr(state.taskPool.tasks, {
+      title: t("dispatch.taskGraph"),
+      workerCount,
+      locale: getLocale(),
+      progress: state.lastJobProgress,
+    });
     const res = await fetch("/api/architecture/render", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ir: built.ir }),
+      body: JSON.stringify({ ir }),
     });
     const data = await res.json().catch(() => ({}));
-    if (seq !== state.taskGraphRenderSeq) return;
-    if (!res.ok) throw new Error(data.error || "render failed");
-    state.taskGraphUrl = data.url || null;
-    await mountArchitectureDiagram(el.taskGraphMount, {
-      url: data.url,
-      ir: null,
-    });
-    bindArchitecturePresentClick(
-      el.taskGraphMount,
-      () => state.taskGraphUrl || data.url,
-    );
-  } catch {
-    if (seq !== state.taskGraphRenderSeq) return;
-    state.taskGraphUrl = null;
-    clearArchitectureMount(el.taskGraphMount);
+    if (!res.ok) {
+      throw new Error(data.error || t("dispatch.graphBuildFail"));
+    }
+    state.dispatchGraphUrl = String(data.url || "").trim() || null;
+    state.dispatchGraphReady = true;
+    syncOpenTaskGraphButton();
+    schedulePersistProjectDesk();
+    addBubble("bot", t("dispatch.graphBuilt", { n: String(workerCount) }));
+  } catch (err) {
+    state.dispatchGraphReady = false;
+    state.dispatchGraphUrl = null;
+    syncOpenTaskGraphButton();
+    const msg =
+      err instanceof Error ? err.message : t("dispatch.graphBuildFail");
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = msg;
+    }
+    addBubble("bot", t("dispatch.graphBuildFailDetail", { msg }));
+  } finally {
+    state.dispatchGraphBuilding = false;
+    setConfirmWorkersGraphBusy(false);
   }
+}
+
+async function refreshDispatchGraphWithProgress() {
+  if (!state.taskPool?.tasks?.length) return null;
+  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
+  const ir = taskPoolToArchitectureIr(state.taskPool.tasks, {
+    title: t("dispatch.taskGraph"),
+    workerCount,
+    locale: getLocale(),
+    progress: state.lastJobProgress,
+  });
+  const res = await fetch("/api/architecture/render", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ir }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || t("dispatch.graphBuildFail"));
+  }
+  state.dispatchGraphUrl = String(data.url || "").trim() || null;
+  state.dispatchGraphReady = Boolean(state.dispatchGraphUrl);
+  syncOpenTaskGraphButton();
+  schedulePersistProjectDesk();
+  return state.dispatchGraphUrl;
+}
+
+async function openDispatchGraphPresent() {
+  if (!state.dispatchGraphReady && !state.taskPool?.tasks?.length) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
+    }
+    return;
+  }
+  try {
+    await refreshDispatchGraphWithProgress();
+  } catch (err) {
+    const msg =
+      err instanceof Error ? err.message : t("dispatch.graphBuildFail");
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = msg;
+    }
+    addBubble("bot", t("dispatch.graphBuildFailDetail", { msg }));
+    return;
+  }
+  openDispatchCenterPage(state.projectPath);
+}
+
+function invalidateDispatchAfterArchChange() {
+  state.dispatchGraphReady = false;
+  state.dispatchGraphBuilding = false;
+  state.dispatchGraphUrl = null;
+  setConfirmWorkersGraphBusy(false);
+  syncOpenTaskGraphButton();
+  if (el.dispatch) el.dispatch.hidden = true;
+}
+
+function openDispatchCenterPage(projectPath) {
+  const path = String(projectPath || state.projectPath || "").trim();
+  const q = path ? `?path=${encodeURIComponent(path)}` : "";
+  void openExternalDeskUrl(`/dispatch-center.html${q}`);
 }
 
 function reviseCardValues() {
@@ -1117,6 +1446,7 @@ function upsertReviseCardEntry(revision, card, architecture = undefined) {
     outOfScope: String(card.outOfScope || ""),
     acceptance: String(card.acceptance || ""),
     assumptions: String(card.assumptions || ""),
+    at: prev?.at || new Date().toISOString(),
   };
   if (architecture !== undefined) {
     if (architecture) entry.architecture = architecture;
@@ -1129,6 +1459,22 @@ function upsertReviseCardEntry(revision, card, architecture = undefined) {
   else list.push(entry);
   list.sort((a, b) => Number(a.revision) - Number(b.revision));
   state.reviseCards = list;
+}
+
+function appendBugCardEntry(card) {
+  if (!card) return;
+  const list = Array.isArray(state.bugCards) ? [...state.bugCards] : [];
+  const seq = list.length + 1;
+  list.push({
+    id: `bug-${Date.now().toString(36)}-${seq}`,
+    seq,
+    goal: String(card.goal || ""),
+    outOfScope: String(card.outOfScope || ""),
+    acceptance: String(card.acceptance || ""),
+    assumptions: String(card.assumptions || ""),
+    at: new Date().toISOString(),
+  });
+  state.bugCards = list;
 }
 
 function architectureSnapshotFromState({ changed = false } = {}) {
@@ -1189,25 +1535,72 @@ function renderReviseArchBlock(arch, { baseline = false } = {}) {
   </div>`;
 }
 
-function architecturePresentUrl(url) {
-  const raw = String(url || "").trim();
+/** Real FDE desk — never Cursor IDE Browser proxy origins (:64074, …). */
+const DESK_ORIGIN = "http://127.0.0.1:8787";
+
+/**
+ * Rewrite relative / localhost desk URLs onto :8787 so open-external
+ * does not reject Cursor proxy origins and fall back to window.open.
+ */
+function toDeskExternalHref(href) {
+  const raw = String(href || "").trim();
   if (!raw) return "";
   try {
-    const u = new URL(raw, window.location.origin);
-    u.searchParams.delete("embed");
-    u.searchParams.set("present", "1");
+    const u = new URL(raw, DESK_ORIGIN);
+    if (u.protocol !== "http:") return "";
+    if (u.hostname !== "127.0.0.1" && u.hostname !== "localhost") return "";
+    u.hostname = "127.0.0.1";
+    u.port = "8787";
     return u.href;
   } catch {
-    const base = raw.split("#")[0];
-    const join = base.includes("?") ? "&" : "?";
-    return `${base}${join}present=1`;
+    return "";
   }
 }
 
-function openArchitecturePresent(url) {
-  const href = architecturePresentUrl(url);
+function architecturePresentUrl(url, opts = {}) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, DESK_ORIGIN);
+    u.searchParams.delete("embed");
+    u.searchParams.set("present", "1");
+    if (opts.noZoom) u.searchParams.set("noz", "1");
+    else u.searchParams.delete("noz");
+    return toDeskExternalHref(u.href) || u.href;
+  } catch {
+    const base = raw.split("#")[0];
+    const join = base.includes("?") ? "&" : "?";
+    const noz = opts.noZoom ? "&noz=1" : "";
+    return toDeskExternalHref(`${base}${join}present=1${noz}`);
+  }
+}
+
+/**
+ * Open a desk URL in the OS browser via /api/open-external so Cursor IDE
+ * Browser does not invent random high ports (:64074).
+ */
+async function openExternalDeskUrl(href) {
+  const target = toDeskExternalHref(href);
+  if (!target) return false;
+  try {
+    const res = await fetch("/api/open-external", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: target }),
+    });
+    if (res.ok) return true;
+  } catch {
+    /* fall through */
+  }
+  // Last resort: still prefer :8787 (OS may pick it up); avoid proxy origin.
+  window.open(target, "_blank", "noopener");
+  return false;
+}
+
+function openArchitecturePresent(url, opts = {}) {
+  const href = architecturePresentUrl(url, opts);
   if (!href) return;
-  window.open(href, "_blank", "noopener");
+  void openExternalDeskUrl(href);
 }
 
 function bindArchitecturePresentClick(host, getUrl) {
@@ -1500,13 +1893,212 @@ function restoreConfirmCardFromOriginal() {
 
 /** Top confirm card chrome never becomes 改进卡. */
 function applyConfirmCardChrome() {
-  if (el.cardMark) el.cardMark.textContent = t("card.mark");
-  if (el.cardTitle) el.cardTitle.textContent = t("card.title");
-  if (el.lblGoal) el.lblGoal.textContent = t("card.goal");
-  if (el.lblOut) el.lblOut.textContent = t("card.out");
-  if (el.lblAccept) el.lblAccept.textContent = t("card.accept");
-  if (el.acceptHint) el.acceptHint.textContent = t("card.acceptHint");
-  if (el.lblAssume) el.lblAssume.textContent = t("card.assume");
+  const bug = state.deskKind === "bug";
+  if (el.cardMark) el.cardMark.textContent = t(bug ? "card.bugMark" : "card.mark");
+  if (el.cardTitle) el.cardTitle.textContent = t(bug ? "card.bugTitle" : "card.title");
+  if (el.lblGoal) el.lblGoal.textContent = t(bug ? "card.bugGoal" : "card.goal");
+  if (el.lblOut) el.lblOut.textContent = t(bug ? "card.bugOut" : "card.out");
+  if (el.lblAccept) el.lblAccept.textContent = t(bug ? "card.bugAccept" : "card.accept");
+  if (el.acceptHint) el.acceptHint.textContent = t(bug ? "card.bugAcceptHint" : "card.acceptHint");
+  if (el.lblAssume) el.lblAssume.textContent = t(bug ? "card.bugAssume" : "card.assume");
+  if (el.confirm && !modulesAllConfirmedLocal()) {
+    el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
+  }
+  syncBugHotfixUi();
+  syncStartBugFixButtons();
+}
+
+function syncBugHotfixUi() {
+  const show = state.deskKind === "bug";
+  if (el.bugHotfixRow) el.bugHotfixRow.hidden = !show;
+  if (el.bugHotfix) {
+    el.bugHotfix.checked = Boolean(state.bugHotfix);
+    el.bugHotfix.disabled = state.dispatchPhase === "done" || state.busy;
+  }
+}
+
+/** Show「修 bug」in the same bottom CTA slots as「再改一版」. */
+function syncStartBugFixButtons() {
+  if (state.deskKind === "bug") {
+    for (const btn of [el.startBugFix, el.startBugFixEarly, el.startBugFixAlt]) {
+      if (btn) btn.hidden = true;
+    }
+    if (el.deskBottomActions) el.deskBottomActions.hidden = true;
+    return;
+  }
+  const dialoguing = state.mode === "revise" || state.reviseDialogueOpen;
+  const accepted = Boolean(state.lastDeliveryAccepted);
+  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+  // Same gate as「再改一版」: result bar (or prior accept) keeps the path open
+  // after deploy / while another wave is revising.
+  const showWithRevise =
+    Boolean(state.projectPath) &&
+    !dialoguing &&
+    (accepted || previewVisible || state.reviseStuckHint);
+  const showEarly =
+    Boolean(state.projectPath) && !state.locked && !accepted && !previewVisible;
+  if (el.startBugFix) {
+    el.startBugFix.hidden = !(showWithRevise && previewVisible);
+    el.startBugFix.disabled = state.busy || state.reviseDispatching;
+    el.startBugFix.textContent = t("card.kindBug");
+  }
+  if (el.startBugFixAlt) {
+    el.startBugFixAlt.hidden = !(showWithRevise && !previewVisible);
+    el.startBugFixAlt.disabled = state.busy || state.reviseDispatching;
+    el.startBugFixAlt.textContent = t("card.kindBug");
+  }
+  if (el.startBugFixEarly) {
+    el.startBugFixEarly.hidden = !showEarly;
+    el.startBugFixEarly.disabled = state.busy;
+    el.startBugFixEarly.textContent = t("card.kindBug");
+  }
+  if (el.deskBottomActions) {
+    el.deskBottomActions.hidden = Boolean(el.startBugFixEarly?.hidden ?? true);
+  }
+}
+
+function beginBugFixFromCta() {
+  if (state.busy || state.reviseDispatching) return;
+  if (!state.projectPath) {
+    setHistoryOpen(true);
+    return;
+  }
+  const fromDelivery = Boolean(state.locked || state.lastDeliveryAccepted);
+  if (fromDelivery) {
+    // Fresh defect card on this project (same spirit as「再改一版」).
+    state.locked = false;
+    state.lastDeliveryAccepted = false;
+    state.jobId = null;
+    state.dispatchPhase = null;
+    state.taskPool = null;
+    state.dispatchGraphReady = false;
+    state.dispatchGraphUrl = null;
+    state.reviseLocked = false;
+    state.revisePlanConfirmed = false;
+    state.architecture = {
+      status: "idle",
+      ir: null,
+      viewBox: null,
+      fingerprint: "",
+      url: null,
+      summary: "",
+      confirmed: false,
+    };
+    state.architectureMessages = [];
+    state.mode = "specify";
+    if (el.dispatch) el.dispatch.hidden = true;
+    setConfirmFieldsReadonly(false);
+    state.deskKind = "bug";
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: "draft",
+        card: { goal: "", outOfScope: "", acceptance: "", assumptions: "" },
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    applyActiveModuleToFields();
+    applyConfirmCardChrome();
+    renderModuleTabs();
+    syncStartBugFixButtons();
+    addBubble("bot", t("bot.bugKindPicked"));
+    focusRightPanel({ force: true });
+    schedulePersistProjectDesk();
+    return;
+  }
+  enterDeskKind("bug");
+  addBubble("bot", t("bot.bugKindPicked"));
+  focusRightPanel({ force: true });
+  schedulePersistProjectDesk();
+}
+
+function isBugIntentText(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  if (s === t("chat.optBug")) return true;
+  return /修一个\s*bug|修\s*bug|fix a bug|修复缺陷|我想修 bug|バグを直|오류를|ошибк/i.test(s);
+}
+
+function isFeatureIntentText(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  return (
+    s === t("chat.optFeature") ||
+    s === t("chat.optChange") ||
+    s === t("chat.optScript")
+  );
+}
+
+function enterDeskKind(kind) {
+  const next = kind === "bug" ? "bug" : "feature";
+  if (state.deskKind === next && next === "bug" && !state.locked) {
+    syncStartBugFixButtons();
+    return;
+  }
+  if (state.locked && next !== "bug") return;
+  state.deskKind = next;
+  if (next === "bug") {
+    const card = activeModule()?.card || {
+      goal: "",
+      outOfScope: "",
+      acceptance: "",
+      assumptions: "",
+    };
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: "draft",
+        card: state.locked
+          ? { goal: "", outOfScope: "", acceptance: "", assumptions: "" }
+          : card,
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    applyActiveModuleToFields();
+  } else if (
+    state.modules.length === 1 &&
+    state.modules[0]?.id === "bug"
+  ) {
+    state.modules = [
+      {
+        id: "main",
+        title: "Main",
+        status: "draft",
+        card: { ...state.modules[0].card },
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "main";
+    applyActiveModuleToFields();
+  }
+  applyConfirmCardChrome();
+  renderModuleTabs();
+  schedulePersistProjectDesk();
+}
+
+function skipArchitectureForBug() {
+  if (state.deskKind !== "bug") return;
+  state.architecture = {
+    status: "confirmed",
+    ir: null,
+    viewBox: null,
+    fingerprint: "bug-skip",
+    url: null,
+    summary: t("arch.bugSkippedSummary"),
+    confirmed: true,
+  };
+  state.mode = "specify";
+  if (el.dispatch) el.dispatch.hidden = false;
+  syncArchitecturePanel("bug-skip");
+  syncDispatchProjectLine();
+  syncTaskPoolPreview();
+  syncOpenTaskGraphButton();
+  void loadAgents();
+  schedulePersistProjectDesk();
 }
 
 function cardFingerprint(v) {
@@ -1678,7 +2270,12 @@ async function runValidate(kind, expectedFp) {
     const res = await fetch("/api/validate", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(v),
+      body: JSON.stringify({
+        ...v,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
+      }),
     });
     const data = await res.json();
     if (seq !== state.validateSeq) return;
@@ -1875,6 +2472,7 @@ function syncReviseDispatchButton(ready) {
   const status = state.lastStatus;
   const accepted = state.lastDeliveryAccepted || status === "accepted";
   const revising = status === "revising";
+  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
   if (el.reviseHint) {
     if (revising && state.reviseStuckHint && !dialoguing) {
       el.reviseHint.textContent = t("revise.hintStuck");
@@ -1895,9 +2493,12 @@ function syncReviseDispatchButton(ready) {
     }
   }
   if (el.startReviseChat || el.startReviseChatAlt) {
+    // Result bar stays the home for next iterate / bug — deploy or an in-flight
+    // revise wave must not hide the CTAs (only an active dialogue does).
     const showCta =
-      !dialoguing && accepted && (!revising || state.reviseStuckHint);
-    const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+      Boolean(state.projectPath) &&
+      !dialoguing &&
+      (accepted || previewVisible || state.reviseStuckHint);
     if (el.startReviseChat) {
       el.startReviseChat.hidden = !(showCta && previewVisible);
       // Keep clickable while chat is busy — disabled buttons swallow clicks.
@@ -1910,6 +2511,7 @@ function syncReviseDispatchButton(ready) {
       el.startReviseChatAlt.textContent = t("revise.again");
     }
   }
+  syncStartBugFixButtons();
   if (el.chatPanel) {
     el.chatPanel.classList.toggle("revise-active", dialoguing);
   }
@@ -1963,6 +2565,8 @@ function appendOptionChips(host, options) {
         syncComposerEnabled();
         return;
       }
+      if (isBugIntentText(opt)) enterDeskKind("bug");
+      else if (isFeatureIntentText(opt)) enterDeskKind("feature");
       el.input.value = opt;
       el.form.requestSubmit();
     });
@@ -2156,6 +2760,7 @@ async function persistProjectChat() {
       outOfScope: e.outOfScope,
       acceptance: e.acceptance,
       assumptions: e.assumptions,
+      at: e.at || undefined,
       architecture: e.architecture?.url
         ? {
             url: e.architecture.url,
@@ -2166,6 +2771,15 @@ async function persistProjectChat() {
             fingerprint: String(e.architecture.fingerprint || ""),
           }
         : undefined,
+    }));
+    const bugCardsLite = (state.bugCards || []).map((e) => ({
+      id: e.id,
+      seq: e.seq,
+      goal: e.goal,
+      outOfScope: e.outOfScope,
+      acceptance: e.acceptance,
+      assumptions: e.assumptions,
+      at: e.at || undefined,
     }));
     await fetch("/api/projects/chat", {
       method: "PUT",
@@ -2180,8 +2794,13 @@ async function persistProjectChat() {
         activeModuleId: state.activeModuleId,
         taskPool: state.taskPool,
         workerCount: state.workerCount || 1,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        bugHotfix: Boolean(state.bugHotfix),
+        dispatchGraphReady: Boolean(state.dispatchGraphReady),
+        dispatchGraphUrl: state.dispatchGraphUrl || null,
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
+        bugCards: bugCardsLite,
         reviseDraft: (() => {
           stashReviseDraftFromFields();
           return state.reviseDraft;
@@ -2301,10 +2920,16 @@ function clearDeskWorkspace() {
   state.rawAsk = "";
   state.jobId = null;
   state.locked = false;
+  state.deskKind = "feature";
+  state.bugHotfix = false;
   state.modules = [];
   state.activeModuleId = null;
   state.workerCount = 1;
   state.taskPool = null;
+  state.dispatchGraphReady = false;
+  state.dispatchGraphBuilding = false;
+  state.dispatchGraphUrl = null;
+  state.recommendedWorkerCount = 1;
   state.mode = "specify";
   if (el.moduleTabs) {
     el.moduleTabs.replaceChildren();
@@ -2314,10 +2939,11 @@ function clearDeskWorkspace() {
     el.moduleMeta.hidden = true;
     el.moduleMeta.textContent = "";
   }
-  if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
-  if (el.taskPoolList) el.taskPoolList.textContent = "";
-  state.taskGraphUrl = null;
-  clearArchitectureMount(el.taskGraphMount);
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = false;
+  if (el.taskPoolList) el.taskPoolList.replaceChildren();
+  if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
+  if (el.workerRecommendHint) el.workerRecommendHint.hidden = true;
+  syncOpenTaskGraphButton();
   renderWorkerCountList();
   state.reviseLocked = false;
   state.reviseDispatching = false;
@@ -2327,6 +2953,7 @@ function clearDeskWorkspace() {
   state.originalCard = null;
   state.lastRevision = null;
   state.reviseCards = [];
+  state.bugCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
@@ -2450,6 +3077,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.originalCard = data.originalCard || null;
     state.lastRevision = data.lastRevision || null;
     state.reviseCards = Array.isArray(data.reviseCards) ? data.reviseCards : [];
+    state.bugCards = Array.isArray(data.bugCards) ? data.bugCards : [];
     state.reviseDraft =
       data.reviseDraft && typeof data.reviseDraft === "object"
         ? data.reviseDraft
@@ -2554,7 +3182,17 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     state.taskPool = data.taskPool || null;
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
+    state.deskKind = data.deskKind === "bug" ? "bug" : "feature";
+    state.bugHotfix = Boolean(data.bugHotfix);
+    state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
+    state.dispatchGraphUrl = String(data.dispatchGraphUrl || "").trim() || null;
+    if (state.taskPool?.tasks?.length) {
+      state.recommendedWorkerCount = recommendWorkerCount(state.taskPool.tasks, {
+        max: 4,
+      });
+    }
     renderWorkerCountList();
+    syncOpenTaskGraphButton();
     applySavedCardFields(data.card, data.reviseCard);
     applyActiveModuleToFields();
     renderModuleTabs();
@@ -2613,19 +3251,23 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     syncConfirmEnabled();
     syncComposerEnabled();
-    if (state.jobId || state.locked || modulesAllConfirmedLocal()) {
+    if (modulesAllConfirmedLocal() && el.confirm) {
+      el.confirm.textContent = t("card.allModulesConfirmed");
+      el.confirm.disabled = true;
+    }
+    if (state.architecture.confirmed && modulesAllConfirmedLocal()) {
       if (el.dispatch) el.dispatch.hidden = false;
       syncDispatchProjectLine();
-      if (modulesAllConfirmedLocal() && el.confirm) {
-        el.confirm.textContent = t("card.allModulesConfirmed");
-        el.confirm.disabled = true;
-      }
-      if (state.dispatchPhase === "done") {
-        syncDispatchButton();
-      }
-      if (state.jobId) startStatusPoll();
-      void loadAgents();
       syncTaskPoolPreview();
+      syncOpenTaskGraphButton();
+      void loadAgents();
+    }
+    if (state.dispatchPhase === "done") {
+      syncDispatchButton();
+    }
+    if (state.jobId) {
+      startStatusPoll();
+      void loadAgents();
     }
     if (
       !modulesAllConfirmedLocal() &&
@@ -2639,13 +3281,18 @@ async function loadProjectChatIntoUi(projectPath) {
       !state.architecture.confirmed &&
       state.mode !== "revise"
     ) {
-      beginArchitectureDesign({
-        kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
-      });
-      if (state.architectureMessages.some((m) => m.role === "assistant")) {
-        maybeNudgeArchitectureContinue();
+      if (state.deskKind === "bug") {
+        skipArchitectureForBug();
+      } else {
+        beginArchitectureDesign({
+          kickoff: !state.architectureMessages.some((m) => m.role === "assistant"),
+        });
+        if (state.architectureMessages.some((m) => m.role === "assistant")) {
+          maybeNudgeArchitectureContinue();
+        }
       }
     }
+    applyConfirmCardChrome();
     return state.messages.length;
   } catch {
     clearDeskWorkspace();
@@ -2670,6 +3317,10 @@ async function sendChat(userText) {
   addBubble("user", userText);
   if (state.mode !== "revise" && state.mode !== "architecture" && !state.rawAsk) {
     state.rawAsk = userText;
+  }
+  if (state.mode === "specify" && !state.locked) {
+    if (isBugIntentText(userText)) enterDeskKind("bug");
+    else if (isFeatureIntentText(userText)) enterDeskKind("feature");
   }
   void persistProjectChat();
 
@@ -2699,7 +3350,10 @@ async function sendChat(userText) {
             : state.mode === "architecture"
               ? "architecture"
               : "specify",
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         deployTarget: state.deployTarget || "none",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
         stream: true,
       }),
     });
@@ -3151,6 +3805,19 @@ async function loadConfig() {
   showUpdateNotice(cfg.update);
   if (cfg.ready) showDesk(cfg);
   else showSetup(cfg);
+  applyOpenPanelFromQuery();
+}
+
+/** From dispatch-center top nav: /?open=projects|employees|settings */
+function applyOpenPanelFromQuery() {
+  const u = new URL(location.href);
+  const open = String(u.searchParams.get("open") || "").trim();
+  if (!open) return;
+  u.searchParams.delete("open");
+  history.replaceState(null, "", u);
+  if (open === "projects") setHistoryOpen(true);
+  else if (open === "employees") setEmployeeOpen(true);
+  else if (open === "settings") setSettingsOpen(true);
 }
 
 el.saveCfg.addEventListener("click", async () => {
@@ -3507,9 +4174,11 @@ el.confirm.addEventListener("click", async () => {
         moduleId: state.activeModuleId || active?.id || "main",
         activeModuleId: state.activeModuleId || active?.id || "main",
         modules: state.modules,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         rawAsk: state.rawAsk || v.goal,
         projectPath: state.projectPath || undefined,
         repoPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();
@@ -3588,7 +4257,13 @@ async function autoHandleFromGate(kind, btn) {
     const res = await fetch("/api/validate/fix", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...v, issues }),
+      body: JSON.stringify({
+        ...v,
+        issues,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
+      }),
     });
     const data = await res.json();
     if (data.card) applyCard(data.card, { skipValidate: true });
@@ -3723,9 +4398,13 @@ async function applyConfirmSuccess(data) {
   }
   void persistProjectChat();
   if (allDone) {
-    await showDispatchPanel();
-    syncTaskPoolPreview();
-    beginArchitectureDesign({ kickoff: true });
+    if (state.deskKind === "bug" || data.needDispatch) {
+      appendBugCardEntry(cardValues());
+      skipArchitectureForBug();
+      addBubble("bot", t("bot.bugReadyDispatch"));
+    } else {
+      beginArchitectureDesign({ kickoff: true });
+    }
   }
 }
 
@@ -3910,21 +4589,25 @@ function syncArchitecturePanel(kind) {
   }
   if (el.architectureConfirm) {
     const canConfirm = a.status === "preview" && a.url && !a.confirmed;
-    el.architectureConfirm.hidden = !canConfirm && a.status !== "confirmed";
-    if (a.confirmed) {
+    const bugSkip = state.deskKind === "bug" && a.confirmed && !a.url;
+    el.architectureConfirm.hidden =
+      (!canConfirm && a.status !== "confirmed") || bugSkip;
+    if (a.confirmed && !bugSkip) {
       el.architectureConfirm.hidden = false;
       el.architectureConfirm.disabled = true;
       el.architectureConfirm.textContent = t("arch.confirmed");
-    } else {
+    } else if (!bugSkip) {
       el.architectureConfirm.disabled = !canConfirm || state.busy;
       el.architectureConfirm.textContent = t("arch.confirm");
     }
   }
   if (el.architectureRedesign) {
     const canRedesign =
-      Boolean(a.url) &&
+      (Boolean(a.url) ||
+        (state.deskKind === "bug" && a.confirmed)) &&
       (a.confirmed || state.revisePlanConfirmed) &&
-      (state.mode === "revise" ||
+      (state.deskKind === "bug" ||
+        state.mode === "revise" ||
         state.mode === "architecture" ||
         state.reviseLocked ||
         state.lastDeliveryAccepted ||
@@ -3932,6 +4615,11 @@ function syncArchitecturePanel(kind) {
         state.lastStatus === "revising");
     el.architectureRedesign.hidden = !canRedesign;
     el.architectureRedesign.disabled = state.busy;
+    if (state.deskKind === "bug" && a.confirmed && !a.url) {
+      el.architectureRedesign.textContent = t("arch.bugOptionalDesign");
+    } else {
+      el.architectureRedesign.textContent = t("arch.redesign");
+    }
   }
   if (el.architectureRetry) {
     const showRetry =
@@ -3945,7 +4633,9 @@ function syncArchitecturePanel(kind) {
     el.architectureRetry.disabled = state.busy;
   }
   if (el.architectureHint) {
-    if (kind === "missing") {
+    if (kind === "bug-skip" || (state.deskKind === "bug" && a.confirmed && !a.url)) {
+      el.architectureHint.textContent = t("arch.bugSkipHint");
+    } else if (kind === "missing") {
       el.architectureHint.textContent = t("arch.hintMissing");
     } else if (kind === "stale") {
       el.architectureHint.textContent = t("arch.hintStale");
@@ -4004,6 +4694,7 @@ function applyArchitectureFromChatPayload(data) {
   if (!state.architecture.fingerprint) {
     state.architecture.fingerprint = architectureFpOf(state.architecture) || "";
   }
+  invalidateDispatchAfterArchChange();
   syncArchitecturePanel();
   schedulePersistProjectDesk();
   return true;
@@ -4155,6 +4846,7 @@ function maybeNudgeArchitectureContinue() {
 }
 
 function beginArchitectureDesign({ kickoff = false } = {}) {
+  invalidateDispatchAfterArchChange();
   if (state.architecture.confirmed && state.architecture.url) {
     snapshotArchitectureAsPrevious();
   }
@@ -4401,10 +5093,8 @@ function confirmArchitecture() {
   syncReviseCardChrome();
   schedulePersistProjectDesk();
   addBubble("bot", t("arch.hintConfirmed"));
-  // Revise path: architecture confirm comes *after* 改进方案确认 → then dispatch.
-  if (state.revisePlanConfirmed && !state.reviseLocked && state.jobId) {
-    void dispatchReviseAgent();
-  }
+  // Decompose → recommend workers → confirm graph, then launch (incl. revise).
+  void showDispatchPanel();
 }
 
 async function autoFixAccept(btn, issues, kind = "confirm") {
@@ -4426,7 +5116,13 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
       const res = await fetch("/api/validate/fix", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...v, issues }),
+        body: JSON.stringify({
+          ...v,
+          issues,
+          deskKind: state.deskKind === "bug" ? "bug" : "feature",
+          projectPath: state.projectPath || undefined,
+          previewUrl: state.lastPreviewUrl || undefined,
+        }),
       });
       const data = await res.json();
       if (data.card) applyCard(data.card, { skipValidate: true });
@@ -4462,7 +5158,10 @@ async function autoFixAccept(btn, issues, kind = "confirm") {
         moduleId: state.activeModuleId || "main",
         activeModuleId: state.activeModuleId || "main",
         modules: state.modules,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
         rawAsk: state.rawAsk || v.goal,
+        projectPath: state.projectPath || undefined,
+        previewUrl: state.lastPreviewUrl || undefined,
       }),
     });
     const data = await res.json();
@@ -4558,9 +5257,15 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
-  renderWorkerCountList();
+  if (!state.taskPool?.tasks?.length) {
+    decomposeTasksFromModules();
+  } else {
+    applyRecommendedWorkerCount(state.taskPool.tasks);
+    renderWorkerCountList();
+    renderTaskPoolList(state.taskPool.tasks);
+    syncOpenTaskGraphButton();
+  }
   syncDispatchProjectLine();
-  syncTaskPoolPreview();
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
   } else {
@@ -5197,6 +5902,18 @@ el.architectureConfirm?.addEventListener("click", () => {
   confirmArchitecture();
 });
 
+el.bugHotfix?.addEventListener("change", () => {
+  state.bugHotfix = Boolean(el.bugHotfix.checked);
+  schedulePersistProjectDesk();
+});
+
+for (const btn of [el.startBugFix, el.startBugFixEarly, el.startBugFixAlt]) {
+  btn?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    beginBugFixFromCta();
+  });
+}
+
 el.architectureRedesign?.addEventListener("click", () => {
   if (state.busy) return;
   beginArchitectureDesign({ kickoff: true });
@@ -5327,6 +6044,11 @@ el.doDispatch.addEventListener("click", async () => {
     syncArchitecturePanel("stale");
     return;
   }
+  if (!state.dispatchGraphReady || !state.taskPool?.tasks?.length) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
+    return;
+  }
   ensureStartCommandPrefix();
   const startCommand = el.startCommand?.value?.trim() || "";
   const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
@@ -5355,6 +6077,8 @@ el.doDispatch.addEventListener("click", async () => {
         architectureIr: null,
         modules: state.modules,
         workerCount,
+        deskKind: state.deskKind === "bug" ? "bug" : "feature",
+        bugHotfix: Boolean(state.bugHotfix),
         rawAsk: state.rawAsk || "",
       }),
     });
@@ -5749,6 +6473,17 @@ function fillRunProgress(block, data) {
         })
       : `${done}/${total} · ${progress.current || ""}`;
   }
+  const gate = data?.verifyGate;
+  if (block.summary && gate && gate.result && gate.result !== "pass") {
+    const line =
+      gate.result === "fail"
+        ? t("verify.fail", {
+            command: gate.command || "",
+            code: String(gate.exitCode ?? ""),
+          })
+        : t(gate.result === "invalid" ? "verify.invalid" : "verify.missing");
+    block.summary.textContent = `${block.summary.textContent} · ${line}`;
+  }
   if (block.activity) {
     const act = data?.activity;
     const line =
@@ -5818,6 +6553,7 @@ function renderProgress(data) {
   if (!el.runTimeline) return;
   paintDeliveryCockpit(data);
   const progress = data?.progress;
+  if (progress) state.lastJobProgress = progress;
   if (!progress) {
     if (!state.activeRun) el.runTimeline.hidden = el.runTimeline.childElementCount === 0;
     return;
@@ -6709,6 +7445,7 @@ function openReviseArchitectureGate() {
     state.architecture.status = "preview";
     state.architecture.ir = null;
     state.mode = "architecture";
+    invalidateDispatchAfterArchChange();
     // Place diagram under「请先确认架构」CTA before scrolling.
     placeArchitecturePanelForFlow();
     syncArchitecturePanel();
@@ -6761,6 +7498,14 @@ async function confirmReviseAndDispatch() {
       el.reviseErr.textContent = t("arch.needConfirmAfterPlan");
     }
     openReviseArchitectureGate();
+    return;
+  }
+  if (!state.dispatchGraphReady || !state.taskPool?.tasks?.length) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = t("dispatch.needGraphConfirm");
+    }
+    void showDispatchPanel();
     return;
   }
   await dispatchReviseAgent();
@@ -6910,10 +7655,16 @@ function startStatusPoll() {
   let acceptedNotified = false;
   let lastRevision = -1;
   const tick = async () => {
-    if (!state.jobId) return;
+    const polledJobId = state.jobId;
+    if (!polledJobId) return;
     try {
-      const res = await fetch(`/api/status?jobId=${encodeURIComponent(state.jobId)}`);
+      const res = await fetch(
+        `/api/status?jobId=${encodeURIComponent(polledJobId)}`,
+      );
+      // Project switch / clearDeskWorkspace may have moved on while we waited.
+      if (state.jobId !== polledJobId) return;
       const data = await res.json();
+      if (state.jobId !== polledJobId) return;
       if (!res.ok) return;
       applyDispatchStateFromStatus(data);
       renderProgress(data);
@@ -6955,6 +7706,7 @@ function startStatusPoll() {
       } else {
         state.reviseStuckHint = false;
       }
+      if (state.jobId !== polledJobId) return;
       renderRevisePanel(data);
       if (data.status === "accepted" && data.delivery?.status === "accepted") {
         el.dispatchStatus.textContent = t("status.acceptedRevise", { rev });
@@ -7187,6 +7939,14 @@ function formatHistoryTime(iso) {
   }
 }
 
+function showHistoryErr(message) {
+  if (!el.historyErr) return;
+  const text = String(message || "").trim();
+  el.historyErr.hidden = !text;
+  el.historyErr.textContent = text;
+  if (text) el.historyErr.scrollIntoView({ block: "nearest" });
+}
+
 function setHistoryOpen(open) {
   if (!el.historyPanel) return;
   const want = Boolean(open);
@@ -7379,7 +8139,7 @@ function renderProjectConversations() {
 async function activateProjectPath(pathOrName, meta = {}) {
   const raw = String(pathOrName || "").trim();
   if (!raw) {
-    addBubble("bot", t("project.needName"));
+    showHistoryErr(t("project.needName"));
     return;
   }
   const requireMeta = meta.requireMeta !== false;
@@ -7387,14 +8147,16 @@ async function activateProjectPath(pathOrName, meta = {}) {
   const description = String(meta.description ?? "").trim();
   if (requireMeta) {
     if (!title) {
-      addBubble("bot", t("project.needTitle"));
+      showHistoryErr(t("project.needTitle"));
       return;
     }
     if (!description) {
-      addBubble("bot", t("project.needDesc"));
+      showHistoryErr(t("project.needDesc"));
       return;
     }
   }
+  if (el.projectActivate) el.projectActivate.disabled = true;
+  showHistoryErr(t("project.working"));
   try {
     // Save outgoing project chat before switching.
     if (state.projectPath) await persistProjectChat();
@@ -7421,6 +8183,7 @@ async function activateProjectPath(pathOrName, meta = {}) {
     }
     renderProjectList();
     renderProjectConversations();
+    showHistoryErr("");
     setHistoryOpen(false);
     syncComposerEnabled();
     const name = data.title || data.name || data.path;
@@ -7455,6 +8218,8 @@ async function activateProjectPath(pathOrName, meta = {}) {
       "bot",
       err instanceof Error ? err.message : t("project.fail"),
     );
+  } finally {
+    if (el.projectActivate) el.projectActivate.disabled = false;
   }
 }
 
@@ -7522,6 +8287,7 @@ async function restoreHistoryJob() {
   state.reviseDispatching = false;
   state.lastRevision = null;
   state.reviseCards = [];
+  state.bugCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
@@ -7575,6 +8341,27 @@ async function restoreHistoryJob() {
   focusRightPanel({ force: true });
 }
 
+if (el.dispatchCenterToggle) {
+  el.dispatchCenterToggle.addEventListener("click", () => {
+    openDispatchCenterPage(state.projectPath);
+  });
+}
+if (el.openTaskGraph) {
+  el.openTaskGraph.addEventListener("click", () => {
+    void openDispatchGraphPresent();
+  });
+}
+if (el.redecomposeTasks) {
+  el.redecomposeTasks.addEventListener("click", () => {
+    decomposeTasksFromModules();
+    markDispatchGraphStale();
+  });
+}
+  if (el.confirmWorkersGraph) {
+  el.confirmWorkersGraph.addEventListener("click", () => {
+    void confirmWorkersAndBuildGraph();
+  });
+}
 if (el.historyToggle) {
   el.historyToggle.addEventListener("click", () => {
     const open = el.historyPanel?.hidden !== false;
@@ -7640,7 +8427,9 @@ el.projectBrowse?.addEventListener("click", async () => {
       const title = (el.projectTitle?.value || "").trim();
       const description = (el.projectDescription?.value || "").trim();
       if (!title || !description) {
-        addBubble("bot", t("project.needTitle") + " / " + t("project.needDesc"));
+        showHistoryErr(
+          !title ? t("project.needTitle") : t("project.needDesc"),
+        );
         return;
       }
       await activateProjectPath(data.path, {
@@ -7663,6 +8452,7 @@ el.projectBrowse?.addEventListener("click", async () => {
 
 onLocaleChange(() => {
   syncDynamicI18n();
+  applyConfirmCardChrome();
   syncReviseCardChrome();
   paintDeliveryCockpit();
   renderProjectList();
@@ -7691,6 +8481,7 @@ syncComposerEnabled();
 renderWorkerCountList();
 wirePanelScrollHold(el.cardPanel);
 wirePanelScrollHold(el.progressCol);
+wireChatQuickNav();
 
 if (el.autoFixCard) {
   el.autoFixCard.addEventListener("click", () => {

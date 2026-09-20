@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T03:20:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check web/live-dev/app.js",
+      "node --test test/task-graph.test.mjs test/live-i18n-*.test.mjs (17 pass)",
+      "npm test",
+      "npm run test:live (1 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Confirm-workers button spins while Archify renders the dispatch graph; view enables only after success."
+}

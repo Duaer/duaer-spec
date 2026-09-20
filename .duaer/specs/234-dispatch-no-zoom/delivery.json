@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T03:40:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check bin/live-archify.mjs bin/duaer-live.mjs web/live-dev/app.js",
+      "node --test test/live-archify.test.mjs test/arch-fullscreen.test.mjs test/task-graph.test.mjs",
+      "npm test (202 pass)",
+      "npm run test:live (1 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Dispatch graph present uses noz=1 so node click shows passport without camera zoom."
+}

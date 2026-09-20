@@ -4,8 +4,8 @@
     "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs). Also stop the FDE desk if it was started from a worktree copy of duaer-live.",
     "restartFromPrimary": true,
     "commands": [
-      "launchctl kickstart -k \"gui/$(id -u)/com.duaer.live8787\" 2>/dev/null || (lsof -t -iTCP:8787 -sTCP:LISTEN | xargs kill 2>/dev/null; sleep 1; node bin/duaer-live.mjs --port 8787)"
+      "launchctl kickstart -k \"gui/$(id -u)/com.duaer.live8787\" 2>/dev/null || (lsof -t -iTCP:8787 -sTCP:LISTEN | xargs kill 2>/dev/null; sleep 1; DUAER_LIVE_NO_BROWSER=1 node bin/duaer-live.mjs --port 8787)"
     ]
   },
-  "notes": "After merge to develop: remove worktree, then restart Duaer-spec FDE (LaunchAgent com.duaer.live8787) so /api/projects and other new routes load from primary checkout."
+  "notes": "FDE desk is ONLY http://127.0.0.1:8787 (com.duaer.live8787). Never start duaer-live on another port. LaunchAgent sets DUAER_LIVE_NO_BROWSER=1 so kickstart does not open new browser tabs. After merge: remove worktree, then kickstart so routes load from primary checkout on develop."
 }

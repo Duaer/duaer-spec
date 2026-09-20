@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "feature": "245-preview-opaque",
+  "summary": "Opaque sticky result bar fill (no scroll bleed-through)",
+  "verification": {
+    "L1": "node --test test/task-graph.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

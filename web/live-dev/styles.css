@@ -229,9 +229,9 @@ body {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  max-width: 14rem;
+  max-width: 16rem;
   height: 2rem;
-  padding: 0 0.55rem;
+  padding: 0 0.7rem;
   border: 1px solid var(--line);
   background: var(--plate);
   color: var(--mute);
@@ -243,6 +243,12 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+button.top-btn.project-badge {
+  /* Keep badge look; inherit top-btn hover from .top-actions .top-btn */
+  max-width: min(16rem, 42vw);
 }
 
 .project-badge.is-active {
@@ -293,6 +299,104 @@ body {
   min-width: 0.75rem;
 }
 
+body.dispatch-center-page {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  background: var(--steel);
+  color: var(--ink);
+  font-family: var(--font-mono);
+}
+
+body.dispatch-center-page > .top {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0.55rem 0.9rem 0.5rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--plate);
+}
+
+body.dispatch-center-page .top-lead-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+body.dispatch-center-page .top-lead-link:focus-visible {
+  outline: 2px solid var(--register);
+  outline-offset: 2px;
+}
+
+body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
+  border-color: var(--register);
+  color: var(--register);
+}
+
+.dispatch-center {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr);
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--plate);
+  overflow: hidden;
+}
+
+.dispatch-center-rail {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  border-right: 1px solid var(--line);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.dispatch-center-project {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0.45rem 0.35rem;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dispatch-center-project[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--lock) 22%, var(--plate));
+  color: var(--ink);
+}
+
+.dispatch-center-stage {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  background: #0b1118;
+}
+
+.dispatch-center-stage .task-graph-mount {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  border: 0;
+  overflow: auto;
+}
+
+.dispatch-center-stage #dispatchCenterEmpty {
+  margin: 0.75rem 0.85rem;
+}
+
 .history-backdrop {
   position: fixed;
   inset: 0;
@@ -315,7 +419,8 @@ body {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .settings-drawer.history-drawer {
@@ -367,6 +472,11 @@ body {
   gap: 0.75rem;
   margin-bottom: 0.85rem;
   flex-shrink: 0;
+  position: sticky;
+  top: -1.15rem;
+  z-index: 1;
+  background: var(--plate);
+  padding-top: 0.15rem;
 }
 
 .history-head .mark {
@@ -839,6 +949,91 @@ body.history-open {
   overflow: hidden;
 }
 
+.chat-quicknav {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  z-index: 24;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.chat-quicknav-btn,
+.chat-quicknav-menu {
+  pointer-events: auto;
+}
+
+.chat-quicknav-btn {
+  margin: 0;
+  padding: 0.5rem 0.4rem;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.12em;
+  font-family: var(--font-ui);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.chat-quicknav-btn:hover,
+.chat-quicknav-btn:focus-visible,
+.chat-quicknav-btn[aria-expanded="true"] {
+  border-color: var(--register);
+  color: var(--register);
+  outline: none;
+}
+
+.chat-quicknav-menu {
+  position: absolute;
+  right: calc(100% + 0.4rem);
+  left: auto;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 7.5rem;
+  padding: 0.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: var(--plate);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-panel);
+  box-shadow: var(--shadow);
+  z-index: 25;
+}
+
+.chat-quicknav-menu[hidden] {
+  display: none !important;
+}
+
+.chat-quicknav-menu button {
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  text-align: left;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-radius: 0.35rem;
+  cursor: pointer;
+}
+
+.chat-quicknav-menu button:hover,
+.chat-quicknav-menu button:focus-visible {
+  background: rgba(47, 158, 143, 0.12);
+  color: var(--register);
+  outline: none;
+}
+
 .log {
   flex: 1;
   overflow: auto;
@@ -1041,6 +1236,28 @@ body.history-open {
   outline: none;
 }
 
+.bug-hotfix-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+  font-size: 0.85rem;
+  color: var(--mute);
+  cursor: pointer;
+}
+
+.bug-hotfix-row input {
+  accent-color: var(--accent, #7f95a8);
+}
+
+.desk-bottom-actions {
+  margin: 0.75rem 0 0.25rem;
+}
+
+.desk-bottom-actions:not([hidden]) {
+  display: flex;
+}
+
 .chip:hover,
 .chip:focus-visible {
   border-color: var(--mute);
@@ -1203,6 +1420,8 @@ a.btn[hidden] {
   overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scroll-behavior: smooth;
+  display: flex;
+  flex-direction: column;
 }
 
 .module-tabs {
@@ -1253,20 +1472,92 @@ a.btn[hidden] {
 }
 
 .task-pool-preview {
-  margin: 0.75rem 0;
+  margin: 0.5rem 0 0;
+}
+
+.task-decompose-field {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.task-decompose-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
 .task-pool-list {
+  list-style: none;
   margin: 0.35rem 0 0;
-  padding: 0.5rem 0.65rem;
-  font-size: 0.75rem;
-  line-height: 1.35;
-  max-height: 10rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  max-height: 14rem;
   overflow: auto;
-  white-space: pre-wrap;
   border: 1px solid var(--border, #c9c4b8);
   border-radius: 4px;
   background: transparent;
+}
+
+.task-pool-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #c9c4b8) 70%, transparent);
+}
+
+.task-pool-item:last-child {
+  border-bottom: none;
+}
+
+.task-pool-id {
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+.task-pool-deps {
+  opacity: 0.7;
+  font-size: 0.72rem;
+}
+
+.task-pool-parallel {
+  font-size: 0.68rem;
+  font-weight: 650;
+  padding: 0.1rem 0.35rem;
+  border: 1px solid var(--register, #2f9e8f);
+  color: var(--register, #2f9e8f);
+  border-radius: 2px;
+}
+
+.worker-recommend {
+  margin: 0.25rem 0 0;
+  color: var(--register, #2f9e8f);
+}
+
+#confirmWorkersGraph {
+  margin-top: 0.55rem;
+  position: relative;
+}
+
+#confirmWorkersGraph.is-busy::before {
+  content: "";
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: duaer-btn-spin 0.7s linear infinite;
+}
+
+@keyframes duaer-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .worker-count-field {
@@ -2455,13 +2746,19 @@ a.btn[hidden] {
 }
 
 .preview-panel {
-  margin-top: 0.85rem;
+  /* Keep result bar at the bottom of the middle column while scrolling. */
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  margin-top: auto;
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--lock);
-  background: rgba(47, 158, 143, 0.1);
+  /* Opaque fill so scrolled content does not show through. */
+  background: color-mix(in srgb, var(--lock) 22%, var(--plate));
   min-width: 0;
   max-width: 100%;
   box-sizing: border-box;
+  box-shadow: 0 -6px 16px rgba(15, 23, 42, 0.35);
 }
 
 .preview-bar {

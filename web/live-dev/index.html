@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=revise-kickoff-err-1" />
+    <link rel="stylesheet" href="/styles.css?v=quicknav-visible-1" />
   </head>
   <body>
     <div class="shell">
@@ -28,9 +28,23 @@
             </p>
           </div>
           <div class="top-actions">
-            <p id="projectBadge" class="project-badge" data-i18n="project.noneBadge">未选项目</p>
-            <button type="button" class="top-btn" id="historyToggle" data-i18n="project.toggle">
-              项目
+            <button
+              type="button"
+              class="top-btn"
+              id="dispatchCenterToggle"
+              data-i18n="dispatch.center"
+            >
+              调度中心
+            </button>
+            <button
+              type="button"
+              class="top-btn project-badge is-empty"
+              id="historyToggle"
+              aria-expanded="false"
+              data-i18n-aria="project.toggle"
+              aria-label="项目"
+            >
+              未选项目
             </button>
             <button
               type="button"
@@ -81,6 +95,35 @@
 
       <main id="desk" class="layout" hidden>
         <section class="panel chat-panel" data-i18n-aria="chat.aria" aria-label="对话">
+          <div class="chat-quicknav" id="chatQuickNavWrap">
+            <button
+              type="button"
+              class="chat-quicknav-btn"
+              id="chatQuickNav"
+              aria-expanded="false"
+              aria-haspopup="true"
+              aria-controls="chatQuickNavMenu"
+              data-i18n="chat.quickNav"
+              data-i18n-title="chat.quickNavHint"
+              title="快速导航"
+            >
+              导航
+            </button>
+            <div id="chatQuickNavMenu" class="chat-quicknav-menu" hidden role="menu">
+              <button type="button" role="menuitem" data-nav="chat" data-i18n="chat.navChat">
+                对话底部
+              </button>
+              <button type="button" role="menuitem" data-nav="card" data-i18n="chat.navCard">
+                确认卡
+              </button>
+              <button type="button" role="menuitem" data-nav="result" data-i18n="chat.navResult">
+                结果
+              </button>
+              <button type="button" role="menuitem" data-nav="progress" data-i18n="chat.navProgress">
+                进度
+              </button>
+            </div>
+          </div>
           <div id="log" class="log">
             <div id="chatEmpty" class="chat-empty">
               <ol class="chat-empty-steps" data-i18n-aria="chat.emptyStepsAria" aria-label="怎么用">
@@ -189,17 +232,35 @@
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
             </div>
+            <label id="bugHotfixRow" class="bug-hotfix-row" hidden>
+              <input type="checkbox" id="bugHotfix" />
+              <span data-i18n="dispatch.bugHotfix">线上紧急：从 main 出 fix 分支</span>
+            </label>
+            <div class="field task-decompose-field" id="taskDecomposeField">
+              <div class="task-decompose-head">
+                <span data-i18n="dispatch.decomposeTitle">任务拆解</span>
+                <button type="button" class="btn" id="redecomposeTasks" data-i18n="dispatch.redecompose">
+                  重新拆解
+                </button>
+              </div>
+              <p class="hint" data-i18n="dispatch.decomposeHint">架构确认后按验收条目拆到原子任务；可并行的会标出来</p>
+              <div id="taskPoolPreview" class="task-pool-preview">
+                <ul id="taskPoolList" class="task-pool-list" role="list"></ul>
+                <p id="taskPoolEmpty" class="hint" hidden data-i18n="dispatch.decomposeEmpty">尚未拆解任务</p>
+              </div>
+            </div>
             <div class="field worker-count-field">
               <span data-i18n="dispatch.workerCount">数字员工数量</span>
-              <p class="hint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <p class="hint" id="workerCountHint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <p class="hint worker-recommend" id="workerRecommendHint" hidden></p>
               <div id="workerCountList" class="worker-count-list" role="radiogroup" aria-label="worker count"></div>
+              <button type="button" class="btn primary" id="confirmWorkersGraph" data-i18n="dispatch.confirmWorkersGraph">
+                确认人数并生成派工图
+              </button>
             </div>
-            <div id="taskPoolPreview" class="task-pool-preview" hidden>
-              <p class="agent-pick-label" data-i18n="dispatch.taskGraph">任务执行路径</p>
-              <p class="hint" data-i18n="dispatch.taskGraphHint">与系统架构图同一排版；色条表示数字员工分工。点击图可新页面全屏查看</p>
-              <div id="taskGraphMount" class="task-graph-mount architecture-mount architecture-mount-clickable"></div>
-              <pre id="taskPoolList" class="task-pool-list" hidden></pre>
-            </div>
+            <button type="button" class="btn" id="openTaskGraph" data-i18n="dispatch.openGraph" disabled>
+              查看派工图
+            </button>
             <div id="repoPickBlock" class="repo-pick-block">
               <div class="repo-actions" id="repoPickActions">
                 <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>
@@ -246,29 +307,10 @@
             </div>
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
-            <div id="previewPanel" class="preview-panel" hidden>
-              <div class="preview-bar">
-                <p class="preview-title" id="previewHeading" data-i18n="preview.headingInitial">结果 · 初版</p>
-                <span id="previewService" class="preview-service" hidden>
-                  <span id="previewServiceDot" class="preview-service-dot is-unknown" aria-hidden="true"></span>
-                  <span id="previewServiceStatus" class="preview-service-status"></span>
-                  <button type="button" class="btn" id="previewStartService" hidden data-i18n="preview.startService">
-                    启动
-                  </button>
-                </span>
-                <div class="preview-actions">
-                  <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
-                  <button type="button" class="btn confirm" id="previewDeploy" hidden data-i18n="preview.deploy">
-                    部署
-                  </button>
-                  <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开目录</button>
-                  <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
-                    再改一版
-                  </button>
-                </div>
-                <ul id="previewVersions" class="preview-versions" hidden></ul>
-              </div>
-              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开目录看看。</p>
+            <div id="deskBottomActions" class="preview-actions desk-bottom-actions">
+              <button type="button" class="btn revise-cta" id="startBugFixEarly" hidden data-i18n="card.kindBug">
+                修 bug
+              </button>
             </div>
             <div id="revisePanel" class="revise-panel" hidden>
               <p class="mark" data-i18n="revise.mark">Revise card</p>
@@ -298,6 +340,9 @@
                   <textarea id="revAssume" class="req-edit" rows="1" data-i18n-placeholder="revise.assumePh" placeholder="例如：主色太沉、看不清"></textarea>
                 </div>
               </div>
+              <button type="button" class="btn revise-cta" id="startBugFixAlt" hidden data-i18n="card.kindBug">
+                修 bug
+              </button>
               <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden data-i18n="revise.again">
                 再改一版
               </button>
@@ -312,6 +357,33 @@
               <p id="reviseErr" class="hint" hidden></p>
             </div>
           </section>
+          <div id="previewPanel" class="preview-panel" hidden>
+            <div class="preview-bar">
+              <p class="preview-title" id="previewHeading" data-i18n="preview.headingInitial">结果 · 初版</p>
+              <span id="previewService" class="preview-service" hidden>
+                <span id="previewServiceDot" class="preview-service-dot is-unknown" aria-hidden="true"></span>
+                <span id="previewServiceStatus" class="preview-service-status"></span>
+                <button type="button" class="btn" id="previewStartService" hidden data-i18n="preview.startService">
+                  启动
+                </button>
+              </span>
+              <div class="preview-actions">
+                <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
+                <button type="button" class="btn confirm" id="previewDeploy" hidden data-i18n="preview.deploy">
+                  部署
+                </button>
+                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开目录</button>
+                <button type="button" class="btn revise-cta" id="startBugFix" hidden data-i18n="card.kindBug">
+                  修 bug
+                </button>
+                <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
+                  再改一版
+                </button>
+              </div>
+              <ul id="previewVersions" class="preview-versions" hidden></ul>
+            </div>
+            <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开目录看看。</p>
+          </div>
         </section>
 
         <aside class="panel progress-col" data-i18n-aria="progress.aria" aria-label="任务进度">
@@ -593,6 +665,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=arch-visible-1"></script>
+    <script type="module" src="/app.js?v=result-cta-after-deploy-1"></script>
   </body>
 </html>

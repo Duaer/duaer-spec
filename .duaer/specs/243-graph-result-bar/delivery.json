@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "feature": "243-graph-result-bar",
+  "summary": "Snake-wrap + side edges restore dispatch graph; result bar sticky at middle-column bottom",
+  "verification": {
+    "L0": "node --check on live bin / app / dispatch-center / task-graph",
+    "L1": "npm test — 214 pass",
+    "L3": "npm run test:live — pass",
+    "manual": "jev taskPool IR renders 200 via /api/architecture/render"
+  }
+}

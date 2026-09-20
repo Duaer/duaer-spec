@@ -68,8 +68,18 @@ A local web desk (`duaer live`) for “chat → confirm → dispatch → watch �
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the desk refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
 - **Employee roles.** Top-bar **digital employee** directory (Implementer / Functional regression / Deployer). Optional parallel workers on the same CLI. See the next section.
 - **Locales.** Desk UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
-- **Deliverables and results.** Open a deliverables page (requirements, architecture, tasks, delivery); when done, open the page or the project folder.
-- **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on the same job without starting from scratch.
+- **Deliverables and results.** Open a deliverables page (requirements timeline,
+  architecture, tasks, delivery); when done, open the page or the project folder.
+- **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on
+  the same job without starting from scratch. After deploy, **Revise again** and
+  **Fix a bug** stay on the result bar.
+- **Fix a bug.** Defect card (no multi-module growth); architecture skipped by
+  default; short pool and `fix/` branch (optional hotfix from `main`). Delivery
+  facts autofill; defects join the same project timeline as revisions.
+- **Quick nav.** Chat-column edge control jumps to chat bottom · confirm card ·
+  result · progress.
+- **Dispatch center.** Own page for the task graph with desk top nav; long chains
+  wrap; nodes show live status.
 
 ### Digital employees: three roles
 
@@ -82,6 +92,8 @@ Open **Employees** in the top bar. Runtime is still Cursor Agent or Claude Code;
 | **Deployer** | Publish to the planned host and write the public URL into delivery preview | Change product scope |
 
 With multiple workers, the **last lane** owns functional regression (and deploy tasks); implement work stays on earlier lanes. With one worker, the same CLI session runs roles in task order.
+
+Before a job can stay accepted, the desk runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
 
 ### Deploy: supported hosts
 

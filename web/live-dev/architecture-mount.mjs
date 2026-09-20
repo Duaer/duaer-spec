@@ -121,6 +121,81 @@ function hostChromeCss() {
 `;
 }
 
+/** Dispatch-center stage: fill the page; passport stays in place. */
+function stageChromeCss() {
+  return `
+:host {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  background: #020617;
+  color: #e8eef7;
+  overflow: hidden !important;
+}
+:host([hidden]) { display: none !important; }
+.archify-root {
+  position: relative;
+  width: 100%;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  background: var(--bg, #020617);
+  color: var(--text, #e8eef7);
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+.archify-root .toolbar,
+.archify-root .header,
+.archify-root .cards,
+.archify-root .diagram-nav,
+.archify-root .overview-map,
+.archify-root .route-probe,
+.archify-root .semantic-lens,
+.archify-root .diagram-guide,
+.archify-root .node-finder,
+.archify-root .guided-views,
+.archify-root .share-chapter-cue,
+.archify-root .export-wrap,
+.archify-root .preset-wrap,
+.archify-root .present-wrap {
+  display: none !important;
+}
+.archify-root .container {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.archify-root .diagram-container {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: auto !important;
+  position: relative !important;
+  padding: 12px !important;
+  box-sizing: border-box !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+.archify-root .diagram-container svg {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+}
+`;
+}
+
 function isJsonScript(el) {
   const type = String(el.getAttribute("type") || "").toLowerCase();
   if (type === "application/json") return true;
@@ -278,7 +353,26 @@ function disableEmbedNodeZoom(Archify) {
   Archify.view.__duaerEmbedNoZoom = true;
 }
 
-function runViewerScript(code, scopedDocument) {
+/**
+ * Dispatch-center stage is already full page. Clicking a node should still
+ * enlarge that node (Archify reveal), including hubs that would stay at scale 1.
+ */
+function enableStageNodeZoom(Archify) {
+  if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
+  if (Archify.view.__duaerStageZoom) return;
+  const original = Archify.view.reveal;
+  Archify.view.reveal = function duaerStageZoomReveal(ids, options) {
+    const opts = Object.assign({}, options || {}, {
+      includeNeighbors: false,
+      maxScale: 2.6,
+      padding: 28,
+    });
+    return original.call(this, ids, opts);
+  };
+  Archify.view.__duaerStageZoom = true;
+}
+
+function runViewerScript(code, scopedDocument, opts = {}) {
   if (!code) return null;
   const runner = new Function(
     "document",
@@ -286,13 +380,14 @@ function runViewerScript(code, scopedDocument) {
     `"use strict";\n${code}\n;return typeof Archify !== "undefined" ? Archify : null;`,
   );
   const Archify = runner(scopedDocument, window);
-  disableEmbedNodeZoom(Archify);
+  if (opts.zoom) enableStageNodeZoom(Archify);
+  else disableEmbedNodeZoom(Archify);
   return Archify;
 }
 
 /**
  * @param {HTMLElement} host
- * @param {{ url: string, ir?: object|null }} opts
+ * @param {{ url: string, ir?: object|null, stage?: boolean }} opts
  */
 export async function mountArchitectureDiagram(host, opts = {}) {
   if (!host) return false;
@@ -333,7 +428,7 @@ export async function mountArchitectureDiagram(host, opts = {}) {
       return `<style${idAttr}>${scopeArchifyCss(s.css)}</style>`;
     }),
     // Host overrides last so they beat Archify 100vh / 100dvh reader layout.
-    `<style id="duaer-arch-host-chrome">${hostChromeCss()}</style>`,
+    `<style id="duaer-arch-host-chrome">${opts.stage ? stageChromeCss() : hostChromeCss()}</style>`,
   ].join("\n");
 
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });
@@ -357,14 +452,16 @@ export async function mountArchitectureDiagram(host, opts = {}) {
 
   const scopedDocument = createScopedDocument(rootEl, shadow);
   try {
-    host._archify = runViewerScript(parsed.main, scopedDocument);
+    host._archify = runViewerScript(parsed.main, scopedDocument, {
+      zoom: Boolean(opts.stage),
+    });
   } catch (err) {
     console.warn("archify viewer init failed", err);
     host._archify = null;
   }
 
   host.style.removeProperty("height");
-  host.style.height = "auto";
+  if (!opts.stage) host.style.height = "auto";
   return true;
 }
 

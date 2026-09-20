@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-19T23:10:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": ["node --check bin/duaer-live.mjs", "npm test (185 pass)"],
+    "result": "pass"
+  },
+  "summary": "Desk runs verify.json before a delivery stamp can stick. Failed or missing contracts reopen accepted."
+}

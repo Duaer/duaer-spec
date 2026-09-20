@@ -10,8 +10,8 @@ test("live dispatch prompts forbid early Job not accepted yet", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /DISPATCH_MUST_FINISH_RULES/);
   assert.match(live, /禁止半途收尾/);
-  assert.match(live, /__ACCEPT_NUDGE__/);
-  assert.match(live, /delivery\.json 尚未 accepted/);
+  assert.match(live, /evaluateVerifyGate/);
+  assert.doesNotMatch(live, /__ACCEPT_NUDGE__/);
   assert.match(live, /本波完成，退出等编排器/);
   assert.doesNotMatch(live, /静默停等编排器/);
   assert.doesNotMatch(

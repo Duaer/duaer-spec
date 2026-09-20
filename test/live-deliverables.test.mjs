@@ -44,9 +44,21 @@ test("buildDeliverablesModel includes req doc timeline and confirmation", () => 
       reviseCards: [
         {
           revision: 1,
+          at: "2026-09-19T12:00:00.000Z",
           goal: "Add export",
           outOfScope: "",
           acceptance: "CSV download works",
+          assumptions: "",
+        },
+      ],
+      bugCards: [
+        {
+          id: "bug-1",
+          seq: 1,
+          at: "2026-09-20T08:00:00.000Z",
+          goal: "Fix export crash",
+          outOfScope: "",
+          acceptance: "CSV opens without error",
           assumptions: "",
         },
       ],
@@ -65,9 +77,13 @@ test("buildDeliverablesModel includes req doc timeline and confirmation", () => 
   assert.equal(model.stages[0].status, "done");
   const reqDoc = model.stages[0].artifacts.find((a) => a.id === "req-doc");
   assert.ok(reqDoc.ready);
-  assert.equal(reqDoc.versions.length, 2);
+  assert.equal(reqDoc.versions.length, 3);
   assert.match(reqDoc.versions[0].label, /初版/);
   assert.match(reqDoc.versions[1].label, /改进/);
+  assert.match(reqDoc.versions[2].label, /缺陷/);
+  assert.equal(reqDoc.versions[0].kind, "initial");
+  assert.equal(reqDoc.versions[2].kind, "bug");
+  assert.equal(model.stages[0].title, "需求与迭代");
   const conf = model.stages[0].artifacts.find((a) => a.id === "req-confirm");
   assert.equal(conf.confirmations.length, 2);
   assert.equal(model.stages[1].status, "done");

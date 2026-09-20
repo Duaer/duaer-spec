@@ -18,6 +18,95 @@ const WORKER_TYPES = {
   w8: "frontend",
 };
 
+/** Visual type for run status (Archify palette). */
+const STATUS_TYPES = {
+  done: "database",
+  running: "backend",
+  waiting: "external",
+};
+
+/**
+ * @param {string | null | undefined} id
+ */
+function normTaskId(id) {
+  return String(id || "")
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * @param {{ tasks?: Array<{ id?: string, done?: boolean }> } | null | undefined} progress
+ * @returns {Set<string>}
+ */
+export function doneIdsFromProgress(progress) {
+  const done = new Set();
+  for (const t of progress?.tasks || []) {
+    if (t?.done) {
+      const id = normTaskId(t.id);
+      if (id) done.add(id);
+    }
+  }
+  return done;
+}
+
+/**
+ * @param {{ dependsOn?: string[] } | null | undefined} task
+ * @param {Set<string>} doneSet
+ */
+export function isTaskReady(task, doneSet) {
+  const deps = Array.isArray(task?.dependsOn) ? task.dependsOn : [];
+  if (!deps.length) return true;
+  return deps.every((d) => doneSet.has(normTaskId(d)));
+}
+
+/**
+ * Resolve each task to done | running | waiting.
+ * Running = first ready (not done) task per worker lane.
+ *
+ * @param {Array<object>} tasks
+ * @param {{ tasks?: Array<{ id?: string, done?: boolean }> } | null | undefined} progress
+ * @returns {Map<string, "done"|"running"|"waiting">}
+ */
+export function resolveTaskRunStatuses(tasks, progress) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const doneSet = doneIdsFromProgress(progress);
+  /** @type {Map<string, "done"|"running"|"waiting">} */
+  const out = new Map();
+  const readyByWorker = new Map();
+
+  for (const t of list) {
+    const id = normTaskId(t?.id);
+    if (!id) continue;
+    if (doneSet.has(id)) {
+      out.set(id, "done");
+      continue;
+    }
+    if (!isTaskReady(t, doneSet)) {
+      out.set(id, "waiting");
+      continue;
+    }
+    const wid = String(t.workerId || "w1");
+    if (!readyByWorker.has(wid)) {
+      readyByWorker.set(wid, id);
+      out.set(id, "running");
+    } else {
+      out.set(id, "waiting");
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {"done"|"running"|"waiting"} status
+ * @param {string} [locale]
+ */
+export function taskRunStatusLabel(status, locale = "zh-CN") {
+  const zh = !locale || String(locale).toLowerCase().startsWith("zh");
+  if (status === "done") return zh ? "已完成" : "Done";
+  if (status === "running") return zh ? "进行中" : "In progress";
+  return zh ? "等待中" : "Waiting";
+}
+
 /**
  * @param {Array<{ id?: string, title?: string, status?: string, card?: object, dependsOn?: string[] }>} modules
  * @returns {{ version: number, tasks: Array<object> }}
@@ -122,6 +211,73 @@ export function buildPreviewPoolFromModules(modules) {
  * @param {{ tasks?: Array<object> } | null} pool
  * @param {number} workerCount
  */
+/** Preview pool for bug desk kind (mirrors buildBugTaskPool shape). */
+export function buildPreviewPoolForBug(modules) {
+  const list = (Array.isArray(modules) ? modules : []).filter(
+    (m) => m && m.status === "confirmed",
+  );
+  const m = list[0] || { id: "bug", title: "Bug", card: {} };
+  const title = String(m.title || m.id || "Bug").slice(0, 80);
+  const card = m.card && typeof m.card === "object" ? m.card : {};
+  const tasks = [];
+  let n = 1;
+  const push = (partial) => {
+    const id = `T${String(n).padStart(3, "0")}`;
+    n += 1;
+    const task = {
+      id,
+      moduleId: partial.moduleId || null,
+      title: String(partial.title || "").slice(0, 200),
+      dependsOn: Array.isArray(partial.dependsOn)
+        ? partial.dependsOn.filter(Boolean)
+        : [],
+      status: "queued",
+      workerId: null,
+    };
+    tasks.push(task);
+    return task;
+  };
+  const repro = push({
+    moduleId: m.id,
+    title: `Reproduce «${title}»`,
+    dependsOn: [],
+  });
+  const fix = push({
+    moduleId: m.id,
+    title: `Fix «${title}»`,
+    dependsOn: [repro.id],
+  });
+  let prevId = fix.id;
+  const acceptLines = splitAcceptanceLines(card.acceptance);
+  if (acceptLines.length) {
+    for (const line of acceptLines) {
+      const acc = push({
+        moduleId: m.id,
+        title: `Accept «${title}»: ${truncateText(line, 80)}`,
+        dependsOn: [prevId],
+      });
+      prevId = acc.id;
+    }
+  }
+  const verify = push({
+    moduleId: null,
+    title: "Regression verify",
+    dependsOn: [prevId],
+  });
+  push({
+    moduleId: null,
+    title: "Stamp delivery accepted",
+    dependsOn: [verify.id],
+  });
+  return { version: 1, kind: "bug", tasks };
+}
+
+/**
+ * Preview lanes: inherit only within the same module so multi-module pools
+ * show parallel colors. Kickoff still uses server assignTasksToWorkers.
+ * @param {{ tasks?: Array<object> } | null} pool
+ * @param {number} workerCount
+ */
 export function assignPreviewWorkers(pool, workerCount = 1) {
   const count = Math.max(1, Math.min(8, Number(workerCount) || 1));
   const tasks = (pool?.tasks || []).map((t) => ({ ...t, workerId: null }));
@@ -169,12 +325,33 @@ function shortTitle(title, max = 36) {
   return `${t.slice(0, Math.max(0, max - 1))}…`;
 }
 
+/** Cap columns so long chains wrap to the next band. */
+export const TASK_GRAPH_MAX_COLS = 4;
+
+/**
+ * Map dependency rank → wrapped column + band (new row of columns).
+ * Odd bands reverse (snake / boustrophedon) so a wrap edge stays in the same
+ * column and runs vertical — Archify clean-flow rejects a full-width
+ * right→left jump from the end of one row to the start of the next.
+ * @param {number} rank
+ * @param {number} [maxCols]
+ * @returns {{ col: number, band: number }}
+ */
+export function wrapRankToGrid(rank, maxCols = TASK_GRAPH_MAX_COLS) {
+  const cols = Math.max(2, Number(maxCols) || TASK_GRAPH_MAX_COLS);
+  const r = Math.max(0, Number(rank) || 0);
+  const band = Math.floor(r / cols);
+  const indexInBand = r % cols;
+  const col = band % 2 === 0 ? indexInBand : cols - 1 - indexInBand;
+  return { col, band };
+}
+
 /**
  * Longest-path ranks so Archify left→right edges stay horizontal.
  * @param {Array<object>} tasks
  * @returns {Map<string, number>}
  */
-function dependencyRanks(tasks) {
+export function dependencyRanks(tasks) {
   const list = Array.isArray(tasks) ? tasks : [];
   const rank = new Map();
   for (const t of list) {
@@ -201,6 +378,67 @@ function dependencyRanks(tasks) {
     }
   }
   return rank;
+}
+
+/**
+ * Annotate tasks with wave index and whether they share a wave (parallel).
+ * @param {Array<object>} tasks
+ * @returns {Array<object>}
+ */
+export function annotateParallelTasks(tasks) {
+  const list = Array.isArray(tasks) ? tasks.map((t) => ({ ...t })) : [];
+  const ranks = dependencyRanks(list);
+  const widthByWave = new Map();
+  for (const t of list) {
+    const id = String(t.id || "");
+    const wave = ranks.get(id) || 0;
+    t.wave = wave;
+    widthByWave.set(wave, (widthByWave.get(wave) || 0) + 1);
+  }
+  for (const t of list) {
+    const wave = Number(t.wave) || 0;
+    t.parallel = (widthByWave.get(wave) || 0) > 1;
+  }
+  return list;
+}
+
+/**
+ * Max number of tasks that share a dependency wave.
+ * @param {Array<object>} tasks
+ */
+export function maxParallelWidth(tasks) {
+  const annotated = annotateParallelTasks(tasks);
+  let max = 1;
+  const counts = new Map();
+  for (const t of annotated) {
+    const w = Number(t.wave) || 0;
+    counts.set(w, (counts.get(w) || 0) + 1);
+  }
+  for (const n of counts.values()) {
+    if (n > max) max = n;
+  }
+  return Math.max(1, max);
+}
+
+/**
+ * Recommend digital-employee count (1–4) from parallel width.
+ * When specialty roles exist and width ≥ 2, add one lane for verify-l3/deploy.
+ * @param {Array<object>} tasks
+ * @param {{ max?: number }} [opts]
+ */
+export function recommendWorkerCount(tasks, opts = {}) {
+  const max = Math.max(1, Math.min(4, Number(opts.max) || 4));
+  const list = Array.isArray(tasks) ? tasks : [];
+  const width = maxParallelWidth(list);
+  const hasSpecialty = list.some((t) => {
+    const r = String(t.role || "");
+    return r === "verify-l3" || r === "deploy";
+  });
+  let n = Math.min(max, Math.max(1, width));
+  if (hasSpecialty && width >= 2) {
+    n = Math.min(max, width + 1);
+  }
+  return n;
 }
 
 /**
@@ -234,22 +472,34 @@ function transitiveReduce(edges) {
 
 /**
  * Map assigned tasks → Archify architecture IR (same renderer as system arch).
- * Explicit positions: X = dependency rank, Y = worker lane — same layered look
- * as system architecture; transitive-reduced edges keep Archify routing valid.
+ * Explicit positions: X = wrapped column within maxCols, Y = wrap band +
+ * worker lane. Long dependency chains wrap to the next band of rows.
+ * Node tag + sublabel carry run status for the click passport.
+ * Do not set component.sources — Archify treats those as repository evidence
+ * and fails with "Repository evidence requires /meta/repository."
  * @param {Array<object>} tasks
- * @param {{ title?: string, workerCount?: number, locale?: string }} [opts]
+ * @param {{ title?: string, workerCount?: number, locale?: string, maxCols?: number, progress?: { tasks?: Array<{ id?: string, done?: boolean }> } | null }} [opts]
  */
 export function taskPoolToArchitectureIr(tasks, opts = {}) {
   const list = Array.isArray(tasks) ? tasks : [];
   const workerCount = Math.max(1, Number(opts.workerCount) || 1);
   const title = String(opts.title || "Task execution path").slice(0, 120);
+  const locale = String(opts.locale || "zh-CN");
+  const maxCols = Math.max(2, Number(opts.maxCols) || TASK_GRAPH_MAX_COLS);
   const ranks = dependencyRanks(list);
+  const statusById = resolveTaskRunStatuses(list, opts.progress);
 
-  const colW = 220;
-  const rowH = 130;
+  // Archify widens boxes up to 200px (repairArchitectureGeometry). Keep a ≥24px
+  // clear edge: colW must be > MAX_COMPONENT_W + 24 (use +80 like system layout).
+  const colW = 280;
+  const rowH = 150;
   const originX = 48;
   const originY = 96;
-  const size = [150, 64];
+  const size = [140, 56];
+  const bandH = workerCount * rowH + 48;
+  const stackGap = size[1] + 16;
+  /** @type {Map<string, number>} */
+  const stackAt = new Map();
 
   const components = [];
   for (const t of list) {
@@ -258,15 +508,26 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     const wid = String(t.workerId || "w1");
     const lane = Math.max(0, Number(String(wid).replace(/^w/i, "")) - 1 || 0);
     const r = ranks.get(id) || 0;
-    const type =
-      WORKER_TYPES[wid] || (t.moduleId ? "backend" : "security");
+    const { col, band } = wrapRankToGrid(r, maxCols);
+    const stackKey = `${band}:${col}:${lane}`;
+    const stack = stackAt.get(stackKey) || 0;
+    stackAt.set(stackKey, stack + 1);
+    const runStatus = statusById.get(normTaskId(id)) || "waiting";
+    const statusLabel = taskRunStatusLabel(runStatus, locale);
+    const type = STATUS_TYPES[runStatus] || "external";
+    const taskTitle = shortTitle(t.title, 28);
     components.push({
       id,
       type,
       label: id,
-      sublabel: shortTitle(t.title, 40),
-      tag: wid,
-      pos: [originX + r * colW, originY + lane * rowH],
+      sublabel: taskTitle
+        ? `${statusLabel} · ${taskTitle}`
+        : `${statusLabel} · ${wid}`,
+      tag: statusLabel,
+      pos: [
+        originX + col * colW,
+        originY + band * bandH + lane * rowH + stack * stackGap,
+      ],
       size: [...size],
     });
   }
@@ -282,12 +543,40 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
       rawEdges.push({ from, to });
     }
   }
-  const connections = transitiveReduce(rawEdges).map((e, i) => ({
-    id: `e${i + 1}`,
-    from: e.from,
-    to: e.to,
-    variant: "default",
-  }));
+  /** @type {Map<string, { pos: number[] }>} */
+  const posById = new Map(components.map((c) => [c.id, c]));
+  const connections = transitiveReduce(rawEdges).map((e, i) => {
+    const edge = {
+      id: `e${i + 1}`,
+      from: e.from,
+      to: e.to,
+      variant: "default",
+    };
+    const a = posById.get(e.from);
+    const b = posById.get(e.to);
+    if (a?.pos && b?.pos) {
+      const dx = b.pos[0] - a.pos[0];
+      const dy = b.pos[1] - a.pos[1];
+      // Explicit sides keep Archify clean-flow happy on snake wrap
+      // (vertical wrap + leftward odd-band edges).
+      if (Math.abs(dy) >= Math.abs(dx)) {
+        if (dy >= 0) {
+          edge.fromSide = "bottom";
+          edge.toSide = "top";
+        } else {
+          edge.fromSide = "top";
+          edge.toSide = "bottom";
+        }
+      } else if (dx >= 0) {
+        edge.fromSide = "right";
+        edge.toSide = "left";
+      } else {
+        edge.fromSide = "left";
+        edge.toSide = "right";
+      }
+    }
+    return edge;
+  });
 
   const boundaries = [];
   if (workerCount > 1) {
@@ -308,13 +597,21 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
   }
 
   const maxRank = Math.max(0, ...[...ranks.values(), 0]);
-  const maxLane = Math.max(0, workerCount - 1);
+  const { band: maxBand } = wrapRankToGrid(maxRank, maxCols);
+  let maxY = originY + (maxBand + 1) * bandH;
+  for (const c of components) {
+    maxY = Math.max(maxY, c.pos[1] + size[1] + 80);
+  }
+  const zh = locale.toLowerCase().startsWith("zh");
 
   return {
     schema_version: 1,
     diagram_type: "architecture",
     meta: {
       title,
+      subtitle: zh
+        ? "节点颜色与标签=进度（已完成/进行中/等待中）· 过长链路蛇形换行"
+        : "Node color + tag = progress · Long chains snake-wrap",
       quality_profile: "standard",
       locale:
         ["en", "ja", "ko", "es", "pt-BR", "fr", "de", "ru", "vi", "zh-TW"].includes(
@@ -323,8 +620,8 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
           ? opts.locale
           : "zh-CN",
       viewBox: [
-        Math.max(320, originX + (maxRank + 1) * colW + 80),
-        Math.max(240, originY + (maxLane + 1) * rowH + 160),
+        Math.max(320, originX + maxCols * colW + 80),
+        Math.max(240, maxY),
       ],
     },
     components,

@@ -149,6 +149,11 @@ export function sanitizeArchitectureIr(raw) {
     })
     .filter((c) => c.title);
 
+  // Archify treats any component.sources as repository evidence and then
+  // requires /meta/repository (full SHA + --repo-root). Dispatch-graph status
+  // paths are not repo files — drop them unless the pin is complete.
+  dropUnpinnedRepositoryEvidence(meta, components);
+
   const out = {
     schema_version: 1,
     diagram_type: "architecture",
@@ -172,6 +177,20 @@ export function sanitizeArchitectureIr(raw) {
     };
   }
   return out;
+}
+
+/** Keep sources only when Archify can verify a pinned repository. */
+function dropUnpinnedRepositoryEvidence(meta, components) {
+  const repo = meta.repository;
+  const pinned =
+    repo &&
+    typeof repo === "object" &&
+    /^[a-f0-9]{40}$/i.test(String(repo.revision || "")) &&
+    typeof repo.url === "string" &&
+    repo.url.trim().length > 0;
+  if (pinned) return;
+  delete meta.repository;
+  for (const c of components) delete c.sources;
 }
 
 export function archifyHome() {
@@ -525,6 +544,8 @@ export const DUAER_EMBED_FIT_STYLE_ID = "duaer-embed-fit";
 export const DUAER_EMBED_ZOOM_SCRIPT_ID = "duaer-embed-node-zoom";
 /** Script id: expand passport fully + report embed height to the desk. */
 export const DUAER_EMBED_EXPAND_SCRIPT_ID = "duaer-embed-passport-expand";
+/** Script id: present mode keeps passport but does not zoom the camera. */
+export const DUAER_PRESENT_NO_ZOOM_SCRIPT_ID = "duaer-present-no-zoom";
 /** postMessage source for embed → desk height sync. */
 export const DUAER_ARCH_EMBED_MESSAGE_SOURCE = "duaer-arch-embed";
 
@@ -744,6 +765,51 @@ export function injectDuaerEmbedPassportExpand(html) {
 </script>`;
   const re = new RegExp(
     `<script\\s+id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
+    "i",
+  );
+  if (re.test(src)) {
+    return src.replace(re, script);
+  }
+  if (/<\/body>/i.test(src)) {
+    return src.replace(/<\/body>/i, `${script}\n</body>`);
+  }
+  return `${src}\n${script}`;
+}
+
+/**
+ * Present / fullscreen view: keep node passport, do not enlarge the camera.
+ * Used for dispatch graphs that are already large enough (`?noz=1`).
+ */
+export function injectDuaerPresentNoZoom(html) {
+  const src = String(html || "");
+  const script = `<script id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}">
+(function () {
+  function install() {
+    if (!window.Archify || !Archify.view || typeof Archify.view.reveal !== "function") return false;
+    if (Archify.view.__duaerPresentNoZoom) return true;
+    var original = Archify.view.reveal;
+    Archify.view.reveal = function (ids, options) {
+      var opts = Object.assign({}, options || {}, {
+        includeNeighbors: false,
+        maxScale: 1,
+        minScale: 1,
+        padding: 56,
+        animate: false
+      });
+      return original.call(Archify.view, ids, opts);
+    };
+    Archify.view.__duaerPresentNoZoom = true;
+    return true;
+  }
+  if (install()) return;
+  var n = 0;
+  var timer = setInterval(function () {
+    if (install() || ++n > 60) clearInterval(timer);
+  }, 50);
+})();
+</script>`;
+  const re = new RegExp(
+    `<script\\s+id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
     "i",
   );
   if (re.test(src)) {

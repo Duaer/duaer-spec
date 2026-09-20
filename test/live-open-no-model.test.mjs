@@ -13,6 +13,14 @@ test("duaer-live opens desk URL without model gate on serve", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /function openDeskInBrowser/);
   assert.match(live, /openDeskInBrowser\(deskUrl\)/);
+  assert.match(live, /DUAER_LIVE_NO_BROWSER/);
+  assert.match(live, /EADDRINUSE/);
+  assert.match(live, /Do not start another duaer-live on a different port/);
+  assert.match(live, /\/api\/open-external/);
+  assert.match(live, /function assertDeskExternalUrl|function openExternalHttpUrl/);
+  assert.match(live, /only http:\/\/127\.0\.0\.1:8787/);
+  assert.match(live, /u\.port = "8787"/);
+  assert.match(live, /Cursor IDE Browser proxies/);
   assert.match(live, /模型尚未配置/);
   assert.doesNotMatch(
     live,

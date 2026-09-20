@@ -12,12 +12,14 @@ import {
   injectDuaerEmbedNodeZoom,
   injectDuaerEmbedPassportExpand,
   injectDuaerEmbedPatches,
+  injectDuaerPresentNoZoom,
   layoutArchitectureIr,
   renderArchitectureHtml,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
   DUAER_EMBED_ZOOM_SCRIPT_ID,
   DUAER_EMBED_EXPAND_SCRIPT_ID,
+  DUAER_PRESENT_NO_ZOOM_SCRIPT_ID,
   DUAER_ARCH_EMBED_MESSAGE_SOURCE,
 } from "../bin/live-archify.mjs";
 import {
@@ -63,6 +65,38 @@ test("layoutArchitectureIr finishes on cyclic connections", () => {
   assert.ok(Date.now() - t0 < 500, "cycle layout must not hang");
   assert.equal(ir.components.length, 3);
   assert.ok(Array.isArray(ir.meta.viewBox));
+});
+
+test("sanitizeArchitectureIr drops unpinned component sources", () => {
+  const dirty = {
+    diagram_type: "architecture",
+    meta: { title: "Tasks", repository: { url: "not-a-pin" } },
+    components: [
+      {
+        id: "T001",
+        type: "external",
+        label: "T001",
+        sources: [{ path: "run/waiting", label: "等待中" }],
+      },
+    ],
+    connections: [],
+  };
+  for (const clean of [sanitizeArchitectureIr(dirty), sanitizeBrowser(dirty)]) {
+    assert.equal(clean.meta.repository, undefined);
+    assert.equal(clean.components[0].sources, undefined);
+  }
+  const pinned = sanitizeArchitectureIr({
+    ...dirty,
+    meta: {
+      title: "Tasks",
+      repository: {
+        url: "https://github.com/example/repo",
+        revision: "a".repeat(40),
+      },
+    },
+  });
+  assert.ok(pinned.meta.repository);
+  assert.equal(pinned.components[0].sources.length, 1);
 });
 
 test("sanitizeArchitectureIr drops extras in server and browser", () => {
@@ -308,6 +342,19 @@ test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
   assert.match(expandOnce, /diagram-container/);
 });
 
+test("injectDuaerPresentNoZoom clamps reveal scale for dispatch present", () => {
+  const raw = `<!doctype html><html><head></head><body></body></html>`;
+  const once = injectDuaerPresentNoZoom(raw);
+  assert.match(once, new RegExp(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`));
+  assert.match(once, /maxScale:\s*1/);
+  assert.match(once, /__duaerPresentNoZoom/);
+  assert.equal(
+    injectDuaerPresentNoZoom(once).split(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`)
+      .length - 1,
+    1,
+  );
+});
+
 test("live sources wire architecture API + desk panel", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
@@ -335,6 +382,8 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
   assert.match(live, /injectDuaerEmbedPatches/);
+  assert.match(live, /injectDuaerPresentNoZoom/);
+  assert.match(live, /searchParams\.get\("noz"\)/);
   assert.match(live, /\.json\$\/i|architecture\/.*\.json/);
   const mount = fs.readFileSync(
     path.join(ROOT, "web/live-dev/architecture-mount.mjs"),
@@ -343,6 +392,9 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(mount, /attachShadow|archify-root|runViewerScript|scopeArchifyCss/);
   assert.match(mount, /data-motion-capable|disableEmbedNodeZoom|bodyHtml|btn-preset/);
   assert.match(mount, /__duaerEmbedNoZoom|duaerNoZoomReveal/);
+  assert.match(mount, /__duaerStageZoom|duaerStageZoomReveal/);
+  assert.match(mount, /maxScale:\s*2\.6/);
+  assert.match(mount, /zoom:\s*Boolean\(opts\.stage\)/);
   assert.doesNotMatch(mount, /installDesktopReveal|__duaerEmbedZoom/);
   assert.match(mount, /\.focus-chip\s*\{\s*display:\s*none\s*!important/);
   assert.match(mount, /100vh|100dvh|duaer-arch-host-chrome|height:\s*auto\s*!important/);

@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T05:30:00.000Z",
+  "verification": {
+    "levels": ["L0", "L1", "L3"],
+    "commands": [
+      "node --check web/live-dev/dispatch-center.js web/live-dev/app.js",
+      "node --test test/arch-fullscreen.test.mjs test/task-graph.test.mjs",
+      "npm test (205 pass)",
+      "npm run test:live (1 pass)"
+    ],
+    "result": "pass"
+  },
+  "summary": "Dispatch center uses the same top nav as the desk; panel buttons return to / with open= drawers."
+}

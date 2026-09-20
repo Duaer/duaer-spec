@@ -2,6 +2,161 @@
 
 ## Unreleased
 
+## 0.25.0 — 2026-09-20
+
+### Feat: bug path, project timeline, and desk navigation
+
+- Bug path: defect card → skip architecture by default → short pool → `fix/`
+  (optional hotfix from `main`)
+- Bug chat autofills project delivery context (URL / start scripts / env) instead
+  of re-asking
+- Bug CTA sits with Revise again on the result bar; CTAs stay after deploy
+- Project timeline: initial / revision N / defect sorted by time (deliverables)
+- Chat-edge quick nav jumps to chat bottom · confirm card · result · progress
+
+### Feat / Fix: dispatch center and desk ops (also in this release)
+
+### Fix: opaque sticky result bar
+
+- Result bar fill is solid (plate + lock tint) so scrolled content does not bleed through
+
+### Fix: move 修 bug CTA next to 再改一版
+
+- Remove top kind chips; 「修 bug」uses the same bottom revise-cta slots
+
+### Fix: restore dispatch graph + park result bar at bottom
+
+- Snake-wrap odd bands and set connection `fromSide`/`toSide` so Archify accepts
+  wrap edges (调度中心 no longer blank for long task pools)
+- Result bar（结果 · 初版…）moves below revise and sticks to the middle-column bottom
+
+### Fix: visible 需求 / 修 bug switch on the confirm card
+
+- Middle column always shows kind chips before lock (not only empty-chat starters)
+
+### Feat: merge project badge into one top-nav button
+
+- One control shows the active project (or “no project”) and opens the project drawer
+- Same control on the dispatch-center top nav
+
+### Feat: bug dispatch path on Duaer desk
+
+- Chat「我要修一个 bug」sets defect card; default skip architecture; short task pool
+- Kickoff uses `fix/` from develop (optional hotfix from `main`)
+- Feature modular + architecture path unchanged
+
+### Feat: dispatch graph wraps columns and refreshes status live
+
+- Long task chains wrap after 4 columns instead of one endless row
+- Node tag/sublabel show progress; dispatch center polls job status and remounts
+
+### Feat: dispatch center shares the desk top nav
+
+- Same brand / 调度中心 / 项目 / 数字员工 / 设置 / language / GitHub row
+- Brand returns to the desk; panel buttons open `/?open=…` drawers
+
+### Fix: dispatch-center node click zooms again
+
+- Stage view keeps Archify reveal and frames the clicked node (scale up to 2.6)
+- Desk architecture embeds still open present instead of zooming in place
+
+### Fix: dispatch center shows the graph on the page
+
+- Battlefield fills the dispatch-center stage; node clicks stay there
+- View graph opens the dispatch center instead of a second present window
+
+### Fix: dispatch graph no longer requires /meta/repository
+
+- Task nodes carry status on `tag` and worker on `sublabel`, not Archify `sources`
+- Sanitize drops unpinned `sources` so render does not demand repository evidence
+
+### Fix: open architecture / 派工图 via OS browser on :8787
+
+- `POST /api/open-external` remaps localhost proxy ports onto `:8787` and runs OS `open`
+- Desk client always canonicalizes with `toDeskExternalHref` (never proxy `window.location.origin`)
+- Avoids Cursor IDE Browser proxy tabs (`:64074` etc.) mistaken for extra desks
+
+### Feat: dispatch graph shows task run status on nodes
+
+- Node colors + tags: 已完成 / 进行中 / 等待中 from live progress
+- Click passport lists status (and worker / title); reopen graph refreshes status
+
+### Fix: dispatch graph present does not zoom on node click
+
+- 「查看派工图」opens `present=1&noz=1`: full canvas, passport stays, no camera enlarge
+
+### Fix: dispatch graph opens Archify present fullscreen
+
+- 「查看派工图」opens the same `?present=1` fullscreen canvas as system architecture
+- Node click / passport works in present mode; dispatch-center stage fills the viewport
+
+### Fix: FDE desk stays on port 8787 only
+
+- Agents must not spawn alternate desk ports; LaunchAgent uses `DUAER_LIVE_NO_BROWSER`
+- Occupied 8787 prints reuse/kickstart hint instead of inviting another port
+
+### Fix: dispatch graph Archify edge spacing
+
+- Task-pool IR column width 280px so Archify edges stay ≥24px after box widen
+- Confirm failures post a chat bubble with the Archify error (not only a flash)
+
+### Fix: confirm workers graph button spins until render finishes
+
+- 「确认人数并生成派工图」shows a busy spinner while Archify renders
+- 「查看派工图」enables only after a successful render
+
+### Feat: decompose tasks then confirm workers before dispatch graph
+
+- After architecture confirm, the desk decomposes atomic tasks (parallel marked) above Digital employees
+- Recommends 1–4 workers from parallel width; confirm builds the dispatch graph
+- Revise uses the same gate after architecture re-confirm
+
+### Feat: all durable live desk state in SQLite
+
+- Config, repos, live jobs, and project sessions live in `~/.duaer/live/desk.sqlite`
+- Legacy `config.json` / `repos.json` / `jobs/*` / `project-chats/*.json` import on open
+- Schema version 2; later releases migrate on open
+- `architecture/` HTML stays a regenerable disk cache
+- Live data is per-machine only — never packaged with duaer-spec
+
+### Feat: desk project sessions in SQLite
+
+- Project desk sessions live in `~/.duaer/live/desk.sqlite` (Node built-in `node:sqlite`)
+- Existing `project-chats/*.json` import automatically on first desk open; JSON files are kept
+- Schema is versioned; later duaer-spec releases run migrations on open
+- Requires Node `>=22.5.0`
+
+### Fix: new project no longer keeps the previous 派工进度
+
+- Status poll ignores responses after the desk switches to another project (or clears jobId)
+
+### Fix: requeue a released wave when the Terminal is idle
+
+- An unchecked wave that was already released is enqueued again when nothing is running and the queue is empty
+
+### Feat: dispatch center for the task graph
+
+- Top bar and the dispatch card open `/dispatch-center.html` as its own page
+- That page lists projects in a 100px rail and shows the selected project's graph
+
+### Fix: finished wave releases the Terminal for the next job
+
+- When a wave's tasks are checked and the next `--continue` is already queued, the desk preempts the leftover CLI instead of waiting for it to exit
+- A session whose own wave is still open is not preempted
+- A Terminal script that only `cat`s the prompt file (no `- T00N:` line) is still preempted when a job is waiting
+
+### Fix: project activate click shows feedback in the drawer
+
+- Missing path, name, or description is shown in the project drawer, not only in chat behind it
+- The activate button disables while the switch is in flight
+- The project drawer scrolls so the button stays reachable
+
+### Feat: desk machine verify gate
+
+- Before delivery can stay `accepted`, the desk runs `.duaer/memory/verify.json` in the worktree
+- A failing or missing contract reopens `accepted` and records command, exit code, and output tail
+- The all-tasks-done stamp-accept nudge is removed; `update` keeps an existing product `verify.json`
+
 ## 0.24.1 — 2026-09-19
 
 ### Docs: explain Functional regression digital employee

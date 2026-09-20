@@ -2,8 +2,11 @@
  * Duaer-spec FDE (现场开发) — isolated desk (not the user's product repo).
  *
  * Workspace: ~/.duaer/live/  (override with DUAER_HOME)
- *   config.json   model settings
- *   jobs/<nnn-*>  confirmed Briefs
+ *   desk.sqlite   durable state (config, repos, jobs, project sessions)
+ *   jobs/<nnn-*>  materialized Brief dirs (mirror of SQLite; for agent paths)
+ *   architecture/ regenerable HTML cache
+ *
+ * Live data is per-machine only — never packaged with duaer-spec.
  *
  * Usage:
  *   duaer live [--port 8787]
@@ -28,18 +31,24 @@ import {
   parseWorktreeActivityFromGit,
 } from "./live-progress.mjs";
 import {
+  evaluateVerifyGate,
+  regressionLane,
+  verifyNudgePrompt,
+} from "./live-verify-gate.mjs";
+import {
   deployPromptForTarget,
   isDeployPlanned,
   normalizeDeployTarget,
 } from "./deploy-targets.mjs";
 import {
   injectDuaerEmbedPatches,
+  injectDuaerPresentNoZoom,
   renderArchitectureHtml,
   architectureStoreDir,
 } from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { extractArchitectureIr } from "../web/live-dev/architecture-ir.mjs";
-import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
+import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
@@ -58,6 +67,16 @@ import {
   writeProjectChat,
 } from "./live-project-chat.mjs";
 import {
+  ensureJobDirMaterialized,
+  listJobsFromDb,
+  loadDeskConfig,
+  loadDeskReposDoc,
+  openDeskDb,
+  saveDeskConfig,
+  saveDeskReposDoc,
+  syncJobDirToDb,
+} from "./live-desk-db.mjs";
+import {
   buildDeliverablesModel,
   renderDeliverablesHtml,
   writeDeliverablesHtmlFile,
@@ -69,6 +88,7 @@ import {
   confirmModuleInList,
   aggregateModulesCard,
   buildTaskPoolFromModules,
+  buildBugTaskPool,
   taskPoolToMarkdown,
   assignTasksToWorkers,
   clipWorkerCount,
@@ -77,11 +97,20 @@ import { rolePromptZh } from "../web/live-dev/employee-catalog.mjs";
 import {
   doneIdsFromProgress,
   fingerprintWave,
+  finishedWaveBlocksQueue,
   orchestrationSummary,
   pendingWaveReleases,
+  runningWaveIdsFromScript,
+  undoneReleasedFingerprints,
   waveForWorker,
 } from "./live-orchestrate.mjs";
 import { resolvePreviewPayload, ensureLocalPreviewService, probeLocalPreviewStatus, pickOpenableResultEntry, isOpenableProductPreview } from "./live-preview.mjs";
+import {
+  collectBugProjectContext,
+  enrichBugAssumptions,
+  filterBugDeliveryFactIssues,
+  formatBugProjectContextBlock,
+} from "./live-bug-context.mjs";
 import { markClaudeWorkspacesTrusted } from "./live-claude-trust.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -317,6 +346,7 @@ function jobsRoot() {
 function ensureLiveDirs() {
   fs.mkdirSync(liveRoot(), { recursive: true });
   fs.mkdirSync(jobsRoot(), { recursive: true });
+  openDeskDb(liveRoot());
 }
 
 function emptyLiveConfig() {
@@ -347,30 +377,8 @@ function envPick(...keys) {
 
 function readConfig() {
   ensureLiveDirs();
-  const p = configPath();
-  if (!fs.existsSync(p)) {
-    return {
-      ...emptyLiveConfig(),
-      baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
-      apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
-      model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
-      aliyunAccessKeyId: envPick(
-        "ALIBABA_CLOUD_ACCESS_KEY_ID",
-        "ALIYUN_ACCESS_KEY_ID",
-      ),
-      aliyunAccessKeySecret: envPick(
-        "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
-        "ALIYUN_ACCESS_KEY_SECRET",
-      ),
-      cloudflareApiToken: envPick("CLOUDFLARE_API_TOKEN"),
-      cloudflareAccountId: envPick("CLOUDFLARE_ACCOUNT_ID"),
-      awsAccessKeyId: envPick("AWS_ACCESS_KEY_ID"),
-      awsSecretAccessKey: envPick("AWS_SECRET_ACCESS_KEY"),
-      awsRegion: envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
-    };
-  }
+  const raw = loadDeskConfig(liveRoot()) || {};
   try {
-    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
     return {
       baseUrl: String(raw.baseUrl || process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(raw.apiKey || process.env.DUAER_LIVE_API_KEY || "").trim(),
@@ -436,12 +444,7 @@ function writeConfig(partial) {
     awsSecretAccessKey: pick("awsSecretAccessKey"),
     awsRegion: pick("awsRegion"),
   };
-  fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  try {
-    fs.chmodSync(configPath(), 0o600);
-  } catch {
-    // best-effort; Windows may ignore
-  }
+  saveDeskConfig(liveRoot(), next);
   return next;
 }
 
@@ -705,6 +708,25 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
 {"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}
 说明：顶层 goal/outOfScope/acceptance/assumptions/ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
+const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 bug，不是做新功能。通过多轮对话整理成一张可派工的缺陷卡，使数字员工能复现、修复并回归。
+
+规则：
+1. 缺关键信息时每次只问 1 个卡点，且卡点只能是：现象 / 复现步骤 / 期望与实际 / 影响面。信息够时不要用「请从多种方案里选」代替可检查验收。
+2. 只维护**一个**模块：id 固定为 bug（title 可用「缺陷」）。禁止拆多模块。
+3. 四块语义：
+   - goal = 缺陷现象与复现（可执行）
+   - outOfScope = 本次不改什么
+   - acceptance = 怎么算修好（复现关闭 + 可核对结果/命令）
+   - assumptions = 环境 / 疑似原因 / 是否线上紧急（优先写入系统给的「项目交付上下文」）
+4. **禁止向用户追问**网页/成品 URL、服务启动命令或脚本、机器/端口/依赖等运行环境、疑似原因、是否线上紧急——这些由台面从项目交付自动补齐。疑似原因未知时写「待复现定位」；线上紧急默认「否」（从 develop 出 fix/），仅当用户明确说线上/生产/紧急才标「是」。
+5. ready=true 表示缺陷卡可确认。不要催派工。不要写代码。不要假设用户没给的仓库路径（上下文里有则直接用）。
+6. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）。
+7. 输出格式（严格）：
+   - 先写对用户说的纯文本
+   - 然后单独一行：<<<JSON>>>
+   - 再输出 JSON（不要 markdown 围栏）：
+{"modules":[{"id":"bug","title":"缺陷","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"bug","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
 const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
@@ -767,6 +789,30 @@ const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动
 4. 只输出一个 JSON，不要 markdown 围栏：
 {"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
+const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即将锁定缺陷卡（尚未派工）。目标是：规范缺陷描述，使数字员工能复现、修复并回归。
+
+检查：
+1. goal 是否写清现象与复现（可执行，不要堆无关功能）
+2. acceptance 是否可客观检查：复现关闭 + 打开/看到/命令通过等；禁止仅「修好了/更好用」
+3. outOfScope 是否划清本次不改什么（可简短）
+4. assumptions：环境/URL/启动/紧急/疑似原因由台面交付上下文补齐——**禁止**因缺少网页地址、启动命令、运行环境、疑似原因、是否线上紧急而 failed
+
+规则：
+- 若小改即可通过：修订四块，passed=true；assumptions 空缺时写入合理默认（疑似原因=待复现定位；线上紧急=否）
+- 仅当 goal 或 acceptance 不可执行时 passed=false，issues 只列这类问题
+- 不要写代码。不要催派工。
+- 只输出一个 JSON，不要 markdown 围栏：
+{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
+const BUG_FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷卡修正助手。自动验收未通过，请根据 issues 修订缺陷卡四块。优先把 acceptance 改成可客观检查的句子（复现关闭、打开何处、看到什么、哪条命令通过），不要编造大功能。
+
+规则：
+1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
+2. 保持用户原意；缺信息时写合理可检查默认，并写进 assumptions（URL/启动/环境用上下文；疑似原因默认待复现定位；线上紧急默认否）
+3. 不要写代码。不要向用户索要已交付过的地址或启动命令。
+4. 只输出一个 JSON，不要 markdown 围栏：
+{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
 /** Bare fetch has no default deadline; a stalled provider would never settle. */
 const LLM_TIMEOUT_MS = 60000;
 const LLM_STREAM_TIMEOUT_MS = 180000;
@@ -783,7 +829,10 @@ async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const body = {
     model: cfg.model,
     temperature:
-      systemPrompt === ACCEPT_PROMPT || systemPrompt === FIX_ACCEPT_PROMPT
+      systemPrompt === ACCEPT_PROMPT ||
+      systemPrompt === FIX_ACCEPT_PROMPT ||
+      systemPrompt === BUG_ACCEPT_PROMPT ||
+      systemPrompt === BUG_FIX_ACCEPT_PROMPT
         ? 0.15
         : 0.3,
     messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -1186,29 +1235,31 @@ function acceptanceLooksVague(text) {
   );
 }
 
-function localAcceptCheck(card) {
+function localAcceptCheck(card, { kind = "feature" } = {}) {
   const issues = [];
   const goal = String(card.goal || "").trim();
   const acceptance = String(card.acceptance || "").trim();
+  const goalLabel = kind === "bug" ? "「缺陷现象」" : "「要做什么」";
+  const acceptLabel = kind === "bug" ? "「修好标准」" : "「验收标准」";
   if (goal.length < 8) {
-    issues.push("「要做什么」过短，写清单一可执行目标");
+    issues.push(`${goalLabel}过短，写清可执行的现象与复现`);
   }
   if (acceptance.length < 12) {
-    issues.push("「验收标准」过短，写清可核对的完成结果");
+    issues.push(`${acceptLabel}过短，写清可核对的完成结果`);
   } else if (acceptanceLooksVague(acceptance) && !acceptanceLooksCheckable(acceptance)) {
     issues.push(
-      "「验收标准」太空泛（如更好用/更好看）；请写可检查结果：打开何处、看到什么、哪条命令通过",
+      `${acceptLabel}太空泛（如更好用/更好看）；请写可检查结果：复现关闭、打开何处、看到什么、哪条命令通过`,
     );
   } else if (!acceptanceLooksCheckable(acceptance) && acceptance.length < 40) {
     issues.push(
-      "「验收标准」须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词",
+      `${acceptLabel}须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词`,
     );
   }
   return issues;
 }
 
-async function autoAcceptCard(cfg, card) {
-  const local = localAcceptCheck(card);
+async function autoAcceptCard(cfg, card, { kind = "feature", projectContext = null } = {}) {
+  const local = localAcceptCheck(card, { kind });
   if (local.length) {
     return {
       passed: false,
@@ -1220,47 +1271,84 @@ async function autoAcceptCard(cfg, card) {
       assumptions: card.assumptions,
     };
   }
+  const ctxNote =
+    kind === "bug" && projectContext
+      ? `\n\n${formatBugProjectContextBlock(projectContext)}\n验收时不要因缺少 URL/启动/环境/疑似原因/线上紧急而 failed。`
+      : "";
   const content = await callChatModel(
     cfg,
     [
       {
         role: "user",
-        content: `请验收以下确认卡：\n${JSON.stringify(card, null, 2)}`,
+        content: `请验收以下${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}${ctxNote}`,
       },
     ],
-    ACCEPT_PROMPT,
+    kind === "bug" ? BUG_ACCEPT_PROMPT : ACCEPT_PROMPT,
   );
   return parseAcceptResult(content, card);
 }
 
 /** Validate card without writing Brief — used to gate human confirm/revise send. */
-async function validateCardOnly(cfg, card) {
-  const normalized = {
+async function validateCardOnly(cfg, card, { kind = "feature", projectContext = null } = {}) {
+  let normalized = {
     goal: String(card.goal || "").trim(),
     outOfScope: String(card.outOfScope || "").trim(),
     acceptance: String(card.acceptance || "").trim(),
     assumptions: String(card.assumptions || "").trim(),
   };
+  if (kind === "bug" && projectContext) {
+    normalized = {
+      ...normalized,
+      assumptions: enrichBugAssumptions(normalized.assumptions, projectContext),
+    };
+  }
   if (!normalized.goal || !normalized.acceptance) {
+    const goalLabel = kind === "bug" ? "「缺陷现象」" : "「要做什么」";
+    const acceptLabel = kind === "bug" ? "「修好标准」" : "「验收标准」";
     return {
       passed: false,
       summary: "goal and acceptance are required",
       issues: [
-        !normalized.goal ? "「要做什么」不能为空" : null,
-        !normalized.acceptance ? "「验收标准」不能为空" : null,
+        !normalized.goal ? `${goalLabel}不能为空` : null,
+        !normalized.acceptance ? `${acceptLabel}不能为空` : null,
       ].filter(Boolean),
       ...normalized,
     };
   }
-  const review = await autoAcceptCard(cfg, normalized);
+  const review = await autoAcceptCard(cfg, normalized, { kind, projectContext });
+  let issues = Array.isArray(review.issues) ? review.issues : [];
+  let assumptions = String(review.assumptions || normalized.assumptions || "").trim();
+  let passed = Boolean(review.passed);
+  if (kind === "bug") {
+    issues = filterBugDeliveryFactIssues(issues);
+    assumptions = enrichBugAssumptions(assumptions, projectContext || {});
+    if (!passed && issues.length === 0) {
+      const local = localAcceptCheck(
+        {
+          goal: review.goal || normalized.goal,
+          outOfScope: review.outOfScope || normalized.outOfScope,
+          acceptance: review.acceptance || normalized.acceptance,
+          assumptions,
+        },
+        { kind },
+      );
+      if (!local.length) {
+        passed = true;
+      } else {
+        issues = local;
+      }
+    }
+  }
   return {
-    passed: Boolean(review.passed),
-    summary: review.summary || (review.passed ? "自动验收通过" : "自动验收未通过"),
-    issues: review.issues || [],
-    goal: review.goal,
-    outOfScope: review.outOfScope,
-    acceptance: review.acceptance,
-    assumptions: review.assumptions,
+    passed,
+    summary:
+      review.summary ||
+      (passed ? "自动验收通过" : "自动验收未通过"),
+    issues,
+    goal: review.goal || normalized.goal,
+    outOfScope: review.outOfScope || normalized.outOfScope,
+    acceptance: review.acceptance || normalized.acceptance,
+    assumptions,
   };
 }
 
@@ -1273,16 +1361,20 @@ class ValidateGateError extends Error {
   }
 }
 
-async function autoFixConfirmCard(cfg, card, issues) {
+async function autoFixConfirmCard(cfg, card, issues, { kind = "feature", projectContext = null } = {}) {
+  const ctxNote =
+    kind === "bug" && projectContext
+      ? `\n\n${formatBugProjectContextBlock(projectContext)}`
+      : "";
   const content = await callChatModel(
     cfg,
     [
       {
         role: "user",
-        content: `确认卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。`,
+        content: `${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。${ctxNote}`,
       },
     ],
-    FIX_ACCEPT_PROMPT,
+    kind === "bug" ? BUG_FIX_ACCEPT_PROMPT : FIX_ACCEPT_PROMPT,
   );
   let obj = {};
   try {
@@ -1290,12 +1382,16 @@ async function autoFixConfirmCard(cfg, card, issues) {
   } catch {
     obj = {};
   }
+  let assumptions = String(obj.assumptions || card.assumptions || "").trim();
+  if (kind === "bug") {
+    assumptions = enrichBugAssumptions(assumptions, projectContext || {});
+  }
   return {
     summary: String(obj.summary || "已按 issues 修订确认卡").trim(),
     goal: String(obj.goal || card.goal || "").trim(),
     outOfScope: String(obj.outOfScope || card.outOfScope || "").trim(),
     acceptance: String(obj.acceptance || card.acceptance || "").trim(),
-    assumptions: String(obj.assumptions || card.assumptions || "").trim(),
+    assumptions,
   };
 }
 
@@ -1306,6 +1402,7 @@ function writeBrief(payload) {
   const assumptions = String(payload.assumptions || "").trim();
   const rawAsk = String(payload.rawAsk || "").trim();
   const review = payload.review && typeof payload.review === "object" ? payload.review : null;
+  const deskKind = String(payload.kind || "").trim() === "bug" ? "bug" : "feature";
   const projectPath = normalizeProjectKey(
     payload.projectPath || payload.repoPath || "",
   );
@@ -1318,7 +1415,8 @@ function writeBrief(payload) {
   fs.mkdirSync(featureDir, { recursive: true });
 
   const today = new Date().toISOString().slice(0, 10);
-  const branchHint = `feat/${dirName}`;
+  const branchHint =
+    deskKind === "bug" ? `fix/${dirName}` : `feat/${dirName}`;
   const reviewBlock = review
     ? `
 
@@ -1328,13 +1426,17 @@ function writeBrief(payload) {
 - Summary: ${review.summary || "ok"}
 `
     : "";
-  const spec = `# Feature Specification: ${goal}
+  const specTitle =
+    deskKind === "bug" ? `Bug Fix: ${goal}` : `Feature Specification: ${goal}`;
+  const spec = `# ${specTitle}
 
 **Feature Branch**: \`${branchHint}\`
 
 **Created**: ${today}
 
 **Status**: Confirmed (Duaer-spec FDE)
+
+**Kind**: ${deskKind}
 
 **Input**: ${rawAsk || goal}
 
@@ -1374,6 +1476,7 @@ Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product re
       {
         id: dirName,
         branch: branchHint,
+        kind: deskKind,
         confirmedAt: new Date().toISOString(),
         source: "live-dev",
         status: "confirmed",
@@ -1393,7 +1496,9 @@ Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product re
     "utf8",
   );
 
-  const agentPrompt = `Duaer-spec FDE 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
+  syncJobDirToDb(liveRoot(), dirName);
+
+  const agentPrompt = `Duaer-spec FDE 已确认${deskKind === "bug" ? "缺陷" : "需求"}（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
@@ -1405,6 +1510,7 @@ ${projectPath ? `产品项目: ${projectPath}\n` : ""}`;
     featureDir,
     relativeDir: `~/.duaer/live/jobs/${dirName}`,
     branch: branchHint,
+    kind: deskKind,
     projectPath: projectPath || null,
     agentPrompt,
     review: review
@@ -1419,14 +1525,9 @@ function reposFile() {
 
 function readRepos() {
   ensureLiveDirs();
-  const p = reposFile();
-  if (!fs.existsSync(p)) return [];
-  try {
-    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
-    return Array.isArray(raw.repos) ? raw.repos : [];
-  } catch {
-    return [];
-  }
+  const doc = loadDeskReposDoc(liveRoot());
+  if (!doc) return [];
+  return Array.isArray(doc.repos) ? doc.repos : [];
 }
 
 function normalizeRepoPath(repoPath) {
@@ -1461,11 +1562,7 @@ function rememberRepo(repoPath, extra = {}) {
     },
     ...readRepos().filter((r) => normalizeRepoPath(r.path) !== abs),
   ].slice(0, 40);
-  fs.writeFileSync(
-    reposFile(),
-    `${JSON.stringify({ repos: next }, null, 2)}\n`,
-    "utf8",
-  );
+  saveDeskReposDoc(liveRoot(), { repos: next });
   return next;
 }
 
@@ -2078,12 +2175,19 @@ function nextSpecNum(specsRoot) {
   return max + 1;
 }
 
+function persistLiveJob(live, nextJob) {
+  const job = nextJob || live.job;
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(job, null, 2)}\n`, "utf8");
+  live.job = job;
+  syncJobDirToDb(liveRoot(), live.id);
+}
+
 function readLiveJob(jobId) {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("jobId required");
-  const featureDir = path.join(jobsRoot(), id);
-  if (!fs.existsSync(featureDir)) throw new Error(`找不到 live job：${id}`);
+  const featureDir = ensureJobDirMaterialized(liveRoot(), id);
   const jobPath = path.join(featureDir, "job.json");
+  if (!fs.existsSync(jobPath)) throw new Error(`找不到 live job：${id}`);
   const job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
   return {
     id,
@@ -2191,38 +2295,19 @@ function activateProject(body = {}) {
 /** Newest-first list of live jobs for history UI. */
 function listLiveJobs({ limit = 40 } = {}) {
   ensureLiveDirs();
-  const root = jobsRoot();
   const max = Math.min(Math.max(Number(limit) || 40, 1), 100);
-  let names = [];
-  try {
-    names = fs.readdirSync(root).filter((n) => {
-      try {
-        return fs.statSync(path.join(root, n)).isDirectory();
-      } catch {
-        return false;
-      }
-    });
-  } catch {
-    return [];
-  }
-
   const rows = [];
-  for (const id of names) {
-    const jobPath = path.join(root, id, "job.json");
-    const specPath = path.join(root, id, "spec.md");
-    if (!fs.existsSync(jobPath)) continue;
+  for (const row of listJobsFromDb(liveRoot())) {
+    const id = row.id;
+    ensureJobDirMaterialized(liveRoot(), id);
     let job = {};
     let spec = "";
     try {
-      job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
+      job = JSON.parse(String(row.files["job.json"] || "{}"));
     } catch {
       continue;
     }
-    try {
-      if (fs.existsSync(specPath)) spec = fs.readFileSync(specPath, "utf8");
-    } catch {
-      spec = "";
-    }
+    spec = String(row.files["spec.md"] || "");
     const goal =
       extractSection(spec, "Goal").split(/\n/)[0]?.trim() ||
       jobTitleFromSpec(spec) ||
@@ -2232,6 +2317,7 @@ function listLiveJobs({ limit = 40 } = {}) {
       job.revisedAt ||
       job.dispatch?.dispatchedAt ||
       job.confirmedAt ||
+      row.updatedAt ||
       null;
     rows.push({
       id,
@@ -2248,13 +2334,7 @@ function listLiveJobs({ limit = 40 } = {}) {
       branch: job.dispatch?.branch || job.branch || null,
     });
   }
-
-  rows.sort((a, b) => {
-    const ta = Date.parse(a.at || a.confirmedAt || "") || 0;
-    const tb = Date.parse(b.at || b.confirmedAt || "") || 0;
-    if (tb !== ta) return tb - ta;
-    return String(b.id).localeCompare(String(a.id));
-  });
+  rows.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   return rows.slice(0, max);
 }
 
@@ -2681,16 +2761,19 @@ function pidAlive(pid) {
  * agent/claude orphans (never the Terminal runner.command). Leave
  * running.cmd on disk for the long-lived runner to clean up.
  */
-function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null } = {}) {
+function preemptBusyTerminalJob(queueDir, { worktreePath = null, logPath = null, reason = null } = {}) {
   const runningPath = path.join(queueDir, "running.cmd");
   if (!fs.existsSync(runningPath)) {
     return { preempted: false, reason: "idle" };
   }
   const stamp = new Date().toISOString();
+  const note =
+    reason ||
+    "priorAccepted revise must not wait forever behind leftover agent";
   if (logPath) {
     appendLaunchLog(
       logPath,
-      `[${stamp}] preempt busy runner — priorAccepted revise must not wait forever behind leftover agent`,
+      `[${stamp}] preempt busy runner — ${note}`,
     );
   }
   const killed = [];
@@ -3462,15 +3545,24 @@ function dispatchToRepo({
   modules: modulesRaw,
   workerCount: workerCountRaw,
   rawAsk,
+  deskKind: deskKindRaw,
+  bugHotfix: bugHotfixRaw,
 }) {
   let liveJobId = String(jobId || "").trim();
   const modules = clipModules(modulesRaw);
   const workerCount = clipWorkerCount(workerCountRaw);
+  const deskKind =
+    String(deskKindRaw || "").trim() === "bug" ? "bug" : "feature";
+  const bugHotfix = deskKind === "bug" && Boolean(bugHotfixRaw);
 
   // Kickoff owns Brief write: create live job from confirmed modules when needed.
   if (!liveJobId) {
     if (!modulesAllConfirmed(modules)) {
-      throw new Error("请先确认全部模块需求后再开工");
+      throw new Error(
+        deskKind === "bug"
+          ? "请先确认缺陷卡后再开工"
+          : "请先确认全部模块需求后再开工",
+      );
     }
     const agg = aggregateModulesCard(modules);
     const brief = writeBrief({
@@ -3480,7 +3572,13 @@ function dispatchToRepo({
       assumptions: agg.assumptions,
       rawAsk: rawAsk || agg.goal,
       projectPath: repoPath || readConfig().activeProjectPath,
-      review: { summary: `Modular kickoff (${modules.length} modules)` },
+      kind: deskKind,
+      review: {
+        summary:
+          deskKind === "bug"
+            ? "Bug kickoff"
+            : `Modular kickoff (${modules.length} modules)`,
+      },
     });
     liveJobId = brief.jobId;
     try {
@@ -3488,15 +3586,22 @@ function dispatchToRepo({
       const next = {
         ...live.job,
         modules,
-        modular: true,
+        modular: deskKind !== "bug",
+        kind: deskKind,
+        bugHotfix: bugHotfix || undefined,
       };
-      fs.writeFileSync(live.jobPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+      persistLiveJob(live, next);
     } catch {
       /* ignore */
     }
   }
 
   const live = readLiveJob(liveJobId);
+  const liveKind =
+    String(live.job.kind || deskKind || "").trim() === "bug" ? "bug" : deskKind;
+  const liveHotfix =
+    liveKind === "bug" &&
+    (bugHotfix || Boolean(live.job.bugHotfix));
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
   const probe = probeRepo(repoPath, {
     bootstrap: true,
@@ -3504,14 +3609,22 @@ function dispatchToRepo({
     ensureDuaer: true,
   });
   const preferred =
-    String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
-  const { branch, worktreeId } = allocateUniqueFeatBranch(preferred, {
+    String(live.job.branch || "").trim() ||
+    (liveKind === "bug"
+      ? `fix/${slugify(live.id)}`
+      : `feat/${slugify(live.id)}`);
+  const { branch, worktreeId } = allocateUniqueBranch(preferred, {
     jobId: live.id,
+    kind: liveKind === "bug" ? "fix" : "feat",
     isTaken: (b, wtId) =>
       hasLocalBranch(probe.path, b) ||
       fs.existsSync(path.join(probe.path, ".worktree", wtId)),
   });
   const worktreePath = path.join(probe.path, ".worktree", worktreeId);
+  const baseRef =
+    liveHotfix && hasLocalBranch(probe.path, "main")
+      ? "main"
+      : probe.baseBranch;
 
   fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
   runGit(probe.path, [
@@ -3520,7 +3633,7 @@ function dispatchToRepo({
     "-b",
     branch,
     worktreePath,
-    probe.baseBranch,
+    baseRef,
   ]);
 
   // Worktree is a clean checkout — install Duaer inside it (do not hunt elsewhere).
@@ -3563,10 +3676,16 @@ function dispatchToRepo({
   const confirmedModules = moduleList.map((m) =>
     m.status === "confirmed" ? m : { ...m, status: "confirmed" },
   );
-  const poolBase = buildTaskPoolFromModules(confirmedModules, {
-    deployNeeded,
-    deployTaskText: deployPlan.deployTaskText,
-  });
+  const poolBase =
+    liveKind === "bug"
+      ? buildBugTaskPool(confirmedModules, {
+          deployNeeded,
+          deployTaskText: deployPlan.deployTaskText,
+        })
+      : buildTaskPoolFromModules(confirmedModules, {
+          deployNeeded,
+          deployTaskText: deployPlan.deployTaskText,
+        });
   const assigned = assignTasksToWorkers(poolBase, workerCount);
   const taskPool = {
     ...poolBase,
@@ -3589,13 +3708,17 @@ ${confirmedModules
   .join("\n")}`
       : "";
 
-  const productSpec = `# Feature Specification: ${goal}
+  const productSpec = `# ${liveKind === "bug" ? "Bug Fix" : "Feature Specification"}: ${goal}
 
 **Feature Branch**: \`${branch}\`
 
 **Created**: ${today}
 
 **Status**: Dispatched (Duaer-spec FDE)
+
+**Kind**: ${liveKind}
+
+**Base**: \`${baseRef}\`
 
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
@@ -3615,7 +3738,7 @@ ${modulesBlock}
 
 Dispatched from Duaer-spec FDE into product worktree \`${worktreePath}\`.
 Task pool workers: ${assigned.workerCount} (same CLI family).
-${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
+${liveHotfix ? "Production hotfix: merge to main first, then back-merge develop.\n" : ""}${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -3655,6 +3778,9 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
         deployViaGithubCli: deployTarget === "github-pages",
         architectureSummary: archSummary || undefined,
         workerCount: assigned.workerCount,
+        kind: liveKind,
+        bugHotfix: liveHotfix || undefined,
+        baseBranch: baseRef,
       },
       null,
       2,
@@ -3691,11 +3817,15 @@ Brief: ${featureDir}
 4. 每完成 tasks.md 中的一步，立刻把该行改成 - [x]（Duaer-spec FDE 靠此显示细粒度进度与编排放行）
 4a. 只做当前编排波次已放行的任务；未满足 dependsOn / 未放行的任务不要开工；本波勾完后：若还有后续波次则输出「本波完成，退出等编排器」并立刻结束本次 CLI 会话（不要挂起；编排器用 --continue 放行）；若已无后续波次则继续完成 stamp accepted
 4b. 拆任务（强制）：必须拆到原子任务且每条可独立验证；每个勾选项只覆盖一个验收点；进度只能用 tasks.md 的 - [ ]/- [x] 监控（立刻勾选，不要攒到最后）；不要把多项验收揉进同一条；不要人为限制条数。若仍偏粗，先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
-5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet
+5. 对照 Acceptance 全部满足后，才 stamp ${path.join(featureDir, "delivery.json")} 为 accepted——tasks.md 全部勾完还不够，必须 stamp；禁止停在 Job not accepted yet。台面会按产品仓 .duaer/memory/verify.json 自己跑 commands；退出码非 0 或缺少契约时会把 accepted 打回 open。不要把已有 commands 改成 waiver 来跳过
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
-7. 合入 develop 并 handoff 清理 worktree
+7. ${
+    liveHotfix
+      ? "先合入 main（生产 hotfix），再回补 develop，并 handoff 清理 worktree"
+      : "合入 develop 并 handoff 清理 worktree"
+  }
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 
 ${DISPATCH_MUST_FINISH_RULES}
@@ -3857,7 +3987,7 @@ ${DISPATCH_MUST_FINISH_RULES}
     taskPool,
     orchestration,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
 
   return {
@@ -3897,7 +4027,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
   return {
     ok: true,
     jobId: live.id,
@@ -4386,7 +4516,7 @@ ${DISPATCH_MUST_FINISH_RULES}
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
 
   return {
     ok: true,
@@ -4627,7 +4757,7 @@ ${
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
 
   return {
     ok: true,
@@ -4930,11 +5060,7 @@ function syncJobResults(live, roots, { preview, revision, accepted }) {
   if (prev !== next) {
     try {
       const nextJob = { ...live.job, results };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore persist errors; still return computed list
@@ -5036,6 +5162,8 @@ function advanceOrchestration(live, {
   featureDir,
   terminalsByLane = {},
   accepted = false,
+  verifyNudge = null,
+  workerCount: workerCountHint = 0,
 } = {}) {
   if (accepted) {
     return live.job.orchestration || live.job.dispatch?.orchestration || null;
@@ -5060,6 +5188,34 @@ function advanceOrchestration(live, {
       ? prev.releasedWaves
       : {}),
   };
+  const waveRetryAt = {
+    ...(prev.waveRetryAt && typeof prev.waveRetryAt === "object"
+      ? prev.waveRetryAt
+      : {}),
+  };
+  // A released wave whose boxes are still open, with nothing running and
+  // nothing queued, was lost (runner died or the job vanished). Drop the
+  // fingerprint so the next release can enqueue it again.
+  const WAVE_RETRY_COOLDOWN_MS = 20000;
+  let changed = false;
+  for (let w = 1; w <= workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const lane = workerCount > 1 ? workerId : null;
+    const snap = terminalQueueSnapshot(worktreePath, lane);
+    const idle = !snap.busy && !(Number(snap.queueDepth) > 0);
+    if (!idle) continue;
+    const prior = Array.isArray(releasedWaves[workerId])
+      ? releasedWaves[workerId]
+      : [];
+    const stale = undoneReleasedFingerprints(prior, doneSet);
+    if (!stale.length) continue;
+    const lastAt = Date.parse(waveRetryAt[workerId] || "") || 0;
+    if (Date.now() - lastAt < WAVE_RETRY_COOLDOWN_MS) continue;
+    const drop = new Set(stale);
+    releasedWaves[workerId] = prior.filter((fp) => !drop.has(fp));
+    waveRetryAt[workerId] = new Date().toISOString();
+    changed = true;
+  }
   const pending = pendingWaveReleases({
     pool,
     workerCount,
@@ -5075,7 +5231,6 @@ function advanceOrchestration(live, {
     dispatch.launch?.agentId ||
     dispatch.launches?.find((l) => l?.agentId)?.agentId ||
     null;
-  let changed = false;
   const errors = [];
 
   for (const item of pending) {
@@ -5138,58 +5293,93 @@ ${DISPATCH_MUST_FINISH_RULES}
     }
   }
 
-  // All tasks checked but delivery still open → nudge idle lane once to stamp accept.
-  const allTasksDone =
-    progress &&
-    Number(progress.total) > 0 &&
-    Number(progress.done) >= Number(progress.total);
-  const nudgeLane = "w1";
-  const acceptFp = "__ACCEPT_NUDGE__";
-  const priorNudge = Array.isArray(releasedWaves[nudgeLane])
-    ? releasedWaves[nudgeLane]
-    : [];
-  if (
-    allTasksDone &&
-    !accepted &&
-    agentId &&
-    worktreePath &&
-    !priorNudge.includes(acceptFp)
-  ) {
-    const brief = featureDir || dispatch.featureDir || "";
-    const prompt = `Duaer
-
-编排器催办：tasks.md 已全部勾选，但 delivery.json 尚未 accepted。工作目录: ${worktreePath}
-Brief: ${brief}
-
-立刻完成验收收尾（不要再改无关功能）：
-1. 更新产品 README（若尚未反映本次交付）
-2. 启动可打开的服务（若是 HTTP），确认能打开
-3. stamp delivery.json 为 accepted，必须写入 preview.url
-4. 最终只输出：✅ Job accepted — ready for your review.
-5. 禁止输出 Job not accepted yet / ⏳ not accepted
-
-${DISPATCH_MUST_FINISH_RULES}
-`;
-    const wLog =
-      workerCount === 1
-        ? path.join(brief, "agent-launch.log")
-        : path.join(brief, `agent-launch-${nudgeLane}.log`);
-    try {
-      launchAgent({
-        agentId,
+  // Machine verify failed or the contract is missing → tell the regression lane once.
+  // Do not ask the employee to stamp accepted; the desk reopens a bad stamp.
+  if (verifyNudge?.fingerprint && agentId && worktreePath) {
+    const nudgeLane = regressionLane(workerCountHint || workerCount);
+    const priorNudge = Array.isArray(releasedWaves[nudgeLane])
+      ? releasedWaves[nudgeLane]
+      : [];
+    if (!priorNudge.includes(verifyNudge.fingerprint)) {
+      const brief = featureDir || dispatch.featureDir || "";
+      const prompt = verifyNudgePrompt({
+        nudge: verifyNudge,
         worktreePath,
-        agentPrompt: prompt,
-        logPath: wLog,
         featureDir: brief,
-        continueSession: true,
-        queueLane: workerCount > 1 ? nudgeLane : null,
       });
-      releasedWaves[nudgeLane] = [...priorNudge, acceptFp];
-      changed = true;
-    } catch (err) {
-      errors.push(
-        `accept-nudge: ${err?.message || String(err || "launch failed")}`,
-      );
+      const laneCount = workerCountHint || workerCount;
+      const wLog =
+        laneCount === 1
+          ? path.join(brief, "agent-launch.log")
+          : path.join(brief, `agent-launch-${nudgeLane}.log`);
+      try {
+        launchAgent({
+          agentId,
+          worktreePath,
+          agentPrompt: prompt,
+          logPath: wLog,
+          featureDir: brief,
+          continueSession: true,
+          queueLane: laneCount > 1 ? nudgeLane : null,
+        });
+        releasedWaves[nudgeLane] = [...priorNudge, verifyNudge.fingerprint];
+        changed = true;
+      } catch (err) {
+        errors.push(
+          `verify-nudge: ${err?.message || String(err || "launch failed")}`,
+        );
+      }
+    }
+  }
+
+  // A finished wave often prints "exit" and stays up. The next job is already
+  // queued; SIGTERM the leftover session so the runner can dequeue it.
+  // Scripts usually cat a prompt file (no - T00N: line). A waiter is enough.
+  // A script that names a still-open wave is left alone.
+  const waveExitPreemptAt = {
+    ...(prev.waveExitPreemptAt && typeof prev.waveExitPreemptAt === "object"
+      ? prev.waveExitPreemptAt
+      : {}),
+  };
+  const WAVE_EXIT_PREEMPT_COOLDOWN_MS = 8000;
+  for (let w = 1; w <= workerCount; w += 1) {
+    const workerId = `w${w}`;
+    const lane = workerCount > 1 ? workerId : null;
+    const qdir = terminalQueueDir(worktreePath, lane);
+    const snap = terminalQueueSnapshot(worktreePath, lane);
+    let runningText = "";
+    try {
+      runningText = fs.readFileSync(path.join(qdir, "running.cmd"), "utf8");
+    } catch {
+      runningText = "";
+    }
+    if (
+      !finishedWaveBlocksQueue({
+        busy: snap.busy,
+        queueDepth: snap.queueDepth,
+        runningWaveIds: runningWaveIdsFromScript(runningText),
+        doneSet,
+      })
+    ) {
+      continue;
+    }
+    const lastAt = Date.parse(waveExitPreemptAt[workerId] || "") || 0;
+    if (Date.now() - lastAt < WAVE_EXIT_PREEMPT_COOLDOWN_MS) continue;
+    const brief = featureDir || dispatch.featureDir || "";
+    const wLog = brief
+      ? workerCount === 1
+        ? path.join(brief, "agent-launch.log")
+        : path.join(brief, `agent-launch-${workerId}.log`)
+      : null;
+    const pre = preemptBusyTerminalJob(qdir, {
+      worktreePath,
+      logPath: wLog,
+      reason: "finished wave still holds the lane; next job is queued",
+    });
+    waveExitPreemptAt[workerId] = new Date().toISOString();
+    changed = true;
+    if (!pre.preempted) {
+      errors.push(`${workerId}: wave-exit preempt found no process`);
     }
   }
 
@@ -5202,6 +5392,8 @@ ${DISPATCH_MUST_FINISH_RULES}
   const nextOrch = {
     version: 1,
     releasedWaves,
+    waveExitPreemptAt,
+    waveRetryAt,
     updatedAt: new Date().toISOString(),
     summary,
     pending: pending.map((p) => ({
@@ -5221,11 +5413,7 @@ ${DISPATCH_MUST_FINISH_RULES}
         dispatch: nextDispatch,
         orchestration: nextOrch,
       };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore persist errors; still return computed orch
@@ -5366,7 +5554,74 @@ function dispatchStatus(jobId) {
   let progress = parseTasksProgress(tasksRaw, {
     revision: activeRevision > 0 ? activeRevision : 0,
   });
-  const accepted = deliveryAccepted && !activelyRevising;
+  let accepted = deliveryAccepted && !activelyRevising;
+  let verifyGate = null;
+  let verifyNudge = null;
+  const allTasksDone =
+    Number(progress.total) > 0 && Number(progress.done) >= Number(progress.total);
+  if (worktreeExists && dispatch.worktreePath) {
+    const gate = evaluateVerifyGate({
+      repoRoot: dispatch.worktreePath,
+      delivery,
+      allTasksDone,
+      deliveryAccepted: delivery?.status === "accepted",
+      skip: activelyRevising,
+      terminalBusy: terminalWorking,
+      frozen: dispatch.verifyFrozen || null,
+      previous: dispatch.verifyGate || null,
+    });
+    verifyGate = gate.verifyGate || null;
+    verifyNudge = gate.nudge || null;
+    const nextDispatch = { ...dispatch };
+    let dispatchDirty = false;
+    if (gate.frozen && JSON.stringify(gate.frozen) !== JSON.stringify(dispatch.verifyFrozen || null)) {
+      nextDispatch.verifyFrozen = gate.frozen;
+      dispatchDirty = true;
+    }
+    if (gate.state && JSON.stringify(gate.state) !== JSON.stringify(dispatch.verifyGate || null)) {
+      nextDispatch.verifyGate = gate.state;
+      dispatchDirty = true;
+    }
+    if (gate.action === "write" && gate.delivery && deliveryPath) {
+      delivery = gate.delivery;
+      try {
+        fs.writeFileSync(
+          deliveryPath,
+          `${JSON.stringify(delivery, null, 2)}\n`,
+          "utf8",
+        );
+      } catch {
+        // keep in-memory delivery even if the stamp file cannot be rewritten
+      }
+      if (delivery.status !== "accepted") accepted = false;
+    }
+    if (accepted && verifyGate && verifyGate.result && verifyGate.result !== "pass") {
+      accepted = false;
+    }
+    if (!accepted && live.job.status === "accepted" && verifyGate && verifyGate.result !== "pass") {
+      try {
+        const nextJob = {
+          ...live.job,
+          status: "dispatched",
+          dispatch: dispatchDirty ? nextDispatch : live.job.dispatch,
+        };
+        persistLiveJob(live, nextJob);
+        live.job = nextJob;
+        dispatchDirty = false;
+      } catch {
+        // ignore
+      }
+    }
+    if (dispatchDirty) {
+      try {
+        const nextJob = { ...live.job, dispatch: nextDispatch };
+        persistLiveJob(live, nextJob);
+        live.job = nextJob;
+      } catch {
+        // ignore
+      }
+    }
+  }
   if (accepted) {
     if (tasksPath) reconcileTasksMdOnAccept(tasksPath);
     if (tasksPath && fs.existsSync(tasksPath)) {
@@ -5412,11 +5667,7 @@ function dispatchStatus(jobId) {
             ? "accepted"
             : live.job.status,
       };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore
@@ -5444,11 +5695,7 @@ function dispatchStatus(jobId) {
   ) {
     try {
       const nextJob = { ...live.job, status: "accepted" };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore
@@ -5545,6 +5792,8 @@ function dispatchStatus(jobId) {
     featureDir,
     terminalsByLane: orchTerminals,
     accepted,
+    verifyNudge,
+    workerCount,
   });
 
   const workers = buildWorkersProgress({
@@ -5571,6 +5820,7 @@ function dispatchStatus(jobId) {
       orchestration,
     },
     delivery,
+    verifyGate,
     progress,
     workers,
     orchestration,
@@ -5784,17 +6034,36 @@ async function handleApi(req, res) {
       const mode = String(body.mode || "specify").trim();
       const reviseMode = mode === "revise";
       const architectureMode = mode === "architecture";
+      const deskKind =
+        String(body.deskKind || "").trim() === "bug" ? "bug" : "feature";
       const deployTarget = normalizeDeployTarget(body.deployTarget);
       const systemPrompt = architectureMode
         ? ARCHITECTURE_CHAT_PROMPT
         : reviseMode
           ? REVISE_CHAT_PROMPT
-          : SYSTEM_PROMPT;
+          : deskKind === "bug"
+            ? BUG_CHAT_PROMPT
+            : SYSTEM_PROMPT;
       const followUp = architectureMode
         ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去中间栏「系统架构」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
-          : `当前模块清单与确认卡草稿：\n${JSON.stringify({
+          : deskKind === "bug"
+            ? `${formatBugProjectContextBlock(
+                collectBugProjectContext({
+                  projectPath:
+                    body.projectPath ||
+                    cfg.activeProjectPath ||
+                    "",
+                  previewUrl: body.previewUrl || "",
+                  startCommand: body.startCommand || "",
+                }),
+              )}\n\n当前缺陷卡草稿：\n${JSON.stringify({
+                modules: modules || [],
+                activeModuleId: activeModuleId || "bug",
+                card,
+              })}\n只维护 id=bug 的一个模块。把交付上下文写入 assumptions，不要再问用户 URL/启动/环境/疑似原因/是否紧急。更新四块；ready=true 表示缺陷卡可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`
+            : `当前模块清单与确认卡草稿：\n${JSON.stringify({
               modules: modules || [],
               activeModuleId: activeModuleId || null,
               card,
@@ -5851,7 +6120,22 @@ async function handleApi(req, res) {
         acceptance: String(body.acceptance || "").trim(),
         assumptions: String(body.assumptions || body.reason || "").trim(),
       };
-      const review = await validateCardOnly(cfg, card);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const review = await validateCardOnly(cfg, card, {
+        kind: deskKind,
+        projectContext,
+      });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -5891,8 +6175,28 @@ async function handleApi(req, res) {
         assumptions: String(body.assumptions || body.reason || "").trim(),
       };
       const issues = Array.isArray(body.issues) ? body.issues : [];
-      const fixed = await autoFixConfirmCard(cfg, card, issues);
-      const review = await validateCardOnly(cfg, fixed);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const filteredIssues =
+        deskKind === "bug" ? filterBugDeliveryFactIssues(issues) : issues;
+      const fixed = await autoFixConfirmCard(cfg, card, filteredIssues, {
+        kind: deskKind,
+        projectContext,
+      });
+      const review = await validateCardOnly(cfg, fixed, {
+        kind: deskKind,
+        projectContext,
+      });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -5936,7 +6240,22 @@ async function handleApi(req, res) {
         send(res, 400, { error: "goal and acceptance are required" });
         return;
       }
-      const review = await autoAcceptCard(cfg, card);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const review = await validateCardOnly(cfg, card, {
+        kind: deskKind,
+        projectContext,
+      });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
@@ -5961,10 +6280,23 @@ async function handleApi(req, res) {
       };
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
-        String(body.moduleId || body.activeModuleId || "").trim() ||
-        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
-        "main";
-      let modules = clipModules(incomingModules, acceptedCard);
+        deskKind === "bug"
+          ? "bug"
+          : String(body.moduleId || body.activeModuleId || "").trim() ||
+            clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+            "main";
+      let modules =
+        deskKind === "bug"
+          ? [
+              {
+                id: "bug",
+                title: "缺陷",
+                status: "draft",
+                card: acceptedCard,
+                dependsOn: [],
+              },
+            ]
+          : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
           {
@@ -5986,10 +6318,11 @@ async function handleApi(req, res) {
         modules,
         activeModuleId: moduleId,
         modulesAllConfirmed: allConfirmed,
-        needArchitecture: allConfirmed,
-        needDispatch: false,
+        needArchitecture: allConfirmed && deskKind !== "bug",
+        needDispatch: allConfirmed && deskKind === "bug",
         writeBrief: false,
         jobId: null,
+        deskKind,
         card: acceptedCard,
         review: { summary: review.summary || "自动验收通过" },
       });
@@ -6023,8 +6356,28 @@ async function handleApi(req, res) {
         send(res, 400, { error: "确认卡为空，无法修正" });
         return;
       }
-      const fixed = await autoFixConfirmCard(cfg, card, issues);
-      const review = await autoAcceptCard(cfg, fixed);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const projectContext =
+        deskKind === "bug"
+          ? collectBugProjectContext({
+              projectPath: body.projectPath || cfg.activeProjectPath || "",
+              previewUrl: body.previewUrl || "",
+              startCommand: body.startCommand || "",
+            })
+          : null;
+      const filteredIssues =
+        deskKind === "bug" ? filterBugDeliveryFactIssues(issues) : issues;
+      const fixed = await autoFixConfirmCard(cfg, card, filteredIssues, {
+        kind: deskKind,
+        projectContext,
+      });
+      const review = await validateCardOnly(cfg, fixed, {
+        kind: deskKind,
+        projectContext,
+      });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
@@ -6051,10 +6404,23 @@ async function handleApi(req, res) {
       };
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
-        String(body.moduleId || body.activeModuleId || "").trim() ||
-        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
-        "main";
-      let modules = clipModules(incomingModules, acceptedCard);
+        deskKind === "bug"
+          ? "bug"
+          : String(body.moduleId || body.activeModuleId || "").trim() ||
+            clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+            "main";
+      let modules =
+        deskKind === "bug"
+          ? [
+              {
+                id: "bug",
+                title: "缺陷",
+                status: "draft",
+                card: acceptedCard,
+                dependsOn: [],
+              },
+            ]
+          : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
           {
@@ -6076,10 +6442,11 @@ async function handleApi(req, res) {
         modules,
         activeModuleId: moduleId,
         modulesAllConfirmed: allConfirmed,
-        needArchitecture: allConfirmed,
-        needDispatch: false,
+        needArchitecture: allConfirmed && deskKind !== "bug",
+        needDispatch: allConfirmed && deskKind === "bug",
         writeBrief: false,
         jobId: null,
+        deskKind,
         fixSummary: fixed.summary,
         card: acceptedCard,
         review: {
@@ -6218,7 +6585,10 @@ async function handleApi(req, res) {
       res.end(fs.readFileSync(file));
       return;
     }
-    const html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));
+    let html = injectDuaerEmbedPatches(fs.readFileSync(file, "utf8"));
+    if (url.searchParams.get("noz") === "1") {
+      html = injectDuaerPresentNoZoom(html);
+    }
     res.writeHead(200, {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
@@ -6242,6 +6612,8 @@ async function handleApi(req, res) {
         modules: body.modules,
         workerCount: body.workerCount,
         rawAsk: body.rawAsk,
+        deskKind: body.deskKind || body.kind,
+        bugHotfix: body.bugHotfix,
       });
       send(res, 200, result);
     } catch (err) {
@@ -6394,6 +6766,22 @@ async function handleApi(req, res) {
               : 400;
       send(res, code, {
         error: err instanceof Error ? err.message : "preview ensure failed",
+        code: err?.code,
+      });
+    }
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/open-external") {
+    try {
+      const body = await readJson(req);
+      const target = String(body.url || body.href || "").trim();
+      const opened = openExternalHttpUrl(target);
+      send(res, 200, { ok: true, url: opened });
+    } catch (err) {
+      const code = err?.code === "FORBIDDEN" ? 403 : 400;
+      send(res, code, {
+        error: err instanceof Error ? err.message : "open-external failed",
         code: err?.code,
       });
     }
@@ -6701,6 +7089,9 @@ async function handleApi(req, res) {
         activeModuleId: body.activeModuleId,
         taskPool: body.taskPool,
         workerCount: body.workerCount,
+        dispatchGraphReady: body.dispatchGraphReady,
+        deskKind: body.deskKind,
+        bugHotfix: body.bugHotfix,
         reviseCard: body.reviseCard,
         reviseCards: body.reviseCards,
         reviseDraft: body.reviseDraft,
@@ -6856,23 +7247,75 @@ function cmdConfig(opts) {
   }
 }
 
-function openDeskInBrowser(url) {
-  const target = String(url || "").trim();
-  if (!target) return;
+/**
+ * Allow only this FDE desk origin so callers cannot open arbitrary URLs.
+ * @param {string} raw
+ * @returns {string} normalized href
+ */
+function assertDeskExternalUrl(raw) {
+  const target = String(raw || "").trim();
+  if (!target) {
+    const e = new Error("url required");
+    e.code = "EMPTY";
+    throw e;
+  }
+  let u;
+  try {
+    u = new URL(target, "http://127.0.0.1:8787");
+  } catch {
+    const e = new Error("invalid url");
+    e.code = "FORBIDDEN";
+    throw e;
+  }
+  // Cursor IDE Browser proxies desk pages on random high ports (:64074).
+  // Remap any local http desk URL onto the real FDE origin before open.
+  if (
+    u.protocol === "http:" &&
+    (u.hostname === "127.0.0.1" || u.hostname === "localhost")
+  ) {
+    u.hostname = "127.0.0.1";
+    u.port = "8787";
+    return u.href;
+  }
+  const e = new Error("only http://127.0.0.1:8787 URLs are allowed");
+  e.code = "FORBIDDEN";
+  throw e;
+}
+
+/**
+ * Open a desk URL in the OS default browser (Safari/Chrome), not Cursor's
+ * IDE Browser proxy (which shows random high ports like :64074).
+ * @param {string} raw
+ */
+function openExternalHttpUrl(raw) {
+  const href = assertDeskExternalUrl(raw);
   try {
     if (process.platform === "darwin") {
-      spawn("open", [target], { detached: true, stdio: "ignore" }).unref();
+      spawn("open", [href], { detached: true, stdio: "ignore" }).unref();
     } else if (process.platform === "win32") {
-      spawn("cmd", ["/c", "start", "", target], {
+      spawn("cmd", ["/c", "start", "", href], {
         detached: true,
         stdio: "ignore",
       }).unref();
     } else {
-      spawn("xdg-open", [target], { detached: true, stdio: "ignore" }).unref();
+      spawn("xdg-open", [href], { detached: true, stdio: "ignore" }).unref();
     }
   } catch {
-    /* ignore — operator can open the printed URL */
+    /* ignore */
   }
+  return href;
+}
+
+function openDeskInBrowser(url) {
+  const target = String(url || "").trim();
+  if (!target) return;
+  // LaunchAgent / handoff restarts set this so kickstart does not spam new tabs
+  // (Cursor Browser often surfaces those as random high ports like :62489).
+  const skip =
+    process.env.DUAER_LIVE_NO_BROWSER === "1" ||
+    process.env.DUAER_LIVE_NO_BROWSER === "true";
+  if (skip) return;
+  openExternalHttpUrl(target);
 }
 
 function serve(port) {
@@ -6891,6 +7334,20 @@ function serve(port) {
       return;
     }
     send(res, 405, { error: "method not allowed" });
+  });
+
+  server.on("error", (err) => {
+    if (err && err.code === "EADDRINUSE") {
+      console.error(
+        `Port ${port} already in use — FDE desk stays at http://127.0.0.1:8787.`,
+      );
+      console.error(
+        `Reuse LaunchAgent: launchctl kickstart -k "gui/$(id -u)/com.duaer.live8787"`,
+      );
+      console.error("Do not start another duaer-live on a different port.");
+      process.exit(1);
+    }
+    throw err;
   });
 
   server.listen(port, "127.0.0.1", () => {
