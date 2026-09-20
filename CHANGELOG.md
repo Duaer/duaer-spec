@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: visible 需求 / 修 bug switch on the confirm card
+
+- Middle column always shows kind chips before lock (not only empty-chat starters)
+
 ### Feat: merge project badge into one top-nav button
 
 - One control shows the active project (or “no project”) and opens the project drawer

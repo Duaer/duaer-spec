@@ -367,6 +367,9 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
+  deskKindSwitch: document.getElementById("deskKindSwitch"),
+  deskKindFeature: document.getElementById("deskKindFeature"),
+  deskKindBug: document.getElementById("deskKindBug"),
   bugHotfix: document.getElementById("bugHotfix"),
   bugHotfixRow: document.getElementById("bugHotfixRow"),
   moduleTabs: document.getElementById("moduleTabs"),
@@ -1817,6 +1820,7 @@ function applyConfirmCardChrome() {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
   syncBugHotfixUi();
+  syncDeskKindSwitch();
 }
 
 function syncBugHotfixUi() {
@@ -1825,6 +1829,22 @@ function syncBugHotfixUi() {
   if (el.bugHotfix) {
     el.bugHotfix.checked = Boolean(state.bugHotfix);
     el.bugHotfix.disabled = state.dispatchPhase === "done" || state.busy;
+  }
+}
+
+function syncDeskKindSwitch() {
+  const locked = Boolean(state.locked);
+  if (el.deskKindSwitch) {
+    el.deskKindSwitch.hidden = false;
+    el.deskKindSwitch.classList.toggle("is-locked", locked);
+  }
+  const bug = state.deskKind === "bug";
+  for (const btn of [el.deskKindFeature, el.deskKindBug]) {
+    if (!btn) continue;
+    const isBug = btn.dataset.kind === "bug";
+    const on = bug ? isBug : !isBug;
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.disabled = locked || state.busy;
   }
 }
 
@@ -1848,7 +1868,10 @@ function isFeatureIntentText(text) {
 function enterDeskKind(kind) {
   if (state.locked) return;
   const next = kind === "bug" ? "bug" : "feature";
-  if (state.deskKind === next && next === "feature") return;
+  if (state.deskKind === next) {
+    syncDeskKindSwitch();
+    return;
+  }
   state.deskKind = next;
   if (next === "bug") {
     const card = activeModule()?.card || {
@@ -1867,6 +1890,21 @@ function enterDeskKind(kind) {
       },
     ];
     state.activeModuleId = "bug";
+    applyActiveModuleToFields();
+  } else if (
+    state.modules.length === 1 &&
+    state.modules[0]?.id === "bug"
+  ) {
+    state.modules = [
+      {
+        id: "main",
+        title: "Main",
+        status: "draft",
+        card: { ...state.modules[0].card },
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "main";
     applyActiveModuleToFields();
   }
   applyConfirmCardChrome();
@@ -5670,6 +5708,17 @@ el.bugHotfix?.addEventListener("change", () => {
   state.bugHotfix = Boolean(el.bugHotfix.checked);
   schedulePersistProjectDesk();
 });
+
+for (const btn of [el.deskKindFeature, el.deskKindBug]) {
+  btn?.addEventListener("click", () => {
+    if (state.locked || state.busy) return;
+    const kind = btn.dataset.kind === "bug" ? "bug" : "feature";
+    enterDeskKind(kind);
+    if (kind === "bug" && state.projectPath) {
+      addBubble("bot", t("bot.bugKindPicked"));
+    }
+  });
+}
 
 el.architectureRedesign?.addEventListener("click", () => {
   if (state.busy) return;
