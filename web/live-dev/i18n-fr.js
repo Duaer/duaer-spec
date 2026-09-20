@@ -202,7 +202,7 @@ export const fr = {
   "result.allModulesExtra": "La conception d’architecture peut commencer.",
   "dispatch.taskPool": "Pool de tâches (dépendances / parallèle)",
   "dispatch.taskGraph": "Chemin d’exécution des tâches",
-  "dispatch.taskGraphHint": "Même disposition que l’architecture système ; les couleurs indiquent les voies workers. Cliquez le diagramme pour le plein écran",
+  "dispatch.taskGraphHint": "Même disposition que l’architecture système ; couleurs = voies workers. Plein écran avec nœuds cliquables",
   "dispatch.center": "Centre de dispatch",
   "dispatch.openGraph": "Voir le graphe",
   "dispatch.centerEmpty": "Pas encore de graphe",

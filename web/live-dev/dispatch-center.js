@@ -1,5 +1,6 @@
 /**
  * Standalone dispatch-center page: 100px project rail + task graph.
+ * Graph click opens Archify present (same as system architecture).
  */
 import { t, getLocale, initI18n, onLocaleChange } from "./i18n.js";
 import {
@@ -17,6 +18,7 @@ const mount = document.getElementById("taskGraphMount");
 
 let projects = [];
 let renderSeq = 0;
+let graphUrl = "";
 
 function pathKey(p) {
   return String(p || "")
@@ -36,7 +38,48 @@ function setCurrentPath(path) {
   history.replaceState(null, "", u);
 }
 
+function architecturePresentUrl(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, window.location.origin);
+    u.searchParams.delete("embed");
+    u.searchParams.set("present", "1");
+    return u.href;
+  } catch {
+    const base = raw.split("#")[0];
+    const join = base.includes("?") ? "&" : "?";
+    return `${base}${join}present=1`;
+  }
+}
+
+function openArchitecturePresent(url) {
+  const href = architecturePresentUrl(url);
+  if (!href) return;
+  window.open(href, "_blank", "noopener");
+}
+
+function bindArchitecturePresentClick(host, getUrl) {
+  if (!host || host.dataset.presentBound === "1") return;
+  host.dataset.presentBound = "1";
+  host.classList.add("architecture-mount-clickable");
+  host.addEventListener(
+    "click",
+    (ev) => {
+      if (ev.target.closest?.("button, a, input, textarea, select")) return;
+      const url = typeof getUrl === "function" ? getUrl() : getUrl;
+      const href = String(url || host.dataset.archUrl || "").trim();
+      if (!href) return;
+      ev.preventDefault();
+      ev.stopPropagation();
+      openArchitecturePresent(href);
+    },
+    true,
+  );
+}
+
 function showEmpty() {
+  graphUrl = "";
   clearArchitectureMount(mount);
   if (emptyEl) {
     emptyEl.hidden = false;
@@ -83,6 +126,7 @@ async function renderGraph(projectPath) {
   let modules = [];
   let workerCount = 1;
   let savedTasks = null;
+  let savedGraphUrl = "";
   try {
     const res = await fetch(`/api/projects/chat?path=${encodeURIComponent(path)}`);
     const data = await res.json().catch(() => ({}));
@@ -90,39 +134,51 @@ async function renderGraph(projectPath) {
     modules = Array.isArray(data.modules) ? data.modules : [];
     workerCount = Number(data.workerCount) || 1;
     savedTasks = Array.isArray(data.taskPool?.tasks) ? data.taskPool.tasks : null;
+    savedGraphUrl = String(data.dispatchGraphUrl || "").trim();
   } catch {
     modules = [];
   }
   if (seq !== renderSeq) return;
   const confirmed = modules.filter((m) => m && m.status === "confirmed");
   let ir = null;
-  if (confirmed.length) {
-    ir = buildTaskArchitectureIr(confirmed, workerCount, {
-      title: t("dispatch.taskGraph"),
-      locale: getLocale(),
-    }).ir;
-  } else if (savedTasks?.length) {
+  if (savedTasks?.length) {
     ir = taskPoolToArchitectureIr(savedTasks, {
       title: t("dispatch.taskGraph"),
       workerCount,
       locale: getLocale(),
     });
+  } else if (confirmed.length) {
+    ir = buildTaskArchitectureIr(confirmed, workerCount, {
+      title: t("dispatch.taskGraph"),
+      locale: getLocale(),
+    }).ir;
   }
-  if (!ir?.components?.length) {
+  if (!ir?.components?.length && !savedGraphUrl) {
     showEmpty();
     return;
   }
   try {
-    const res = await fetch("/api/architecture/render", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ir }),
-    });
-    const data = await res.json().catch(() => ({}));
+    let url = savedGraphUrl;
+    if (!url) {
+      const res = await fetch("/api/architecture/render", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ir }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (seq !== renderSeq) return;
+      if (!res.ok) throw new Error(data.error || "render failed");
+      url = String(data.url || "").trim();
+    }
     if (seq !== renderSeq) return;
-    if (!res.ok) throw new Error(data.error || "render failed");
+    if (!url) throw new Error("render failed");
+    graphUrl = url;
     if (emptyEl) emptyEl.hidden = true;
-    await mountArchitectureDiagram(mount, { url: data.url, ir: null });
+    if (mount) {
+      mount.dataset.archUrl = url;
+      bindArchitecturePresentClick(mount, () => graphUrl);
+    }
+    await mountArchitectureDiagram(mount, { url, ir: null });
   } catch {
     if (seq !== renderSeq) return;
     showEmpty();

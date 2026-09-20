@@ -2354,6 +2354,7 @@ async function persistProjectChat() {
         taskPool: state.taskPool,
         workerCount: state.workerCount || 1,
         dispatchGraphReady: Boolean(state.dispatchGraphReady),
+        dispatchGraphUrl: state.dispatchGraphUrl || null,
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
         reviseDraft: (() => {
@@ -2734,6 +2735,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.taskPool = data.taskPool || null;
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
     state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
+    state.dispatchGraphUrl = String(data.dispatchGraphUrl || "").trim() || null;
     if (state.taskPool?.tasks?.length) {
       state.recommendedWorkerCount = recommendWorkerCount(state.taskPool.tasks, {
         max: 4,
@@ -7826,6 +7828,11 @@ if (el.openTaskGraph) {
         el.dispatchErr.hidden = false;
         el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
       }
+      return;
+    }
+    const url = String(state.dispatchGraphUrl || "").trim();
+    if (url) {
+      openArchitecturePresent(url);
       return;
     }
     openDispatchCenterPage(state.projectPath);

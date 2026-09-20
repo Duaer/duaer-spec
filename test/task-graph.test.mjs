@@ -202,7 +202,9 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(html, /architecture-mount/);
   assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
   assert.match(page, /mountArchitectureDiagram\(mount/);
+  assert.match(page, /openArchitecturePresent|present/);
   assert.match(app, /window\.open\(`\/dispatch-center\.html/);
+  assert.match(app, /openArchitecturePresent\(url\)/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
 });

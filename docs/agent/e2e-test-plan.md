@@ -146,6 +146,7 @@ the table for their app.
 | E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图; revise same gate | `npm test` |
 | E2E-175 | Confirm workers → Archify accepts task IR (edge ≥24px); render failure shows in chat | `npm test` + manual |
 | E2E-176 | FDE desk only on :8787; LaunchAgent sets DUAER_LIVE_NO_BROWSER; no alternate desk ports | `npm test` |
+| E2E-177 | 「查看派工图」opens Archify present=1 fullscreen with clickable nodes (same as architecture) | `npm test` + manual |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
@@ -356,3 +357,4 @@ the table for their app.
 | E2E-174 | `229-task-decompose-graph` | decompose → recommend workers → dispatch graph |
 | E2E-175 | `231-graph-edge-spacing` | Archify edge clearance + chat error on fail |
 | E2E-176 | `232-fde-8787-only` | FDE desk port 8787 only + no browser spam |
+| E2E-177 | `233-dispatch-graph-present` | dispatch graph present fullscreen + node click |

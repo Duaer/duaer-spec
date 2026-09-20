@@ -202,7 +202,7 @@ export const vi = {
   "result.allModulesExtra": "Có thể bắt đầu thiết kế kiến trúc.",
   "dispatch.taskPool": "Nhóm nhiệm vụ (phụ thuộc / song song)",
   "dispatch.taskGraph": "Đường thực thi nhiệm vụ",
-  "dispatch.taskGraphHint": "Cùng bố cục với kiến trúc hệ thống; màu thể hiện làn nhân viên. Nhấp sơ đồ để toàn màn hình",
+  "dispatch.taskGraphHint": "Cùng bố cục với kiến trúc hệ thống; màu thể hiện làn nhân viên. Toàn màn hình, nút có thể nhấp",
   "dispatch.center": "Trung tâm điều phối",
   "dispatch.openGraph": "Xem sơ đồ giao việc",
   "dispatch.centerEmpty": "Chưa có sơ đồ",

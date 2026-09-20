@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: dispatch graph opens Archify present fullscreen
+
+- 「查看派工图」opens the same `?present=1` fullscreen canvas as system architecture
+- Node click / passport works in present mode; dispatch-center stage fills the viewport
+
 ### Fix: FDE desk stays on port 8787 only
 
 - Agents must not spawn alternate desk ports; LaunchAgent uses `DUAER_LIVE_NO_BROWSER`

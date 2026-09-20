@@ -202,7 +202,7 @@ export const ko = {
   "result.allModulesExtra": "아키텍처 설계를 시작할 수 있습니다.",
   "dispatch.taskPool": "작업 풀(의존 / 병렬)",
   "dispatch.taskGraph": "작업 실행 경로",
-  "dispatch.taskGraphHint": "시스템 아키텍처와 같은 레이아웃; 색상은 워커 레인. 다이어그램을 클릭하면 전체 화면",
+  "dispatch.taskGraphHint": "시스템 아키텍처와 같은 레이아웃; 색상은 워커 레인. 전체 화면에서 노드 클릭 가능",
   "dispatch.center": "배차 센터",
   "dispatch.openGraph": "파견 그림 보기",
   "dispatch.centerEmpty": "아직 파견 그림이 없습니다",
