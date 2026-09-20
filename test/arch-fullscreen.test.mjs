@@ -41,6 +41,8 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(page, /class="top"/);
   assert.match(page, /id="langSelect"/);
   assert.match(page, /id="historyToggle"/);
+  assert.match(page, /class="top-btn project-badge/);
+  assert.doesNotMatch(page, /id="projectBadge"/);
   assert.match(page, /id="cfgOpen"/);
   assert.match(page, /top-lead-link/);
   assert.match(pageJs, /function wireTopNav|goDesk\("projects"\)/);

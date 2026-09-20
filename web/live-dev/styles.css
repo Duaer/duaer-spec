@@ -229,9 +229,9 @@ body {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
-  max-width: 14rem;
+  max-width: 16rem;
   height: 2rem;
-  padding: 0 0.55rem;
+  padding: 0 0.7rem;
   border: 1px solid var(--line);
   background: var(--plate);
   color: var(--mute);
@@ -243,6 +243,12 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+button.top-btn.project-badge {
+  /* Keep badge look; inherit top-btn hover from .top-actions .top-btn */
+  max-width: min(16rem, 42vw);
 }
 
 .project-badge.is-active {

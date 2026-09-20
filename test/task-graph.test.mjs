@@ -275,9 +275,10 @@ test("live sources wire Archify task graph mount", () => {
     "utf8",
   );
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
-  assert.match(html, /id="taskGraphMount"/);
+  assert.match(html, /id="historyToggle"/);
   assert.match(html, /class="top"/);
-  assert.match(html, /id="langSelect"/);
+  assert.match(html, /project-badge/);
+  assert.doesNotMatch(html, /id="projectBadge"/);
   assert.match(html, /architecture-mount/);
   assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
   assert.match(page, /mountArchitectureDiagram\(mount,\s*\{\s*url,\s*ir:\s*null,\s*stage:\s*true\s*\}\)/);

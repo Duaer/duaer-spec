@@ -16,7 +16,7 @@ import {
 const projectsEl = document.getElementById("dispatchCenterProjects");
 const emptyEl = document.getElementById("dispatchCenterEmpty");
 const mount = document.getElementById("taskGraphMount");
-const projectBadge = document.getElementById("projectBadge");
+const projectToggle = document.getElementById("historyToggle");
 const langSelect = document.getElementById("langSelect");
 const githubStars = document.getElementById("githubStars");
 const githubStarCount = document.getElementById("githubStarCount");
@@ -62,14 +62,20 @@ function goDesk(open) {
 }
 
 function syncProjectBadge() {
-  if (!projectBadge) return;
+  if (!projectToggle) return;
   const path = currentPath();
   const proj = projects.find((p) => pathKey(p.path) === pathKey(path));
   if (!proj) {
-    projectBadge.textContent = t("project.noneBadge");
+    projectToggle.textContent = t("project.noneBadge");
+    projectToggle.classList.add("is-empty");
+    projectToggle.classList.remove("is-active");
     return;
   }
-  projectBadge.textContent = proj.title || proj.name || proj.path;
+  projectToggle.textContent = t("project.activeBadge", {
+    name: proj.title || proj.name || proj.path,
+  });
+  projectToggle.classList.add("is-active");
+  projectToggle.classList.remove("is-empty");
 }
 
 function formatStarCount(n) {
@@ -93,7 +99,7 @@ async function refreshGithubStars() {
 }
 
 function wireTopNav() {
-  document.getElementById("historyToggle")?.addEventListener("click", () => {
+  projectToggle?.addEventListener("click", () => {
     goDesk("projects");
   });
   document.getElementById("employeeToggle")?.addEventListener("click", () => {

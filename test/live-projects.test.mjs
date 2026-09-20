@@ -75,7 +75,10 @@ test("live sources wire project-first APIs and UI", () => {
   assert.match(live, /NEED_TITLE|NEED_DESCRIPTION/);
   assert.match(live, /buildProjectList/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
-  assert.match(html, /data-i18n="project\.toggle"/);
+  assert.match(html, /id="historyToggle"/);
+  assert.match(html, /top-btn project-badge/);
+  assert.match(html, /data-i18n-aria="project\.toggle"/);
+  assert.doesNotMatch(html, /id="projectBadge"/);
   assert.match(html, /id="projectActivate"/);
   assert.match(html, /id="projectTitle"/);
   assert.match(html, /id="projectDescription"/);

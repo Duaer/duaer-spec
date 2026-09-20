@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: merge project badge into one top-nav button
+
+- One control shows the active project (or “no project”) and opens the project drawer
+- Same control on the dispatch-center top nav
+
 ### Feat: bug dispatch path on Duaer desk
 
 - Chat「我要修一个 bug」sets defect card; default skip architecture; short task pool
