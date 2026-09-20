@@ -149,6 +149,7 @@ the table for their app.
 | E2E-177 | 「查看派工图」opens Archify present=1 fullscreen with clickable nodes (same as architecture) | `npm test` + manual |
 | E2E-178 | Dispatch graph present uses noz=1 — node passport without camera zoom | `npm test` + manual |
 | E2E-179 | Dispatch graph nodes show done / in progress / waiting; passport card lists status | `npm test` + manual |
+| E2E-180 | Architecture / 派工图 fullscreen opens via /api/open-external on :8787 (not Cursor proxy ports) | `npm test` + manual |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
@@ -362,3 +363,4 @@ the table for their app.
 | E2E-177 | `233-dispatch-graph-present` | dispatch graph present fullscreen + node click |
 | E2E-178 | `234-dispatch-no-zoom` | present noz — passport without zoom |
 | E2E-179 | `235-dispatch-node-status` | node run status on graph + passport |
+| E2E-180 | `236-open-external-8787` | OS browser open for desk URLs on :8787 |

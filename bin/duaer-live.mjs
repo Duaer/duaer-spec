@@ -6498,6 +6498,22 @@ async function handleApi(req, res) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/open-external") {
+    try {
+      const body = await readJson(req);
+      const target = String(body.url || body.href || "").trim();
+      const opened = openExternalHttpUrl(target);
+      send(res, 200, { ok: true, url: opened });
+    } catch (err) {
+      const code = err?.code === "FORBIDDEN" ? 403 : 400;
+      send(res, code, {
+        error: err instanceof Error ? err.message : "open-external failed",
+        code: err?.code,
+      });
+    }
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/reveal") {
     try {
       const body = await readJson(req);
@@ -6954,6 +6970,65 @@ function cmdConfig(opts) {
   }
 }
 
+/**
+ * Allow only this FDE desk origin so callers cannot open arbitrary URLs.
+ * @param {string} raw
+ * @returns {string} normalized href
+ */
+function assertDeskExternalUrl(raw) {
+  const target = String(raw || "").trim();
+  if (!target) {
+    const e = new Error("url required");
+    e.code = "EMPTY";
+    throw e;
+  }
+  let u;
+  try {
+    u = new URL(target, "http://127.0.0.1:8787");
+  } catch {
+    const e = new Error("invalid url");
+    e.code = "FORBIDDEN";
+    throw e;
+  }
+  // Cursor IDE Browser proxies desk pages on random high ports (:64074).
+  // Remap any local http desk URL onto the real FDE origin before open.
+  if (
+    u.protocol === "http:" &&
+    (u.hostname === "127.0.0.1" || u.hostname === "localhost")
+  ) {
+    u.hostname = "127.0.0.1";
+    u.port = "8787";
+    return u.href;
+  }
+  const e = new Error("only http://127.0.0.1:8787 URLs are allowed");
+  e.code = "FORBIDDEN";
+  throw e;
+}
+
+/**
+ * Open a desk URL in the OS default browser (Safari/Chrome), not Cursor's
+ * IDE Browser proxy (which shows random high ports like :64074).
+ * @param {string} raw
+ */
+function openExternalHttpUrl(raw) {
+  const href = assertDeskExternalUrl(raw);
+  try {
+    if (process.platform === "darwin") {
+      spawn("open", [href], { detached: true, stdio: "ignore" }).unref();
+    } else if (process.platform === "win32") {
+      spawn("cmd", ["/c", "start", "", href], {
+        detached: true,
+        stdio: "ignore",
+      }).unref();
+    } else {
+      spawn("xdg-open", [href], { detached: true, stdio: "ignore" }).unref();
+    }
+  } catch {
+    /* ignore */
+  }
+  return href;
+}
+
 function openDeskInBrowser(url) {
   const target = String(url || "").trim();
   if (!target) return;
@@ -6963,20 +7038,7 @@ function openDeskInBrowser(url) {
     process.env.DUAER_LIVE_NO_BROWSER === "1" ||
     process.env.DUAER_LIVE_NO_BROWSER === "true";
   if (skip) return;
-  try {
-    if (process.platform === "darwin") {
-      spawn("open", [target], { detached: true, stdio: "ignore" }).unref();
-    } else if (process.platform === "win32") {
-      spawn("cmd", ["/c", "start", "", target], {
-        detached: true,
-        stdio: "ignore",
-      }).unref();
-    } else {
-      spawn("xdg-open", [target], { detached: true, stdio: "ignore" }).unref();
-    }
-  } catch {
-    /* ignore — operator can open the printed URL */
-  }
+  openExternalHttpUrl(target);
 }
 
 function serve(port) {

@@ -1284,7 +1284,7 @@ function invalidateDispatchAfterArchChange() {
 function openDispatchCenterPage(projectPath) {
   const path = String(projectPath || state.projectPath || "").trim();
   const q = path ? `?path=${encodeURIComponent(path)}` : "";
-  window.open(`/dispatch-center.html${q}`, "duaer-dispatch-center");
+  void openExternalDeskUrl(`/dispatch-center.html${q}`);
 }
 
 function reviseCardValues() {
@@ -1419,28 +1419,72 @@ function renderReviseArchBlock(arch, { baseline = false } = {}) {
   </div>`;
 }
 
+/** Real FDE desk — never Cursor IDE Browser proxy origins (:64074, …). */
+const DESK_ORIGIN = "http://127.0.0.1:8787";
+
+/**
+ * Rewrite relative / localhost desk URLs onto :8787 so open-external
+ * does not reject Cursor proxy origins and fall back to window.open.
+ */
+function toDeskExternalHref(href) {
+  const raw = String(href || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, DESK_ORIGIN);
+    if (u.protocol !== "http:") return "";
+    if (u.hostname !== "127.0.0.1" && u.hostname !== "localhost") return "";
+    u.hostname = "127.0.0.1";
+    u.port = "8787";
+    return u.href;
+  } catch {
+    return "";
+  }
+}
+
 function architecturePresentUrl(url, opts = {}) {
   const raw = String(url || "").trim();
   if (!raw) return "";
   try {
-    const u = new URL(raw, window.location.origin);
+    const u = new URL(raw, DESK_ORIGIN);
     u.searchParams.delete("embed");
     u.searchParams.set("present", "1");
     if (opts.noZoom) u.searchParams.set("noz", "1");
     else u.searchParams.delete("noz");
-    return u.href;
+    return toDeskExternalHref(u.href) || u.href;
   } catch {
     const base = raw.split("#")[0];
     const join = base.includes("?") ? "&" : "?";
     const noz = opts.noZoom ? "&noz=1" : "";
-    return `${base}${join}present=1${noz}`;
+    return toDeskExternalHref(`${base}${join}present=1${noz}`);
   }
+}
+
+/**
+ * Open a desk URL in the OS browser via /api/open-external so Cursor IDE
+ * Browser does not invent random high ports (:64074).
+ */
+async function openExternalDeskUrl(href) {
+  const target = toDeskExternalHref(href);
+  if (!target) return false;
+  try {
+    const res = await fetch("/api/open-external", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: target }),
+    });
+    if (res.ok) return true;
+  } catch {
+    /* fall through */
+  }
+  // Last resort: still prefer :8787 (OS may pick it up); avoid proxy origin.
+  window.open(target, "_blank", "noopener");
+  return false;
 }
 
 function openArchitecturePresent(url, opts = {}) {
   const href = architecturePresentUrl(url, opts);
   if (!href) return;
-  window.open(href, "_blank", "noopener");
+  void openExternalDeskUrl(href);
 }
 
 function bindArchitecturePresentClick(host, getUrl) {

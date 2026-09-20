@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: open architecture / 派工图 via OS browser on :8787
+
+- `POST /api/open-external` remaps localhost proxy ports onto `:8787` and runs OS `open`
+- Desk client always canonicalizes with `toDeskExternalHref` (never proxy `window.location.origin`)
+- Avoids Cursor IDE Browser proxy tabs (`:64074` etc.) mistaken for extra desks
+
 ### Feat: dispatch graph shows task run status on nodes
 
 - Node colors + tags: 已完成 / 进行中 / 等待中 from live progress
