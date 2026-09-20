@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Feat: all durable live desk state in SQLite
+
+- Config, repos, live jobs, and project sessions live in `~/.duaer/live/desk.sqlite`
+- Legacy `config.json` / `repos.json` / `jobs/*` / `project-chats/*.json` import on open
+- Schema version 2; later releases migrate on open
+- `architecture/` HTML stays a regenerable disk cache
+- Live data is per-machine only — never packaged with duaer-spec
+
 ### Feat: desk project sessions in SQLite
 
 - Project desk sessions live in `~/.duaer/live/desk.sqlite` (Node built-in `node:sqlite`)

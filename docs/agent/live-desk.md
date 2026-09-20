@@ -1,8 +1,10 @@
 # Duaer-spec FDE (live desk)
 
-Field Development Environment for digital employees. Config and Briefs live under
-`~/.duaer/live/`. Product work runs in isolated worktrees inside the chosen
-product repo.
+Field Development Environment for digital employees. Durable state lives in
+`~/.duaer/live/desk.sqlite` (config, repos, jobs, project sessions). That
+directory is **per-machine only** — it is never part of the npm package; each
+user starts with an empty live root. Product work runs in isolated worktrees
+inside the chosen product repo.
 
 `duaer live` always starts the desk and opens the browser URL. A missing model
 does not block startup — the Settings drawer opens so the operator can save
@@ -25,8 +27,8 @@ Three columns:
 The **Projects** drawer lists remembered product folders. Each row shows a
 **delivery status** chip (`drafting` / `confirming` / `building` / `delivered` /
 `revising`) derived from the per-project session in
-`~/.duaer/live/desk.sqlite` (legacy `project-chats/*.json` is imported on
-first open). When the session has anything to show, a short
+`~/.duaer/live/desk.sqlite` (legacy `project-chats/*.json`, `config.json`,
+`repos.json`, and `jobs/*` import on first open after upgrade). When the session has anything to show, a short
 **Deliverables** control opens the dossier without hunting through progress.
 
 `GET /api/projects` includes `deliveryStatus`, `nextAction`, and

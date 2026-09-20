@@ -2,8 +2,11 @@
  * Duaer-spec FDE (现场开发) — isolated desk (not the user's product repo).
  *
  * Workspace: ~/.duaer/live/  (override with DUAER_HOME)
- *   config.json   model settings
- *   jobs/<nnn-*>  confirmed Briefs
+ *   desk.sqlite   durable state (config, repos, jobs, project sessions)
+ *   jobs/<nnn-*>  materialized Brief dirs (mirror of SQLite; for agent paths)
+ *   architecture/ regenerable HTML cache
+ *
+ * Live data is per-machine only — never packaged with duaer-spec.
  *
  * Usage:
  *   duaer live [--port 8787]
@@ -62,6 +65,16 @@ import {
   readProjectChat,
   writeProjectChat,
 } from "./live-project-chat.mjs";
+import {
+  ensureJobDirMaterialized,
+  listJobsFromDb,
+  loadDeskConfig,
+  loadDeskReposDoc,
+  openDeskDb,
+  saveDeskConfig,
+  saveDeskReposDoc,
+  syncJobDirToDb,
+} from "./live-desk-db.mjs";
 import {
   buildDeliverablesModel,
   renderDeliverablesHtml,
@@ -325,6 +338,7 @@ function jobsRoot() {
 function ensureLiveDirs() {
   fs.mkdirSync(liveRoot(), { recursive: true });
   fs.mkdirSync(jobsRoot(), { recursive: true });
+  openDeskDb(liveRoot());
 }
 
 function emptyLiveConfig() {
@@ -355,30 +369,8 @@ function envPick(...keys) {
 
 function readConfig() {
   ensureLiveDirs();
-  const p = configPath();
-  if (!fs.existsSync(p)) {
-    return {
-      ...emptyLiveConfig(),
-      baseUrl: String(process.env.DUAER_LIVE_BASE_URL || "").trim(),
-      apiKey: String(process.env.DUAER_LIVE_API_KEY || "").trim(),
-      model: String(process.env.DUAER_LIVE_MODEL || "").trim(),
-      aliyunAccessKeyId: envPick(
-        "ALIBABA_CLOUD_ACCESS_KEY_ID",
-        "ALIYUN_ACCESS_KEY_ID",
-      ),
-      aliyunAccessKeySecret: envPick(
-        "ALIBABA_CLOUD_ACCESS_KEY_SECRET",
-        "ALIYUN_ACCESS_KEY_SECRET",
-      ),
-      cloudflareApiToken: envPick("CLOUDFLARE_API_TOKEN"),
-      cloudflareAccountId: envPick("CLOUDFLARE_ACCOUNT_ID"),
-      awsAccessKeyId: envPick("AWS_ACCESS_KEY_ID"),
-      awsSecretAccessKey: envPick("AWS_SECRET_ACCESS_KEY"),
-      awsRegion: envPick("AWS_DEFAULT_REGION", "AWS_REGION"),
-    };
-  }
+  const raw = loadDeskConfig(liveRoot()) || {};
   try {
-    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
     return {
       baseUrl: String(raw.baseUrl || process.env.DUAER_LIVE_BASE_URL || "").trim(),
       apiKey: String(raw.apiKey || process.env.DUAER_LIVE_API_KEY || "").trim(),
@@ -444,12 +436,7 @@ function writeConfig(partial) {
     awsSecretAccessKey: pick("awsSecretAccessKey"),
     awsRegion: pick("awsRegion"),
   };
-  fs.writeFileSync(configPath(), `${JSON.stringify(next, null, 2)}\n`, "utf8");
-  try {
-    fs.chmodSync(configPath(), 0o600);
-  } catch {
-    // best-effort; Windows may ignore
-  }
+  saveDeskConfig(liveRoot(), next);
   return next;
 }
 
@@ -1401,6 +1388,8 @@ Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product re
     "utf8",
   );
 
+  syncJobDirToDb(liveRoot(), dirName);
+
   const agentPrompt = `Duaer-spec FDE 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
@@ -1427,14 +1416,9 @@ function reposFile() {
 
 function readRepos() {
   ensureLiveDirs();
-  const p = reposFile();
-  if (!fs.existsSync(p)) return [];
-  try {
-    const raw = JSON.parse(fs.readFileSync(p, "utf8"));
-    return Array.isArray(raw.repos) ? raw.repos : [];
-  } catch {
-    return [];
-  }
+  const doc = loadDeskReposDoc(liveRoot());
+  if (!doc) return [];
+  return Array.isArray(doc.repos) ? doc.repos : [];
 }
 
 function normalizeRepoPath(repoPath) {
@@ -1469,11 +1453,7 @@ function rememberRepo(repoPath, extra = {}) {
     },
     ...readRepos().filter((r) => normalizeRepoPath(r.path) !== abs),
   ].slice(0, 40);
-  fs.writeFileSync(
-    reposFile(),
-    `${JSON.stringify({ repos: next }, null, 2)}\n`,
-    "utf8",
-  );
+  saveDeskReposDoc(liveRoot(), { repos: next });
   return next;
 }
 
@@ -2086,12 +2066,19 @@ function nextSpecNum(specsRoot) {
   return max + 1;
 }
 
+function persistLiveJob(live, nextJob) {
+  const job = nextJob || live.job;
+  fs.writeFileSync(live.jobPath, `${JSON.stringify(job, null, 2)}\n`, "utf8");
+  live.job = job;
+  syncJobDirToDb(liveRoot(), live.id);
+}
+
 function readLiveJob(jobId) {
   const id = String(jobId || "").trim();
   if (!id) throw new Error("jobId required");
-  const featureDir = path.join(jobsRoot(), id);
-  if (!fs.existsSync(featureDir)) throw new Error(`找不到 live job：${id}`);
+  const featureDir = ensureJobDirMaterialized(liveRoot(), id);
   const jobPath = path.join(featureDir, "job.json");
+  if (!fs.existsSync(jobPath)) throw new Error(`找不到 live job：${id}`);
   const job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
   return {
     id,
@@ -2199,38 +2186,19 @@ function activateProject(body = {}) {
 /** Newest-first list of live jobs for history UI. */
 function listLiveJobs({ limit = 40 } = {}) {
   ensureLiveDirs();
-  const root = jobsRoot();
   const max = Math.min(Math.max(Number(limit) || 40, 1), 100);
-  let names = [];
-  try {
-    names = fs.readdirSync(root).filter((n) => {
-      try {
-        return fs.statSync(path.join(root, n)).isDirectory();
-      } catch {
-        return false;
-      }
-    });
-  } catch {
-    return [];
-  }
-
   const rows = [];
-  for (const id of names) {
-    const jobPath = path.join(root, id, "job.json");
-    const specPath = path.join(root, id, "spec.md");
-    if (!fs.existsSync(jobPath)) continue;
+  for (const row of listJobsFromDb(liveRoot())) {
+    const id = row.id;
+    ensureJobDirMaterialized(liveRoot(), id);
     let job = {};
     let spec = "";
     try {
-      job = JSON.parse(fs.readFileSync(jobPath, "utf8"));
+      job = JSON.parse(String(row.files["job.json"] || "{}"));
     } catch {
       continue;
     }
-    try {
-      if (fs.existsSync(specPath)) spec = fs.readFileSync(specPath, "utf8");
-    } catch {
-      spec = "";
-    }
+    spec = String(row.files["spec.md"] || "");
     const goal =
       extractSection(spec, "Goal").split(/\n/)[0]?.trim() ||
       jobTitleFromSpec(spec) ||
@@ -2240,6 +2208,7 @@ function listLiveJobs({ limit = 40 } = {}) {
       job.revisedAt ||
       job.dispatch?.dispatchedAt ||
       job.confirmedAt ||
+      row.updatedAt ||
       null;
     rows.push({
       id,
@@ -2256,13 +2225,7 @@ function listLiveJobs({ limit = 40 } = {}) {
       branch: job.dispatch?.branch || job.branch || null,
     });
   }
-
-  rows.sort((a, b) => {
-    const ta = Date.parse(a.at || a.confirmedAt || "") || 0;
-    const tb = Date.parse(b.at || b.confirmedAt || "") || 0;
-    if (tb !== ta) return tb - ta;
-    return String(b.id).localeCompare(String(a.id));
-  });
+  rows.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
   return rows.slice(0, max);
 }
 
@@ -3501,7 +3464,7 @@ function dispatchToRepo({
         modules,
         modular: true,
       };
-      fs.writeFileSync(live.jobPath, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+      persistLiveJob(live, next);
     } catch {
       /* ignore */
     }
@@ -3868,7 +3831,7 @@ ${DISPATCH_MUST_FINISH_RULES}
     taskPool,
     orchestration,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
   rememberRepo(probe.path, { baseBranch: probe.baseBranch });
 
   return {
@@ -3908,7 +3871,7 @@ function launchDispatchedAgent({ jobId, agentId }) {
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
   return {
     ok: true,
     jobId: live.id,
@@ -4397,7 +4360,7 @@ ${DISPATCH_MUST_FINISH_RULES}
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
 
   return {
     ok: true,
@@ -4638,7 +4601,7 @@ ${
     agentPrompt,
     dispatch: nextDispatch,
   };
-  fs.writeFileSync(live.jobPath, `${JSON.stringify(nextJob, null, 2)}\n`, "utf8");
+  persistLiveJob(live, nextJob);
 
   return {
     ok: true,
@@ -4941,11 +4904,7 @@ function syncJobResults(live, roots, { preview, revision, accepted }) {
   if (prev !== next) {
     try {
       const nextJob = { ...live.job, results };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore persist errors; still return computed list
@@ -5298,11 +5257,7 @@ ${DISPATCH_MUST_FINISH_RULES}
         dispatch: nextDispatch,
         orchestration: nextOrch,
       };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore persist errors; still return computed orch
@@ -5494,11 +5449,7 @@ function dispatchStatus(jobId) {
           status: "dispatched",
           dispatch: dispatchDirty ? nextDispatch : live.job.dispatch,
         };
-        fs.writeFileSync(
-          live.jobPath,
-          `${JSON.stringify(nextJob, null, 2)}\n`,
-          "utf8",
-        );
+        persistLiveJob(live, nextJob);
         live.job = nextJob;
         dispatchDirty = false;
       } catch {
@@ -5508,11 +5459,7 @@ function dispatchStatus(jobId) {
     if (dispatchDirty) {
       try {
         const nextJob = { ...live.job, dispatch: nextDispatch };
-        fs.writeFileSync(
-          live.jobPath,
-          `${JSON.stringify(nextJob, null, 2)}\n`,
-          "utf8",
-        );
+        persistLiveJob(live, nextJob);
         live.job = nextJob;
       } catch {
         // ignore
@@ -5564,11 +5511,7 @@ function dispatchStatus(jobId) {
             ? "accepted"
             : live.job.status,
       };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore
@@ -5596,11 +5539,7 @@ function dispatchStatus(jobId) {
   ) {
     try {
       const nextJob = { ...live.job, status: "accepted" };
-      fs.writeFileSync(
-        live.jobPath,
-        `${JSON.stringify(nextJob, null, 2)}\n`,
-        "utf8",
-      );
+      persistLiveJob(live, nextJob);
       live.job = nextJob;
     } catch {
       // ignore

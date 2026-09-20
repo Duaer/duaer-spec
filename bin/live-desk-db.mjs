@@ -1,5 +1,5 @@
 /**
- * FDE desk SQLite: project sessions + schema migrations + legacy JSON import.
+ * FDE desk SQLite: sessions, config, repos, jobs + schema migrations + legacy import.
  */
 
 import fs from "node:fs";
@@ -8,7 +8,7 @@ import { DatabaseSync } from "node:sqlite";
 import { projectChatKey } from "./live-project-chat-key.mjs";
 
 /** Bump when adding a migration in MIGRATIONS. */
-export const DESK_SCHEMA_VERSION = 1;
+export const DESK_SCHEMA_VERSION = 2;
 
 const openDbs = new Map();
 
@@ -32,6 +32,20 @@ const MIGRATIONS = [
       );
       CREATE INDEX IF NOT EXISTS idx_project_sessions_updated
         ON project_sessions(updated_at);
+    `);
+  },
+  (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS desk_kv (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS jobs (
+        id TEXT PRIMARY KEY NOT NULL,
+        updated_at TEXT,
+        files_json TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_jobs_updated ON jobs(updated_at);
     `);
   },
 ];
@@ -147,9 +161,190 @@ export function importLegacyProjectChats(db, liveRoot) {
   return { imported, skipped };
 }
 
+function kvGet(db, key) {
+  const row = db
+    .prepare("SELECT value FROM desk_kv WHERE key = ?")
+    .get(String(key));
+  return row ? String(row.value) : null;
+}
+
+function kvSet(db, key, value) {
+  db.prepare(
+    `INSERT INTO desk_kv(key, value) VALUES(?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+  ).run(String(key), String(value));
+}
+
+/**
+ * Import config.json / repos.json when desk_kv keys are empty.
+ * @returns {{ config: boolean, repos: boolean }}
+ */
+export function importLegacyConfigRepos(db, liveRoot) {
+  const root = String(liveRoot || "");
+  let config = false;
+  let repos = false;
+  if (!kvGet(db, "config")) {
+    const p = path.join(root, "config.json");
+    if (fs.existsSync(p)) {
+      try {
+        const raw = fs.readFileSync(p, "utf8");
+        JSON.parse(raw);
+        kvSet(db, "config", raw);
+        config = true;
+      } catch {
+        // leave empty
+      }
+    }
+  }
+  if (!kvGet(db, "repos")) {
+    const p = path.join(root, "repos.json");
+    if (fs.existsSync(p)) {
+      try {
+        const raw = fs.readFileSync(p, "utf8");
+        JSON.parse(raw);
+        kvSet(db, "repos", raw);
+        repos = true;
+      } catch {
+        // leave empty
+      }
+    }
+  }
+  writeMeta(db, "legacy_kv_import", "v1");
+  return { config, repos };
+}
+
+/**
+ * Walk a job directory into a relpath → utf8 content map.
+ * @param {string} jobDir
+ * @returns {Record<string, string>}
+ */
+export function readJobDirFiles(jobDir) {
+  const abs = path.resolve(String(jobDir || ""));
+  const out = {};
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) return out;
+
+  function walk(dir, prefix) {
+    let names;
+    try {
+      names = fs.readdirSync(dir);
+    } catch {
+      return;
+    }
+    for (const name of names) {
+      if (name === "." || name === "..") continue;
+      const full = path.join(dir, name);
+      const rel = prefix ? `${prefix}/${name}` : name;
+      let st;
+      try {
+        st = fs.statSync(full);
+      } catch {
+        continue;
+      }
+      if (st.isDirectory()) {
+        walk(full, rel);
+        continue;
+      }
+      if (!st.isFile()) continue;
+      try {
+        const buf = fs.readFileSync(full);
+        if (buf.includes(0)) {
+          out[rel] = `base64:${buf.toString("base64")}`;
+        } else {
+          out[rel] = buf.toString("utf8");
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+
+  walk(abs, "");
+  return out;
+}
+
+/**
+ * Write a files map onto disk under jobDir (creates dirs).
+ * @param {string} jobDir
+ * @param {Record<string, string>} files
+ */
+export function materializeJobDir(jobDir, files) {
+  const abs = path.resolve(String(jobDir || ""));
+  fs.mkdirSync(abs, { recursive: true });
+  const map = files && typeof files === "object" ? files : {};
+  for (const [rel, content] of Object.entries(map)) {
+    const safe = String(rel || "").replace(/^[/\\]+/, "").replace(/\0/g, "");
+    if (!safe || safe.includes("..")) continue;
+    const full = path.join(abs, safe);
+    fs.mkdirSync(path.dirname(full), { recursive: true });
+    const text = String(content ?? "");
+    if (text.startsWith("base64:")) {
+      fs.writeFileSync(full, Buffer.from(text.slice(7), "base64"));
+    } else {
+      fs.writeFileSync(full, text, "utf8");
+    }
+  }
+}
+
+/**
+ * Import jobs/* directories not already in the DB.
+ * @returns {{ imported: number, skipped: number }}
+ */
+export function importLegacyJobs(db, liveRoot) {
+  const root = path.join(String(liveRoot || ""), "jobs");
+  if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
+    return { imported: 0, skipped: 0 };
+  }
+  let imported = 0;
+  let skipped = 0;
+  const insert = db.prepare(
+    `INSERT INTO jobs(id, updated_at, files_json) VALUES(?, ?, ?)
+     ON CONFLICT(id) DO NOTHING`,
+  );
+  let names = [];
+  try {
+    names = fs.readdirSync(root);
+  } catch {
+    return { imported: 0, skipped: 0 };
+  }
+  for (const id of names) {
+    const dir = path.join(root, id);
+    try {
+      if (!fs.statSync(dir).isDirectory()) {
+        skipped += 1;
+        continue;
+      }
+    } catch {
+      skipped += 1;
+      continue;
+    }
+    const files = readJobDirFiles(dir);
+    if (!files["job.json"]) {
+      skipped += 1;
+      continue;
+    }
+    let updatedAt = null;
+    try {
+      const job = JSON.parse(files["job.json"]);
+      updatedAt =
+        job.dispatch?.revisedAt ||
+        job.revisedAt ||
+        job.dispatch?.dispatchedAt ||
+        job.confirmedAt ||
+        null;
+    } catch {
+      updatedAt = null;
+    }
+    const info = insert.run(id, updatedAt, JSON.stringify(files));
+    if (Number(info.changes) > 0) imported += 1;
+    else skipped += 1;
+  }
+  writeMeta(db, "legacy_jobs_import", "v1");
+  return { imported, skipped };
+}
+
 /**
  * Open (or reuse) the desk database for a live root.
- * Runs schema migrations and legacy JSON import.
+ * Runs schema migrations and legacy imports.
  * @param {string} liveRoot
  */
 export function openDeskDb(liveRoot) {
@@ -167,6 +362,8 @@ export function openDeskDb(liveRoot) {
   }
   migrateDeskSchema(db);
   importLegacyProjectChats(db, root);
+  importLegacyConfigRepos(db, root);
+  importLegacyJobs(db, root);
   openDbs.set(root, db);
   return db;
 }
@@ -229,4 +426,150 @@ export function saveSessionPayload(liveRoot, doc) {
        updated_at = excluded.updated_at,
        payload = excluded.payload`,
   ).run(key, projectPath, updatedAt, payload);
+}
+
+/** @returns {object|null} parsed config object */
+export function loadDeskConfig(liveRoot) {
+  const db = openDeskDb(liveRoot);
+  const raw = kvGet(db, "config");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** @param {object} cfg */
+export function saveDeskConfig(liveRoot, cfg) {
+  const db = openDeskDb(liveRoot);
+  kvSet(db, "config", `${JSON.stringify(cfg, null, 2)}\n`);
+}
+
+/** @returns {{ repos: object[] }|null} */
+export function loadDeskReposDoc(liveRoot) {
+  const db = openDeskDb(liveRoot);
+  const raw = kvGet(db, "repos");
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/** @param {{ repos: object[] }} doc */
+export function saveDeskReposDoc(liveRoot, doc) {
+  const db = openDeskDb(liveRoot);
+  kvSet(db, "repos", `${JSON.stringify(doc, null, 2)}\n`);
+}
+
+/**
+ * Upsert a live job from a files map.
+ * @param {string} liveRoot
+ * @param {string} jobId
+ * @param {Record<string, string>} files
+ * @param {string|null} [updatedAt]
+ */
+export function saveJobFiles(liveRoot, jobId, files, updatedAt = null) {
+  const id = String(jobId || "").trim();
+  if (!id) throw new Error("jobId required");
+  const db = openDeskDb(liveRoot);
+  let at = updatedAt;
+  if (!at) {
+    try {
+      const job = JSON.parse(String(files?.["job.json"] || "{}"));
+      at =
+        job.dispatch?.revisedAt ||
+        job.revisedAt ||
+        job.dispatch?.dispatchedAt ||
+        job.confirmedAt ||
+        new Date().toISOString();
+    } catch {
+      at = new Date().toISOString();
+    }
+  }
+  db.prepare(
+    `INSERT INTO jobs(id, updated_at, files_json) VALUES(?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       updated_at = excluded.updated_at,
+       files_json = excluded.files_json`,
+  ).run(id, at, JSON.stringify(files || {}));
+}
+
+/**
+ * Snapshot a job directory into SQLite (and keep the directory).
+ * @param {string} liveRoot
+ * @param {string} jobId
+ */
+export function syncJobDirToDb(liveRoot, jobId) {
+  const id = String(jobId || "").trim();
+  if (!id) return;
+  const dir = path.join(String(liveRoot || ""), "jobs", id);
+  const files = readJobDirFiles(dir);
+  if (!Object.keys(files).length) return;
+  saveJobFiles(liveRoot, id, files);
+}
+
+/**
+ * @param {string} liveRoot
+ * @param {string} jobId
+ * @returns {Record<string, string>|null}
+ */
+export function loadJobFiles(liveRoot, jobId) {
+  const id = String(jobId || "").trim();
+  if (!id) return null;
+  const db = openDeskDb(liveRoot);
+  const row = db
+    .prepare("SELECT files_json FROM jobs WHERE id = ? LIMIT 1")
+    .get(id);
+  if (!row?.files_json) return null;
+  try {
+    const parsed = JSON.parse(String(row.files_json));
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Ensure jobs/<id> exists on disk from SQLite (no-op if already present with job.json).
+ * @param {string} liveRoot
+ * @param {string} jobId
+ * @returns {string} absolute job dir
+ */
+export function ensureJobDirMaterialized(liveRoot, jobId) {
+  const id = String(jobId || "").trim();
+  const dir = path.join(String(liveRoot || ""), "jobs", id);
+  const jobJson = path.join(dir, "job.json");
+  if (fs.existsSync(jobJson)) return dir;
+  const files = loadJobFiles(liveRoot, id);
+  if (files) materializeJobDir(dir, files);
+  return dir;
+}
+
+/**
+ * @param {string} liveRoot
+ * @returns {Array<{ id: string, updatedAt: string|null, files: Record<string, string> }>}
+ */
+export function listJobsFromDb(liveRoot) {
+  const db = openDeskDb(liveRoot);
+  const rows = db
+    .prepare("SELECT id, updated_at, files_json FROM jobs")
+    .all();
+  const out = [];
+  for (const row of rows) {
+    let files = {};
+    try {
+      files = JSON.parse(String(row.files_json || "{}")) || {};
+    } catch {
+      files = {};
+    }
+    out.push({
+      id: String(row.id),
+      updatedAt: row.updated_at || null,
+      files,
+    });
+  }
+  return out;
 }

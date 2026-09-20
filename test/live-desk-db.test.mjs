@@ -9,9 +9,16 @@ import test from "node:test";
 import {
   DESK_SCHEMA_VERSION,
   closeDeskDb,
+  ensureJobDirMaterialized,
   importLegacyProjectChats,
+  listJobsFromDb,
+  loadDeskConfig,
+  loadDeskReposDoc,
+  loadJobFiles,
   migrateDeskSchema,
   openDeskDb,
+  saveDeskConfig,
+  saveJobFiles,
 } from "../bin/live-desk-db.mjs";
 import {
   projectChatKey,
@@ -135,8 +142,75 @@ test("future migration slot can bump schema_version", () => {
       .prepare("SELECT value FROM meta WHERE key = ?")
       .get("schema_version");
     assert.equal(Number(row.value), DESK_SCHEMA_VERSION);
+    assert.ok(
+      opened.prepare("SELECT name FROM sqlite_master WHERE name = 'desk_kv'").get(),
+    );
+    assert.ok(
+      opened.prepare("SELECT name FROM sqlite_master WHERE name = 'jobs'").get(),
+    );
     closeDeskDb(root);
   } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("legacy config and repos import into desk_kv", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-kv-"));
+  try {
+    fs.writeFileSync(
+      path.join(root, "config.json"),
+      `${JSON.stringify({ model: "m1", apiKey: "k", baseUrl: "https://x" }, null, 2)}\n`,
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(root, "repos.json"),
+      `${JSON.stringify({ repos: [{ path: "/tmp/app", name: "app" }] }, null, 2)}\n`,
+      "utf8",
+    );
+    openDeskDb(root);
+    const cfg = loadDeskConfig(root);
+    assert.equal(cfg.model, "m1");
+    const repos = loadDeskReposDoc(root);
+    assert.equal(repos.repos[0].name, "app");
+    saveDeskConfig(root, { ...cfg, model: "m2" });
+    closeDeskDb(root);
+    assert.equal(loadDeskConfig(root).model, "m2");
+  } finally {
+    closeDeskDb(root);
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("legacy jobs import and round-trip through SQLite", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-jobs-"));
+  const jobId = "001-demo";
+  const jobDir = path.join(root, "jobs", jobId);
+  try {
+    fs.mkdirSync(jobDir, { recursive: true });
+    fs.writeFileSync(
+      path.join(jobDir, "job.json"),
+      `${JSON.stringify({ id: jobId, status: "confirmed", confirmedAt: "2026-01-02T00:00:00.000Z" }, null, 2)}\n`,
+      "utf8",
+    );
+    fs.writeFileSync(path.join(jobDir, "spec.md"), "# Goal\n\nShip it\n", "utf8");
+    fs.writeFileSync(path.join(jobDir, "tasks.md"), "- [ ] T001\n", "utf8");
+    openDeskDb(root);
+    const listed = listJobsFromDb(root);
+    assert.equal(listed.length, 1);
+    assert.equal(listed[0].id, jobId);
+    assert.match(listed[0].files["spec.md"], /Ship it/);
+    // Remove disk mirror and rematerialize from DB
+    fs.rmSync(jobDir, { recursive: true, force: true });
+    const restored = ensureJobDirMaterialized(root, jobId);
+    assert.ok(fs.existsSync(path.join(restored, "job.json")));
+    assert.match(fs.readFileSync(path.join(restored, "spec.md"), "utf8"), /Ship it/);
+    saveJobFiles(root, jobId, {
+      ...listed[0].files,
+      "tasks.md": "- [x] T001\n",
+    });
+    assert.match(loadJobFiles(root, jobId)["tasks.md"], /\[x\]/);
+  } finally {
+    closeDeskDb(root);
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
