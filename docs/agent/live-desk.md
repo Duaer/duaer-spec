@@ -171,6 +171,9 @@ Additional notes:
   → decompose / recommend workers / confirm graph → relaunch on the same
   worktree (preempt leftover Agents, then enqueue).
   Progress tracks `R{n}-*` tasks for that revision.
+- **After deploy** (and whenever the result bar is visible):「再改一版」and
+  「修 bug」remain available. Deploy is not an end state; later iterations and
+  defect feedback continue on the same project timeline.
 
 ## Verification
 

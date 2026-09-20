@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: keep 再改一版 / 修 bug on the result bar after deploy
+
+- Result CTAs stay available whenever the result bar is visible (deploy / revise
+  wave no longer hides them)
+
 ### Fix: keep chat quick-nav visible inside the chat column
 
 - Pin「导航」inside the chat panel (no half-clip under the middle column)

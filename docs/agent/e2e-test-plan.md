@@ -163,6 +163,7 @@ the table for their app.
 | E2E-191 | Bug chat / validate autofill project delivery facts (no re-ask URL/start/env) | `npm test` + `npm run test:live` + manual |
 | E2E-192 | Project timeline merges initial/revise/bug by time; chat quick-nav jumps to 4 anchors | `npm test` + `npm run test:live` + manual |
 | E2E-193 | Chat quick-nav stays visible inside chat column (not clipped/covered) | `npm run test:live` + manual |
+| E2E-194 | After deploy, result bar still offers 再改一版 and 修 bug | `npm run test:live` + manual |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -391,4 +392,5 @@ the table for their app.
 | E2E-191 | `246-bug-chat-autofill` | bug chat autofills delivery facts |
 | E2E-192 | `247-timeline-quicknav` | timeline sort + chat quick nav |
 | E2E-193 | `248-quicknav-visible` | quick-nav not clipped by overflow |
+| E2E-194 | `249-result-cta-after-deploy` | result CTAs remain after deploy |
 
