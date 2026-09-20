@@ -6,7 +6,7 @@ import { t, getLocale, initI18n, onLocaleChange } from "./i18n.js";
 import {
   mountArchitectureDiagram,
   clearArchitectureMount,
-} from "./architecture-mount.mjs";
+} from "./architecture-mount.mjs?v=node-zoom-1";
 import {
   buildTaskArchitectureIr,
   taskPoolToArchitectureIr,

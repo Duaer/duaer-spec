@@ -392,6 +392,9 @@ test("live sources wire architecture API + desk panel", () => {
   assert.match(mount, /attachShadow|archify-root|runViewerScript|scopeArchifyCss/);
   assert.match(mount, /data-motion-capable|disableEmbedNodeZoom|bodyHtml|btn-preset/);
   assert.match(mount, /__duaerEmbedNoZoom|duaerNoZoomReveal/);
+  assert.match(mount, /__duaerStageZoom|duaerStageZoomReveal/);
+  assert.match(mount, /maxScale:\s*2\.6/);
+  assert.match(mount, /zoom:\s*Boolean\(opts\.stage\)/);
   assert.doesNotMatch(mount, /installDesktopReveal|__duaerEmbedZoom/);
   assert.match(mount, /\.focus-chip\s*\{\s*display:\s*none\s*!important/);
   assert.match(mount, /100vh|100dvh|duaer-arch-host-chrome|height:\s*auto\s*!important/);
