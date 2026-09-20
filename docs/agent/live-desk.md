@@ -22,7 +22,7 @@ Three columns:
 
 | Column | Role |
 |---|---|
-| Chat | Project dialogue; Markdown bubbles; messy multi-topic talk. Composer **Record** captures audio; when Settings has an STT model (`sttBaseUrl` / `sttApiKey` / `sttModel`, OpenAI-compatible `/audio/transcriptions`), stop → `/api/transcribe` → text in `#input`. Without STT, browser SpeechRecognition is a fallback. |
+| Chat | Project dialogue; Markdown bubbles; messy multi-topic talk. Composer **Record** captures audio when Settings has an STT model (`sttBaseUrl` / `sttApiKey` / `sttModel`, OpenAI-compatible `/audio/transcriptions`); stop → `/api/transcribe` → text in `#input`. Without STT, Record opens Settings and prompts to configure. |
 | Center | Module tabs + confirm cards → architecture → kickoff / revise |
 | Progress | Delivery cockpit (stages + next action) · **View deliverables** · `tasks.md` polling · result bar |
 

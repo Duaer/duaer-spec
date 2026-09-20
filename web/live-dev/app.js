@@ -4227,8 +4227,6 @@ el.form.addEventListener("submit", (e) => {
   void sendChat(text);
 });
 
-/** @type {SpeechRecognition|null} */
-let voiceRecognition = null;
 /** @type {MediaRecorder|null} */
 let voiceMediaRecorder = null;
 /** @type {MediaStream|null} */
@@ -4238,30 +4236,6 @@ let voiceMediaChunks = [];
 let voiceBaseText = "";
 let voiceListening = false;
 let voiceTranscribing = false;
-let voiceSttHintShown = false;
-
-function speechRecognitionCtor() {
-  const w = window;
-  return w.SpeechRecognition || w.webkitSpeechRecognition || null;
-}
-
-function speechLangForLocale() {
-  const loc = getLocale();
-  const map = {
-    "zh-CN": "zh-CN",
-    "zh-TW": "zh-TW",
-    en: "en-US",
-    ja: "ja-JP",
-    ko: "ko-KR",
-    es: "es-ES",
-    "pt-BR": "pt-BR",
-    fr: "fr-FR",
-    de: "de-DE",
-    ru: "ru-RU",
-    vi: "vi-VN",
-  };
-  return map[loc] || "zh-CN";
-}
 
 function sttLanguageCode() {
   const loc = getLocale();
@@ -4316,17 +4290,6 @@ function releaseVoiceMedia() {
 }
 
 function stopVoiceInput({ keepLabel = false } = {}) {
-  if (voiceRecognition) {
-    try {
-      voiceRecognition.onresult = null;
-      voiceRecognition.onerror = null;
-      voiceRecognition.onend = null;
-      voiceRecognition.stop();
-    } catch {
-      /* ignore */
-    }
-    voiceRecognition = null;
-  }
   releaseVoiceMedia();
   voiceListening = false;
   voiceTranscribing = false;
@@ -4507,70 +4470,22 @@ async function startMediaRecord() {
   }
 }
 
-function startBrowserSpeechFallback() {
-  const Ctor = speechRecognitionCtor();
-  if (!Ctor) {
-    addBubble("bot", t("chat.voiceNeedStt"));
-    setSettingsOpen(true);
-    return;
-  }
-  if (!state.ready || !state.projectPath || state.busy) {
-    explainChatBlocked();
-    return;
-  }
-  if (!voiceSttHintShown) {
-    voiceSttHintShown = true;
-    addBubble("bot", t("chat.voiceSttHint"));
-  }
-  stopVoiceInput({ keepLabel: true });
-  voiceBaseText = String(el.input?.value || "").trim();
-  if (voiceBaseText) voiceBaseText += " ";
-  const rec = new Ctor();
-  voiceRecognition = rec;
-  rec.lang = speechLangForLocale();
-  rec.continuous = true;
-  rec.interimResults = true;
-  rec.onresult = (ev) => {
-    let interim = "";
-    let finalChunk = "";
-    for (let i = ev.resultIndex; i < ev.results.length; i++) {
-      const row = ev.results[i];
-      const text = String(row?.[0]?.transcript || "");
-      if (!text) continue;
-      if (row.isFinal) finalChunk += text;
-      else interim += text;
+function guideVoiceToSttSettings() {
+  addBubble("bot", t("chat.voiceNeedStt"));
+  setSettingsOpen(true);
+  const block = document.getElementById("setupSttBlock");
+  if (block instanceof HTMLDetailsElement) {
+    block.open = true;
+    try {
+      block.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } catch {
+      /* ignore */
     }
-    if (finalChunk) appendVoiceTranscript(finalChunk, { final: true });
-    else if (interim) appendVoiceTranscript(interim, { final: false });
-  };
-  rec.onerror = (ev) => {
-    const code = String(ev?.error || "");
-    stopVoiceInput();
-    if (code === "not-allowed" || code === "service-not-allowed") {
-      addBubble("bot", t("chat.voiceDenied"));
-    } else if (code && code !== "aborted" && code !== "no-speech") {
-      addBubble("bot", t("chat.voiceError", { msg: code }));
-    }
-  };
-  rec.onend = () => {
-    if (voiceRecognition === rec) {
-      voiceListening = false;
-      voiceRecognition = null;
-      syncVoiceButtonUi();
-    }
-  };
+  }
   try {
-    rec.start();
-    voiceListening = true;
-    syncVoiceButtonUi();
-  } catch (err) {
-    stopVoiceInput();
-    addBubble(
-      "bot",
-      t("chat.voiceError", {
-        msg: err instanceof Error ? err.message : String(err || "start"),
-      }),
-    );
+    (el.cfgSttBase || el.cfgSttModel)?.focus();
+  } catch {
+    /* ignore */
   }
 }
 
@@ -4584,11 +4499,11 @@ function toggleVoiceInput() {
     stopVoiceInput();
     return;
   }
-  if (sttConfigured()) {
-    void startMediaRecord();
+  if (!sttConfigured()) {
+    guideVoiceToSttSettings();
     return;
   }
-  startBrowserSpeechFallback();
+  void startMediaRecord();
 }
 
 el.voice?.addEventListener("click", () => {
