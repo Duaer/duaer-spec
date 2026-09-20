@@ -18,6 +18,95 @@ const WORKER_TYPES = {
   w8: "frontend",
 };
 
+/** Visual type for run status (Archify palette). */
+const STATUS_TYPES = {
+  done: "database",
+  running: "backend",
+  waiting: "external",
+};
+
+/**
+ * @param {string | null | undefined} id
+ */
+function normTaskId(id) {
+  return String(id || "")
+    .trim()
+    .toUpperCase();
+}
+
+/**
+ * @param {{ tasks?: Array<{ id?: string, done?: boolean }> } | null | undefined} progress
+ * @returns {Set<string>}
+ */
+export function doneIdsFromProgress(progress) {
+  const done = new Set();
+  for (const t of progress?.tasks || []) {
+    if (t?.done) {
+      const id = normTaskId(t.id);
+      if (id) done.add(id);
+    }
+  }
+  return done;
+}
+
+/**
+ * @param {{ dependsOn?: string[] } | null | undefined} task
+ * @param {Set<string>} doneSet
+ */
+export function isTaskReady(task, doneSet) {
+  const deps = Array.isArray(task?.dependsOn) ? task.dependsOn : [];
+  if (!deps.length) return true;
+  return deps.every((d) => doneSet.has(normTaskId(d)));
+}
+
+/**
+ * Resolve each task to done | running | waiting.
+ * Running = first ready (not done) task per worker lane.
+ *
+ * @param {Array<object>} tasks
+ * @param {{ tasks?: Array<{ id?: string, done?: boolean }> } | null | undefined} progress
+ * @returns {Map<string, "done"|"running"|"waiting">}
+ */
+export function resolveTaskRunStatuses(tasks, progress) {
+  const list = Array.isArray(tasks) ? tasks : [];
+  const doneSet = doneIdsFromProgress(progress);
+  /** @type {Map<string, "done"|"running"|"waiting">} */
+  const out = new Map();
+  const readyByWorker = new Map();
+
+  for (const t of list) {
+    const id = normTaskId(t?.id);
+    if (!id) continue;
+    if (doneSet.has(id)) {
+      out.set(id, "done");
+      continue;
+    }
+    if (!isTaskReady(t, doneSet)) {
+      out.set(id, "waiting");
+      continue;
+    }
+    const wid = String(t.workerId || "w1");
+    if (!readyByWorker.has(wid)) {
+      readyByWorker.set(wid, id);
+      out.set(id, "running");
+    } else {
+      out.set(id, "waiting");
+    }
+  }
+  return out;
+}
+
+/**
+ * @param {"done"|"running"|"waiting"} status
+ * @param {string} [locale]
+ */
+export function taskRunStatusLabel(status, locale = "zh-CN") {
+  const zh = !locale || String(locale).toLowerCase().startsWith("zh");
+  if (status === "done") return zh ? "已完成" : "Done";
+  if (status === "running") return zh ? "进行中" : "In progress";
+  return zh ? "等待中" : "Waiting";
+}
+
 /**
  * @param {Array<{ id?: string, title?: string, status?: string, card?: object, dependsOn?: string[] }>} modules
  * @returns {{ version: number, tasks: Array<object> }}
@@ -297,14 +386,17 @@ function transitiveReduce(edges) {
  * Map assigned tasks → Archify architecture IR (same renderer as system arch).
  * Explicit positions: X = dependency rank, Y = worker lane — same layered look
  * as system architecture; transitive-reduced edges keep Archify routing valid.
+ * Node tag + sources carry run status for the click passport card.
  * @param {Array<object>} tasks
- * @param {{ title?: string, workerCount?: number, locale?: string }} [opts]
+ * @param {{ title?: string, workerCount?: number, locale?: string, progress?: { tasks?: Array<{ id?: string, done?: boolean }> } | null }} [opts]
  */
 export function taskPoolToArchitectureIr(tasks, opts = {}) {
   const list = Array.isArray(tasks) ? tasks : [];
   const workerCount = Math.max(1, Number(opts.workerCount) || 1);
   const title = String(opts.title || "Task execution path").slice(0, 120);
+  const locale = String(opts.locale || "zh-CN");
   const ranks = dependencyRanks(list);
+  const statusById = resolveTaskRunStatuses(list, opts.progress);
 
   // Archify widens boxes up to 200px (repairArchitectureGeometry). Keep a ≥24px
   // clear edge: colW must be > MAX_COMPONENT_W + 24 (use +80 like system layout).
@@ -321,16 +413,25 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     const wid = String(t.workerId || "w1");
     const lane = Math.max(0, Number(String(wid).replace(/^w/i, "")) - 1 || 0);
     const r = ranks.get(id) || 0;
-    const type =
-      WORKER_TYPES[wid] || (t.moduleId ? "backend" : "security");
+    const runStatus = statusById.get(normTaskId(id)) || "waiting";
+    const statusLabel = taskRunStatusLabel(runStatus, locale);
+    const type = STATUS_TYPES[runStatus] || "external";
+    const taskTitle = shortTitle(t.title, 40);
     components.push({
       id,
       type,
       label: id,
-      sublabel: shortTitle(t.title, 40),
-      tag: wid,
+      sublabel: taskTitle,
+      tag: statusLabel,
       pos: [originX + r * colW, originY + lane * rowH],
       size: [...size],
+      sources: [
+        { path: `run/${runStatus}`, label: statusLabel },
+        { path: `worker/${wid}`, label: wid },
+        ...(String(t.title || "").trim()
+          ? [{ path: `task/${id}`, label: String(t.title || "").slice(0, 48) }]
+          : []),
+      ],
     });
   }
 
@@ -372,12 +473,16 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
 
   const maxRank = Math.max(0, ...[...ranks.values(), 0]);
   const maxLane = Math.max(0, workerCount - 1);
+  const zh = locale.toLowerCase().startsWith("zh");
 
   return {
     schema_version: 1,
     diagram_type: "architecture",
     meta: {
       title,
+      subtitle: zh
+        ? "数据库色=已完成 · 后端色=进行中 · 外部色=等待中"
+        : "Database=done · Backend=in progress · External=waiting",
       quality_profile: "standard",
       locale:
         ["en", "ja", "ko", "es", "pt-BR", "fr", "de", "ru", "vi", "zh-TW"].includes(

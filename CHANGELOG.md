@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: dispatch graph shows task run status on nodes
+
+- Node colors + tags: 已完成 / 进行中 / 等待中 from live progress
+- Click passport lists status (and worker / title); reopen graph refreshes status
+
 ### Fix: dispatch graph present does not zoom on node click
 
 - 「查看派工图」opens `present=1&noz=1`: full canvas, passport stays, no camera enlarge

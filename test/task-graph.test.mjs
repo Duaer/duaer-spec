@@ -9,6 +9,7 @@ import {
   buildPreviewPoolFromModules,
   buildTaskArchitectureIr,
   recommendWorkerCount,
+  resolveTaskRunStatuses,
   taskPoolToArchitectureIr,
 } from "../web/live-dev/task-graph.mjs";
 import { sanitizeArchitectureIr } from "../bin/live-archify.mjs";
@@ -184,8 +185,45 @@ test("taskPoolToArchitectureIr has no edge labels or legend cards", () => {
     { workerCount: 1, title: "Test" },
   );
   assert.equal(ir.cards.length, 0);
-  assert.equal(ir.meta.subtitle, undefined);
+  assert.match(String(ir.meta.subtitle || ""), /已完成|done/i);
   assert.ok(ir.connections.every((c) => !c.label));
+});
+
+test("resolveTaskRunStatuses marks done running waiting", () => {
+  const tasks = [
+    { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+    { id: "T002", title: "B", dependsOn: ["T001"], workerId: "w1" },
+    { id: "T003", title: "C", dependsOn: ["T001"], workerId: "w2" },
+  ];
+  const statuses = resolveTaskRunStatuses(tasks, {
+    tasks: [{ id: "T001", done: true }],
+  });
+  assert.equal(statuses.get("T001"), "done");
+  assert.equal(statuses.get("T002"), "running");
+  assert.equal(statuses.get("T003"), "running");
+});
+
+test("taskPoolToArchitectureIr embeds status in tag and sources", () => {
+  const ir = taskPoolToArchitectureIr(
+    [
+      { id: "T001", title: "A", dependsOn: [], workerId: "w1" },
+      { id: "T002", title: "B", dependsOn: ["T001"], workerId: "w1" },
+    ],
+    {
+      workerCount: 1,
+      title: "Test",
+      locale: "zh-CN",
+      progress: { tasks: [{ id: "T001", done: true }] },
+    },
+  );
+  const a = ir.components.find((c) => c.id === "T001");
+  const b = ir.components.find((c) => c.id === "T002");
+  assert.equal(a.tag, "已完成");
+  assert.equal(b.tag, "进行中");
+  assert.equal(a.type, "database");
+  assert.equal(b.type, "backend");
+  assert.ok(a.sources.some((s) => s.label === "已完成"));
+  assert.ok(b.sources.some((s) => s.label === "进行中"));
 });
 
 test("live sources wire Archify task graph mount", () => {
@@ -204,6 +242,7 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(page, /mountArchitectureDiagram\(mount/);
   assert.match(page, /openArchitecturePresent|present/);
   assert.match(app, /window\.open\(`\/dispatch-center\.html/);
+  assert.match(app, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
   assert.match(app, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);

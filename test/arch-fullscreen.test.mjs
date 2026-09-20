@@ -39,13 +39,14 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(page, /id="taskGraphMount"/);
   assert.match(page, /class="dispatch-center-page"/);
   assert.match(I18N, /"arch\.openFullscreen":\s*"全屏查看"/);
-  assert.match(I18N, /不放大|no zoom/i);
+  assert.match(I18N, /已完成\/进行中\/等待中|done \/ in progress \/ waiting/i);
   assert.match(I18N, /"dispatch\.center":\s*"调度中心"/);
   assert.match(APP, /architectureOpenFullscreen/);
   assert.match(APP, /function openDispatchCenterPage/);
   assert.match(APP, /window\.open\(`\/dispatch-center\.html/);
+  assert.match(APP, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
   assert.match(APP, /openArchitecturePresent\(url,\s*\{\s*noZoom:\s*true\s*\}\)/);
-  assert.match(APP, /state\.dispatchGraphUrl/);
+  assert.match(APP, /lastJobProgress/);
   assert.match(APP, /opts\.noZoom|noz/);
   assert.doesNotMatch(APP, /setDispatchCenterOpen/);
   assert.match(pageJs, /mountArchitectureDiagram\(mount/);

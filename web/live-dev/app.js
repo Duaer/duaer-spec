@@ -98,6 +98,8 @@ const state = {
   dispatchGraphReady: false,
   dispatchGraphBuilding: false,
   dispatchGraphUrl: null,
+  /** Latest /api/status progress.tasks for dispatch-graph run colors. */
+  lastJobProgress: null,
   recommendedWorkerCount: 1,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
@@ -1183,6 +1185,7 @@ async function confirmWorkersAndBuildGraph() {
       title: t("dispatch.taskGraph"),
       workerCount,
       locale: getLocale(),
+      progress: state.lastJobProgress,
     });
     const res = await fetch("/api/architecture/render", {
       method: "POST",
@@ -1213,6 +1216,60 @@ async function confirmWorkersAndBuildGraph() {
     state.dispatchGraphBuilding = false;
     setConfirmWorkersGraphBusy(false);
   }
+}
+
+async function refreshDispatchGraphWithProgress() {
+  if (!state.taskPool?.tasks?.length) return null;
+  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
+  const ir = taskPoolToArchitectureIr(state.taskPool.tasks, {
+    title: t("dispatch.taskGraph"),
+    workerCount,
+    locale: getLocale(),
+    progress: state.lastJobProgress,
+  });
+  const res = await fetch("/api/architecture/render", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ir }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || t("dispatch.graphBuildFail"));
+  }
+  state.dispatchGraphUrl = String(data.url || "").trim() || null;
+  state.dispatchGraphReady = Boolean(state.dispatchGraphUrl);
+  syncOpenTaskGraphButton();
+  schedulePersistProjectDesk();
+  return state.dispatchGraphUrl;
+}
+
+async function openDispatchGraphPresent() {
+  if (!state.dispatchGraphReady && !state.taskPool?.tasks?.length) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
+    }
+    return;
+  }
+  try {
+    const url =
+      (await refreshDispatchGraphWithProgress()) ||
+      String(state.dispatchGraphUrl || "").trim();
+    if (url) {
+      openArchitecturePresent(url, { noZoom: true });
+      return;
+    }
+  } catch (err) {
+    const msg =
+      err instanceof Error ? err.message : t("dispatch.graphBuildFail");
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = msg;
+    }
+    addBubble("bot", t("dispatch.graphBuildFailDetail", { msg }));
+    return;
+  }
+  openDispatchCenterPage(state.projectPath);
 }
 
 function invalidateDispatchAfterArchChange() {
@@ -6033,6 +6090,7 @@ function renderProgress(data) {
   if (!el.runTimeline) return;
   paintDeliveryCockpit(data);
   const progress = data?.progress;
+  if (progress) state.lastJobProgress = progress;
   if (!progress) {
     if (!state.activeRun) el.runTimeline.hidden = el.runTimeline.childElementCount === 0;
     return;
@@ -7826,19 +7884,7 @@ if (el.dispatchCenterToggle) {
 }
 if (el.openTaskGraph) {
   el.openTaskGraph.addEventListener("click", () => {
-    if (!state.dispatchGraphReady) {
-      if (el.dispatchErr) {
-        el.dispatchErr.hidden = false;
-        el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
-      }
-      return;
-    }
-    const url = String(state.dispatchGraphUrl || "").trim();
-    if (url) {
-      openArchitecturePresent(url, { noZoom: true });
-      return;
-    }
-    openDispatchCenterPage(state.projectPath);
+    void openDispatchGraphPresent();
   });
 }
 if (el.redecomposeTasks) {

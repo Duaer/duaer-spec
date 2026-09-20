@@ -130,6 +130,8 @@ async function renderGraph(projectPath) {
   let workerCount = 1;
   let savedTasks = null;
   let savedGraphUrl = "";
+  let progress = null;
+  let jobId = "";
   try {
     const res = await fetch(`/api/projects/chat?path=${encodeURIComponent(path)}`);
     const data = await res.json().catch(() => ({}));
@@ -138,8 +140,18 @@ async function renderGraph(projectPath) {
     workerCount = Number(data.workerCount) || 1;
     savedTasks = Array.isArray(data.taskPool?.tasks) ? data.taskPool.tasks : null;
     savedGraphUrl = String(data.dispatchGraphUrl || "").trim();
+    jobId = String(data.jobId || "").trim();
   } catch {
     modules = [];
+  }
+  if (jobId) {
+    try {
+      const st = await fetch(`/api/status?jobId=${encodeURIComponent(jobId)}`);
+      const body = await st.json().catch(() => ({}));
+      if (st.ok && body.progress) progress = body.progress;
+    } catch {
+      /* ignore */
+    }
   }
   if (seq !== renderSeq) return;
   const confirmed = modules.filter((m) => m && m.status === "confirmed");
@@ -149,6 +161,7 @@ async function renderGraph(projectPath) {
       title: t("dispatch.taskGraph"),
       workerCount,
       locale: getLocale(),
+      progress,
     });
   } else if (confirmed.length) {
     ir = buildTaskArchitectureIr(confirmed, workerCount, {
