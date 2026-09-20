@@ -1,0 +1,18 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T13:33:00.000Z",
+  "verification": {
+    "levels": ["docs"],
+    "commands": [
+      "git push origin develop main",
+      "gh release create v0.26.0",
+      "gh run view 35513791762"
+    ],
+    "result": "partial",
+    "notes": "GitHub Release v0.26.0 on main. npm Trusted Publishing failed: GitHub Actions account locked (billing). Re-run workflow npm-publish.yml after billing is cleared."
+  },
+  "preview": {
+    "url": "https://github.com/Duaer/duaer-spec/releases/tag/v0.26.0",
+    "label": "GitHub Release v0.26.0"
+  }
+}
