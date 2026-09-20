@@ -11,6 +11,7 @@ import {
   recommendWorkerCount,
   resolveTaskRunStatuses,
   taskPoolToArchitectureIr,
+  wrapRankToGrid,
 } from "../web/live-dev/task-graph.mjs";
 import { sanitizeArchitectureIr } from "../bin/live-archify.mjs";
 
@@ -185,7 +186,7 @@ test("taskPoolToArchitectureIr has no edge labels or legend cards", () => {
     { workerCount: 1, title: "Test" },
   );
   assert.equal(ir.cards.length, 0);
-  assert.match(String(ir.meta.subtitle || ""), /已完成|done/i);
+  assert.match(String(ir.meta.subtitle || ""), /进度|progress/i);
   assert.ok(ir.connections.every((c) => !c.label));
 });
 
@@ -222,12 +223,45 @@ test("taskPoolToArchitectureIr embeds status in tag not repository sources", () 
   assert.equal(b.tag, "进行中");
   assert.equal(a.type, "database");
   assert.equal(b.type, "backend");
-  assert.match(a.sublabel, /w1/);
+  assert.match(a.sublabel, /已完成/);
+  assert.match(b.sublabel, /进行中/);
   assert.equal(a.sources, undefined);
   assert.equal(b.sources, undefined);
   const clean = sanitizeArchitectureIr(ir);
   assert.ok(clean.components.every((c) => c.sources == null));
   assert.equal(clean.meta.repository, undefined);
+});
+
+test("wrapRankToGrid wraps after maxCols", () => {
+  assert.deepEqual(wrapRankToGrid(0, 4), { col: 0, band: 0 });
+  assert.deepEqual(wrapRankToGrid(3, 4), { col: 3, band: 0 });
+  assert.deepEqual(wrapRankToGrid(4, 4), { col: 0, band: 1 });
+  assert.deepEqual(wrapRankToGrid(5, 4), { col: 1, band: 1 });
+});
+
+test("taskPoolToArchitectureIr wraps long chains to next band", () => {
+  const tasks = [];
+  for (let i = 1; i <= 6; i += 1) {
+    tasks.push({
+      id: `T00${i}`,
+      title: `Step ${i}`,
+      dependsOn: i === 1 ? [] : [`T00${i - 1}`],
+      workerId: "w1",
+    });
+  }
+  const ir = taskPoolToArchitectureIr(tasks, {
+    workerCount: 1,
+    title: "Wrap",
+    maxCols: 4,
+  });
+  const a = ir.components.find((c) => c.id === "T001");
+  const e = ir.components.find((c) => c.id === "T005");
+  assert.ok(a && e);
+  assert.equal(a.pos[0], e.pos[0]);
+  assert.ok(e.pos[1] > a.pos[1]);
+  const xs = ir.components.map((c) => c.pos[0]);
+  const uniqueX = new Set(xs);
+  assert.ok(uniqueX.size <= 4);
 });
 
 test("live sources wire Archify task graph mount", () => {
@@ -247,6 +281,8 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(page, /buildTaskArchitectureIr|\/api\/architecture\/render/);
   assert.match(page, /mountArchitectureDiagram\(mount,\s*\{\s*url,\s*ir:\s*null,\s*stage:\s*true\s*\}\)/);
   assert.match(page, /wireTopNav|goDesk/);
+  assert.match(page, /pollLiveProgress|STATUS_POLL_MS|progressFingerprint/);
+  assert.match(page, /remountWithProgress/);
   assert.doesNotMatch(page, /openArchitecturePresent|openExternalDeskUrl/);
   assert.match(app, /openExternalDeskUrl\([\s\S]*dispatch-center\.html/);
   assert.match(app, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);

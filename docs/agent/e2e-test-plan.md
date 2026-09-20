@@ -154,6 +154,7 @@ the table for their app.
 | E2E-182 | Dispatch center shows the task graph on the page; no extra present window | `npm test` |
 | E2E-183 | Dispatch center node click enlarges the node on the stage | `npm test` + manual |
 | E2E-184 | Dispatch center shows the same top nav as the desk | `npm test` |
+| E2E-185 | Dispatch graph wraps long chains; node status updates live on the stage | `npm test` + manual |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -373,4 +374,5 @@ the table for their app.
 | E2E-182 | `238-dispatch-stage` | dispatch center stage, no extra present window |
 | E2E-183 | `239-node-zoom` | stage node click enlarges in place |
 | E2E-184 | `240-dispatch-nav` | dispatch center top nav matches desk |
+| E2E-185 | `241-graph-wrap` | wrap columns + live node status |
 

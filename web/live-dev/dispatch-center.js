@@ -1,6 +1,7 @@
 /**
  * Standalone dispatch-center page: 100px project rail + task graph.
  * Same top nav as the desk; project / employee / settings open on `/`.
+ * Graph rebuilds from live job progress so node status stays current.
  */
 import { t, getLocale, initI18n, onLocaleChange, setLocale } from "./i18n.js";
 import {
@@ -20,8 +21,16 @@ const langSelect = document.getElementById("langSelect");
 const githubStars = document.getElementById("githubStars");
 const githubStarCount = document.getElementById("githubStarCount");
 
+const STATUS_POLL_MS = 2500;
+
 let projects = [];
 let renderSeq = 0;
+let pollTimer = 0;
+let lastProgressFp = "";
+/** @type {Array<object>|null} */
+let cachedTasks = null;
+let cachedWorkerCount = 1;
+let cachedJobId = "";
 
 function pathKey(p) {
   return String(p || "")
@@ -102,7 +111,92 @@ function wireTopNav() {
   void refreshGithubStars();
 }
 
+function progressFingerprint(progress) {
+  const tasks = Array.isArray(progress?.tasks) ? progress.tasks : [];
+  return tasks
+    .map((t) => `${String(t?.id || "").toUpperCase()}:${t?.done ? 1 : 0}`)
+    .sort()
+    .join("|");
+}
+
+function stopStatusPoll() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = 0;
+  }
+}
+
+function startStatusPoll() {
+  stopStatusPoll();
+  if (!cachedJobId || !cachedTasks?.length) return;
+  pollTimer = setInterval(() => {
+    void pollLiveProgress();
+  }, STATUS_POLL_MS);
+}
+
+async function fetchJobProgress(jobId) {
+  const id = String(jobId || "").trim();
+  if (!id) return null;
+  try {
+    const st = await fetch(`/api/status?jobId=${encodeURIComponent(id)}`);
+    const body = await st.json().catch(() => ({}));
+    if (!st.ok) return null;
+    return body.progress || null;
+  } catch {
+    return null;
+  }
+}
+
+async function mountGraphIr(ir, seq) {
+  const res = await fetch("/api/architecture/render", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ ir }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (seq !== renderSeq) return;
+  if (!res.ok) throw new Error(data.error || "render failed");
+  const url = String(data.url || "").trim();
+  if (!url) throw new Error("render failed");
+  if (emptyEl) emptyEl.hidden = true;
+  if (mount) {
+    mount.dataset.archUrl = url;
+    delete mount.dataset.archKey;
+  }
+  await mountArchitectureDiagram(mount, { url, ir: null, stage: true });
+}
+
+async function remountWithProgress(progress, seq = renderSeq) {
+  if (!cachedTasks?.length) return;
+  const ir = taskPoolToArchitectureIr(cachedTasks, {
+    title: t("dispatch.taskGraph"),
+    workerCount: cachedWorkerCount,
+    locale: getLocale(),
+    progress,
+  });
+  await mountGraphIr(ir, seq);
+}
+
+async function pollLiveProgress() {
+  if (!cachedJobId || !cachedTasks?.length) return;
+  const progress = await fetchJobProgress(cachedJobId);
+  if (!progress) return;
+  const fp = progressFingerprint(progress);
+  if (fp === lastProgressFp) return;
+  lastProgressFp = fp;
+  const seq = ++renderSeq;
+  try {
+    await remountWithProgress(progress, seq);
+  } catch {
+    /* keep last graph */
+  }
+}
+
 function showEmpty() {
+  stopStatusPoll();
+  cachedTasks = null;
+  cachedJobId = "";
+  lastProgressFp = "";
   clearArchitectureMount(mount);
   if (emptyEl) {
     emptyEl.hidden = false;
@@ -142,6 +236,7 @@ function renderRail() {
 
 async function renderGraph(projectPath) {
   const seq = ++renderSeq;
+  stopStatusPoll();
   const path = String(projectPath || "").trim();
   if (!path) {
     showEmpty();
@@ -166,18 +261,16 @@ async function renderGraph(projectPath) {
     modules = [];
   }
   if (jobId) {
-    try {
-      const st = await fetch(`/api/status?jobId=${encodeURIComponent(jobId)}`);
-      const body = await st.json().catch(() => ({}));
-      if (st.ok && body.progress) progress = body.progress;
-    } catch {
-      /* ignore */
-    }
+    progress = await fetchJobProgress(jobId);
   }
   if (seq !== renderSeq) return;
   const confirmed = modules.filter((m) => m && m.status === "confirmed");
   let ir = null;
   if (savedTasks?.length) {
+    cachedTasks = savedTasks;
+    cachedWorkerCount = workerCount;
+    cachedJobId = jobId;
+    lastProgressFp = progressFingerprint(progress);
     ir = taskPoolToArchitectureIr(savedTasks, {
       title: t("dispatch.taskGraph"),
       workerCount,
@@ -185,33 +278,37 @@ async function renderGraph(projectPath) {
       progress,
     });
   } else if (confirmed.length) {
+    cachedTasks = null;
+    cachedJobId = "";
     ir = buildTaskArchitectureIr(confirmed, workerCount, {
       title: t("dispatch.taskGraph"),
       locale: getLocale(),
     }).ir;
+  } else {
+    cachedTasks = null;
+    cachedJobId = "";
   }
   if (!ir?.components?.length && !savedGraphUrl) {
     showEmpty();
     return;
   }
   try {
-    let url = savedGraphUrl;
-    if (!url) {
-      const res = await fetch("/api/architecture/render", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ir }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (seq !== renderSeq) return;
-      if (!res.ok) throw new Error(data.error || "render failed");
-      url = String(data.url || "").trim();
+    if (ir?.components?.length) {
+      await mountGraphIr(ir, seq);
+      startStatusPoll();
+      return;
     }
-    if (seq !== renderSeq) return;
-    if (!url) throw new Error("render failed");
+    // Fallback: static cached URL only when no task IR exists.
     if (emptyEl) emptyEl.hidden = true;
-    if (mount) mount.dataset.archUrl = url;
-    await mountArchitectureDiagram(mount, { url, ir: null, stage: true });
+    if (mount) {
+      mount.dataset.archUrl = savedGraphUrl;
+      delete mount.dataset.archKey;
+    }
+    await mountArchitectureDiagram(mount, {
+      url: savedGraphUrl,
+      ir: null,
+      stage: true,
+    });
   } catch {
     if (seq !== renderSeq) return;
     showEmpty();
@@ -241,5 +338,8 @@ onLocaleChange(() => {
   if (langSelect) langSelect.value = getLocale();
   renderRail();
   void renderGraph(currentPath());
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") void pollLiveProgress();
 });
 void load();
