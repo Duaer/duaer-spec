@@ -212,6 +212,8 @@ export const ko = {
   "dispatch.decomposeEmpty": "아직 작업 없음",
   "dispatch.parallelChip": "병렬",
   "dispatch.confirmWorkersGraph": "인원 확정 후 배정 그래프 생성",
+  "dispatch.graphBuilding": "배정 그래프 생성 중…",
+  "dispatch.graphBuildFail": "배정 그래프 생성 실패",
   "dispatch.graphBuilt": "디지털 직원 {n}명용 배정 그래프 준비됨",
   "dispatch.recommendWorkers": "권장 {n}명 (병렬 폭)",
   "dispatch.needGraphConfirm": "먼저 인원을 확정하고 배정 그래프를 생성하세요",

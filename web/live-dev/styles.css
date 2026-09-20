@@ -1402,6 +1402,26 @@ a.btn[hidden] {
 
 #confirmWorkersGraph {
   margin-top: 0.55rem;
+  position: relative;
+}
+
+#confirmWorkersGraph.is-busy::before {
+  content: "";
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-right: 0.45em;
+  vertical-align: -0.1em;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: duaer-btn-spin 0.7s linear infinite;
+}
+
+@keyframes duaer-btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .worker-count-field {

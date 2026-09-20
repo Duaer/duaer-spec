@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: confirm workers graph button spins until render finishes
+
+- 「确认人数并生成派工图」shows a busy spinner while Archify renders
+- 「查看派工图」enables only after a successful render
+
 ### Feat: decompose tasks then confirm workers before dispatch graph
 
 - After architecture confirm, the desk decomposes atomic tasks (parallel marked) above Digital employees

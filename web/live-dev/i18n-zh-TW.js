@@ -212,6 +212,8 @@ export const zhTW = {
   "dispatch.decomposeEmpty": "尚未拆解任務",
   "dispatch.parallelChip": "可並行",
   "dispatch.confirmWorkersGraph": "確認人數並產生派工圖",
+  "dispatch.graphBuilding": "正在產生派工圖…",
+  "dispatch.graphBuildFail": "派工圖產生失敗",
   "dispatch.graphBuilt": "已依 {n} 名數位員工產生派工圖，可檢視或啟動",
   "dispatch.recommendWorkers": "建議 {n} 人（依可並行寬度）",
   "dispatch.needGraphConfirm": "請先確認人數並產生派工圖",

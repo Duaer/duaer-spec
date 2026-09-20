@@ -96,6 +96,8 @@ const state = {
   taskPool: null,
   /** After operator confirms worker count and builds the dispatch graph. */
   dispatchGraphReady: false,
+  dispatchGraphBuilding: false,
+  dispatchGraphUrl: null,
   recommendedWorkerCount: 1,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
@@ -1132,7 +1134,21 @@ async function syncTaskPoolPreviewAsync() {
   decomposeTasksFromModules();
 }
 
-function confirmWorkersAndBuildGraph() {
+function setConfirmWorkersGraphBusy(busy) {
+  const btn = el.confirmWorkersGraph;
+  if (!btn) return;
+  btn.disabled = Boolean(busy);
+  btn.setAttribute("aria-busy", busy ? "true" : "false");
+  btn.classList.toggle("is-busy", Boolean(busy));
+  if (busy) {
+    btn.textContent = t("dispatch.graphBuilding");
+  } else {
+    btn.textContent = t("dispatch.confirmWorkersGraph");
+  }
+}
+
+async function confirmWorkersAndBuildGraph() {
+  if (state.dispatchGraphBuilding) return;
   ensureModulesSeed();
   if (!state.architecture?.confirmed) {
     if (el.dispatchErr) {
@@ -1156,15 +1172,52 @@ function confirmWorkersAndBuildGraph() {
   const assigned = assignPreviewWorkers(state.taskPool, workerCount);
   state.taskPool = { version: 1, tasks: annotateParallelTasks(assigned.tasks) };
   renderTaskPoolList(state.taskPool.tasks);
-  state.dispatchGraphReady = true;
+  state.dispatchGraphReady = false;
   syncOpenTaskGraphButton();
+
+  state.dispatchGraphBuilding = true;
+  setConfirmWorkersGraphBusy(true);
   if (el.dispatchErr) el.dispatchErr.hidden = true;
-  schedulePersistProjectDesk();
-  addBubble("bot", t("dispatch.graphBuilt", { n: String(workerCount) }));
+  try {
+    const ir = taskPoolToArchitectureIr(state.taskPool.tasks, {
+      title: t("dispatch.taskGraph"),
+      workerCount,
+      locale: getLocale(),
+    });
+    const res = await fetch("/api/architecture/render", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ir }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || t("dispatch.graphBuildFail"));
+    }
+    state.dispatchGraphUrl = String(data.url || "").trim() || null;
+    state.dispatchGraphReady = true;
+    syncOpenTaskGraphButton();
+    schedulePersistProjectDesk();
+    addBubble("bot", t("dispatch.graphBuilt", { n: String(workerCount) }));
+  } catch (err) {
+    state.dispatchGraphReady = false;
+    state.dispatchGraphUrl = null;
+    syncOpenTaskGraphButton();
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent =
+        err instanceof Error ? err.message : t("dispatch.graphBuildFail");
+    }
+  } finally {
+    state.dispatchGraphBuilding = false;
+    setConfirmWorkersGraphBusy(false);
+  }
 }
 
 function invalidateDispatchAfterArchChange() {
   state.dispatchGraphReady = false;
+  state.dispatchGraphBuilding = false;
+  state.dispatchGraphUrl = null;
+  setConfirmWorkersGraphBusy(false);
   syncOpenTaskGraphButton();
   if (el.dispatch) el.dispatch.hidden = true;
 }
@@ -2425,6 +2478,8 @@ function clearDeskWorkspace() {
   state.workerCount = 1;
   state.taskPool = null;
   state.dispatchGraphReady = false;
+  state.dispatchGraphBuilding = false;
+  state.dispatchGraphUrl = null;
   state.recommendedWorkerCount = 1;
   state.mode = "specify";
   if (el.moduleTabs) {
@@ -7780,9 +7835,9 @@ if (el.redecomposeTasks) {
     markDispatchGraphStale();
   });
 }
-if (el.confirmWorkersGraph) {
+  if (el.confirmWorkersGraph) {
   el.confirmWorkersGraph.addEventListener("click", () => {
-    confirmWorkersAndBuildGraph();
+    void confirmWorkersAndBuildGraph();
   });
 }
 if (el.historyToggle) {

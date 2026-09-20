@@ -212,6 +212,8 @@ export const es = {
   "dispatch.decomposeEmpty": "Aún no hay tareas",
   "dispatch.parallelChip": "Paralelo",
   "dispatch.confirmWorkersGraph": "Confirmar número y generar grafo",
+  "dispatch.graphBuilding": "Generando el grafo…",
+  "dispatch.graphBuildFail": "Error al generar el grafo",
   "dispatch.graphBuilt": "Grafo listo para {n} empleados digitales",
   "dispatch.recommendWorkers": "Recomendado: {n} (ancho paralelo)",
   "dispatch.needGraphConfirm": "Confirma el número y genera el grafo primero",

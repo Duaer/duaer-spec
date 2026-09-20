@@ -194,12 +194,17 @@ test("live sources wire Archify task graph mount", () => {
 test("desk wires decompose → recommend workers → graph confirm", () => {
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
   assert.match(html, /id="taskDecomposeField"/);
   assert.match(html, /id="confirmWorkersGraph"/);
   assert.match(html, /id="redecomposeTasks"/);
   assert.match(js, /decomposeTasksFromModules/);
   assert.match(js, /confirmWorkersAndBuildGraph/);
   assert.match(js, /dispatchGraphReady/);
+  assert.match(js, /setConfirmWorkersGraphBusy/);
+  assert.match(js, /dispatch\.graphBuilding/);
+  assert.match(js, /\/api\/architecture\/render/);
   assert.match(js, /recommendWorkerCount/);
+  assert.match(css, /duaer-btn-spin|is-busy/);
   assert.match(js, /annotateParallelTasks/);
 });
