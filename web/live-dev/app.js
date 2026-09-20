@@ -367,11 +367,12 @@ const el = {
   revAssumeView: document.getElementById("revAssumeView"),
   cardMark: document.getElementById("cardMark"),
   cardTitle: document.getElementById("cardTitle"),
-  deskKindSwitch: document.getElementById("deskKindSwitch"),
-  deskKindFeature: document.getElementById("deskKindFeature"),
-  deskKindBug: document.getElementById("deskKindBug"),
+  startBugFix: document.getElementById("startBugFix"),
+  startBugFixEarly: document.getElementById("startBugFixEarly"),
+  startBugFixAlt: document.getElementById("startBugFixAlt"),
   bugHotfix: document.getElementById("bugHotfix"),
   bugHotfixRow: document.getElementById("bugHotfixRow"),
+  deskBottomActions: document.getElementById("deskBottomActions"),
   moduleTabs: document.getElementById("moduleTabs"),
   moduleMeta: document.getElementById("moduleMeta"),
   workerCountList: document.getElementById("workerCountList"),
@@ -1820,7 +1821,7 @@ function applyConfirmCardChrome() {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
   syncBugHotfixUi();
-  syncDeskKindSwitch();
+  syncStartBugFixButtons();
 }
 
 function syncBugHotfixUi() {
@@ -1832,20 +1833,104 @@ function syncBugHotfixUi() {
   }
 }
 
-function syncDeskKindSwitch() {
-  const locked = Boolean(state.locked);
-  if (el.deskKindSwitch) {
-    el.deskKindSwitch.hidden = false;
-    el.deskKindSwitch.classList.toggle("is-locked", locked);
+/** Show「修 bug」in the same bottom CTA slots as「再改一版」. */
+function syncStartBugFixButtons() {
+  if (state.deskKind === "bug") {
+    for (const btn of [el.startBugFix, el.startBugFixEarly, el.startBugFixAlt]) {
+      if (btn) btn.hidden = true;
+    }
+    if (el.deskBottomActions) el.deskBottomActions.hidden = true;
+    return;
   }
-  const bug = state.deskKind === "bug";
-  for (const btn of [el.deskKindFeature, el.deskKindBug]) {
-    if (!btn) continue;
-    const isBug = btn.dataset.kind === "bug";
-    const on = bug ? isBug : !isBug;
-    btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.disabled = locked || state.busy;
+  const dialoguing = state.mode === "revise" || state.reviseDialogueOpen;
+  const accepted = Boolean(state.lastDeliveryAccepted);
+  const revising =
+    Boolean(state.reviseLocked) ||
+    Boolean(state.lastRevision) ||
+    state.mode === "revise";
+  const showWithRevise =
+    Boolean(state.projectPath) &&
+    !dialoguing &&
+    accepted &&
+    (!revising || state.reviseStuckHint);
+  const showEarly =
+    Boolean(state.projectPath) && !state.locked && !accepted;
+  const previewVisible = el.previewPanel && !el.previewPanel.hidden;
+  if (el.startBugFix) {
+    el.startBugFix.hidden = !(showWithRevise && previewVisible);
+    el.startBugFix.disabled = state.busy || state.reviseDispatching;
+    el.startBugFix.textContent = t("card.kindBug");
   }
+  if (el.startBugFixAlt) {
+    el.startBugFixAlt.hidden = !(showWithRevise && !previewVisible);
+    el.startBugFixAlt.disabled = state.busy || state.reviseDispatching;
+    el.startBugFixAlt.textContent = t("card.kindBug");
+  }
+  if (el.startBugFixEarly) {
+    el.startBugFixEarly.hidden = !showEarly;
+    el.startBugFixEarly.disabled = state.busy;
+    el.startBugFixEarly.textContent = t("card.kindBug");
+  }
+  if (el.deskBottomActions) {
+    el.deskBottomActions.hidden = Boolean(el.startBugFixEarly?.hidden ?? true);
+  }
+}
+
+function beginBugFixFromCta() {
+  if (state.busy || state.reviseDispatching) return;
+  if (!state.projectPath) {
+    setHistoryOpen(true);
+    return;
+  }
+  const fromDelivery = Boolean(state.locked || state.lastDeliveryAccepted);
+  if (fromDelivery) {
+    // Fresh defect card on this project (same spirit as「再改一版」).
+    state.locked = false;
+    state.lastDeliveryAccepted = false;
+    state.jobId = null;
+    state.dispatchPhase = null;
+    state.taskPool = null;
+    state.dispatchGraphReady = false;
+    state.dispatchGraphUrl = null;
+    state.reviseLocked = false;
+    state.revisePlanConfirmed = false;
+    state.architecture = {
+      status: "idle",
+      ir: null,
+      viewBox: null,
+      fingerprint: "",
+      url: null,
+      summary: "",
+      confirmed: false,
+    };
+    state.architectureMessages = [];
+    state.mode = "specify";
+    if (el.dispatch) el.dispatch.hidden = true;
+    setConfirmFieldsReadonly(false);
+    state.deskKind = "bug";
+    state.modules = [
+      {
+        id: "bug",
+        title: t("card.bugModuleTitle"),
+        status: "draft",
+        card: { goal: "", outOfScope: "", acceptance: "", assumptions: "" },
+        dependsOn: [],
+      },
+    ];
+    state.activeModuleId = "bug";
+    applyActiveModuleToFields();
+    applyConfirmCardChrome();
+    renderModuleTabs();
+    syncStartBugFixButtons();
+    addBubble("bot", t("bot.bugKindPicked"));
+    focusRightPanel({ force: true });
+    schedulePersistProjectDesk();
+    return;
+  }
+  enterDeskKind("bug");
+  addBubble("bot", t("bot.bugKindPicked"));
+  focusRightPanel({ force: true });
+  schedulePersistProjectDesk();
 }
 
 function isBugIntentText(text) {
@@ -1866,12 +1951,12 @@ function isFeatureIntentText(text) {
 }
 
 function enterDeskKind(kind) {
-  if (state.locked) return;
   const next = kind === "bug" ? "bug" : "feature";
-  if (state.deskKind === next) {
-    syncDeskKindSwitch();
+  if (state.deskKind === next && next === "bug" && !state.locked) {
+    syncStartBugFixButtons();
     return;
   }
+  if (state.locked && next !== "bug") return;
   state.deskKind = next;
   if (next === "bug") {
     const card = activeModule()?.card || {
@@ -1885,7 +1970,9 @@ function enterDeskKind(kind) {
         id: "bug",
         title: t("card.bugModuleTitle"),
         status: "draft",
-        card,
+        card: state.locked
+          ? { goal: "", outOfScope: "", acceptance: "", assumptions: "" }
+          : card,
         dependsOn: [],
       },
     ];
@@ -2337,6 +2424,7 @@ function syncReviseDispatchButton(ready) {
       el.startReviseChatAlt.textContent = t("revise.again");
     }
   }
+  syncStartBugFixButtons();
   if (el.chatPanel) {
     el.chatPanel.classList.toggle("revise-active", dialoguing);
   }
@@ -5709,14 +5797,10 @@ el.bugHotfix?.addEventListener("change", () => {
   schedulePersistProjectDesk();
 });
 
-for (const btn of [el.deskKindFeature, el.deskKindBug]) {
-  btn?.addEventListener("click", () => {
-    if (state.locked || state.busy) return;
-    const kind = btn.dataset.kind === "bug" ? "bug" : "feature";
-    enterDeskKind(kind);
-    if (kind === "bug" && state.projectPath) {
-      addBubble("bot", t("bot.bugKindPicked"));
-    }
+for (const btn of [el.startBugFix, el.startBugFixEarly, el.startBugFixAlt]) {
+  btn?.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    beginBugFixFromCta();
   });
 }
 

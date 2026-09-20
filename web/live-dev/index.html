@@ -124,34 +124,6 @@
         <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="需求">
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
           <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
-          <div
-            id="deskKindSwitch"
-            class="desk-kind-switch"
-            role="group"
-            data-i18n-aria="card.kindSwitchAria"
-            aria-label="需求或修 bug"
-          >
-            <button
-              type="button"
-              class="chip desk-kind-chip"
-              id="deskKindFeature"
-              data-kind="feature"
-              aria-pressed="true"
-              data-i18n="card.kindFeature"
-            >
-              需求
-            </button>
-            <button
-              type="button"
-              class="chip desk-kind-chip"
-              id="deskKindBug"
-              data-kind="bug"
-              aria-pressed="false"
-              data-i18n="card.kindBug"
-            >
-              修 bug
-            </button>
-          </div>
           <div id="moduleTabs" class="module-tabs" hidden role="tablist" aria-label="Modules"></div>
           <p id="moduleMeta" class="meta module-meta" hidden></p>
           <p id="meta" class="meta"></p>
@@ -306,6 +278,11 @@
             </div>
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
+            <div id="deskBottomActions" class="preview-actions desk-bottom-actions">
+              <button type="button" class="btn revise-cta" id="startBugFixEarly" hidden data-i18n="card.kindBug">
+                修 bug
+              </button>
+            </div>
             <div id="revisePanel" class="revise-panel" hidden>
               <p class="mark" data-i18n="revise.mark">Revise card</p>
               <p id="reviseTitle" class="revise-title">改进卡</p>
@@ -334,6 +311,9 @@
                   <textarea id="revAssume" class="req-edit" rows="1" data-i18n-placeholder="revise.assumePh" placeholder="例如：主色太沉、看不清"></textarea>
                 </div>
               </div>
+              <button type="button" class="btn revise-cta" id="startBugFixAlt" hidden data-i18n="card.kindBug">
+                修 bug
+              </button>
               <button type="button" class="btn revise-cta" id="startReviseChatAlt" hidden data-i18n="revise.again">
                 再改一版
               </button>
@@ -364,6 +344,9 @@
                   部署
                 </button>
                 <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开目录</button>
+                <button type="button" class="btn revise-cta" id="startBugFix" hidden data-i18n="card.kindBug">
+                  修 bug
+                </button>
                 <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
                   再改一版
                 </button>
@@ -653,6 +636,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=graph-result-bar-1"></script>
+    <script type="module" src="/app.js?v=bug-btn-bottom-1"></script>
   </body>
 </html>

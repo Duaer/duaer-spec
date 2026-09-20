@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: move 修 bug CTA next to 再改一版
+
+- Remove top kind chips; 「修 bug」uses the same bottom revise-cta slots
+
 ### Fix: restore dispatch graph + park result bar at bottom
 
 - Snake-wrap odd bands and set connection `fromSide`/`toSide` so Archify accepts
