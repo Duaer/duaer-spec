@@ -106,7 +106,9 @@ Official guide:
 DeepSeek also documents integrations for Codex and other tools:
 [Agent integrations](https://api-docs.deepseek.com/quick_start/agent_integrations/).
 
-FDE still only **auto-launches** Cursor Agent and Claude Code. Other hosts can
-run Duaer Briefs via their own adapters after `npx duaer-spec init --here`.
+FDE still only **auto-launches** Cursor Agent and Claude Code. Day-to-day
+product support is **Cursor** and **Claude Code** — talk in plain language; you
+do not need a professional Spec workflow. Other editors may still receive
+optional adapters from `npx duaer-spec init --here` (see [`ADOPT.md`](../../ADOPT.md)).
 
 Chinese version: [worker-models.zh-CN.md](worker-models.zh-CN.md).

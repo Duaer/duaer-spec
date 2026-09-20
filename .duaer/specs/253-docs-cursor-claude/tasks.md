@@ -1,0 +1,3 @@
+- [x] T001 Rewrite README.md + README.zh-CN.md hero / host bullets
+- [x] T002 Align ADOPT.md / worker-models support wording if needed
+- [x] T003 CHANGELOG Unreleased; stamp delivery

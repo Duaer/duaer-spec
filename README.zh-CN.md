@@ -6,11 +6,11 @@
 
 **Duaer** 把 AI 编程助手变成能**满意交付**的**数字员工**：你用自然语言说意图，它先把需求规范成可检查的 Brief（目标 / 边界 / 验收），再按范围实现，对照验收通过才算完成。
 
-主打的是 **规范 → 满意交付**——不是让人学会操作 Spec 阶段或 slash 命令。
+主打的是 **规范 → 满意交付**——不是让人学会 Spec 阶段、slash 命令，或一整套专业交付流程。
 
-你**不用**操作流程。装一次之后，在 **Cursor** / **Claude Code** / **Codex** / **Copilot** / **Windsurf** / **Cline** / **Continue** / **Gemini** / **Aider** 里说话即可。
+你**不必懂**那些流程。装一次之后，在 **Cursor** 或 **Claude Code** 里用平常话交代即可；流程由数字员工自己跑。
 
-`init` / `update` 会写入各宿主适配文件（详见 [`ADOPT.md`](ADOPT.md)）。
+`init` / `update` 还会给其它编辑器写可选适配（见 [`ADOPT.md`](ADOPT.md)）；台面派工只启动 **Cursor Agent** 或 **Claude Code**。
 
 ## 我们有什么
 
@@ -21,7 +21,7 @@
 - **你平常怎么说，就怎么交代。** 不用记 slash 命令、不用自己点「写 Spec / 拆任务」。
 - **先谈清楚再动手。** 它会把你的想法整理成：要做什么、不做什么、怎样算做完。
 - **做完才算完。** 对照验收通过才会说「交付好了」；半成品不会假装完成。
-- **多宿主可用。** Cursor、Claude Code、Codex、Copilot、Windsurf、Cline、Continue、Gemini、Aider 都行。
+- **支持 Cursor 与 Claude Code。** 装一次后直接在里面说话，不必学专业交付流程。（其它编辑器可选适配见 [`ADOPT.md`](ADOPT.md)。）
 
 ### 在浏览器里：Duaer-spec FDE（现场台面）
 

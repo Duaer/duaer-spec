@@ -33,7 +33,8 @@ Ensure the repo has **`main`** and **`develop`**. See
 [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
 (Chinese: [`README.zh-CN.md`](README.zh-CN.md)).
 
-Then talk to the agent in plain language.
+Then talk in **Cursor** or **Claude Code** in plain language — you do not need
+to learn Spec phases or a professional delivery process.
 
 ## Options
 
@@ -43,9 +44,11 @@ npx duaer-spec init --here --ops
 npx duaer-spec update --method    # rare; usually omit
 ```
 
-Works with **Cursor**, **Claude Code**, **Codex**, **GitHub Copilot**,
-**Windsurf / Devin**, **Cline**, **Continue**, **Gemini CLI**, and **Aider**
-(adapters installed by default).
+**Supported for day-to-day use:** **Cursor** and **Claude Code** (FDE desk
+dispatch also launches only Cursor Agent / Claude Code).
+
+`init` still installs optional adapters for Codex, GitHub Copilot, Windsurf /
+Devin, Cline, Continue, Gemini CLI, and Aider — see the file list below.
 
 ## What you get
 

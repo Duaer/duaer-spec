@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Docs: Cursor + Claude Code primary; no professional workflow required
+
+- README / ADOPT lead with Cursor and Claude Code; humans need not learn Spec
+  phases or a professional delivery process
+- Other editor adapters remain optional via `init` (not the primary pitch)
+
 ## 0.25.1 — 2026-09-20
 
 ### Fix: architecture chat must not keep a false “diagram ready” line

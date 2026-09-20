@@ -10,10 +10,11 @@ into a checkable Brief (goal / boundary / acceptance), implements only that
 scope, and only claims done when acceptance is met.
 
 The product pitch is **norms → satisfactory delivery** — not teaching humans
-to operate Spec phases or slash commands.
+to operate Spec phases, slash commands, or a professional delivery process.
 
-You should **not** have to operate the workflow. After a one-time install, you
-talk; the employee runs the process.
+You do **not** need to understand that process. After a one-time install, talk
+in **Cursor** or **Claude Code** in plain language; the employee runs the
+workflow.
 
 ## One-time install
 
@@ -39,9 +40,12 @@ The CLI also prints a one-line hint when a newer npm release exists
 npx duaer-spec update
 ```
 
-Then use **Cursor**, **Claude Code**, **Codex**, **Copilot**, **Windsurf**, **Cline**, **Continue**, **Gemini**, or **Aider** — describe what you want.
+Then use **Cursor** or **Claude Code** — describe what you want in plain
+language. You do not need to learn Spec phases or slash commands.
 
-Install writes host adapters for each (see [`ADOPT.md`](ADOPT.md)).
+`init` / `update` also write optional adapters for other editors (see
+[`ADOPT.md`](ADOPT.md)). FDE desk dispatch launches **Cursor Agent** or
+**Claude Code** only.
 
 Chinese guide: [`README.zh-CN.md`](README.zh-CN.md)
 
@@ -54,7 +58,7 @@ After install, these are the capabilities you actually use:
 - **You talk; it runs the process.** No slash commands, no “you must run Spec phases.”
 - **Clarify before coding.** It turns your ask into: what to build, what not to build, how we know it’s done.
 - **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
-- **Works in many hosts.** Cursor, Claude Code, Codex, Copilot, Windsurf, Cline, Continue, Gemini, Aider.
+- **Supported in Cursor and Claude Code.** Install once, then speak there — no professional Spec workflow required. (Optional adapters for other editors: [`ADOPT.md`](ADOPT.md).)
 
 ### In the browser: Duaer-spec FDE (live desk)
 
