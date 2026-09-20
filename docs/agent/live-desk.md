@@ -71,11 +71,19 @@ registry linking into the requirements document (no duplicate full cards).
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture
-   review (Archify), then **kickoff**.
+   review (Archify). After **architecture confirm**, kickoff UI opens.
 
 ## Kickoff: task pool and workers
 
-Kickoff owns Brief creation and dispatch:
+Kickoff owns Brief creation and dispatch. Order after architecture confirm:
+
+1. **Decompose** atomic tasks (one per acceptance line + impl / verify /
+   shared steps). Parallelizable tasks (same dependency wave) are marked.
+2. **Recommend** digital-employee count (1–4) from parallel width; the operator
+   may change it, then **confirm** to build the **派工图**.
+3. Launch uses the confirmed pool and worker count.
+
+Additional notes:
 
 - Builds a **dependency-aware task pool** (`dependsOn` edges).
 - **Employee directory** (top bar): lists specialized roles — **Implementer**,
@@ -91,8 +99,8 @@ Kickoff owns Brief creation and dispatch:
 - **Atomic + monitorable:** one checkbox task per independently verifiable
   acceptance line (plus impl / verify / deploy / shared steps). Agents must mark
   `- [x]` as each atom completes so the desk can poll progress and release waves.
-- **Worker count** defaults to **1**. Optional **N** parallel workers on the
-  **same** CLI (Cursor Agent or Claude Code — not mixed).
+- **Worker count** is recommended from parallel width (cap 4). Optional **N**
+  parallel workers on the **same** CLI (Cursor Agent or Claude Code — not mixed).
 - Assignment: shared / cross-cutting tasks → worker 1; module-scoped tasks
   round-robin across workers.
 - Progress **派工进度** shows **one lane per worker** when N>1 (per-worker
@@ -116,12 +124,10 @@ Kickoff owns Brief creation and dispatch:
   regression lane. It does not nudge the employee to stamp accept. A
   `docs-only` waiver (no commands) is the only skip. The first command list is
   frozen so a later waiver cannot replace it.
-- **Execution graph:** kickoff shows the task path with the **same Archify
-  renderer and layered layout** as the system architecture diagram; employee
-  count uses chips (1 serial / 2–4 parallel). The desk does not embed that
-  diagram. **Dispatch center** opens `/dispatch-center.html` in a new page:
-  a 100px project rail and the selected project's graph. The dispatch card
-  button opens the same page for the current project.
+- **Execution graph:** after worker-count confirm, the desk builds the task
+  path with the **same Archify renderer and layered layout** as the system
+  architecture diagram. **查看派工图** / **Dispatch center** open
+  `/dispatch-center.html` (100px project rail + selected graph).
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 
@@ -130,7 +136,8 @@ Kickoff owns Brief creation and dispatch:
 - Before `delivery.json` is `accepted`, workers update the product **README**
   to match what shipped.
 - Revise: left-chat feedback → confirm revise card → architecture keep/redesign
-  → relaunch on the same worktree (preempt leftover Agents, then enqueue).
+  → decompose / recommend workers / confirm graph → relaunch on the same
+  worktree (preempt leftover Agents, then enqueue).
   Progress tracks `R{n}-*` tasks for that revision.
 
 ## Verification

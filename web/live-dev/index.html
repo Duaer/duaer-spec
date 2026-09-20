@@ -197,17 +197,31 @@
               <p id="dispatchProjectLine" class="dispatch-project-line"></p>
               <p id="dispatchProjectPath" class="hint dispatch-project-path"></p>
             </div>
+            <div class="field task-decompose-field" id="taskDecomposeField">
+              <div class="task-decompose-head">
+                <span data-i18n="dispatch.decomposeTitle">任务拆解</span>
+                <button type="button" class="btn" id="redecomposeTasks" data-i18n="dispatch.redecompose">
+                  重新拆解
+                </button>
+              </div>
+              <p class="hint" data-i18n="dispatch.decomposeHint">架构确认后按验收条目拆到原子任务；可并行的会标出来</p>
+              <div id="taskPoolPreview" class="task-pool-preview">
+                <ul id="taskPoolList" class="task-pool-list" role="list"></ul>
+                <p id="taskPoolEmpty" class="hint" hidden data-i18n="dispatch.decomposeEmpty">尚未拆解任务</p>
+              </div>
+            </div>
             <div class="field worker-count-field">
               <span data-i18n="dispatch.workerCount">数字员工数量</span>
-              <p class="hint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <p class="hint" id="workerCountHint" data-i18n="dispatch.workerCountHint">默认 1 人串行推进；可并行时选多人（同一 CLI）</p>
+              <p class="hint worker-recommend" id="workerRecommendHint" hidden></p>
               <div id="workerCountList" class="worker-count-list" role="radiogroup" aria-label="worker count"></div>
+              <button type="button" class="btn primary" id="confirmWorkersGraph" data-i18n="dispatch.confirmWorkersGraph">
+                确认人数并生成派工图
+              </button>
             </div>
-            <button type="button" class="btn" id="openTaskGraph" data-i18n="dispatch.openGraph">
+            <button type="button" class="btn" id="openTaskGraph" data-i18n="dispatch.openGraph" disabled>
               查看派工图
             </button>
-            <div id="taskPoolPreview" class="task-pool-preview" hidden>
-              <pre id="taskPoolList" class="task-pool-list" hidden></pre>
-            </div>
             <div id="repoPickBlock" class="repo-pick-block">
               <div class="repo-actions" id="repoPickActions">
                 <button type="button" class="btn primary" id="repoBrowse" data-i18n="dispatch.browse">浏览…</button>

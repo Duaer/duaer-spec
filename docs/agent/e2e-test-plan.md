@@ -115,7 +115,7 @@ the table for their app.
 | E2E-133 | Settings Cloudflare / AWS credentials; options hidden until configured | `npm test` + `npm run test:live` + manual |
 | E2E-134 | Settings compact collapsible blocks + host credential tutorials | `npm run test:live` + manual |
 | E2E-135 | Messy multi-module chat: modules[] evolves; per-module confirm; no Brief until kickoff | `npm test` + `npm run test:live` + manual |
-| E2E-136 | All modules confirmed → architecture → kickoff builds task pool with dependsOn; 1..N same-CLI workers | `npm test` + manual |
+| E2E-136 | All modules confirmed → architecture → decompose tasks → confirm workers → dispatch graph → kickoff; 1..N same-CLI workers | `npm test` + manual |
 | E2E-137 | Kickoff / revise delivery updates product README before stamp accepted | `npm test` + manual |
 | E2E-138 | Chat bubbles render inline Markdown (`**bold**`, code, links) safely | `npm test` + `npm run test:live` |
 | E2E-139 | workerCount>1 opens one Terminal queue lane per worker (no lock-exit window) | `npm test` + manual |
@@ -143,6 +143,7 @@ the table for their app.
 | E2E-171 | Creating or switching project ignores a stale status poll so 派工进度 does not pollute the new desk | `npm test` |
 | E2E-172 | Desk sessions use SQLite; legacy project-chats JSON imports on first open; schema_version migrations run | `npm test` |
 | E2E-173 | Config, repos, and live jobs import into desk.sqlite; live data is local-only (not packaged) | `npm test` |
+| E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图; revise same gate | `npm test` |
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
 | E2E-158 | Worker count chips + task dependency graph updates with worker count | `npm test` + `npm run test:live` |
@@ -312,7 +313,7 @@ the table for their app.
 | E2E-127 | `160-preview-deploy-btn` | result-bar Deploy; default Pages |
 | E2E-128 | `161-deploy-picker` | Deploy opens where-to-host dialog |
 | E2E-135 | `169-modular-fde-confirm` | modular messy chat; late kickoff |
-| E2E-136 | `169-modular-fde-confirm` | task pool + 1..N same-CLI workers |
+| E2E-136 | `169-modular-fde-confirm` / `229-task-decompose-graph` | task pool + recommend workers + graph gate |
 | E2E-137 | `170-readme-on-delivery` | README update before accepted |
 | E2E-138 | `171-chat-markdown` | safe chat Markdown bubbles |
 | E2E-139 | `173-parallel-terminal-lanes` | per-worker Terminal queue lanes |
@@ -350,3 +351,4 @@ the table for their app.
 | E2E-171 | `226-progress-pollute` | stale status poll cannot refill another project's progress |
 | E2E-172 | `227-desk-sqlite` | desk.sqlite + JSON import + schema migrations |
 | E2E-173 | `228-desk-sqlite-all` | config/repos/jobs in SQLite; local-only live root |
+| E2E-174 | `229-task-decompose-graph` | decompose → recommend workers → dispatch graph |

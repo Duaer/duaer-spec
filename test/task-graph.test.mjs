@@ -4,9 +4,11 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 import {
+  annotateParallelTasks,
   assignPreviewWorkers,
   buildPreviewPoolFromModules,
   buildTaskArchitectureIr,
+  recommendWorkerCount,
   taskPoolToArchitectureIr,
 } from "../web/live-dev/task-graph.mjs";
 import { sanitizeArchitectureIr } from "../bin/live-archify.mjs";
@@ -29,6 +31,38 @@ const modules = [
     dependsOn: [],
   },
 ];
+
+test("annotateParallelTasks marks same-wave tasks", () => {
+  const tasks = [
+    { id: "T001", title: "A", dependsOn: [] },
+    { id: "T002", title: "B", dependsOn: [] },
+    { id: "T003", title: "C", dependsOn: ["T001"] },
+  ];
+  const annotated = annotateParallelTasks(tasks);
+  assert.equal(annotated[0].parallel, true);
+  assert.equal(annotated[1].parallel, true);
+  assert.equal(annotated[2].parallel, false);
+  assert.equal(annotated[0].wave, 0);
+  assert.equal(annotated[2].wave, 1);
+});
+
+test("recommendWorkerCount uses parallel width and specialty bump", () => {
+  const parallel = [
+    { id: "T001", title: "A", dependsOn: [], role: "implement" },
+    { id: "T002", title: "B", dependsOn: [], role: "implement" },
+  ];
+  assert.equal(recommendWorkerCount(parallel, { max: 4 }), 2);
+  const withSpecialty = [
+    ...parallel,
+    { id: "T003", title: "V", dependsOn: ["T001", "T002"], role: "verify-l3" },
+  ];
+  assert.equal(recommendWorkerCount(withSpecialty, { max: 4 }), 3);
+  const serial = [
+    { id: "T001", title: "A", dependsOn: [] },
+    { id: "T002", title: "B", dependsOn: ["T001"] },
+  ];
+  assert.equal(recommendWorkerCount(serial, { max: 4 }), 1);
+});
 
 test("buildPreviewPoolFromModules creates dependsOn chain", () => {
   const pool = buildPreviewPoolFromModules(modules);
@@ -155,4 +189,17 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(app, /window\.open\(`\/dispatch-center\.html/);
   assert.doesNotMatch(app, /buildTaskGraphSvg|innerHTML = graph\.svg/);
   assert.doesNotMatch(page, /buildTaskGraphSvg|innerHTML = graph\.svg/);
+});
+
+test("desk wires decompose → recommend workers → graph confirm", () => {
+  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
+  const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  assert.match(html, /id="taskDecomposeField"/);
+  assert.match(html, /id="confirmWorkersGraph"/);
+  assert.match(html, /id="redecomposeTasks"/);
+  assert.match(js, /decomposeTasksFromModules/);
+  assert.match(js, /confirmWorkersAndBuildGraph/);
+  assert.match(js, /dispatchGraphReady/);
+  assert.match(js, /recommendWorkerCount/);
+  assert.match(js, /annotateParallelTasks/);
 });

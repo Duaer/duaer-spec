@@ -23,7 +23,14 @@ import {
   architectureKeyFromArchitectureUrl,
 } from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
-import { buildTaskArchitectureIr } from "./task-graph.mjs";
+import {
+  annotateParallelTasks,
+  assignPreviewWorkers,
+  buildPreviewPoolFromModules,
+  buildTaskArchitectureIr,
+  recommendWorkerCount,
+  taskPoolToArchitectureIr,
+} from "./task-graph.mjs";
 import { EMPLOYEE_CATALOG } from "./employee-catalog.mjs";
 
 /** Deliverables API lang: en | ja | zh */
@@ -87,6 +94,9 @@ const state = {
   /** Kickoff: how many same-CLI digital employees (1..N). */
   workerCount: 1,
   taskPool: null,
+  /** After operator confirms worker count and builds the dispatch graph. */
+  dispatchGraphReady: false,
+  recommendedWorkerCount: 1,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -351,8 +361,12 @@ const el = {
   moduleTabs: document.getElementById("moduleTabs"),
   moduleMeta: document.getElementById("moduleMeta"),
   workerCountList: document.getElementById("workerCountList"),
+  workerRecommendHint: document.getElementById("workerRecommendHint"),
+  confirmWorkersGraph: document.getElementById("confirmWorkersGraph"),
+  redecomposeTasks: document.getElementById("redecomposeTasks"),
   taskPoolPreview: document.getElementById("taskPoolPreview"),
   taskPoolList: document.getElementById("taskPoolList"),
+  taskPoolEmpty: document.getElementById("taskPoolEmpty"),
   dispatchCenterToggle: document.getElementById("dispatchCenterToggle"),
   openTaskGraph: document.getElementById("openTaskGraph"),
   lblGoal: document.getElementById("lblGoal"),
@@ -967,8 +981,80 @@ function previewTaskPoolLines(tasks) {
       t.dependsOn?.length > 0 ? ` ← ${t.dependsOn.join(", ")}` : "";
     const wid = t.workerId ? ` · ${t.workerId}` : "";
     const mod = t.moduleId ? ` [${t.moduleId}]` : "";
-    return `${t.id}${mod}${wid} ${t.title}${deps}`;
+    const par = t.parallel ? " ‖" : "";
+    return `${t.id}${mod}${wid}${par} ${t.title}${deps}`;
   });
+}
+
+function renderTaskPoolList(tasks) {
+  if (!el.taskPoolList) return;
+  el.taskPoolList.replaceChildren();
+  const list = annotateParallelTasks(tasks || []);
+  if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = list.length > 0;
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = false;
+  for (const tsk of list) {
+    const li = document.createElement("li");
+    li.className = "task-pool-item";
+    li.setAttribute("role", "listitem");
+    const id = document.createElement("span");
+    id.className = "task-pool-id";
+    id.textContent = tsk.id || "";
+    li.appendChild(id);
+    const title = document.createElement("span");
+    title.className = "task-pool-title";
+    title.textContent = tsk.title || "";
+    li.appendChild(title);
+    if (tsk.parallel) {
+      const chip = document.createElement("span");
+      chip.className = "task-pool-parallel";
+      chip.textContent = t("dispatch.parallelChip");
+      li.appendChild(chip);
+    }
+    if (tsk.dependsOn?.length) {
+      const deps = document.createElement("span");
+      deps.className = "task-pool-deps";
+      deps.textContent = `← ${tsk.dependsOn.join(", ")}`;
+      li.appendChild(deps);
+    }
+    if (tsk.workerId) {
+      const wid = document.createElement("span");
+      wid.className = "task-pool-deps";
+      wid.textContent = tsk.workerId;
+      li.appendChild(wid);
+    }
+    el.taskPoolList.appendChild(li);
+  }
+}
+
+function syncOpenTaskGraphButton() {
+  if (!el.openTaskGraph) return;
+  el.openTaskGraph.disabled = !state.dispatchGraphReady;
+}
+
+function markDispatchGraphStale() {
+  if (!state.dispatchGraphReady) {
+    syncOpenTaskGraphButton();
+    return;
+  }
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+  if (el.dispatchErr) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.graphStale");
+  }
+  schedulePersistProjectDesk();
+}
+
+function applyRecommendedWorkerCount(tasks) {
+  const rec = recommendWorkerCount(tasks, { max: 4 });
+  state.recommendedWorkerCount = rec;
+  state.workerCount = rec;
+  if (el.workerRecommendHint) {
+    el.workerRecommendHint.hidden = false;
+    el.workerRecommendHint.textContent = t("dispatch.recommendWorkers", {
+      n: String(rec),
+    });
+  }
 }
 
 function renderWorkerCountList() {
@@ -987,16 +1073,42 @@ function renderWorkerCountList() {
     b.appendChild(num);
     const sub = document.createElement("span");
     sub.className = "w-label";
-    sub.textContent =
+    let label =
       n === 1 ? t("dispatch.workerSerial") : t("dispatch.workerParallel");
+    if (n === state.recommendedWorkerCount) {
+      label = `${label} · ★`;
+    }
+    sub.textContent = label;
     b.appendChild(sub);
     b.addEventListener("click", () => {
-      state.workerCount = n;
+      if (state.workerCount !== n) {
+        state.workerCount = n;
+        markDispatchGraphStale();
+      }
       renderWorkerCountList();
-      syncTaskPoolPreview();
     });
     el.workerCountList.appendChild(b);
   }
+}
+
+function decomposeTasksFromModules() {
+  ensureModulesSeed();
+  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (!confirmed.length) {
+    state.taskPool = null;
+    renderTaskPoolList([]);
+    return null;
+  }
+  const pool = buildPreviewPoolFromModules(confirmed);
+  const annotated = annotateParallelTasks(pool.tasks);
+  state.taskPool = { version: 1, tasks: annotated };
+  applyRecommendedWorkerCount(annotated);
+  renderWorkerCountList();
+  renderTaskPoolList(annotated);
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+  schedulePersistProjectDesk();
+  return state.taskPool;
 }
 
 function syncTaskPoolPreview() {
@@ -1007,22 +1119,54 @@ async function syncTaskPoolPreviewAsync() {
   if (!el.taskPoolPreview) return;
   ensureModulesSeed();
   const confirmed = state.modules.filter((m) => m.status === "confirmed");
-  if (!confirmed.length || !state.locked) {
-    el.taskPoolPreview.hidden = true;
+  if (!confirmed.length || !state.locked || !state.architecture?.confirmed) {
+    if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
+    renderTaskPoolList([]);
     state.taskPool = null;
-    if (el.taskPoolList) el.taskPoolList.textContent = "";
     return;
   }
-  el.taskPoolPreview.hidden = true;
-  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
-  const built = buildTaskArchitectureIr(confirmed, workerCount, {
-    title: t("dispatch.taskGraph"),
-    locale: getLocale(),
-  });
-  state.taskPool = { version: 1, tasks: built.tasks };
-  if (el.taskPoolList) {
-    el.taskPoolList.textContent = previewTaskPoolLines(built.tasks).join("\n");
+  if (state.taskPool?.tasks?.length) {
+    renderTaskPoolList(state.taskPool.tasks);
+    return;
   }
+  decomposeTasksFromModules();
+}
+
+function confirmWorkersAndBuildGraph() {
+  ensureModulesSeed();
+  if (!state.architecture?.confirmed) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("arch.needConfirm");
+    }
+    return;
+  }
+  if (!state.taskPool?.tasks?.length) {
+    decomposeTasksFromModules();
+  }
+  if (!state.taskPool?.tasks?.length) {
+    if (el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("dispatch.decomposeEmpty");
+    }
+    return;
+  }
+  const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
+  state.workerCount = workerCount;
+  const assigned = assignPreviewWorkers(state.taskPool, workerCount);
+  state.taskPool = { version: 1, tasks: annotateParallelTasks(assigned.tasks) };
+  renderTaskPoolList(state.taskPool.tasks);
+  state.dispatchGraphReady = true;
+  syncOpenTaskGraphButton();
+  if (el.dispatchErr) el.dispatchErr.hidden = true;
+  schedulePersistProjectDesk();
+  addBubble("bot", t("dispatch.graphBuilt", { n: String(workerCount) }));
+}
+
+function invalidateDispatchAfterArchChange() {
+  state.dispatchGraphReady = false;
+  syncOpenTaskGraphButton();
+  if (el.dispatch) el.dispatch.hidden = true;
 }
 
 function openDispatchCenterPage(projectPath) {
@@ -2154,6 +2298,7 @@ async function persistProjectChat() {
         activeModuleId: state.activeModuleId,
         taskPool: state.taskPool,
         workerCount: state.workerCount || 1,
+        dispatchGraphReady: Boolean(state.dispatchGraphReady),
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
         reviseDraft: (() => {
@@ -2279,6 +2424,8 @@ function clearDeskWorkspace() {
   state.activeModuleId = null;
   state.workerCount = 1;
   state.taskPool = null;
+  state.dispatchGraphReady = false;
+  state.recommendedWorkerCount = 1;
   state.mode = "specify";
   if (el.moduleTabs) {
     el.moduleTabs.replaceChildren();
@@ -2288,8 +2435,11 @@ function clearDeskWorkspace() {
     el.moduleMeta.hidden = true;
     el.moduleMeta.textContent = "";
   }
-  if (el.taskPoolPreview) el.taskPoolPreview.hidden = true;
-  if (el.taskPoolList) el.taskPoolList.textContent = "";
+  if (el.taskPoolPreview) el.taskPoolPreview.hidden = false;
+  if (el.taskPoolList) el.taskPoolList.replaceChildren();
+  if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
+  if (el.workerRecommendHint) el.workerRecommendHint.hidden = true;
+  syncOpenTaskGraphButton();
   renderWorkerCountList();
   state.reviseLocked = false;
   state.reviseDispatching = false;
@@ -2526,7 +2676,14 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     state.taskPool = data.taskPool || null;
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
+    state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
+    if (state.taskPool?.tasks?.length) {
+      state.recommendedWorkerCount = recommendWorkerCount(state.taskPool.tasks, {
+        max: 4,
+      });
+    }
     renderWorkerCountList();
+    syncOpenTaskGraphButton();
     applySavedCardFields(data.card, data.reviseCard);
     applyActiveModuleToFields();
     renderModuleTabs();
@@ -2585,19 +2742,23 @@ async function loadProjectChatIntoUi(projectPath) {
     }
     syncConfirmEnabled();
     syncComposerEnabled();
-    if (state.jobId || state.locked || modulesAllConfirmedLocal()) {
+    if (modulesAllConfirmedLocal() && el.confirm) {
+      el.confirm.textContent = t("card.allModulesConfirmed");
+      el.confirm.disabled = true;
+    }
+    if (state.architecture.confirmed && modulesAllConfirmedLocal()) {
       if (el.dispatch) el.dispatch.hidden = false;
       syncDispatchProjectLine();
-      if (modulesAllConfirmedLocal() && el.confirm) {
-        el.confirm.textContent = t("card.allModulesConfirmed");
-        el.confirm.disabled = true;
-      }
-      if (state.dispatchPhase === "done") {
-        syncDispatchButton();
-      }
-      if (state.jobId) startStatusPoll();
-      void loadAgents();
       syncTaskPoolPreview();
+      syncOpenTaskGraphButton();
+      void loadAgents();
+    }
+    if (state.dispatchPhase === "done") {
+      syncDispatchButton();
+    }
+    if (state.jobId) {
+      startStatusPoll();
+      void loadAgents();
     }
     if (
       !modulesAllConfirmedLocal() &&
@@ -3695,8 +3856,6 @@ async function applyConfirmSuccess(data) {
   }
   void persistProjectChat();
   if (allDone) {
-    await showDispatchPanel();
-    syncTaskPoolPreview();
     beginArchitectureDesign({ kickoff: true });
   }
 }
@@ -3976,6 +4135,7 @@ function applyArchitectureFromChatPayload(data) {
   if (!state.architecture.fingerprint) {
     state.architecture.fingerprint = architectureFpOf(state.architecture) || "";
   }
+  invalidateDispatchAfterArchChange();
   syncArchitecturePanel();
   schedulePersistProjectDesk();
   return true;
@@ -4127,6 +4287,7 @@ function maybeNudgeArchitectureContinue() {
 }
 
 function beginArchitectureDesign({ kickoff = false } = {}) {
+  invalidateDispatchAfterArchChange();
   if (state.architecture.confirmed && state.architecture.url) {
     snapshotArchitectureAsPrevious();
   }
@@ -4373,10 +4534,8 @@ function confirmArchitecture() {
   syncReviseCardChrome();
   schedulePersistProjectDesk();
   addBubble("bot", t("arch.hintConfirmed"));
-  // Revise path: architecture confirm comes *after* 改进方案确认 → then dispatch.
-  if (state.revisePlanConfirmed && !state.reviseLocked && state.jobId) {
-    void dispatchReviseAgent();
-  }
+  // Decompose → recommend workers → confirm graph, then launch (incl. revise).
+  void showDispatchPanel();
 }
 
 async function autoFixAccept(btn, issues, kind = "confirm") {
@@ -4530,9 +4689,15 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
-  renderWorkerCountList();
+  if (!state.taskPool?.tasks?.length) {
+    decomposeTasksFromModules();
+  } else {
+    applyRecommendedWorkerCount(state.taskPool.tasks);
+    renderWorkerCountList();
+    renderTaskPoolList(state.taskPool.tasks);
+    syncOpenTaskGraphButton();
+  }
   syncDispatchProjectLine();
-  syncTaskPoolPreview();
   if (el.startCommand && !el.startCommand.value.trim()) {
     el.startCommand.value = defaultStartCommand();
   } else {
@@ -5297,6 +5462,11 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent = t("arch.needConfirm");
     syncArchitecturePanel("stale");
+    return;
+  }
+  if (!state.dispatchGraphReady || !state.taskPool?.tasks?.length) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
     return;
   }
   ensureStartCommandPrefix();
@@ -6692,6 +6862,7 @@ function openReviseArchitectureGate() {
     state.architecture.status = "preview";
     state.architecture.ir = null;
     state.mode = "architecture";
+    invalidateDispatchAfterArchChange();
     // Place diagram under「请先确认架构」CTA before scrolling.
     placeArchitecturePanelForFlow();
     syncArchitecturePanel();
@@ -6744,6 +6915,14 @@ async function confirmReviseAndDispatch() {
       el.reviseErr.textContent = t("arch.needConfirmAfterPlan");
     }
     openReviseArchitectureGate();
+    return;
+  }
+  if (!state.dispatchGraphReady || !state.taskPool?.tasks?.length) {
+    if (el.reviseErr) {
+      el.reviseErr.hidden = false;
+      el.reviseErr.textContent = t("dispatch.needGraphConfirm");
+    }
+    void showDispatchPanel();
     return;
   }
   await dispatchReviseAgent();
@@ -7585,7 +7764,25 @@ if (el.dispatchCenterToggle) {
 }
 if (el.openTaskGraph) {
   el.openTaskGraph.addEventListener("click", () => {
+    if (!state.dispatchGraphReady) {
+      if (el.dispatchErr) {
+        el.dispatchErr.hidden = false;
+        el.dispatchErr.textContent = t("dispatch.needGraphConfirm");
+      }
+      return;
+    }
     openDispatchCenterPage(state.projectPath);
+  });
+}
+if (el.redecomposeTasks) {
+  el.redecomposeTasks.addEventListener("click", () => {
+    decomposeTasksFromModules();
+    markDispatchGraphStale();
+  });
+}
+if (el.confirmWorkersGraph) {
+  el.confirmWorkersGraph.addEventListener("click", () => {
+    confirmWorkersAndBuildGraph();
   });
 }
 if (el.historyToggle) {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: decompose tasks then confirm workers before dispatch graph
+
+- After architecture confirm, the desk decomposes atomic tasks (parallel marked) above Digital employees
+- Recommends 1–4 workers from parallel width; confirm builds the dispatch graph
+- Revise uses the same gate after architecture re-confirm
+
 ### Feat: all durable live desk state in SQLite
 
 - Config, repos, live jobs, and project sessions live in `~/.duaer/live/desk.sqlite`

@@ -225,6 +225,7 @@ function emptySession(projectPath = "") {
     activeModuleId: null,
     taskPool: null,
     workerCount: 1,
+    dispatchGraphReady: false,
     reviseCard: clipCard(null),
     reviseCards: [],
     reviseDraft: null,
@@ -278,6 +279,7 @@ export function readProjectChat(liveRoot, projectPath) {
       activeModuleId: modFields.activeModuleId,
       taskPool: clipTaskPool(raw.taskPool),
       workerCount: clipWorkerCount(raw.workerCount),
+      dispatchGraphReady: Boolean(raw.dispatchGraphReady),
       reviseCard: clipCard(raw.reviseCard),
       reviseCards: migrateReviseCards(
         raw.reviseCards,
@@ -332,6 +334,7 @@ export function writeProjectChat(liveRoot, payload) {
     activeModuleId: modFields.activeModuleId,
     taskPool: clipTaskPool(payload.taskPool),
     workerCount: clipWorkerCount(payload.workerCount),
+    dispatchGraphReady: Boolean(payload.dispatchGraphReady),
     reviseCard: clipCard(payload.reviseCard),
     reviseCards: migrateReviseCards(
       payload.reviseCards,

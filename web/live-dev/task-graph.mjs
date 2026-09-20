@@ -174,7 +174,7 @@ function shortTitle(title, max = 36) {
  * @param {Array<object>} tasks
  * @returns {Map<string, number>}
  */
-function dependencyRanks(tasks) {
+export function dependencyRanks(tasks) {
   const list = Array.isArray(tasks) ? tasks : [];
   const rank = new Map();
   for (const t of list) {
@@ -201,6 +201,67 @@ function dependencyRanks(tasks) {
     }
   }
   return rank;
+}
+
+/**
+ * Annotate tasks with wave index and whether they share a wave (parallel).
+ * @param {Array<object>} tasks
+ * @returns {Array<object>}
+ */
+export function annotateParallelTasks(tasks) {
+  const list = Array.isArray(tasks) ? tasks.map((t) => ({ ...t })) : [];
+  const ranks = dependencyRanks(list);
+  const widthByWave = new Map();
+  for (const t of list) {
+    const id = String(t.id || "");
+    const wave = ranks.get(id) || 0;
+    t.wave = wave;
+    widthByWave.set(wave, (widthByWave.get(wave) || 0) + 1);
+  }
+  for (const t of list) {
+    const wave = Number(t.wave) || 0;
+    t.parallel = (widthByWave.get(wave) || 0) > 1;
+  }
+  return list;
+}
+
+/**
+ * Max number of tasks that share a dependency wave.
+ * @param {Array<object>} tasks
+ */
+export function maxParallelWidth(tasks) {
+  const annotated = annotateParallelTasks(tasks);
+  let max = 1;
+  const counts = new Map();
+  for (const t of annotated) {
+    const w = Number(t.wave) || 0;
+    counts.set(w, (counts.get(w) || 0) + 1);
+  }
+  for (const n of counts.values()) {
+    if (n > max) max = n;
+  }
+  return Math.max(1, max);
+}
+
+/**
+ * Recommend digital-employee count (1–4) from parallel width.
+ * When specialty roles exist and width ≥ 2, add one lane for verify-l3/deploy.
+ * @param {Array<object>} tasks
+ * @param {{ max?: number }} [opts]
+ */
+export function recommendWorkerCount(tasks, opts = {}) {
+  const max = Math.max(1, Math.min(4, Number(opts.max) || 4));
+  const list = Array.isArray(tasks) ? tasks : [];
+  const width = maxParallelWidth(list);
+  const hasSpecialty = list.some((t) => {
+    const r = String(t.role || "");
+    return r === "verify-l3" || r === "deploy";
+  });
+  let n = Math.min(max, Math.max(1, width));
+  if (hasSpecialty && width >= 2) {
+    n = Math.min(max, width + 1);
+  }
+  return n;
 }
 
 /**
