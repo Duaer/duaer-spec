@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: keep chat quick-nav visible inside the chat column
+
+- Pin「导航」inside the chat panel (no half-clip under the middle column)
+- Open the menu inward over the chat log
+
 ### Feat: project timeline + chat quick nav
 
 - Deliverables timeline merges 初版 / 改进 / 缺陷 and sorts by time
