@@ -1,6 +1,7 @@
 /**
- * Standalone dispatch-center page: 100px project rail + task graph.
- * Same top nav as the desk; project / employee / settings open on `/`.
+ * Standalone dispatch-center page: 100px project rail + task graph /
+ * system architecture per project.
+ * Same top nav as the console; project / employee / settings open on `/`.
  * Graph rebuilds from live job progress so node status stays current.
  */
 import { t, getLocale, initI18n, onLocaleChange, setLocale } from "./i18n.js";
@@ -20,6 +21,9 @@ const projectToggle = document.getElementById("historyToggle");
 const langSelect = document.getElementById("langSelect");
 const githubStars = document.getElementById("githubStars");
 const githubStarCount = document.getElementById("githubStarCount");
+const viewGraphBtn = document.getElementById("dispatchViewGraph");
+const viewArchBtn = document.getElementById("dispatchViewArch");
+const archFsBtn = document.getElementById("dispatchArchFullscreen");
 
 const STATUS_POLL_MS = 2500;
 
@@ -31,6 +35,9 @@ let lastProgressFp = "";
 let cachedTasks = null;
 let cachedWorkerCount = 1;
 let cachedJobId = "";
+/** @type {"graph"|"architecture"} */
+let viewMode = "graph";
+let cachedArchUrl = "";
 
 function pathKey(p) {
   return String(p || "")
@@ -42,6 +49,11 @@ function currentPath() {
   return new URL(location.href).searchParams.get("path") || "";
 }
 
+function currentView() {
+  const v = new URL(location.href).searchParams.get("view") || "";
+  return v === "architecture" ? "architecture" : "graph";
+}
+
 function setCurrentPath(path) {
   const u = new URL(location.href);
   const next = String(path || "").trim();
@@ -49,6 +61,27 @@ function setCurrentPath(path) {
   else u.searchParams.delete("path");
   history.replaceState(null, "", u);
   syncProjectBadge();
+}
+
+function setViewMode(mode, { render = true } = {}) {
+  viewMode = mode === "architecture" ? "architecture" : "graph";
+  const u = new URL(location.href);
+  if (viewMode === "architecture") u.searchParams.set("view", "architecture");
+  else u.searchParams.delete("view");
+  history.replaceState(null, "", u);
+  syncViewTabs();
+  if (render) void renderStage(currentPath());
+}
+
+function syncViewTabs() {
+  const graphOn = viewMode === "graph";
+  if (viewGraphBtn) viewGraphBtn.setAttribute("aria-selected", graphOn ? "true" : "false");
+  if (viewArchBtn) {
+    viewArchBtn.setAttribute("aria-selected", graphOn ? "false" : "true");
+  }
+  if (archFsBtn) {
+    archFsBtn.hidden = graphOn || !cachedArchUrl;
+  }
 }
 
 function deskUrl(open) {
@@ -114,6 +147,11 @@ function wireTopNav() {
       setLocale(langSelect.value);
     });
   }
+  viewGraphBtn?.addEventListener("click", () => setViewMode("graph"));
+  viewArchBtn?.addEventListener("click", () => setViewMode("architecture"));
+  archFsBtn?.addEventListener("click", () => {
+    void openArchitectureFullscreen(cachedArchUrl);
+  });
   void refreshGithubStars();
 }
 
@@ -134,6 +172,7 @@ function stopStatusPoll() {
 
 function startStatusPoll() {
   stopStatusPoll();
+  if (viewMode !== "graph") return;
   if (!cachedJobId || !cachedTasks?.length) return;
   pollTimer = setInterval(() => {
     void pollLiveProgress();
@@ -151,6 +190,35 @@ async function fetchJobProgress(jobId) {
   } catch {
     return null;
   }
+}
+
+function toPresentHref(url) {
+  const raw = String(url || "").trim();
+  if (!raw) return "";
+  try {
+    const u = new URL(raw, location.origin);
+    u.searchParams.set("present", "1");
+    u.searchParams.set("noz", "1");
+    return u.pathname + u.search;
+  } catch {
+    return raw;
+  }
+}
+
+async function openArchitectureFullscreen(url) {
+  const href = toPresentHref(url);
+  if (!href) return;
+  try {
+    const res = await fetch("/api/open-external", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url: href }),
+    });
+    if (res.ok) return;
+  } catch {
+    /* fall through */
+  }
+  window.open(href, "_blank", "noopener,noreferrer");
 }
 
 async function mountGraphIr(ir, seq) {
@@ -173,6 +241,7 @@ async function mountGraphIr(ir, seq) {
 }
 
 async function remountWithProgress(progress, seq = renderSeq) {
+  if (viewMode !== "graph") return;
   if (!cachedTasks?.length) return;
   const ir = taskPoolToArchitectureIr(cachedTasks, {
     title: t("dispatch.taskGraph"),
@@ -184,6 +253,7 @@ async function remountWithProgress(progress, seq = renderSeq) {
 }
 
 async function pollLiveProgress() {
+  if (viewMode !== "graph") return;
   if (!cachedJobId || !cachedTasks?.length) return;
   const progress = await fetchJobProgress(cachedJobId);
   if (!progress) return;
@@ -198,15 +268,24 @@ async function pollLiveProgress() {
   }
 }
 
-function showEmpty() {
+function showEmpty(kind = viewMode) {
   stopStatusPoll();
-  cachedTasks = null;
-  cachedJobId = "";
-  lastProgressFp = "";
+  if (kind === "graph") {
+    cachedTasks = null;
+    cachedJobId = "";
+    lastProgressFp = "";
+  }
   clearArchitectureMount(mount);
   if (emptyEl) {
     emptyEl.hidden = false;
-    emptyEl.textContent = t("dispatch.centerEmpty");
+    emptyEl.textContent =
+      kind === "architecture"
+        ? t("dispatch.centerArchEmpty")
+        : t("dispatch.centerEmpty");
+  }
+  if (kind === "architecture") {
+    cachedArchUrl = "";
+    syncViewTabs();
   }
 }
 
@@ -233,11 +312,59 @@ function renderRail() {
     btn.addEventListener("click", () => {
       setCurrentPath(proj.path);
       renderRail();
-      void renderGraph(proj.path);
+      void renderStage(proj.path);
     });
     projectsEl.appendChild(btn);
   }
   syncProjectBadge();
+}
+
+async function loadProjectChat(projectPath) {
+  const path = String(projectPath || "").trim();
+  if (!path) return null;
+  const res = await fetch(`/api/projects/chat?path=${encodeURIComponent(path)}`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "load failed");
+  return data;
+}
+
+async function renderArchitecture(projectPath) {
+  const seq = ++renderSeq;
+  stopStatusPoll();
+  const path = String(projectPath || "").trim();
+  if (!path) {
+    showEmpty("architecture");
+    return;
+  }
+  let archUrl = "";
+  try {
+    const data = await loadProjectChat(path);
+    archUrl = String(data?.architecture?.url || "").trim();
+  } catch {
+    archUrl = "";
+  }
+  if (seq !== renderSeq) return;
+  cachedArchUrl = archUrl;
+  syncViewTabs();
+  if (!archUrl) {
+    showEmpty("architecture");
+    return;
+  }
+  try {
+    if (emptyEl) emptyEl.hidden = true;
+    if (mount) {
+      mount.dataset.archUrl = archUrl;
+      delete mount.dataset.archKey;
+    }
+    await mountArchitectureDiagram(mount, {
+      url: archUrl,
+      ir: null,
+      stage: true,
+    });
+  } catch {
+    if (seq !== renderSeq) return;
+    showEmpty("architecture");
+  }
 }
 
 async function renderGraph(projectPath) {
@@ -245,7 +372,7 @@ async function renderGraph(projectPath) {
   stopStatusPoll();
   const path = String(projectPath || "").trim();
   if (!path) {
-    showEmpty();
+    showEmpty("graph");
     return;
   }
   let modules = [];
@@ -255,17 +382,18 @@ async function renderGraph(projectPath) {
   let progress = null;
   let jobId = "";
   try {
-    const res = await fetch(`/api/projects/chat?path=${encodeURIComponent(path)}`);
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "load failed");
+    const data = await loadProjectChat(path);
     modules = Array.isArray(data.modules) ? data.modules : [];
     workerCount = Number(data.workerCount) || 1;
     savedTasks = Array.isArray(data.taskPool?.tasks) ? data.taskPool.tasks : null;
     savedGraphUrl = String(data.dispatchGraphUrl || "").trim();
     jobId = String(data.jobId || "").trim();
+    cachedArchUrl = String(data.architecture?.url || "").trim();
   } catch {
     modules = [];
+    cachedArchUrl = "";
   }
+  syncViewTabs();
   if (jobId) {
     progress = await fetchJobProgress(jobId);
   }
@@ -295,7 +423,7 @@ async function renderGraph(projectPath) {
     cachedJobId = "";
   }
   if (!ir?.components?.length && !savedGraphUrl) {
-    showEmpty();
+    showEmpty("graph");
     return;
   }
   try {
@@ -317,11 +445,21 @@ async function renderGraph(projectPath) {
     });
   } catch {
     if (seq !== renderSeq) return;
-    showEmpty();
+    showEmpty("graph");
+  }
+}
+
+async function renderStage(projectPath) {
+  if (viewMode === "architecture") {
+    await renderArchitecture(projectPath);
+  } else {
+    await renderGraph(projectPath);
   }
 }
 
 async function load() {
+  viewMode = currentView();
+  syncViewTabs();
   try {
     const res = await fetch("/api/projects");
     const data = await res.json().catch(() => ({}));
@@ -335,15 +473,18 @@ async function load() {
     if (fallback) setCurrentPath(fallback);
   }
   renderRail();
-  await renderGraph(currentPath());
+  await renderStage(currentPath());
 }
 
 initI18n();
 wireTopNav();
 onLocaleChange(() => {
   if (langSelect) langSelect.value = getLocale();
+  if (viewGraphBtn) viewGraphBtn.textContent = t("dispatch.viewGraph");
+  if (viewArchBtn) viewArchBtn.textContent = t("dispatch.viewArchitecture");
+  if (archFsBtn) archFsBtn.textContent = t("arch.openFullscreen");
   renderRail();
-  void renderGraph(currentPath());
+  void renderStage(currentPath());
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") void pollLiveProgress();

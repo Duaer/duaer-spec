@@ -82,8 +82,8 @@ A local web console (`duaer live`) for “chat → confirm → dispatch → watc
   facts autofill; defects join the same project timeline as revisions.
 - **Quick nav.** Chat-column edge control jumps to chat bottom · confirm card ·
   result · progress.
-- **Dispatch center.** Own page for the task graph with console top nav; long chains
-  wrap; nodes show live status.
+- **Dispatch center.** Own page for the task graph and each project’s system
+  architecture, with console top nav; long chains wrap; nodes show live status.
 
 ### Digital employees: three roles
 

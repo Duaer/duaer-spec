@@ -93,10 +93,45 @@
         <div id="dispatchCenterProjects"></div>
       </aside>
       <div class="dispatch-center-stage">
+        <div class="dispatch-center-views" role="tablist" aria-label="views">
+          <button
+            type="button"
+            class="dispatch-center-view"
+            id="dispatchViewGraph"
+            role="tab"
+            aria-selected="true"
+            data-view="graph"
+            data-i18n="dispatch.viewGraph"
+          >
+            派工图
+          </button>
+          <button
+            type="button"
+            class="dispatch-center-view"
+            id="dispatchViewArch"
+            role="tab"
+            aria-selected="false"
+            data-view="architecture"
+            data-i18n="dispatch.viewArchitecture"
+          >
+            系统架构
+          </button>
+          <button
+            type="button"
+            class="btn dispatch-center-arch-fs"
+            id="dispatchArchFullscreen"
+            hidden
+            data-i18n="arch.openFullscreen"
+            data-i18n-title="arch.openFullscreenHint"
+            title="在新页面全屏打开架构图"
+          >
+            全屏
+          </button>
+        </div>
         <p id="dispatchCenterEmpty" class="hint" hidden></p>
         <div id="taskGraphMount" class="task-graph-mount architecture-mount"></div>
       </div>
     </div>
-    <script type="module" src="/dispatch-center.js?v=graph-result-bar-1"></script>
+    <script type="module" src="/dispatch-center.js?v=dispatch-arch-view-1"></script>
   </body>
 </html>

@@ -383,6 +383,41 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   background: #0b1118;
 }
 
+.dispatch-center-views {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--plate);
+  flex: 0 0 auto;
+}
+
+.dispatch-center-view {
+  margin: 0;
+  padding: 0.28rem 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mute);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.dispatch-center-view[aria-selected="true"] {
+  border-color: var(--register);
+  color: var(--register);
+  background: color-mix(in srgb, var(--register) 12%, transparent);
+}
+
+.dispatch-center-arch-fs {
+  margin-left: auto;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.55rem;
+}
+
 .dispatch-center-stage .task-graph-mount {
   flex: 1 1 auto;
   width: 100%;

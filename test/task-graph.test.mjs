@@ -294,7 +294,9 @@ test("live sources wire Archify task graph mount", () => {
   assert.match(page, /wireTopNav|goDesk/);
   assert.match(page, /pollLiveProgress|STATUS_POLL_MS|progressFingerprint/);
   assert.match(page, /remountWithProgress/);
-  assert.doesNotMatch(page, /openArchitecturePresent|openExternalDeskUrl/);
+  assert.match(page, /renderArchitecture|dispatch\.viewArchitecture|centerArchEmpty/);
+  assert.match(page, /openArchitectureFullscreen|\/api\/open-external/);
+  assert.doesNotMatch(page, /openExternalDeskUrl/);
   assert.match(app, /openExternalDeskUrl\([\s\S]*dispatch-center\.html/);
   assert.match(app, /openDispatchGraphPresent|refreshDispatchGraphWithProgress/);
   assert.match(app, /openDispatchCenterPage\(state\.projectPath\)/);

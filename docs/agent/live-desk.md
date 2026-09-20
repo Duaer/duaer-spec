@@ -162,7 +162,9 @@ Additional notes:
 - **Execution graph:** after worker-count confirm, the desk builds the task
   path with the **same Archify renderer and layered layout** as the system
   architecture diagram. **查看派工图** / **Dispatch center** open
-  `/dispatch-center.html` (100px project rail + selected graph).
+  `/dispatch-center.html` (100px project rail + selected graph). Each project
+  can switch the stage to **Architecture** to view that project’s saved system
+  diagram (`architecture.url`); fullscreen uses `/api/open-external` on :8787.
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 

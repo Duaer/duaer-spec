@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-### Docs / UI: rename product surface 台面 → 控制台
+### Feat: dispatch center can view system architecture per project
+
+- Stage tabs: Dispatch graph | Architecture
+- Architecture loads that project’s saved `architecture.url`; empty hint when missing
+- Fullscreen via `/api/open-external` on :8787
 
 - User-facing Chinese copy uses **控制台** (brand: **Duaer 控制台**)
 - English parallel uses **console** (**Duaer console**) instead of desk

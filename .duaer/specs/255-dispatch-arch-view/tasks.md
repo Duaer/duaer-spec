@@ -1,0 +1,4 @@
+- [x] T001 HTML/CSS: stage view tabs (graph | architecture)
+- [x] T002 dispatch-center.js: load & mount project architecture.url
+- [x] T003 i18n + docs/E2E + tests
+- [x] T004 Stamp delivery
