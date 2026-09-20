@@ -4,6 +4,12 @@
 
 ## 0.26.0 — 2026-09-20
 
+### Fix: npm provenance repository URL after GitHub move
+
+- `package.json` repository / bugs / homepage point at `Duaer/duaer-spec`
+  so Trusted Publishing provenance matches the Actions OIDC subject
+
+
 ### Feat: speech recognition (STT) model for composer Record
 
 - Settings: configure STT Base URL / API Key / Model (OpenAI-compatible

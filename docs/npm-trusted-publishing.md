@@ -16,7 +16,7 @@ Chinese guide: [`npm-trusted-publishing.zh-CN.md`](npm-trusted-publishing.zh-CN.
 
 | Field | Value |
 |---|---|
-| Organization or user | `fujiezee` |
+| Organization or user | `Duaer` |
 | Repository | `duaer-spec` |
 | Workflow filename | `npm-publish.yml` (filename only, no `.github/workflows/`) |
 | Environment name | leave empty unless you use a GitHub Environment |

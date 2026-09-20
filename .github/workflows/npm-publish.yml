@@ -2,7 +2,7 @@ name: Publish npm package
 
 # Requires Trusted Publisher on npmjs.com:
 #   Package → Settings → Trusted Publisher → GitHub Actions
-#   User/org: fujiezee | Repository: duaer-spec
+#   User/org: Duaer | Repository: duaer-spec
 #   Workflow filename: npm-publish.yml
 #   Allowed actions: include "npm publish" (not stage-only)
 #
