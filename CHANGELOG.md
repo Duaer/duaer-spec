@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: dispatch graph wraps columns and refreshes status live
+
+- Long task chains wrap after 4 columns instead of one endless row
+- Node tag/sublabel show progress; dispatch center polls job status and remounts
+
 ### Feat: dispatch center shares the desk top nav
 
 - Same brand / 调度中心 / 项目 / 数字员工 / 设置 / language / GitHub row

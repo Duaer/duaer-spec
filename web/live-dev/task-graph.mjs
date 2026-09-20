@@ -258,6 +258,21 @@ function shortTitle(title, max = 36) {
   return `${t.slice(0, Math.max(0, max - 1))}…`;
 }
 
+/** Cap columns so long chains wrap to the next band. */
+export const TASK_GRAPH_MAX_COLS = 4;
+
+/**
+ * Map dependency rank → wrapped column + band (new row of columns).
+ * @param {number} rank
+ * @param {number} [maxCols]
+ * @returns {{ col: number, band: number }}
+ */
+export function wrapRankToGrid(rank, maxCols = TASK_GRAPH_MAX_COLS) {
+  const cols = Math.max(2, Number(maxCols) || TASK_GRAPH_MAX_COLS);
+  const r = Math.max(0, Number(rank) || 0);
+  return { col: r % cols, band: Math.floor(r / cols) };
+}
+
 /**
  * Longest-path ranks so Archify left→right edges stay horizontal.
  * @param {Array<object>} tasks
@@ -384,19 +399,20 @@ function transitiveReduce(edges) {
 
 /**
  * Map assigned tasks → Archify architecture IR (same renderer as system arch).
- * Explicit positions: X = dependency rank, Y = worker lane — same layered look
- * as system architecture; transitive-reduced edges keep Archify routing valid.
+ * Explicit positions: X = wrapped column within maxCols, Y = wrap band +
+ * worker lane. Long dependency chains wrap to the next band of rows.
  * Node tag + sublabel carry run status for the click passport.
  * Do not set component.sources — Archify treats those as repository evidence
  * and fails with "Repository evidence requires /meta/repository."
  * @param {Array<object>} tasks
- * @param {{ title?: string, workerCount?: number, locale?: string, progress?: { tasks?: Array<{ id?: string, done?: boolean }> } | null }} [opts]
+ * @param {{ title?: string, workerCount?: number, locale?: string, maxCols?: number, progress?: { tasks?: Array<{ id?: string, done?: boolean }> } | null }} [opts]
  */
 export function taskPoolToArchitectureIr(tasks, opts = {}) {
   const list = Array.isArray(tasks) ? tasks : [];
   const workerCount = Math.max(1, Number(opts.workerCount) || 1);
   const title = String(opts.title || "Task execution path").slice(0, 120);
   const locale = String(opts.locale || "zh-CN");
+  const maxCols = Math.max(2, Number(opts.maxCols) || TASK_GRAPH_MAX_COLS);
   const ranks = dependencyRanks(list);
   const statusById = resolveTaskRunStatuses(list, opts.progress);
 
@@ -407,6 +423,10 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
   const originX = 48;
   const originY = 96;
   const size = [140, 56];
+  const bandH = workerCount * rowH + 48;
+  const stackGap = size[1] + 16;
+  /** @type {Map<string, number>} */
+  const stackAt = new Map();
 
   const components = [];
   for (const t of list) {
@@ -415,17 +435,26 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     const wid = String(t.workerId || "w1");
     const lane = Math.max(0, Number(String(wid).replace(/^w/i, "")) - 1 || 0);
     const r = ranks.get(id) || 0;
+    const { col, band } = wrapRankToGrid(r, maxCols);
+    const stackKey = `${band}:${col}:${lane}`;
+    const stack = stackAt.get(stackKey) || 0;
+    stackAt.set(stackKey, stack + 1);
     const runStatus = statusById.get(normTaskId(id)) || "waiting";
     const statusLabel = taskRunStatusLabel(runStatus, locale);
     const type = STATUS_TYPES[runStatus] || "external";
-    const taskTitle = shortTitle(t.title, 40);
+    const taskTitle = shortTitle(t.title, 28);
     components.push({
       id,
       type,
       label: id,
-      sublabel: taskTitle ? `${taskTitle} · ${wid}` : wid,
+      sublabel: taskTitle
+        ? `${statusLabel} · ${taskTitle}`
+        : `${statusLabel} · ${wid}`,
       tag: statusLabel,
-      pos: [originX + r * colW, originY + lane * rowH],
+      pos: [
+        originX + col * colW,
+        originY + band * bandH + lane * rowH + stack * stackGap,
+      ],
       size: [...size],
     });
   }
@@ -467,7 +496,11 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
   }
 
   const maxRank = Math.max(0, ...[...ranks.values(), 0]);
-  const maxLane = Math.max(0, workerCount - 1);
+  const { band: maxBand } = wrapRankToGrid(maxRank, maxCols);
+  let maxY = originY + (maxBand + 1) * bandH;
+  for (const c of components) {
+    maxY = Math.max(maxY, c.pos[1] + size[1] + 80);
+  }
   const zh = locale.toLowerCase().startsWith("zh");
 
   return {
@@ -476,8 +509,8 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
     meta: {
       title,
       subtitle: zh
-        ? "数据库色=已完成 · 后端色=进行中 · 外部色=等待中"
-        : "Database=done · Backend=in progress · External=waiting",
+        ? "节点颜色与标签=进度（已完成/进行中/等待中）· 过长链路自动换行"
+        : "Node color + tag = progress · Long chains wrap to the next row",
       quality_profile: "standard",
       locale:
         ["en", "ja", "ko", "es", "pt-BR", "fr", "de", "ru", "vi", "zh-TW"].includes(
@@ -486,8 +519,8 @@ export function taskPoolToArchitectureIr(tasks, opts = {}) {
           ? opts.locale
           : "zh-CN",
       viewBox: [
-        Math.max(320, originX + (maxRank + 1) * colW + 80),
-        Math.max(240, originY + (maxLane + 1) * rowH + 160),
+        Math.max(320, originX + maxCols * colW + 80),
+        Math.max(240, maxY),
       ],
     },
     components,
