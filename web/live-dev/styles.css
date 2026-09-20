@@ -1165,6 +1165,25 @@ body.history-open {
   accent-color: var(--accent, #7f95a8);
 }
 
+.desk-kind-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.75rem;
+}
+
+.desk-kind-chip[aria-pressed="true"] {
+  border-color: var(--ink);
+  background: rgba(127, 149, 168, 0.2);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.desk-kind-switch.is-locked .desk-kind-chip {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .chip:hover,
 .chip:focus-visible {
   border-color: var(--mute);

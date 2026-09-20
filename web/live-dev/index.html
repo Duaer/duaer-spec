@@ -124,6 +124,34 @@
         <section class="panel card-panel" data-i18n-aria="card.aria" aria-label="需求">
           <p class="mark" id="cardMark" data-i18n="card.mark">Confirm card</p>
           <h2 class="card-title" id="cardTitle" data-i18n="card.title">需求</h2>
+          <div
+            id="deskKindSwitch"
+            class="desk-kind-switch"
+            role="group"
+            data-i18n-aria="card.kindSwitchAria"
+            aria-label="需求或修 bug"
+          >
+            <button
+              type="button"
+              class="chip desk-kind-chip"
+              id="deskKindFeature"
+              data-kind="feature"
+              aria-pressed="true"
+              data-i18n="card.kindFeature"
+            >
+              需求
+            </button>
+            <button
+              type="button"
+              class="chip desk-kind-chip"
+              id="deskKindBug"
+              data-kind="bug"
+              aria-pressed="false"
+              data-i18n="card.kindBug"
+            >
+              修 bug
+            </button>
+          </div>
           <div id="moduleTabs" class="module-tabs" hidden role="tablist" aria-label="Modules"></div>
           <p id="moduleMeta" class="meta module-meta" hidden></p>
           <p id="meta" class="meta"></p>
@@ -625,6 +653,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=bug-dispatch-1"></script>
+    <script type="module" src="/app.js?v=bug-kind-toggle-1"></script>
   </body>
 </html>

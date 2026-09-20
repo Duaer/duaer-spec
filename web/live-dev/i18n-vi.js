@@ -527,4 +527,8 @@ export const vi = {
   "arch.bugSkipHint": "Bugs skip system architecture by default — decompose and dispatch; design architecture only if contracts or security change",
   "arch.bugSkippedSummary": "Bug dispatch: architecture skipped (optional design)",
   "arch.bugOptionalDesign": "Thiết kế kiến trúc nếu cần",
+  "card.kindFeature": "Yêu cầu",
+  "card.kindBug": "Sửa bug",
+  "card.kindSwitchAria": "Yêu cầu hoặc sửa bug",
+  "bot.bugKindPicked": "Switched to fix-a-bug. Fill the defect card in the center column, or describe the symptom and repro.",
 };

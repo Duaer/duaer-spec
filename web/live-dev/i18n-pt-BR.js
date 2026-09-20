@@ -527,4 +527,8 @@ export const ptBR = {
   "arch.bugSkipHint": "Bugs skip system architecture by default — decompose and dispatch; design architecture only if contracts or security change",
   "arch.bugSkippedSummary": "Bug dispatch: architecture skipped (optional design)",
   "arch.bugOptionalDesign": "Desenhar arquitetura se precisar",
+  "card.kindFeature": "Requisitos",
+  "card.kindBug": "Corrigir bug",
+  "card.kindSwitchAria": "Requisitos ou corrigir bug",
+  "bot.bugKindPicked": "Switched to fix-a-bug. Fill the defect card in the center column, or describe the symptom and repro.",
 };

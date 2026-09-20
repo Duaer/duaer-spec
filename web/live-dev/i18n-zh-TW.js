@@ -527,4 +527,8 @@ export const zhTW = {
   "arch.bugSkipHint": "Bugs skip system architecture by default — decompose and dispatch; design architecture only if contracts or security change",
   "arch.bugSkippedSummary": "Bug dispatch: architecture skipped (optional design)",
   "arch.bugOptionalDesign": "需要時設計架構",
+  "card.kindFeature": "需求",
+  "card.kindBug": "修 bug",
+  "card.kindSwitchAria": "需求或修 bug",
+  "bot.bugKindPicked": "Switched to fix-a-bug. Fill the defect card in the center column, or describe the symptom and repro.",
 };
