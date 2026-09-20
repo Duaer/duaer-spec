@@ -23,7 +23,7 @@ import {
   architectureKeyFromArchitectureUrl,
 } from "./architecture-mount.mjs";
 import { enrichChatOptions } from "./choice-options.mjs";
-import { buildTaskArchitectureIr } from "./task-graph.mjs";
+import { buildTaskArchitectureIr, taskPoolToArchitectureIr } from "./task-graph.mjs";
 import { EMPLOYEE_CATALOG } from "./employee-catalog.mjs";
 
 /** Deliverables API lang: en | ja | zh */
@@ -91,6 +91,8 @@ const state = {
   taskGraphRenderSeq: 0,
   /** Last mounted task-graph architecture URL. */
   taskGraphUrl: null,
+  dispatchCenterPath: "",
+  deskHiddenForCenter: false,
   /** True while POST /api/revise is in flight (not chat). */
   reviseDispatching: false,
   /** True while POST /api/deploy is in flight. */
@@ -358,6 +360,11 @@ const el = {
   taskPoolPreview: document.getElementById("taskPoolPreview"),
   taskPoolList: document.getElementById("taskPoolList"),
   taskGraphMount: document.getElementById("taskGraphMount"),
+  dispatchCenter: document.getElementById("dispatchCenter"),
+  dispatchCenterToggle: document.getElementById("dispatchCenterToggle"),
+  dispatchCenterProjects: document.getElementById("dispatchCenterProjects"),
+  dispatchCenterEmpty: document.getElementById("dispatchCenterEmpty"),
+  openTaskGraph: document.getElementById("openTaskGraph"),
   lblGoal: document.getElementById("lblGoal"),
   lblOut: document.getElementById("lblOut"),
   lblAccept: document.getElementById("lblAccept"),
@@ -1012,12 +1019,18 @@ async function syncTaskPoolPreviewAsync() {
   const confirmed = state.modules.filter((m) => m.status === "confirmed");
   if (!confirmed.length || !state.locked) {
     el.taskPoolPreview.hidden = true;
-    state.taskGraphUrl = null;
-    clearArchitectureMount(el.taskGraphMount);
+    state.taskPool = null;
     if (el.taskPoolList) el.taskPoolList.textContent = "";
+    if (
+      el.dispatchCenter &&
+      !el.dispatchCenter.hidden &&
+      normalizePathKey(state.dispatchCenterPath) === normalizePathKey(state.projectPath)
+    ) {
+      void renderDispatchCenterGraph(state.projectPath);
+    }
     return;
   }
-  el.taskPoolPreview.hidden = false;
+  el.taskPoolPreview.hidden = true;
   const workerCount = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
   const built = buildTaskArchitectureIr(confirmed, workerCount, {
     title: t("dispatch.taskGraph"),
@@ -1027,34 +1040,178 @@ async function syncTaskPoolPreviewAsync() {
   if (el.taskPoolList) {
     el.taskPoolList.textContent = previewTaskPoolLines(built.tasks).join("\n");
   }
-  if (!el.taskGraphMount || !built.ir?.components?.length) {
-    clearArchitectureMount(el.taskGraphMount);
+  if (
+    el.dispatchCenter &&
+    !el.dispatchCenter.hidden &&
+    normalizePathKey(state.dispatchCenterPath) === normalizePathKey(state.projectPath)
+  ) {
+    void renderDispatchCenterGraph(state.projectPath);
+  }
+}
+
+function renderDispatchCenterRail() {
+  if (!el.dispatchCenterProjects) return;
+  el.dispatchCenterProjects.replaceChildren();
+  const projects = state.projects || [];
+  if (!projects.length) {
+    const p = document.createElement("p");
+    p.className = "hint";
+    p.textContent = t("project.emptyList");
+    el.dispatchCenterProjects.appendChild(p);
     return;
   }
+  const selected = normalizePathKey(state.dispatchCenterPath);
+  for (const proj of projects) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "dispatch-center-project";
+    const label = proj.title || proj.name || proj.path;
+    btn.textContent = label;
+    btn.title = label;
+    const pressed = normalizePathKey(proj.path) === selected;
+    btn.setAttribute("aria-pressed", pressed ? "true" : "false");
+    btn.addEventListener("click", () => {
+      state.dispatchCenterPath = proj.path;
+      renderDispatchCenterRail();
+      void renderDispatchCenterGraph(proj.path);
+    });
+    el.dispatchCenterProjects.appendChild(btn);
+  }
+}
+
+async function renderDispatchCenterGraph(projectPath) {
+  const mount = el.taskGraphMount;
+  if (!mount) return;
   const seq = ++state.taskGraphRenderSeq;
+  const path = String(projectPath || "").trim();
+  const showEmpty = () => {
+    state.taskGraphUrl = null;
+    clearArchitectureMount(mount);
+    if (el.dispatchCenterEmpty) {
+      el.dispatchCenterEmpty.hidden = false;
+      el.dispatchCenterEmpty.textContent = t("dispatch.centerEmpty");
+    }
+  };
+  if (!path) {
+    showEmpty();
+    return;
+  }
+  let modules = [];
+  let workerCount = 1;
+  let savedTasks = null;
+  if (
+    normalizePathKey(path) === normalizePathKey(state.projectPath) &&
+    state.modules.length
+  ) {
+    modules = state.modules;
+    workerCount = state.workerCount;
+    savedTasks = state.taskPool?.tasks || null;
+  } else {
+    try {
+      const res = await fetch(
+        `/api/projects/chat?path=${encodeURIComponent(path)}`,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "load failed");
+      modules = Array.isArray(data.modules) ? data.modules : [];
+      workerCount = Number(data.workerCount) || 1;
+      savedTasks = Array.isArray(data.taskPool?.tasks) ? data.taskPool.tasks : null;
+    } catch {
+      modules = [];
+    }
+  }
+  if (seq !== state.taskGraphRenderSeq) return;
+  const confirmed = modules.filter((m) => m && m.status === "confirmed");
+  let ir = null;
+  if (confirmed.length) {
+    ir = buildTaskArchitectureIr(confirmed, workerCount, {
+      title: t("dispatch.taskGraph"),
+      locale: getLocale(),
+    }).ir;
+  } else if (savedTasks?.length) {
+    ir = taskPoolToArchitectureIr(savedTasks, {
+      title: t("dispatch.taskGraph"),
+      workerCount,
+      locale: getLocale(),
+    });
+  }
+  if (!ir?.components?.length) {
+    showEmpty();
+    return;
+  }
   try {
     const res = await fetch("/api/architecture/render", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ir: built.ir }),
+      body: JSON.stringify({ ir }),
     });
     const data = await res.json().catch(() => ({}));
     if (seq !== state.taskGraphRenderSeq) return;
     if (!res.ok) throw new Error(data.error || "render failed");
     state.taskGraphUrl = data.url || null;
-    await mountArchitectureDiagram(el.taskGraphMount, {
-      url: data.url,
-      ir: null,
-    });
+    if (el.dispatchCenterEmpty) el.dispatchCenterEmpty.hidden = true;
+    await mountArchitectureDiagram(el.taskGraphMount, { url: data.url, ir: null });
     bindArchitecturePresentClick(
       el.taskGraphMount,
       () => state.taskGraphUrl || data.url,
     );
   } catch {
     if (seq !== state.taskGraphRenderSeq) return;
+    showEmpty();
+  }
+}
+
+function setDispatchCenterOpen(open, projectPath) {
+  if (!el.dispatchCenter) return;
+  const want = Boolean(open);
+  if (!want) {
+    el.dispatchCenter.hidden = true;
+    if (el.dispatchCenterToggle) {
+      el.dispatchCenterToggle.setAttribute("aria-expanded", "false");
+    }
+    if (state.deskHiddenForCenter && el.desk) {
+      el.desk.hidden = false;
+      state.deskHiddenForCenter = false;
+    }
     state.taskGraphUrl = null;
     clearArchitectureMount(el.taskGraphMount);
+    return;
   }
+  if (el.historyPanel && !el.historyPanel.hidden) {
+    el.historyPanel.hidden = true;
+    if (el.historyToggle) el.historyToggle.setAttribute("aria-expanded", "false");
+  }
+  if (el.employeePanel && !el.employeePanel.hidden) {
+    el.employeePanel.hidden = true;
+    if (el.employeeToggle) el.employeeToggle.setAttribute("aria-expanded", "false");
+  }
+  if (el.settingsPanel && !el.settingsPanel.hidden && state.ready) {
+    el.settingsPanel.hidden = true;
+    if (el.cfgOpen) el.cfgOpen.setAttribute("aria-expanded", "false");
+  }
+  const picked =
+    projectPath ||
+    state.projectPath ||
+    state.projects?.[0]?.path ||
+    "";
+  state.dispatchCenterPath = picked;
+  el.dispatchCenter.hidden = false;
+  if (el.dispatchCenterToggle) {
+    el.dispatchCenterToggle.setAttribute("aria-expanded", "true");
+  }
+  if (el.desk && !el.desk.hidden) {
+    state.deskHiddenForCenter = true;
+    el.desk.hidden = true;
+  }
+  const paint = async () => {
+    await loadProjectsPanel();
+    if (!state.dispatchCenterPath) {
+      state.dispatchCenterPath = state.projectPath || state.projects?.[0]?.path || "";
+    }
+    renderDispatchCenterRail();
+    await renderDispatchCenterGraph(state.dispatchCenterPath);
+  };
+  void paint();
 }
 
 function reviseCardValues() {
@@ -2877,6 +3034,7 @@ function setEmployeeOpen(open) {
   if (!el.employeePanel) return;
   const want = Boolean(open);
   if (want) {
+    setDispatchCenterOpen(false);
     if (!state.ready) return;
     if (el.historyPanel && !el.historyPanel.hidden) {
       el.historyPanel.hidden = true;
@@ -2922,6 +3080,7 @@ function renderEmployeeList() {
 function setSettingsOpen(open) {
   if (!el.settingsPanel) return;
   const want = Boolean(open);
+  if (want) setDispatchCenterOpen(false);
   if (want && el.historyPanel && !el.historyPanel.hidden) {
     el.historyPanel.hidden = true;
     if (el.historyToggle) {
@@ -7209,6 +7368,7 @@ function showHistoryErr(message) {
 function setHistoryOpen(open) {
   if (!el.historyPanel) return;
   const want = Boolean(open);
+  if (want) setDispatchCenterOpen(false);
   if (want && el.settingsPanel && !el.settingsPanel.hidden) {
     if (!state.ready) {
       // Cannot open projects over mandatory first-time settings.
@@ -7599,6 +7759,17 @@ async function restoreHistoryJob() {
   focusRightPanel({ force: true });
 }
 
+if (el.dispatchCenterToggle) {
+  el.dispatchCenterToggle.addEventListener("click", () => {
+    const open = el.dispatchCenter?.hidden !== false;
+    setDispatchCenterOpen(open, state.projectPath || state.dispatchCenterPath);
+  });
+}
+if (el.openTaskGraph) {
+  el.openTaskGraph.addEventListener("click", () => {
+    setDispatchCenterOpen(true, state.projectPath);
+  });
+}
 if (el.historyToggle) {
   el.historyToggle.addEventListener("click", () => {
     const open = el.historyPanel?.hidden !== false;
@@ -7692,6 +7863,10 @@ onLocaleChange(() => {
   syncReviseCardChrome();
   paintDeliveryCockpit();
   renderProjectList();
+  if (el.dispatchCenter && !el.dispatchCenter.hidden) {
+    renderDispatchCenterRail();
+    void renderDispatchCenterGraph(state.dispatchCenterPath);
+  }
   renderWorkerCountList();
   syncTaskPoolPreview();
   if (el.employeePanel && !el.employeePanel.hidden) renderEmployeeList();

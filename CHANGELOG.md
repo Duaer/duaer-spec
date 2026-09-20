@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: dispatch center for the task graph
+
+- Top bar opens a 100px project rail and that project's dispatch graph
+- The dispatch card hint is a button that opens the same view on the current project
+
 ### Fix: finished wave releases the Terminal for the next job
 
 - When a wave's tasks are checked and the next `--continue` is already queued, the desk preempts the leftover CLI instead of waiting for it to exit
