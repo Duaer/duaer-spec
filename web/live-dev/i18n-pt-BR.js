@@ -202,7 +202,7 @@ export const ptBR = {
   "result.allModulesExtra": "O design de arquitetura pode começar.",
   "dispatch.taskPool": "Pool de tarefas (deps / paralelo)",
   "dispatch.taskGraph": "Caminho de execução das tarefas",
-  "dispatch.taskGraphHint": "Mesmo layout da arquitetura do sistema; cores mostram faixas de workers. Tela cheia com nós clicáveis",
+  "dispatch.taskGraphHint": "Mesmo layout da arquitetura do sistema. Página inteira no centro de despacho; clique no nó para detalhes",
   "dispatch.center": "Central de despacho",
   "dispatch.openGraph": "Ver gráfico de despacho",
   "dispatch.centerEmpty": "Ainda não há gráfico de despacho",

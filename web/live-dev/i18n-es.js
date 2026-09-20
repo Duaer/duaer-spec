@@ -202,7 +202,7 @@ export const es = {
   "result.allModulesExtra": "Puedes empezar el diseño de arquitectura.",
   "dispatch.taskPool": "Pool de tareas (deps / paralelo)",
   "dispatch.taskGraph": "Ruta de ejecución de tareas",
-  "dispatch.taskGraphHint": "Mismo diseño que la arquitectura del sistema; colores muestran carriles worker. Pantalla completa con nodos clicables",
+  "dispatch.taskGraphHint": "Mismo diseño que la arquitectura del sistema. Página completa del centro de despacho; clic en el nodo para el detalle",
   "dispatch.center": "Centro de despacho",
   "dispatch.openGraph": "Ver gráfico de despacho",
   "dispatch.centerEmpty": "Aún no hay gráfico de despacho",

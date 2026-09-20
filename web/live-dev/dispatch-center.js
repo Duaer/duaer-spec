@@ -1,6 +1,6 @@
 /**
  * Standalone dispatch-center page: 100px project rail + task graph.
- * Graph click opens Archify present (same as system architecture).
+ * The stage is the battlefield — no extra fullscreen window.
  */
 import { t, getLocale, initI18n, onLocaleChange } from "./i18n.js";
 import {
@@ -18,7 +18,6 @@ const mount = document.getElementById("taskGraphMount");
 
 let projects = [];
 let renderSeq = 0;
-let graphUrl = "";
 
 function pathKey(p) {
   return String(p || "")
@@ -38,86 +37,7 @@ function setCurrentPath(path) {
   history.replaceState(null, "", u);
 }
 
-/** Real FDE desk — never Cursor IDE Browser proxy origins (:64074, …). */
-const DESK_ORIGIN = "http://127.0.0.1:8787";
-
-function toDeskExternalHref(href) {
-  const raw = String(href || "").trim();
-  if (!raw) return "";
-  try {
-    const u = new URL(raw, DESK_ORIGIN);
-    if (u.protocol !== "http:") return "";
-    if (u.hostname !== "127.0.0.1" && u.hostname !== "localhost") return "";
-    u.hostname = "127.0.0.1";
-    u.port = "8787";
-    return u.href;
-  } catch {
-    return "";
-  }
-}
-
-function architecturePresentUrl(url, opts = {}) {
-  const raw = String(url || "").trim();
-  if (!raw) return "";
-  try {
-    const u = new URL(raw, DESK_ORIGIN);
-    u.searchParams.delete("embed");
-    u.searchParams.set("present", "1");
-    if (opts.noZoom) u.searchParams.set("noz", "1");
-    else u.searchParams.delete("noz");
-    return toDeskExternalHref(u.href) || u.href;
-  } catch {
-    const base = raw.split("#")[0];
-    const join = base.includes("?") ? "&" : "?";
-    const noz = opts.noZoom ? "&noz=1" : "";
-    return toDeskExternalHref(`${base}${join}present=1${noz}`);
-  }
-}
-
-async function openExternalDeskUrl(href) {
-  const target = toDeskExternalHref(href);
-  if (!target) return false;
-  try {
-    const res = await fetch("/api/open-external", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: target }),
-    });
-    if (res.ok) return true;
-  } catch {
-    /* fall through */
-  }
-  window.open(target, "_blank", "noopener");
-  return false;
-}
-
-function openArchitecturePresent(url, opts = {}) {
-  const href = architecturePresentUrl(url, opts);
-  if (!href) return;
-  void openExternalDeskUrl(href);
-}
-
-function bindArchitecturePresentClick(host, getUrl) {
-  if (!host || host.dataset.presentBound === "1") return;
-  host.dataset.presentBound = "1";
-  host.classList.add("architecture-mount-clickable");
-  host.addEventListener(
-    "click",
-    (ev) => {
-      if (ev.target.closest?.("button, a, input, textarea, select")) return;
-      const url = typeof getUrl === "function" ? getUrl() : getUrl;
-      const href = String(url || host.dataset.archUrl || "").trim();
-      if (!href) return;
-      ev.preventDefault();
-      ev.stopPropagation();
-      openArchitecturePresent(href, { noZoom: true });
-    },
-    true,
-  );
-}
-
 function showEmpty() {
-  graphUrl = "";
   clearArchitectureMount(mount);
   if (emptyEl) {
     emptyEl.hidden = false;
@@ -223,13 +143,9 @@ async function renderGraph(projectPath) {
     }
     if (seq !== renderSeq) return;
     if (!url) throw new Error("render failed");
-    graphUrl = url;
     if (emptyEl) emptyEl.hidden = true;
-    if (mount) {
-      mount.dataset.archUrl = url;
-      bindArchitecturePresentClick(mount, () => graphUrl);
-    }
-    await mountArchitectureDiagram(mount, { url, ir: null });
+    if (mount) mount.dataset.archUrl = url;
+    await mountArchitectureDiagram(mount, { url, ir: null, stage: true });
   } catch {
     if (seq !== renderSeq) return;
     showEmpty();

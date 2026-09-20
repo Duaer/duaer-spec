@@ -202,7 +202,7 @@ export const de = {
   "result.allModulesExtra": "Architekturdesign kann beginnen.",
   "dispatch.taskPool": "Aufgabenpool (Abhängigkeiten / parallel)",
   "dispatch.taskGraph": "Aufgaben-Ausführungspfad",
-  "dispatch.taskGraphHint": "Gleiches Layout wie Systemarchitektur; Farben zeigen Worker-Spuren. Vollbild mit klickbaren Knoten",
+  "dispatch.taskGraphHint": "Gleiches Layout wie Systemarchitektur. Ganze Seite im Dispatch-Center; Klick auf den Knoten zeigt Details",
   "dispatch.center": "Dispatch-Zentrale",
   "dispatch.openGraph": "Dispatch-Graph anzeigen",
   "dispatch.centerEmpty": "Noch kein Dispatch-Graph",
