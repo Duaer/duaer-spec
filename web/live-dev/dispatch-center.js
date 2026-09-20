@@ -23,7 +23,6 @@ const githubStars = document.getElementById("githubStars");
 const githubStarCount = document.getElementById("githubStarCount");
 const viewGraphBtn = document.getElementById("dispatchViewGraph");
 const viewArchBtn = document.getElementById("dispatchViewArch");
-const archFsBtn = document.getElementById("dispatchArchFullscreen");
 
 const STATUS_POLL_MS = 2500;
 
@@ -37,7 +36,6 @@ let cachedWorkerCount = 1;
 let cachedJobId = "";
 /** @type {"graph"|"architecture"} */
 let viewMode = "graph";
-let cachedArchUrl = "";
 
 function pathKey(p) {
   return String(p || "")
@@ -78,9 +76,6 @@ function syncViewTabs() {
   if (viewGraphBtn) viewGraphBtn.setAttribute("aria-selected", graphOn ? "true" : "false");
   if (viewArchBtn) {
     viewArchBtn.setAttribute("aria-selected", graphOn ? "false" : "true");
-  }
-  if (archFsBtn) {
-    archFsBtn.hidden = graphOn || !cachedArchUrl;
   }
 }
 
@@ -149,9 +144,6 @@ function wireTopNav() {
   }
   viewGraphBtn?.addEventListener("click", () => setViewMode("graph"));
   viewArchBtn?.addEventListener("click", () => setViewMode("architecture"));
-  archFsBtn?.addEventListener("click", () => {
-    void openArchitectureFullscreen(cachedArchUrl);
-  });
   void refreshGithubStars();
 }
 
@@ -203,22 +195,6 @@ function toPresentHref(url) {
   } catch {
     return raw;
   }
-}
-
-async function openArchitectureFullscreen(url) {
-  const href = toPresentHref(url);
-  if (!href) return;
-  try {
-    const res = await fetch("/api/open-external", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ url: href }),
-    });
-    if (res.ok) return;
-  } catch {
-    /* fall through */
-  }
-  window.open(href, "_blank", "noopener,noreferrer");
 }
 
 async function mountGraphIr(ir, seq) {
@@ -283,10 +259,7 @@ function showEmpty(kind = viewMode) {
         ? t("dispatch.centerArchEmpty")
         : t("dispatch.centerEmpty");
   }
-  if (kind === "architecture") {
-    cachedArchUrl = "";
-    syncViewTabs();
-  }
+  if (kind === "architecture") syncViewTabs();
 }
 
 function renderRail() {
@@ -344,7 +317,6 @@ async function renderArchitecture(projectPath) {
     archUrl = "";
   }
   if (seq !== renderSeq) return;
-  cachedArchUrl = archUrl;
   syncViewTabs();
   if (!archUrl) {
     showEmpty("architecture");
@@ -388,10 +360,8 @@ async function renderGraph(projectPath) {
     savedTasks = Array.isArray(data.taskPool?.tasks) ? data.taskPool.tasks : null;
     savedGraphUrl = String(data.dispatchGraphUrl || "").trim();
     jobId = String(data.jobId || "").trim();
-    cachedArchUrl = String(data.architecture?.url || "").trim();
   } catch {
     modules = [];
-    cachedArchUrl = "";
   }
   syncViewTabs();
   if (jobId) {
@@ -482,7 +452,6 @@ onLocaleChange(() => {
   if (langSelect) langSelect.value = getLocale();
   if (viewGraphBtn) viewGraphBtn.textContent = t("dispatch.viewGraph");
   if (viewArchBtn) viewArchBtn.textContent = t("dispatch.viewArchitecture");
-  if (archFsBtn) archFsBtn.textContent = t("arch.openFullscreen");
   renderRail();
   void renderStage(currentPath());
 });

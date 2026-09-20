@@ -6,7 +6,8 @@
 
 - Stage tabs: Dispatch graph | Architecture
 - Architecture loads that project’s saved `architecture.url`; empty hint when missing
-- Fullscreen via `/api/open-external` on :8787
+
+### Fix: remove Fullscreen button from dispatch center architecture view
 
 - User-facing Chinese copy uses **控制台** (brand: **Duaer 控制台**)
 - English parallel uses **console** (**Duaer console**) instead of desk

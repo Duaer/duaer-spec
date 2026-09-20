@@ -46,11 +46,11 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(page, /id="cfgOpen"/);
   assert.match(page, /top-lead-link/);
   assert.match(page, /id="dispatchViewArch"/);
-  assert.match(page, /id="dispatchArchFullscreen"/);
+  assert.doesNotMatch(page, /id="dispatchArchFullscreen"/);
   assert.match(page, /data-i18n="dispatch\.viewArchitecture"/);
   assert.match(pageJs, /function wireTopNav|goDesk\("projects"\)/);
   assert.match(pageJs, /renderArchitecture|setViewMode|centerArchEmpty/);
-  assert.match(pageJs, /openArchitectureFullscreen|\/api\/open-external/);
+  assert.doesNotMatch(pageJs, /openArchitectureFullscreen|\/api\/open-external/);
   assert.match(APP, /function applyOpenPanelFromQuery/);
   assert.match(APP, /open === "projects"/);
   assert.match(I18N, /"arch\.openFullscreen":\s*"全屏查看"/);
@@ -72,8 +72,7 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(pageJs, /mountArchitectureDiagram\(mount/);
   assert.match(pageJs, /stage:\s*true/);
   assert.match(pageJs, /architecture-mount\.mjs\?v=node-zoom-1/);
-  assert.match(pageJs, /\/api\/open-external/);
-  assert.doesNotMatch(pageJs, /openArchitecturePresent|openExternalDeskUrl/);
+  assert.doesNotMatch(pageJs, /openArchitecturePresent|openExternalDeskUrl|\/api\/open-external/);
   assert.doesNotMatch(page, /architecture-mount-clickable/);
   assert.match(APP, /new URL\(raw,\s*DESK_ORIGIN\)/);
   assert.doesNotMatch(pageJs, /new URL\(raw,\s*DESK_ORIGIN\)/);

@@ -164,7 +164,7 @@ Additional notes:
   architecture diagram. **查看派工图** / **Dispatch center** open
   `/dispatch-center.html` (100px project rail + selected graph). Each project
   can switch the stage to **Architecture** to view that project’s saved system
-  diagram (`architecture.url`); fullscreen uses `/api/open-external` on :8787.
+  diagram (`architecture.url`).
 - Each worker has its own Terminal **queue lane** (`live-terminal`,
   `live-terminal/w2`, …) so parallel launches do not hit a single lock and exit.
 

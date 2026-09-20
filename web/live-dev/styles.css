@@ -412,12 +412,6 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   background: color-mix(in srgb, var(--register) 12%, transparent);
 }
 
-.dispatch-center-arch-fs {
-  margin-left: auto;
-  font-size: 0.72rem;
-  padding: 0.25rem 0.55rem;
-}
-
 .dispatch-center-stage .task-graph-mount {
   flex: 1 1 auto;
   width: 100%;
