@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: restore dispatch graph + park result bar at bottom
+
+- Snake-wrap odd bands and set connection `fromSide`/`toSide` so Archify accepts
+  wrap edges (调度中心 no longer blank for long task pools)
+- Result bar（结果 · 初版…）moves below revise and sticks to the middle-column bottom
+
 ### Fix: visible 需求 / 修 bug switch on the confirm card
 
 - Middle column always shows kind chips before lock (not only empty-chat starters)

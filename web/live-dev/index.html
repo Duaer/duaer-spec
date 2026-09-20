@@ -10,7 +10,7 @@
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=project-btn-1" />
+    <link rel="stylesheet" href="/styles.css?v=graph-result-bar-1" />
   </head>
   <body>
     <div class="shell">
@@ -306,30 +306,6 @@
             </div>
             <button type="button" class="btn confirm" id="doDispatch" data-i18n="dispatch.do">写入 Brief 并启动</button>
             <p id="dispatchErr" class="hint" hidden></p>
-            <div id="previewPanel" class="preview-panel" hidden>
-              <div class="preview-bar">
-                <p class="preview-title" id="previewHeading" data-i18n="preview.headingInitial">结果 · 初版</p>
-                <span id="previewService" class="preview-service" hidden>
-                  <span id="previewServiceDot" class="preview-service-dot is-unknown" aria-hidden="true"></span>
-                  <span id="previewServiceStatus" class="preview-service-status"></span>
-                  <button type="button" class="btn" id="previewStartService" hidden data-i18n="preview.startService">
-                    启动
-                  </button>
-                </span>
-                <div class="preview-actions">
-                  <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
-                  <button type="button" class="btn confirm" id="previewDeploy" hidden data-i18n="preview.deploy">
-                    部署
-                  </button>
-                  <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开目录</button>
-                  <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
-                    再改一版
-                  </button>
-                </div>
-                <ul id="previewVersions" class="preview-versions" hidden></ul>
-              </div>
-              <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开目录看看。</p>
-            </div>
             <div id="revisePanel" class="revise-panel" hidden>
               <p class="mark" data-i18n="revise.mark">Revise card</p>
               <p id="reviseTitle" class="revise-title">改进卡</p>
@@ -372,6 +348,30 @@
               <p id="reviseErr" class="hint" hidden></p>
             </div>
           </section>
+          <div id="previewPanel" class="preview-panel" hidden>
+            <div class="preview-bar">
+              <p class="preview-title" id="previewHeading" data-i18n="preview.headingInitial">结果 · 初版</p>
+              <span id="previewService" class="preview-service" hidden>
+                <span id="previewServiceDot" class="preview-service-dot is-unknown" aria-hidden="true"></span>
+                <span id="previewServiceStatus" class="preview-service-status"></span>
+                <button type="button" class="btn" id="previewStartService" hidden data-i18n="preview.startService">
+                  启动
+                </button>
+              </span>
+              <div class="preview-actions">
+                <button type="button" class="btn confirm" id="previewLink" hidden data-i18n="preview.view">打开看看</button>
+                <button type="button" class="btn confirm" id="previewDeploy" hidden data-i18n="preview.deploy">
+                  部署
+                </button>
+                <button type="button" class="btn" id="previewOpenFolder" hidden data-i18n="preview.openFolder">打开目录</button>
+                <button type="button" class="btn revise-cta" id="startReviseChat" hidden data-i18n="revise.again">
+                  再改一版
+                </button>
+              </div>
+              <ul id="previewVersions" class="preview-versions" hidden></ul>
+            </div>
+            <p id="previewMissing" class="hint" hidden data-i18n="preview.noPage">还没有可打开的地址。可以先打开目录看看。</p>
+          </div>
         </section>
 
         <aside class="panel progress-col" data-i18n-aria="progress.aria" aria-label="任务进度">
@@ -653,6 +653,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=bug-kind-toggle-1"></script>
+    <script type="module" src="/app.js?v=graph-result-bar-1"></script>
   </body>
 </html>
