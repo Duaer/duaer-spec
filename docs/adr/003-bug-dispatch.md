@@ -12,7 +12,10 @@ required modular confirm plus architecture. Bug work needs a shorter gate and
 2. Bug uses one defect card, default architecture skip, short task pool
    (reproduce → fix → regress), and `allocateUniqueBranch(..., kind: "fix")`.
 3. Optional hotfix toggle bases the worktree on `main` when that branch exists.
-4. Feature path stays unchanged.
+4. Bug chat / validate **auto-fill** project delivery facts (preview URL, start
+   scripts, local env hints) into `assumptions` and must not gate on missing
+   URL / start command / suspected cause / online-emergency.
+5. Feature path stays unchanged.
 
 ## Consequences
 

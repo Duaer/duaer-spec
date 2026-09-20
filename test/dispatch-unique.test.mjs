@@ -76,4 +76,6 @@ test("live dispatch allocates feat or fix and no longer hard-fails on existing w
   assert.match(live, /feat\/\$\{dirName\}/);
   assert.match(live, /BUG_CHAT_PROMPT/);
   assert.match(live, /buildBugTaskPool/);
+  assert.match(live, /live-bug-context/);
+  assert.match(live, /禁止向用户追问/);
 });

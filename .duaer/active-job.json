@@ -1,1 +1,5 @@
-{"feature":"245-preview-opaque","specPath":".duaer/specs/245-preview-opaque/spec.md","source":"chat"}
+{
+  "feature": "246-bug-chat-autofill",
+  "specPath": ".duaer/specs/246-bug-chat-autofill/spec.md",
+  "source": "chat"
+}
