@@ -77,6 +77,22 @@ registry linking into the requirements document (no duplicate full cards).
 4. When all relevant modules are confirmed, the desk unlocks architecture
    review (Archify). After **architecture confirm**, kickoff UI opens.
 
+## Bug dispatch (defect path)
+
+Choosing「我要修一个 bug」(or equivalent locale) sets session `deskKind=bug`:
+
+1. One **defect card** (symptom / out of scope / fixed-when / env). No multi-module
+   growth from chat.
+2. After confirm, **architecture is skipped by default** (operator may still
+   design if contracts or security change).
+3. Kickoff builds a short pool: reproduce → fix → acceptance atoms → regress →
+   README → stamp.
+4. Worktree branch is **`fix/<name>`** from `develop`. Optional **production
+   hotfix** checkbox bases the worktree on **`main`** when that branch exists.
+5. Feature path (`deskKind=feature`) is unchanged.
+
+See [ADR 003](../adr/003-bug-dispatch.md).
+
 ## Kickoff: task pool and workers
 
 Kickoff owns Brief creation and dispatch. Order after architecture confirm:

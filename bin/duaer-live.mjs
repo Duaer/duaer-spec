@@ -48,7 +48,7 @@ import {
 } from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { extractArchitectureIr } from "../web/live-dev/architecture-ir.mjs";
-import { allocateUniqueFeatBranch } from "./live-worktree-name.mjs";
+import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
@@ -88,6 +88,7 @@ import {
   confirmModuleInList,
   aggregateModulesCard,
   buildTaskPoolFromModules,
+  buildBugTaskPool,
   taskPoolToMarkdown,
   assignTasksToWorkers,
   clipWorkerCount,
@@ -701,6 +702,24 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
 {"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}
 说明：顶层 goal/outOfScope/acceptance/assumptions/ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
+const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 bug，不是做新功能。通过多轮对话整理成一张可派工的缺陷卡，使数字员工能复现、修复并回归。
+
+规则：
+1. 缺关键信息时每次只问 1 个卡点（现象 / 复现步骤 / 期望与实际 / 影响面）；信息够时不要用「请从多种方案里选」代替可检查验收。
+2. 只维护**一个**模块：id 固定为 bug（title 可用「缺陷」）。禁止拆多模块。
+3. 四块语义：
+   - goal = 缺陷现象与复现（可执行）
+   - outOfScope = 本次不改什么
+   - acceptance = 怎么算修好（复现关闭 + 可核对结果/命令）
+   - assumptions = 环境 / 疑似原因 / 是否线上紧急
+4. ready=true 表示缺陷卡可确认。不要催派工。不要写代码。不要假设仓库路径。
+5. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）。
+6. 输出格式（严格）：
+   - 先写对用户说的纯文本
+   - 然后单独一行：<<<JSON>>>
+   - 再输出 JSON（不要 markdown 围栏）：
+{"modules":[{"id":"bug","title":"缺陷","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}],"activeModuleId":"bug","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","ready":false,"options":["可选A","可选B"]}`;
+
 const CHAT_JSON_MARKER = "<<<JSON>>>";
 
 const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用户已看过成品但不满意。通过多轮对话弄清：为什么不满意、要改成什么样、什么不要动。目标是改完后用户能满意。
@@ -763,6 +782,30 @@ const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动
 4. 只输出一个 JSON，不要 markdown 围栏：
 {"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
 
+const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即将锁定缺陷卡（尚未派工）。目标是：规范缺陷描述，使数字员工能复现、修复并回归。
+
+检查：
+1. goal 是否写清现象与复现（可执行，不要堆无关功能）
+2. acceptance 是否可客观检查：复现关闭 + 打开/看到/命令通过等；禁止仅「修好了/更好用」
+3. outOfScope 是否划清本次不改什么
+4. assumptions 是否合理（环境、疑似原因、是否线上紧急）
+
+规则：
+- 若小改即可通过：修订四块，passed=true
+- 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
+- 不要写代码。不要催派工。
+- 只输出一个 JSON，不要 markdown 围栏：
+{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
+const BUG_FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷卡修正助手。自动验收未通过，请根据 issues 修订缺陷卡四块。优先把 acceptance 改成可客观检查的句子（复现关闭、打开何处、看到什么、哪条命令通过），不要编造大功能。
+
+规则：
+1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions
+2. 保持用户原意；缺信息时写合理可检查默认，并写进 assumptions
+3. 不要写代码。不要假设仓库路径。
+4. 只输出一个 JSON，不要 markdown 围栏：
+{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"..."}`;
+
 /** Bare fetch has no default deadline; a stalled provider would never settle. */
 const LLM_TIMEOUT_MS = 60000;
 const LLM_STREAM_TIMEOUT_MS = 180000;
@@ -779,7 +822,10 @@ async function callChatModel(cfg, messages, systemPrompt = SYSTEM_PROMPT) {
   const body = {
     model: cfg.model,
     temperature:
-      systemPrompt === ACCEPT_PROMPT || systemPrompt === FIX_ACCEPT_PROMPT
+      systemPrompt === ACCEPT_PROMPT ||
+      systemPrompt === FIX_ACCEPT_PROMPT ||
+      systemPrompt === BUG_ACCEPT_PROMPT ||
+      systemPrompt === BUG_FIX_ACCEPT_PROMPT
         ? 0.15
         : 0.3,
     messages: [{ role: "system", content: systemPrompt }, ...messages],
@@ -1182,29 +1228,31 @@ function acceptanceLooksVague(text) {
   );
 }
 
-function localAcceptCheck(card) {
+function localAcceptCheck(card, { kind = "feature" } = {}) {
   const issues = [];
   const goal = String(card.goal || "").trim();
   const acceptance = String(card.acceptance || "").trim();
+  const goalLabel = kind === "bug" ? "「缺陷现象」" : "「要做什么」";
+  const acceptLabel = kind === "bug" ? "「修好标准」" : "「验收标准」";
   if (goal.length < 8) {
-    issues.push("「要做什么」过短，写清单一可执行目标");
+    issues.push(`${goalLabel}过短，写清可执行的现象与复现`);
   }
   if (acceptance.length < 12) {
-    issues.push("「验收标准」过短，写清可核对的完成结果");
+    issues.push(`${acceptLabel}过短，写清可核对的完成结果`);
   } else if (acceptanceLooksVague(acceptance) && !acceptanceLooksCheckable(acceptance)) {
     issues.push(
-      "「验收标准」太空泛（如更好用/更好看）；请写可检查结果：打开何处、看到什么、哪条命令通过",
+      `${acceptLabel}太空泛（如更好用/更好看）；请写可检查结果：复现关闭、打开何处、看到什么、哪条命令通过`,
     );
   } else if (!acceptanceLooksCheckable(acceptance) && acceptance.length < 40) {
     issues.push(
-      "「验收标准」须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词",
+      `${acceptLabel}须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词`,
     );
   }
   return issues;
 }
 
-async function autoAcceptCard(cfg, card) {
-  const local = localAcceptCheck(card);
+async function autoAcceptCard(cfg, card, { kind = "feature" } = {}) {
+  const local = localAcceptCheck(card, { kind });
   if (local.length) {
     return {
       passed: false,
@@ -1221,16 +1269,16 @@ async function autoAcceptCard(cfg, card) {
     [
       {
         role: "user",
-        content: `请验收以下确认卡：\n${JSON.stringify(card, null, 2)}`,
+        content: `请验收以下${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}`,
       },
     ],
-    ACCEPT_PROMPT,
+    kind === "bug" ? BUG_ACCEPT_PROMPT : ACCEPT_PROMPT,
   );
   return parseAcceptResult(content, card);
 }
 
 /** Validate card without writing Brief — used to gate human confirm/revise send. */
-async function validateCardOnly(cfg, card) {
+async function validateCardOnly(cfg, card, { kind = "feature" } = {}) {
   const normalized = {
     goal: String(card.goal || "").trim(),
     outOfScope: String(card.outOfScope || "").trim(),
@@ -1238,17 +1286,19 @@ async function validateCardOnly(cfg, card) {
     assumptions: String(card.assumptions || "").trim(),
   };
   if (!normalized.goal || !normalized.acceptance) {
+    const goalLabel = kind === "bug" ? "「缺陷现象」" : "「要做什么」";
+    const acceptLabel = kind === "bug" ? "「修好标准」" : "「验收标准」";
     return {
       passed: false,
       summary: "goal and acceptance are required",
       issues: [
-        !normalized.goal ? "「要做什么」不能为空" : null,
-        !normalized.acceptance ? "「验收标准」不能为空" : null,
+        !normalized.goal ? `${goalLabel}不能为空` : null,
+        !normalized.acceptance ? `${acceptLabel}不能为空` : null,
       ].filter(Boolean),
       ...normalized,
     };
   }
-  const review = await autoAcceptCard(cfg, normalized);
+  const review = await autoAcceptCard(cfg, normalized, { kind });
   return {
     passed: Boolean(review.passed),
     summary: review.summary || (review.passed ? "自动验收通过" : "自动验收未通过"),
@@ -1269,16 +1319,16 @@ class ValidateGateError extends Error {
   }
 }
 
-async function autoFixConfirmCard(cfg, card, issues) {
+async function autoFixConfirmCard(cfg, card, issues, { kind = "feature" } = {}) {
   const content = await callChatModel(
     cfg,
     [
       {
         role: "user",
-        content: `确认卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。`,
+        content: `${kind === "bug" ? "缺陷" : "确认"}卡：\n${JSON.stringify(card, null, 2)}\n\n未通过原因 issues：\n${JSON.stringify(issues || [], null, 2)}\n\n请修订四块。`,
       },
     ],
-    FIX_ACCEPT_PROMPT,
+    kind === "bug" ? BUG_FIX_ACCEPT_PROMPT : FIX_ACCEPT_PROMPT,
   );
   let obj = {};
   try {
@@ -1302,6 +1352,7 @@ function writeBrief(payload) {
   const assumptions = String(payload.assumptions || "").trim();
   const rawAsk = String(payload.rawAsk || "").trim();
   const review = payload.review && typeof payload.review === "object" ? payload.review : null;
+  const deskKind = String(payload.kind || "").trim() === "bug" ? "bug" : "feature";
   const projectPath = normalizeProjectKey(
     payload.projectPath || payload.repoPath || "",
   );
@@ -1314,7 +1365,8 @@ function writeBrief(payload) {
   fs.mkdirSync(featureDir, { recursive: true });
 
   const today = new Date().toISOString().slice(0, 10);
-  const branchHint = `feat/${dirName}`;
+  const branchHint =
+    deskKind === "bug" ? `fix/${dirName}` : `feat/${dirName}`;
   const reviewBlock = review
     ? `
 
@@ -1324,13 +1376,17 @@ function writeBrief(payload) {
 - Summary: ${review.summary || "ok"}
 `
     : "";
-  const spec = `# Feature Specification: ${goal}
+  const specTitle =
+    deskKind === "bug" ? `Bug Fix: ${goal}` : `Feature Specification: ${goal}`;
+  const spec = `# ${specTitle}
 
 **Feature Branch**: \`${branchHint}\`
 
 **Created**: ${today}
 
 **Status**: Confirmed (Duaer-spec FDE)
+
+**Kind**: ${deskKind}
 
 **Input**: ${rawAsk || goal}
 
@@ -1370,6 +1426,7 @@ Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product re
       {
         id: dirName,
         branch: branchHint,
+        kind: deskKind,
         confirmedAt: new Date().toISOString(),
         source: "live-dev",
         status: "confirmed",
@@ -1391,7 +1448,7 @@ Confirmed via Duaer-spec FDE after auto-accept. Next: dispatch into a product re
 
   syncJobDirToDb(liveRoot(), dirName);
 
-  const agentPrompt = `Duaer-spec FDE 已确认需求（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
+  const agentPrompt = `Duaer-spec FDE 已确认${deskKind === "bug" ? "缺陷" : "需求"}（隔离区 Brief）。下一步在页面选择产品仓库派工，或手动：
 
 Brief: ${featureDir}
 分支建议: ${branchHint}
@@ -1403,6 +1460,7 @@ ${projectPath ? `产品项目: ${projectPath}\n` : ""}`;
     featureDir,
     relativeDir: `~/.duaer/live/jobs/${dirName}`,
     branch: branchHint,
+    kind: deskKind,
     projectPath: projectPath || null,
     agentPrompt,
     review: review
@@ -3437,15 +3495,24 @@ function dispatchToRepo({
   modules: modulesRaw,
   workerCount: workerCountRaw,
   rawAsk,
+  deskKind: deskKindRaw,
+  bugHotfix: bugHotfixRaw,
 }) {
   let liveJobId = String(jobId || "").trim();
   const modules = clipModules(modulesRaw);
   const workerCount = clipWorkerCount(workerCountRaw);
+  const deskKind =
+    String(deskKindRaw || "").trim() === "bug" ? "bug" : "feature";
+  const bugHotfix = deskKind === "bug" && Boolean(bugHotfixRaw);
 
   // Kickoff owns Brief write: create live job from confirmed modules when needed.
   if (!liveJobId) {
     if (!modulesAllConfirmed(modules)) {
-      throw new Error("请先确认全部模块需求后再开工");
+      throw new Error(
+        deskKind === "bug"
+          ? "请先确认缺陷卡后再开工"
+          : "请先确认全部模块需求后再开工",
+      );
     }
     const agg = aggregateModulesCard(modules);
     const brief = writeBrief({
@@ -3455,7 +3522,13 @@ function dispatchToRepo({
       assumptions: agg.assumptions,
       rawAsk: rawAsk || agg.goal,
       projectPath: repoPath || readConfig().activeProjectPath,
-      review: { summary: `Modular kickoff (${modules.length} modules)` },
+      kind: deskKind,
+      review: {
+        summary:
+          deskKind === "bug"
+            ? "Bug kickoff"
+            : `Modular kickoff (${modules.length} modules)`,
+      },
     });
     liveJobId = brief.jobId;
     try {
@@ -3463,7 +3536,9 @@ function dispatchToRepo({
       const next = {
         ...live.job,
         modules,
-        modular: true,
+        modular: deskKind !== "bug",
+        kind: deskKind,
+        bugHotfix: bugHotfix || undefined,
       };
       persistLiveJob(live, next);
     } catch {
@@ -3472,6 +3547,11 @@ function dispatchToRepo({
   }
 
   const live = readLiveJob(liveJobId);
+  const liveKind =
+    String(live.job.kind || deskKind || "").trim() === "bug" ? "bug" : deskKind;
+  const liveHotfix =
+    liveKind === "bug" &&
+    (bugHotfix || Boolean(live.job.bugHotfix));
   // Stay on the user's chosen folder: bootstrap git + install Duaer there.
   const probe = probeRepo(repoPath, {
     bootstrap: true,
@@ -3479,14 +3559,22 @@ function dispatchToRepo({
     ensureDuaer: true,
   });
   const preferred =
-    String(live.job.branch || "").trim() || `feat/${slugify(live.id)}`;
-  const { branch, worktreeId } = allocateUniqueFeatBranch(preferred, {
+    String(live.job.branch || "").trim() ||
+    (liveKind === "bug"
+      ? `fix/${slugify(live.id)}`
+      : `feat/${slugify(live.id)}`);
+  const { branch, worktreeId } = allocateUniqueBranch(preferred, {
     jobId: live.id,
+    kind: liveKind === "bug" ? "fix" : "feat",
     isTaken: (b, wtId) =>
       hasLocalBranch(probe.path, b) ||
       fs.existsSync(path.join(probe.path, ".worktree", wtId)),
   });
   const worktreePath = path.join(probe.path, ".worktree", worktreeId);
+  const baseRef =
+    liveHotfix && hasLocalBranch(probe.path, "main")
+      ? "main"
+      : probe.baseBranch;
 
   fs.mkdirSync(path.join(probe.path, ".worktree"), { recursive: true });
   runGit(probe.path, [
@@ -3495,7 +3583,7 @@ function dispatchToRepo({
     "-b",
     branch,
     worktreePath,
-    probe.baseBranch,
+    baseRef,
   ]);
 
   // Worktree is a clean checkout — install Duaer inside it (do not hunt elsewhere).
@@ -3538,10 +3626,16 @@ function dispatchToRepo({
   const confirmedModules = moduleList.map((m) =>
     m.status === "confirmed" ? m : { ...m, status: "confirmed" },
   );
-  const poolBase = buildTaskPoolFromModules(confirmedModules, {
-    deployNeeded,
-    deployTaskText: deployPlan.deployTaskText,
-  });
+  const poolBase =
+    liveKind === "bug"
+      ? buildBugTaskPool(confirmedModules, {
+          deployNeeded,
+          deployTaskText: deployPlan.deployTaskText,
+        })
+      : buildTaskPoolFromModules(confirmedModules, {
+          deployNeeded,
+          deployTaskText: deployPlan.deployTaskText,
+        });
   const assigned = assignTasksToWorkers(poolBase, workerCount);
   const taskPool = {
     ...poolBase,
@@ -3564,13 +3658,17 @@ ${confirmedModules
   .join("\n")}`
       : "";
 
-  const productSpec = `# Feature Specification: ${goal}
+  const productSpec = `# ${liveKind === "bug" ? "Bug Fix" : "Feature Specification"}: ${goal}
 
 **Feature Branch**: \`${branch}\`
 
 **Created**: ${today}
 
 **Status**: Dispatched (Duaer-spec FDE)
+
+**Kind**: ${liveKind}
+
+**Base**: \`${baseRef}\`
 
 **Live job**: \`~/.duaer/live/jobs/${live.id}\`
 
@@ -3590,7 +3688,7 @@ ${modulesBlock}
 
 Dispatched from Duaer-spec FDE into product worktree \`${worktreePath}\`.
 Task pool workers: ${assigned.workerCount} (same CLI family).
-${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
+${liveHotfix ? "Production hotfix: merge to main first, then back-merge develop.\n" : ""}${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
 `;
 
   fs.writeFileSync(path.join(featureDir, "spec.md"), productSpec, "utf8");
@@ -3630,6 +3728,9 @@ ${deployPlan.specNote ? `\n${deployPlan.specNote}\n` : ""}
         deployViaGithubCli: deployTarget === "github-pages",
         architectureSummary: archSummary || undefined,
         workerCount: assigned.workerCount,
+        kind: liveKind,
+        bugHotfix: liveHotfix || undefined,
+        baseBranch: baseRef,
       },
       null,
       2,
@@ -3670,7 +3771,11 @@ Brief: ${featureDir}
 5b. 交付前必须更新产品仓 README（说明文档）：与本次交付一致——做什么、模块/验收要点、如何运行或打开；需求变了就改 README，不要只改代码。英文 README 不得出现中文；若项目是中文说明则用 README.zh-CN.md（或项目既有约定），可夹英文术语
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
-7. 合入 develop 并 handoff 清理 worktree
+7. ${
+    liveHotfix
+      ? "先合入 main（生产 hotfix），再回补 develop，并 handoff 清理 worktree"
+      : "合入 develop 并 handoff 清理 worktree"
+  }
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 
 ${DISPATCH_MUST_FINISH_RULES}
@@ -5879,17 +5984,27 @@ async function handleApi(req, res) {
       const mode = String(body.mode || "specify").trim();
       const reviseMode = mode === "revise";
       const architectureMode = mode === "architecture";
+      const deskKind =
+        String(body.deskKind || "").trim() === "bug" ? "bug" : "feature";
       const deployTarget = normalizeDeployTarget(body.deployTarget);
       const systemPrompt = architectureMode
         ? ARCHITECTURE_CHAT_PROMPT
         : reviseMode
           ? REVISE_CHAT_PROMPT
-          : SYSTEM_PROMPT;
+          : deskKind === "bug"
+            ? BUG_CHAT_PROMPT
+            : SYSTEM_PROMPT;
       const followUp = architectureMode
         ? `已确认需求卡：\n${JSON.stringify(card)}\n计划托管：${deployTarget}\n请继续架构对话。先写对用户说的话，再 <<<JSON>>>。架构可确认时 ready=true 并带完整 diagram_type=architecture 的 IR；对用户说的话引导去中间栏「系统架构」看图并确认，禁止提 JSON。`
         : reviseMode
           ? `当前改进卡草稿（goal=要改什么，outOfScope=不要动，acceptance=怎么算改好，assumptions=不满意原因）：\n${JSON.stringify(card)}\n请继续对话弄清原因与改动。先写对用户说的话，再 <<<JSON>>> 与卡片 JSON。不要派工。`
-          : `当前模块清单与确认卡草稿：\n${JSON.stringify({
+          : deskKind === "bug"
+            ? `当前缺陷卡草稿：\n${JSON.stringify({
+                modules: modules || [],
+                activeModuleId: activeModuleId || "bug",
+                card,
+              })}\n只维护 id=bug 的一个模块。更新四块；ready=true 表示缺陷卡可确认。先写对用户说的话，再 <<<JSON>>>。不要派工。`
+            : `当前模块清单与确认卡草稿：\n${JSON.stringify({
               modules: modules || [],
               activeModuleId: activeModuleId || null,
               card,
@@ -5946,7 +6061,11 @@ async function handleApi(req, res) {
         acceptance: String(body.acceptance || "").trim(),
         assumptions: String(body.assumptions || body.reason || "").trim(),
       };
-      const review = await validateCardOnly(cfg, card);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const review = await validateCardOnly(cfg, card, { kind: deskKind });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -5986,8 +6105,14 @@ async function handleApi(req, res) {
         assumptions: String(body.assumptions || body.reason || "").trim(),
       };
       const issues = Array.isArray(body.issues) ? body.issues : [];
-      const fixed = await autoFixConfirmCard(cfg, card, issues);
-      const review = await validateCardOnly(cfg, fixed);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const fixed = await autoFixConfirmCard(cfg, card, issues, {
+        kind: deskKind,
+      });
+      const review = await validateCardOnly(cfg, fixed, { kind: deskKind });
       send(res, review.passed ? 200 : 422, {
         ok: review.passed,
         passed: review.passed,
@@ -6031,7 +6156,11 @@ async function handleApi(req, res) {
         send(res, 400, { error: "goal and acceptance are required" });
         return;
       }
-      const review = await autoAcceptCard(cfg, card);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const review = await autoAcceptCard(cfg, card, { kind: deskKind });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
@@ -6056,10 +6185,23 @@ async function handleApi(req, res) {
       };
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
-        String(body.moduleId || body.activeModuleId || "").trim() ||
-        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
-        "main";
-      let modules = clipModules(incomingModules, acceptedCard);
+        deskKind === "bug"
+          ? "bug"
+          : String(body.moduleId || body.activeModuleId || "").trim() ||
+            clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+            "main";
+      let modules =
+        deskKind === "bug"
+          ? [
+              {
+                id: "bug",
+                title: "缺陷",
+                status: "draft",
+                card: acceptedCard,
+                dependsOn: [],
+              },
+            ]
+          : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
           {
@@ -6081,10 +6223,11 @@ async function handleApi(req, res) {
         modules,
         activeModuleId: moduleId,
         modulesAllConfirmed: allConfirmed,
-        needArchitecture: allConfirmed,
-        needDispatch: false,
+        needArchitecture: allConfirmed && deskKind !== "bug",
+        needDispatch: allConfirmed && deskKind === "bug",
         writeBrief: false,
         jobId: null,
+        deskKind,
         card: acceptedCard,
         review: { summary: review.summary || "自动验收通过" },
       });
@@ -6118,8 +6261,14 @@ async function handleApi(req, res) {
         send(res, 400, { error: "确认卡为空，无法修正" });
         return;
       }
-      const fixed = await autoFixConfirmCard(cfg, card, issues);
-      const review = await autoAcceptCard(cfg, fixed);
+      const deskKind =
+        String(body.deskKind || body.kind || "").trim() === "bug"
+          ? "bug"
+          : "feature";
+      const fixed = await autoFixConfirmCard(cfg, card, issues, {
+        kind: deskKind,
+      });
+      const review = await autoAcceptCard(cfg, fixed, { kind: deskKind });
       if (!review.passed) {
         send(res, 422, {
           ok: false,
@@ -6146,10 +6295,23 @@ async function handleApi(req, res) {
       };
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
-        String(body.moduleId || body.activeModuleId || "").trim() ||
-        clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
-        "main";
-      let modules = clipModules(incomingModules, acceptedCard);
+        deskKind === "bug"
+          ? "bug"
+          : String(body.moduleId || body.activeModuleId || "").trim() ||
+            clipActiveModuleId(null, clipModules(incomingModules, acceptedCard)) ||
+            "main";
+      let modules =
+        deskKind === "bug"
+          ? [
+              {
+                id: "bug",
+                title: "缺陷",
+                status: "draft",
+                card: acceptedCard,
+                dependsOn: [],
+              },
+            ]
+          : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
           {
@@ -6171,10 +6333,11 @@ async function handleApi(req, res) {
         modules,
         activeModuleId: moduleId,
         modulesAllConfirmed: allConfirmed,
-        needArchitecture: allConfirmed,
-        needDispatch: false,
+        needArchitecture: allConfirmed && deskKind !== "bug",
+        needDispatch: allConfirmed && deskKind === "bug",
         writeBrief: false,
         jobId: null,
+        deskKind,
         fixSummary: fixed.summary,
         card: acceptedCard,
         review: {
@@ -6340,6 +6503,8 @@ async function handleApi(req, res) {
         modules: body.modules,
         workerCount: body.workerCount,
         rawAsk: body.rawAsk,
+        deskKind: body.deskKind || body.kind,
+        bugHotfix: body.bugHotfix,
       });
       send(res, 200, result);
     } catch (err) {
@@ -6815,6 +6980,9 @@ async function handleApi(req, res) {
         activeModuleId: body.activeModuleId,
         taskPool: body.taskPool,
         workerCount: body.workerCount,
+        dispatchGraphReady: body.dispatchGraphReady,
+        deskKind: body.deskKind,
+        bugHotfix: body.bugHotfix,
         reviseCard: body.reviseCard,
         reviseCards: body.reviseCards,
         reviseDraft: body.reviseDraft,

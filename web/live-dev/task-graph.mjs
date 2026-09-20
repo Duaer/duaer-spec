@@ -211,6 +211,73 @@ export function buildPreviewPoolFromModules(modules) {
  * @param {{ tasks?: Array<object> } | null} pool
  * @param {number} workerCount
  */
+/** Preview pool for bug desk kind (mirrors buildBugTaskPool shape). */
+export function buildPreviewPoolForBug(modules) {
+  const list = (Array.isArray(modules) ? modules : []).filter(
+    (m) => m && m.status === "confirmed",
+  );
+  const m = list[0] || { id: "bug", title: "Bug", card: {} };
+  const title = String(m.title || m.id || "Bug").slice(0, 80);
+  const card = m.card && typeof m.card === "object" ? m.card : {};
+  const tasks = [];
+  let n = 1;
+  const push = (partial) => {
+    const id = `T${String(n).padStart(3, "0")}`;
+    n += 1;
+    const task = {
+      id,
+      moduleId: partial.moduleId || null,
+      title: String(partial.title || "").slice(0, 200),
+      dependsOn: Array.isArray(partial.dependsOn)
+        ? partial.dependsOn.filter(Boolean)
+        : [],
+      status: "queued",
+      workerId: null,
+    };
+    tasks.push(task);
+    return task;
+  };
+  const repro = push({
+    moduleId: m.id,
+    title: `Reproduce «${title}»`,
+    dependsOn: [],
+  });
+  const fix = push({
+    moduleId: m.id,
+    title: `Fix «${title}»`,
+    dependsOn: [repro.id],
+  });
+  let prevId = fix.id;
+  const acceptLines = splitAcceptanceLines(card.acceptance);
+  if (acceptLines.length) {
+    for (const line of acceptLines) {
+      const acc = push({
+        moduleId: m.id,
+        title: `Accept «${title}»: ${truncateText(line, 80)}`,
+        dependsOn: [prevId],
+      });
+      prevId = acc.id;
+    }
+  }
+  const verify = push({
+    moduleId: null,
+    title: "Regression verify",
+    dependsOn: [prevId],
+  });
+  push({
+    moduleId: null,
+    title: "Stamp delivery accepted",
+    dependsOn: [verify.id],
+  });
+  return { version: 1, kind: "bug", tasks };
+}
+
+/**
+ * Preview lanes: inherit only within the same module so multi-module pools
+ * show parallel colors. Kickoff still uses server assignTasksToWorkers.
+ * @param {{ tasks?: Array<object> } | null} pool
+ * @param {number} workerCount
+ */
 export function assignPreviewWorkers(pool, workerCount = 1) {
   const count = Math.max(1, Math.min(8, Number(workerCount) || 1));
   const tasks = (pool?.tasks || []).map((t) => ({ ...t, workerId: null }));

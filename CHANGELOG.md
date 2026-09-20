@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: bug dispatch path on Duaer desk
+
+- Chat「我要修一个 bug」sets defect card; default skip architecture; short task pool
+- Kickoff uses `fix/` from develop (optional hotfix from `main`)
+- Feature modular + architecture path unchanged
+
 ### Fix: dispatch center shows the graph on the page
 
 - Battlefield fills the dispatch-center stage; node clicks stay there
