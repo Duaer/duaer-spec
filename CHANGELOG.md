@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: move 修 bug CTA next to 再改一版
+
+- Remove top kind chips; 「修 bug」uses the same bottom revise-cta slots
+
 ### Fix: visible 需求 / 修 bug switch on the confirm card
 
 - Middle column always shows kind chips before lock (not only empty-chat starters)

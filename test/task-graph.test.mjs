@@ -339,8 +339,8 @@ test("desk wires bug dispatch skip-architecture helpers", () => {
   assert.match(js, /skipArchitectureForBug/);
   assert.match(js, /enterDeskKind/);
   assert.match(js, /buildPreviewPoolForBug/);
-  assert.match(js, /syncDeskKindSwitch/);
+  assert.match(js, /syncStartBugFixButtons|beginBugFixFromCta/);
   assert.match(html, /id="bugHotfix"/);
-  assert.match(html, /id="deskKindBug"/);
-  assert.match(html, /id="deskKindSwitch"/);
+  assert.match(html, /id="startBugFix"/);
+  assert.doesNotMatch(html, /id="deskKindSwitch"/);
 });

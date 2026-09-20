@@ -80,8 +80,9 @@ registry linking into the requirements document (no duplicate full cards).
 ## Bug dispatch (defect path)
 
 Choosing「我要修一个 bug」(or equivalent locale) sets session `deskKind=bug`.
-The middle column also shows a **需求 / 修 bug** kind switch before confirm
-lock, so the operator does not need an empty chat starter chip.
+The middle column shows a **修 bug** button in the same bottom CTA row as
+**再改一版** (not a top kind switch). Before the first delivery it appears in
+the bottom strip under results; after delivery it sits beside「再改一版」.
 
 1. One **defect card** (symptom / out of scope / fixed-when / env). No multi-module
    growth from chat.
