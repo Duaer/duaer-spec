@@ -90,13 +90,18 @@ the bottom strip under results; after delivery it sits beside「再改一版」.
    do not re-ask the operator. Suspected cause defaults to「待复现定位」; online
    emergency defaults to **no** (fix from develop) unless the user says
    production/urgent.
-2. After confirm, **architecture is skipped by default** (operator may still
+2. Confirmed defects append to the same **project timeline** as 初版 / 再改一版
+   (sorted by time in deliverables). They are later iterations, not a parallel track.
+3. After confirm, **architecture is skipped by default** (operator may still
    design if contracts or security change).
-3. Kickoff builds a short pool: reproduce → fix → acceptance atoms → regress →
+4. Kickoff builds a short pool: reproduce → fix → acceptance atoms → regress →
    README → stamp.
-4. Worktree branch is **`fix/<name>`** from `develop`. Optional **production
+5. Worktree branch is **`fix/<name>`** from `develop`. Optional **production
    hotfix** checkbox bases the worktree on **`main`** when that branch exists.
-5. Feature path (`deskKind=feature`) is unchanged.
+6. Feature path (`deskKind=feature`) is unchanged.
+
+The chat column’s right edge has a **导航** control that jumps to: chat bottom ·
+confirm card · result · progress.
 
 See [ADR 003](../adr/003-bug-dispatch.md).
 

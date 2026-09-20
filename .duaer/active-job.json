@@ -1,5 +1,5 @@
 {
-  "feature": "246-bug-chat-autofill",
-  "specPath": ".duaer/specs/246-bug-chat-autofill/spec.md",
+  "feature": "247-timeline-quicknav",
+  "specPath": ".duaer/specs/247-timeline-quicknav/spec.md",
   "source": "chat"
 }

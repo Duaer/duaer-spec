@@ -295,7 +295,38 @@ test("reviseCards round-trip and legacy lastRevision migrate", () => {
   assert.equal(loaded.reviseDraft.revision, 2);
   assert.equal(loaded.reviseDraft.goal, "bigger title");
   assert.equal(loaded.reviseCardFocus, 2);
+  closeDeskDb(root);
+  fs.rmSync(root, { recursive: true, force: true });
+});
 
+test("bugCards round-trip on project timeline", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-cards-"));
+  const projectPath = path.join(root, "app");
+  writeProjectChat(root, {
+    projectPath,
+    messages: [],
+    bugCards: [
+      {
+        id: "bug-a",
+        seq: 1,
+        at: "2026-09-20T08:00:00.000Z",
+        goal: "Button dead",
+        outOfScope: "",
+        acceptance: "Click works",
+        assumptions: "local",
+      },
+    ],
+  });
+  const loaded = readProjectChat(root, projectPath);
+  assert.equal(loaded.bugCards.length, 1);
+  assert.equal(loaded.bugCards[0].id, "bug-a");
+  assert.equal(loaded.bugCards[0].goal, "Button dead");
+  assert.equal(loaded.bugCards[0].at, "2026-09-20T08:00:00.000Z");
+  closeDeskDb(root);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
+test("reviseCards legacy lastRevision migrate", () => {
   const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-leg-"));
   const legacyPath = path.join(legacyRoot, "app");
   writeProjectChat(legacyRoot, {
@@ -321,8 +352,6 @@ test("reviseCards round-trip and legacy lastRevision migrate", () => {
   assert.equal(migrated.reviseCards.length, 1);
   assert.equal(migrated.reviseCards[0].revision, 3);
   assert.equal(migrated.reviseCards[0].goal, "legacy change");
-  closeDeskDb(root);
-
-  fs.rmSync(root, { recursive: true, force: true });
+  closeDeskDb(legacyRoot);
   fs.rmSync(legacyRoot, { recursive: true, force: true });
 });

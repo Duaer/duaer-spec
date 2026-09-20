@@ -139,7 +139,8 @@ const state = {
   lastRevision: null, // { revision, change, keep, acceptance, reason }
   /** Dispatched 改进卡 history — one entry per revision (never overwrite). */
   reviseCards: [],
-  /** In-progress draft for the next revision number (before dispatch). */
+  /** Confirmed defect cards on the project timeline (chronological with revises). */
+  bugCards: [],
   reviseDraft: null, // { revision, goal, outOfScope, acceptance, assumptions }
   /** Which revision's card is shown in the panel. */
   reviseCardFocus: null,
@@ -221,6 +222,9 @@ const el = {
   settingsClose: document.getElementById("settingsClose"),
   desk: document.getElementById("desk"),
   log: document.getElementById("log"),
+  chatQuickNav: document.getElementById("chatQuickNav"),
+  chatQuickNavMenu: document.getElementById("chatQuickNavMenu"),
+  chatQuickNavWrap: document.getElementById("chatQuickNavWrap"),
   chatEmpty: document.getElementById("chatEmpty"),
   form: document.getElementById("composer"),
   input: document.getElementById("input"),
@@ -535,6 +539,69 @@ function focusRightPanel({ smooth = true, force = false } = {}) {
 function scrollChatToLatest() {
   if (!el.log) return;
   el.log.scrollTop = el.log.scrollHeight;
+}
+
+function setChatQuickNavOpen(open) {
+  if (!el.chatQuickNav || !el.chatQuickNavMenu) return;
+  el.chatQuickNav.setAttribute("aria-expanded", open ? "true" : "false");
+  el.chatQuickNavMenu.hidden = !open;
+}
+
+function quickNavTarget(kind) {
+  if (kind === "chat") return el.log;
+  if (kind === "card") {
+    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
+    return el.confirm || el.cardPanel;
+  }
+  if (kind === "result") {
+    if (el.previewPanel && !el.previewPanel.hidden) return el.previewPanel;
+    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
+    return el.confirm || el.cardPanel;
+  }
+  if (kind === "progress") {
+    return activeProgressFocusEl() || el.progressCol;
+  }
+  return null;
+}
+
+function jumpQuickNav(kind) {
+  setChatQuickNavOpen(false);
+  if (kind === "chat") {
+    clearPanelUserScroll(el.log);
+    scrollChatToLatest();
+    return;
+  }
+  const target = quickNavTarget(kind);
+  if (!target) return;
+  if (kind === "progress") {
+    clearPanelUserScroll(el.progressCol);
+    scrollPanelToTarget(el.progressCol, target, { smooth: true, force: true });
+    return;
+  }
+  clearPanelUserScroll(el.cardPanel);
+  scrollPanelToTarget(el.cardPanel, target, { smooth: true, force: true });
+}
+
+function wireChatQuickNav() {
+  if (!el.chatQuickNav || el.chatQuickNav.dataset.bound === "1") return;
+  el.chatQuickNav.dataset.bound = "1";
+  el.chatQuickNav.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const open = el.chatQuickNav.getAttribute("aria-expanded") !== "true";
+    setChatQuickNavOpen(open);
+  });
+  el.chatQuickNavMenu?.addEventListener("click", (ev) => {
+    const btn = ev.target?.closest?.("[data-nav]");
+    if (!btn) return;
+    ev.preventDefault();
+    jumpQuickNav(btn.getAttribute("data-nav"));
+  });
+  document.addEventListener("click", (ev) => {
+    if (!el.chatQuickNavWrap?.contains(ev.target)) setChatQuickNavOpen(false);
+  });
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape") setChatQuickNavOpen(false);
+  });
 }
 
 function syncChatPlaceholder() {
@@ -1379,6 +1446,7 @@ function upsertReviseCardEntry(revision, card, architecture = undefined) {
     outOfScope: String(card.outOfScope || ""),
     acceptance: String(card.acceptance || ""),
     assumptions: String(card.assumptions || ""),
+    at: prev?.at || new Date().toISOString(),
   };
   if (architecture !== undefined) {
     if (architecture) entry.architecture = architecture;
@@ -1391,6 +1459,22 @@ function upsertReviseCardEntry(revision, card, architecture = undefined) {
   else list.push(entry);
   list.sort((a, b) => Number(a.revision) - Number(b.revision));
   state.reviseCards = list;
+}
+
+function appendBugCardEntry(card) {
+  if (!card) return;
+  const list = Array.isArray(state.bugCards) ? [...state.bugCards] : [];
+  const seq = list.length + 1;
+  list.push({
+    id: `bug-${Date.now().toString(36)}-${seq}`,
+    seq,
+    goal: String(card.goal || ""),
+    outOfScope: String(card.outOfScope || ""),
+    acceptance: String(card.acceptance || ""),
+    assumptions: String(card.assumptions || ""),
+    at: new Date().toISOString(),
+  });
+  state.bugCards = list;
 }
 
 function architectureSnapshotFromState({ changed = false } = {}) {
@@ -2675,6 +2759,7 @@ async function persistProjectChat() {
       outOfScope: e.outOfScope,
       acceptance: e.acceptance,
       assumptions: e.assumptions,
+      at: e.at || undefined,
       architecture: e.architecture?.url
         ? {
             url: e.architecture.url,
@@ -2685,6 +2770,15 @@ async function persistProjectChat() {
             fingerprint: String(e.architecture.fingerprint || ""),
           }
         : undefined,
+    }));
+    const bugCardsLite = (state.bugCards || []).map((e) => ({
+      id: e.id,
+      seq: e.seq,
+      goal: e.goal,
+      outOfScope: e.outOfScope,
+      acceptance: e.acceptance,
+      assumptions: e.assumptions,
+      at: e.at || undefined,
     }));
     await fetch("/api/projects/chat", {
       method: "PUT",
@@ -2705,6 +2799,7 @@ async function persistProjectChat() {
         dispatchGraphUrl: state.dispatchGraphUrl || null,
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
+        bugCards: bugCardsLite,
         reviseDraft: (() => {
           stashReviseDraftFromFields();
           return state.reviseDraft;
@@ -2857,6 +2952,7 @@ function clearDeskWorkspace() {
   state.originalCard = null;
   state.lastRevision = null;
   state.reviseCards = [];
+  state.bugCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
@@ -2980,6 +3076,7 @@ async function loadProjectChatIntoUi(projectPath) {
     state.originalCard = data.originalCard || null;
     state.lastRevision = data.lastRevision || null;
     state.reviseCards = Array.isArray(data.reviseCards) ? data.reviseCards : [];
+    state.bugCards = Array.isArray(data.bugCards) ? data.bugCards : [];
     state.reviseDraft =
       data.reviseDraft && typeof data.reviseDraft === "object"
         ? data.reviseDraft
@@ -4301,6 +4398,7 @@ async function applyConfirmSuccess(data) {
   void persistProjectChat();
   if (allDone) {
     if (state.deskKind === "bug" || data.needDispatch) {
+      appendBugCardEntry(cardValues());
       skipArchitectureForBug();
       addBubble("bot", t("bot.bugReadyDispatch"));
     } else {
@@ -8188,6 +8286,7 @@ async function restoreHistoryJob() {
   state.reviseDispatching = false;
   state.lastRevision = null;
   state.reviseCards = [];
+  state.bugCards = [];
   state.reviseDraft = null;
   state.reviseCardFocus = null;
   state.revisePlanConfirmed = false;
@@ -8381,6 +8480,7 @@ syncComposerEnabled();
 renderWorkerCountList();
 wirePanelScrollHold(el.cardPanel);
 wirePanelScrollHold(el.progressCol);
+wireChatQuickNav();
 
 if (el.autoFixCard) {
   el.autoFixCard.addEventListener("click", () => {

@@ -206,6 +206,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const html = await (await fetch(`${live.base}/`)).text();
   assert.match(html, /chat-panel/);
+  assert.match(html, /id="chatQuickNav"/);
+  assert.match(html, /data-nav="progress"/);
   assert.match(html, /card-panel/);
   assert.match(html, /progress-col/);
   assert.match(html, /req-section/);
@@ -229,6 +231,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /width:\s*100%/);
   assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.chat-quicknav/);
   assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
   assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
   assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
@@ -241,6 +244,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /paintDeliveryCockpit|deriveProjectDeliveryStatus|deliveryStatus/);
   assert.match(css, /delivery-cockpit|project-status|project-deliverables/);
   assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
+  assert.match(js, /wireChatQuickNav/);
+  assert.match(js, /appendBugCardEntry/);
+  assert.match(js, /jumpQuickNav/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);
   assert.match(js, /card\.lockHintModuleDone/);
