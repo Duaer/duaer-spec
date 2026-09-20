@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-20T09:25:00.000Z",
+  "verification": {
+    "levels": ["docs"],
+    "commands": ["gh release view v0.25.1", "gh run list --workflow=npm-publish.yml"],
+    "result": "pass",
+    "notes": "GitHub Release v0.25.1 published; npm Trusted Publishing triggered"
+  },
+  "preview": {
+    "url": "https://github.com/fujiezee/duaer-spec/releases/tag/v0.25.1",
+    "label": "GitHub Release v0.25.1"
+  }
+}

@@ -1,3 +1,3 @@
 - [x] T001 Bump package.json to 0.25.1 and fold CHANGELOG
 - [x] T002 Update README architecture note (en + zh-CN)
-- [ ] T003 Merge develop, promote main, push, GitHub release + npm
+- [x] T003 Merge develop, promote main, push, GitHub release + npm
