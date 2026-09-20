@@ -2591,10 +2591,12 @@ function afterChatBubbleUi({ forceRight = false } = {}) {
 }
 
 function architectureContinueOptions(parsed) {
-  const hasIr =
-    parsed?.ready &&
-    (Array.isArray(parsed.components) || parsed.diagram_type === "architecture");
-  if (hasIr) return [];
+  // Only treat as “diagram ready” when we have a render URL or real components.
+  // ready + diagram_type alone is a common false claim from the model.
+  const hasRenderable =
+    Boolean(String(parsed?.architectureUrl || "").trim()) ||
+    (Array.isArray(parsed?.components) && parsed.components.length > 0);
+  if (hasRenderable) return [];
   if (Array.isArray(parsed?.options) && parsed.options.length) {
     return parsed.options;
   }
@@ -4722,16 +4724,8 @@ async function finishArchitectureChatResult(data, streamBubble, bag) {
   }
   if (architectureClaimedReady(data?.reply, data)) {
     syncArchitecturePanel("missing");
-    addBubble("bot", t("arch.renderMissing"), {
-      actions: [
-        {
-          label: t("arch.retry"),
-          onClick: () => {
-            retryArchitectureDesign();
-          },
-        },
-      ],
-    });
+    // Rewrite the same bubble — do not leave「架构图已生成」visible above a missing panel.
+    announceArchitectureMissing(streamBubble, bag);
     void persistProjectChat();
   } else {
     syncArchitecturePanel();
@@ -5045,20 +5039,61 @@ async function maybeRenderArchitectureFromReply(reply) {
   return renderArchitectureFromIr(ir);
 }
 
+function rewriteArchitectureStreamBubble(streamBubble, msg, { actions } = {}) {
+  if (streamBubble) {
+    streamBubble.set(msg);
+    try {
+      streamBubble.body.innerHTML = renderChatMarkdown(msg);
+    } catch {
+      streamBubble.body.textContent = msg;
+    }
+    const host = streamBubble.div;
+    host?.querySelectorAll(":scope > .options").forEach((n) => n.remove());
+    host?.classList.remove("streaming");
+    if (actions?.length && host) {
+      const row = document.createElement("div");
+      row.className = "options";
+      for (const act of actions) {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "chip action-chip";
+        b.textContent = act.label;
+        b.addEventListener("click", () => {
+          if (typeof act.onClick === "function") void act.onClick(b);
+        });
+        row.appendChild(b);
+      }
+      host.appendChild(row);
+    }
+  } else {
+    addBubble("bot", msg, { actions });
+  }
+}
+
 /** After a successful diagram render, replace JSON-talk with a desk hint. */
 function announceArchitectureRendered(streamBubble, bag) {
   const msg = t("arch.renderedReady");
-  if (streamBubble) {
-    streamBubble.set(msg);
-    const bubbles = el.chat?.querySelectorAll(".bubble.bot");
-    const lastBot = bubbles?.[bubbles.length - 1];
-    lastBot?.querySelectorAll(":scope > .options.choice-options").forEach((n) =>
-      n.remove(),
-    );
-    lastBot?.classList.remove("streaming");
-  } else {
-    addBubble("bot", msg);
+  rewriteArchitectureStreamBubble(streamBubble, msg);
+  if (Array.isArray(bag) && bag.length) {
+    const last = bag[bag.length - 1];
+    if (last?.role === "assistant") last.content = msg;
   }
+  afterChatBubbleUi({ forceRight: true });
+}
+
+/** Claim-ready without IR: replace misleading「已生成」on the same bubble. */
+function announceArchitectureMissing(streamBubble, bag) {
+  const msg = t("arch.renderMissing");
+  rewriteArchitectureStreamBubble(streamBubble, msg, {
+    actions: [
+      {
+        label: t("arch.retry"),
+        onClick: () => {
+          retryArchitectureDesign();
+        },
+      },
+    ],
+  });
   if (Array.isArray(bag) && bag.length) {
     const last = bag[bag.length - 1];
     if (last?.role === "assistant") last.content = msg;

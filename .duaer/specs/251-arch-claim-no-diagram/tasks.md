@@ -1,0 +1,5 @@
+- [x] T001 Rewrite claim-without-render bubble (no duplicate “已生成”)
+- [x] T002 Tighten continue-options gate (need URL or components)
+- [x] T003 i18n copy: missing diagram, not “model said ready”
+- [x] T004 E2E catalog + smoke assertion; verify L0/L1/L3
+- [x] T005 Stamp delivery.json

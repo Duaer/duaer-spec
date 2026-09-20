@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fix: architecture chat must not keep a false “diagram ready” line
+
+- When chat claims the diagram is ready but no renderable IR/URL arrives, the
+  same assistant bubble is rewritten to the missing-diagram copy with
+  Regenerate — the left chat no longer leaves a false “diagram ready” line
+  without a middle-panel diagram
+- Continue chips only clear when a render URL or real components exist
+
 ## 0.25.0 — 2026-09-20
 
 ### Feat: bug path, project timeline, and desk navigation

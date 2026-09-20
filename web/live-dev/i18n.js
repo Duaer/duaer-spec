@@ -311,7 +311,7 @@ const zhCN = {
   "arch.redesign": "架构有变，重新设计",
   "arch.hintNeed": "全部模块确认后，在左侧对话设计架构；确认架构后才能开工",
   "arch.hintDesigning": "正在对话设计架构；出图后会显示在本区域",
-  "arch.hintMissing": "对话称图已生成，但台面未收到可渲染数据。请点「重新生成架构图」。",
+  "arch.hintMissing": "中间栏还没有架构图。请点「重新生成架构图」。",
   "arch.hintPreview": "架构图在下方。点击图可新页面全屏查看；满意则确认架构，再开工",
   "arch.hintConfirmed": "架构已确认；点击图可全屏查看。数字员工将按此图开发",
   "arch.hintStale": "改版默认沿用原架构。仅当架构变化时，确认下方新图后再派工。点击图可全屏查看",
@@ -341,7 +341,7 @@ const zhCN = {
   "arch.optChangePath": "我想改主路径",
   "arch.renderedReady": "架构图已在中间栏「系统架构」区域生成，请查看；满意后点「确认架构」。",
   "arch.renderFail": "架构图渲染失败：{msg}",
-  "arch.renderMissing": "模型说图已生成，但台面没有收到架构数据。请点「重新生成架构图」。",
+  "arch.renderMissing": "中间栏还没有架构图（对话数据未渲染成功）。请点「重新生成架构图」。",
   "arch.retry": "重新生成架构图",
   "arch.needConfirm": "请先确认架构再派工",
   "dispatch.projectsRoot": "产品父目录",
@@ -911,7 +911,7 @@ const en = {
     "After all modules are confirmed, design architecture in chat; confirm it before kickoff",
   "arch.hintDesigning": "Designing in chat — the diagram will appear in this panel",
   "arch.hintMissing":
-    "Chat claimed the diagram was ready, but no renderable data arrived. Tap Regenerate diagram.",
+    "No architecture diagram in the middle panel yet. Tap Regenerate diagram.",
   "arch.hintPreview":
     "Diagram is below. Click it for fullscreen; confirm architecture, then kick off",
   "arch.hintConfirmed":
@@ -948,7 +948,7 @@ const en = {
     "Architecture diagram is ready in the middle Architecture panel — review it, then tap Confirm architecture.",
   "arch.renderFail": "Architecture render failed: {msg}",
   "arch.renderMissing":
-    "The model said the diagram was ready, but the desk got no architecture data. Tap Regenerate diagram.",
+    "No architecture diagram in the middle panel yet (chat data did not render). Tap Regenerate diagram.",
   "arch.retry": "Regenerate diagram",
   "arch.needConfirm": "Confirm architecture before dispatch",
   "dispatch.agentLabel": "Which CLI digital employee to launch",

@@ -76,6 +76,9 @@ registry linking into the requirements document (no duplicate full cards).
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture
    review (Archify). After **architecture confirm**, kickoff UI opens.
+   Architecture chat may claim the diagram is ready before IR arrives; if the
+   middle panel has no diagram, the **same** chat bubble is rewritten to offer
+   Regenerate diagram (it must not leave a false “diagram ready” line).
 
 ## Bug dispatch (defect path)
 

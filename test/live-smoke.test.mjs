@@ -246,6 +246,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /paintDeliveryCockpit|deriveProjectDeliveryStatus|deliveryStatus/);
   assert.match(css, /delivery-cockpit|project-status|project-deliverables/);
   assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
+  assert.match(js, /announceArchitectureMissing|rewriteArchitectureStreamBubble/);
+  assert.match(js, /architectureUrl|components\.length/);
   assert.match(js, /wireChatQuickNav/);
   assert.match(js, /appendBugCardEntry/);
   assert.match(js, /jumpQuickNav/);
@@ -276,7 +278,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.doesNotMatch(html, /header\.beginner|top-beginner|小白也能做FDE/);
   assert.doesNotMatch(html, /chat-empty-title|data-i18n="chat\.emptyTitle"/);
   const i18nSrc = await (await fetch(`${live.base}/i18n.js`)).text();
-  assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏/);
+  assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏还没有/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(css, /choice-chip/);
   assert.match(css, /rgba\(127,\s*149,\s*168/);
