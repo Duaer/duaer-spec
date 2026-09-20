@@ -38,6 +38,14 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(page, /id="dispatchCenter"/);
   assert.match(page, /id="taskGraphMount"/);
   assert.match(page, /class="dispatch-center-page"/);
+  assert.match(page, /class="top"/);
+  assert.match(page, /id="langSelect"/);
+  assert.match(page, /id="historyToggle"/);
+  assert.match(page, /id="cfgOpen"/);
+  assert.match(page, /top-lead-link/);
+  assert.match(pageJs, /function wireTopNav|goDesk\("projects"\)/);
+  assert.match(APP, /function applyOpenPanelFromQuery/);
+  assert.match(APP, /open === "projects"/);
   assert.match(I18N, /"arch\.openFullscreen":\s*"全屏查看"/);
   assert.match(I18N, /已完成\/进行中\/等待中|done \/ in progress \/ waiting/i);
   assert.match(I18N, /"dispatch\.center":\s*"调度中心"/);
@@ -71,4 +79,6 @@ test("desk wires click + fullscreen button for architecture", () => {
   assert.match(CSS, /grid-template-columns:\s*100px/);
   assert.match(CSS, /dispatch-center-page/);
   assert.match(CSS, /dispatch-center-stage[\s\S]*?height:\s*100%/);
+  assert.match(CSS, /body\.dispatch-center-page > \.top/);
+  assert.doesNotMatch(CSS, /\.dispatch-center-top\s*\{/);
 });

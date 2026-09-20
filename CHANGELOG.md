@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Feat: dispatch center shares the desk top nav
+
+- Same brand / 调度中心 / 项目 / 数字员工 / 设置 / language / GitHub row
+- Brand returns to the desk; panel buttons open `/?open=…` drawers
+
 ### Fix: dispatch-center node click zooms again
 
 - Stage view keeps Archify reveal and frames the clicked node (scale up to 2.6)

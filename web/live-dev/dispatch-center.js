@@ -1,8 +1,8 @@
 /**
  * Standalone dispatch-center page: 100px project rail + task graph.
- * The stage is the battlefield — no extra fullscreen window.
+ * Same top nav as the desk; project / employee / settings open on `/`.
  */
-import { t, getLocale, initI18n, onLocaleChange } from "./i18n.js";
+import { t, getLocale, initI18n, onLocaleChange, setLocale } from "./i18n.js";
 import {
   mountArchitectureDiagram,
   clearArchitectureMount,
@@ -15,6 +15,10 @@ import {
 const projectsEl = document.getElementById("dispatchCenterProjects");
 const emptyEl = document.getElementById("dispatchCenterEmpty");
 const mount = document.getElementById("taskGraphMount");
+const projectBadge = document.getElementById("projectBadge");
+const langSelect = document.getElementById("langSelect");
+const githubStars = document.getElementById("githubStars");
+const githubStarCount = document.getElementById("githubStarCount");
 
 let projects = [];
 let renderSeq = 0;
@@ -35,6 +39,67 @@ function setCurrentPath(path) {
   if (next) u.searchParams.set("path", next);
   else u.searchParams.delete("path");
   history.replaceState(null, "", u);
+  syncProjectBadge();
+}
+
+function deskUrl(open) {
+  const u = new URL("/", location.origin);
+  if (open) u.searchParams.set("open", open);
+  return u.href;
+}
+
+function goDesk(open) {
+  location.href = deskUrl(open);
+}
+
+function syncProjectBadge() {
+  if (!projectBadge) return;
+  const path = currentPath();
+  const proj = projects.find((p) => pathKey(p.path) === pathKey(path));
+  if (!proj) {
+    projectBadge.textContent = t("project.noneBadge");
+    return;
+  }
+  projectBadge.textContent = proj.title || proj.name || proj.path;
+}
+
+function formatStarCount(n) {
+  if (typeof n !== "number" || !Number.isFinite(n) || n < 0) return "—";
+  if (n < 1000) return String(Math.floor(n));
+  if (n < 10000) return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+  return `${Math.round(n / 1000)}k`;
+}
+
+async function refreshGithubStars() {
+  if (!githubStars || !githubStarCount) return;
+  try {
+    const res = await fetch("/api/github");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) return;
+    if (data.url) githubStars.href = data.url;
+    githubStarCount.textContent = formatStarCount(data.stars);
+  } catch {
+    /* keep fallback */
+  }
+}
+
+function wireTopNav() {
+  document.getElementById("historyToggle")?.addEventListener("click", () => {
+    goDesk("projects");
+  });
+  document.getElementById("employeeToggle")?.addEventListener("click", () => {
+    goDesk("employees");
+  });
+  document.getElementById("cfgOpen")?.addEventListener("click", () => {
+    goDesk("settings");
+  });
+  if (langSelect) {
+    langSelect.value = getLocale();
+    langSelect.addEventListener("change", () => {
+      setLocale(langSelect.value);
+    });
+  }
+  void refreshGithubStars();
 }
 
 function showEmpty() {
@@ -72,6 +137,7 @@ function renderRail() {
     });
     projectsEl.appendChild(btn);
   }
+  syncProjectBadge();
 }
 
 async function renderGraph(projectPath) {
@@ -170,7 +236,9 @@ async function load() {
 }
 
 initI18n();
+wireTopNav();
 onLocaleChange(() => {
+  if (langSelect) langSelect.value = getLocale();
   renderRail();
   void renderGraph(currentPath());
 });

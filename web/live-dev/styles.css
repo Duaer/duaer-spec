@@ -302,19 +302,27 @@ body.dispatch-center-page {
   font-family: var(--font-mono);
 }
 
-.dispatch-center-top {
+body.dispatch-center-page > .top {
   flex: 0 0 auto;
-  padding: 0.7rem 0.9rem;
+  margin: 0;
+  padding: 0.55rem 0.9rem 0.5rem;
   border-bottom: 1px solid var(--line);
   background: var(--plate);
 }
 
-.dispatch-center-top h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.05rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+body.dispatch-center-page .top-lead-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+body.dispatch-center-page .top-lead-link:focus-visible {
+  outline: 2px solid var(--register);
+  outline-offset: 2px;
+}
+
+body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
+  border-color: var(--register);
+  color: var(--register);
 }
 
 .dispatch-center {
