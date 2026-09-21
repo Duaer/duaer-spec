@@ -15,6 +15,7 @@ import {
   injectDuaerPresentNoZoom,
   layoutArchitectureIr,
   renderArchitectureHtml,
+  routeCrossingEdges,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
   DUAER_EMBED_ZOOM_SCRIPT_ID,
@@ -42,6 +43,160 @@ test("layoutArchitectureIr assigns pos and viewBox", () => {
   assert.equal(ir.meta.viewBox.length, 2);
   assert.ok(ir.meta.viewBox[0] >= 320);
   assert.ok(ir.meta.viewBox[1] >= 240);
+});
+
+test("routeCrossingEdges detours same-row reverse edge through nodes", () => {
+  const ir = layoutArchitectureIr({
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "个人介绍PPT生成架构", quality_profile: "standard" },
+    components: [
+      {
+        id: "user",
+        type: "external",
+        label: "本人",
+        size: [140, 64],
+        pos: [928, 96],
+      },
+      {
+        id: "tpl",
+        type: "database",
+        label: "本地模板",
+        size: [140, 64],
+        pos: [48, 96],
+      },
+      {
+        id: "ui",
+        type: "frontend",
+        label: "内容录入",
+        size: [140, 64],
+        pos: [1148, 96],
+      },
+      {
+        id: "state",
+        type: "database",
+        label: "页结构状态",
+        size: [140, 64],
+        pos: [1368, 96],
+      },
+      {
+        id: "gen",
+        type: "backend",
+        label: "文稿生成",
+        size: [140, 64],
+        pos: [268, 96],
+      },
+      {
+        id: "check",
+        type: "backend",
+        label: "试讲校验",
+        size: [140, 64],
+        pos: [488, 96],
+      },
+      {
+        id: "doc",
+        type: "external",
+        label: "在线文稿",
+        size: [140, 64],
+        pos: [708, 96],
+      },
+    ],
+    connections: [
+      { id: "c1", from: "user", to: "ui", label: "录入", variant: "emphasis" },
+      { id: "c2", from: "tpl", to: "gen", label: "套用" },
+      { id: "c3", from: "ui", to: "state", label: "写入" },
+      { id: "c4", from: "state", to: "gen", label: "读取" },
+      { id: "c5", from: "gen", to: "check", label: "校验" },
+      { id: "c6", from: "check", to: "doc", label: "产出" },
+      { id: "c7", from: "doc", to: "user", label: "试讲" },
+    ],
+    boundaries: [],
+    cards: [],
+  });
+  const c4 = ir.connections.find((c) => c.id === "c4");
+  assert.ok(c4);
+  assert.equal(c4.fromSide, "bottom");
+  assert.equal(c4.toSide, "bottom");
+  assert.ok(Array.isArray(c4.via) && c4.via.length >= 2);
+  const neighbor = ir.connections.find((c) => c.id === "c5");
+  assert.ok(!neighbor.via);
+
+  routeCrossingEdges(ir);
+  assert.equal(ir.connections.find((c) => c.id === "c4").via.length, 2);
+});
+
+test("renderArchitectureHtml accepts PPT IR with long reverse edge", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-ppt-"));
+  const out = renderArchitectureHtml(root, {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "个人介绍PPT生成架构", quality_profile: "standard" },
+    components: [
+      {
+        id: "user",
+        type: "external",
+        label: "本人",
+        size: [140, 64],
+        pos: [928, 96],
+      },
+      {
+        id: "tpl",
+        type: "database",
+        label: "本地模板",
+        size: [140, 64],
+        pos: [48, 96],
+      },
+      {
+        id: "ui",
+        type: "frontend",
+        label: "内容录入",
+        size: [140, 64],
+        pos: [1148, 96],
+      },
+      {
+        id: "state",
+        type: "database",
+        label: "页结构状态",
+        size: [140, 64],
+        pos: [1368, 96],
+      },
+      {
+        id: "gen",
+        type: "backend",
+        label: "文稿生成",
+        size: [140, 64],
+        pos: [268, 96],
+      },
+      {
+        id: "check",
+        type: "backend",
+        label: "试讲校验",
+        size: [140, 64],
+        pos: [488, 96],
+      },
+      {
+        id: "doc",
+        type: "external",
+        label: "在线文稿",
+        size: [140, 64],
+        pos: [708, 96],
+      },
+    ],
+    connections: [
+      { id: "c1", from: "user", to: "ui", label: "录入", variant: "emphasis" },
+      { id: "c2", from: "tpl", to: "gen", label: "套用" },
+      { id: "c3", from: "ui", to: "state", label: "写入" },
+      { id: "c4", from: "state", to: "gen", label: "读取" },
+      { id: "c5", from: "gen", to: "check", label: "校验" },
+      { id: "c6", from: "check", to: "doc", label: "产出" },
+      { id: "c7", from: "doc", to: "user", label: "试讲" },
+    ],
+    boundaries: [],
+    cards: [{ dot: "cyan", title: "主路径", items: ["录入", "生成", "校验"] }],
+  });
+  assert.ok(fs.existsSync(out.htmlPath));
+  assert.ok(out.ir.connections.find((c) => c.id === "c4")?.via?.length >= 2);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("layoutArchitectureIr finishes on cyclic connections", () => {

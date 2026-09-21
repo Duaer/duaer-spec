@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-21T00:35:00.000Z",
+  "summary": "Auto-detour architecture edges that would fail Archify clean-flow/edge-through-node.",
+  "verification": {
+    "L0": "node --check bin/live-archify.mjs — pass",
+    "L1": "node --test test/live-archify.test.mjs — 14 pass"
+  }
+}

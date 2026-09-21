@@ -363,6 +363,79 @@ export function repairArchitectureGeometry(ir) {
   return ir;
 }
 
+/**
+ * Detour long same-row edges that would pass through unrelated components.
+ * Archify clean-flow rejects those as edge-through-node.
+ * @param {object} ir
+ */
+export function routeCrossingEdges(ir) {
+  if (!ir || typeof ir !== "object") return ir;
+  const components = Array.isArray(ir.components) ? ir.components : [];
+  const connections = Array.isArray(ir.connections) ? ir.connections : [];
+  if (components.length < 3 || !connections.length) return ir;
+
+  const byId = new Map();
+  for (const c of components) {
+    if (!c?.id || !hasFinitePos(c)) continue;
+    const w = hasFiniteSize(c) ? c.size[0] : 140;
+    const h = hasFiniteSize(c) ? c.size[1] : 64;
+    byId.set(c.id, {
+      id: c.id,
+      x: c.pos[0],
+      y: c.pos[1],
+      w,
+      h,
+      cx: c.pos[0] + w / 2,
+      cy: c.pos[1] + h / 2,
+      bottom: c.pos[1] + h,
+      top: c.pos[1],
+    });
+  }
+  if (byId.size < 3) return ir;
+
+  let floorY = 0;
+  for (const b of byId.values()) floorY = Math.max(floorY, b.bottom);
+  let detourIndex = 0;
+
+  for (const e of connections) {
+    if (!e || typeof e !== "object") continue;
+    if (Array.isArray(e.via) && e.via.length) continue;
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b) continue;
+    const span = Math.abs(a.cx - b.cx);
+    if (span < 160) continue;
+
+    const minX = Math.min(a.cx, b.cx);
+    const maxX = Math.max(a.cx, b.cx);
+    const bandTop = Math.min(a.top, b.top) - 12;
+    const bandBot = Math.max(a.bottom, b.bottom) + 12;
+    let blocked = false;
+    for (const other of byId.values()) {
+      if (other.id === a.id || other.id === b.id) continue;
+      if (other.x + other.w <= minX + 12 || other.x >= maxX - 12) continue;
+      if (other.y < bandBot && other.y + other.h > bandTop) {
+        blocked = true;
+        break;
+      }
+    }
+    if (!blocked) continue;
+
+    const viaY = floorY + 48 + detourIndex * 28;
+    detourIndex += 1;
+    e.fromSide = "bottom";
+    e.toSide = "bottom";
+    e.via = [
+      [Math.round(a.cx), Math.round(viaY)],
+      [Math.round(b.cx), Math.round(viaY)],
+    ];
+    if (e.label && e.labelAt == null && e.labelDy == null) {
+      e.labelDy = -28;
+    }
+  }
+  return ir;
+}
+
 function recomputeViewBox(ir) {
   const components = ir.components || [];
   let maxX = 320;
@@ -373,6 +446,15 @@ function recomputeViewBox(ir) {
     const h = hasFiniteSize(c) ? c.size[1] : 60;
     maxX = Math.max(maxX, c.pos[0] + w + 48);
     maxY = Math.max(maxY, c.pos[1] + h + 160);
+  }
+  for (const e of ir.connections || []) {
+    if (!Array.isArray(e?.via)) continue;
+    for (const pt of e.via) {
+      if (!Array.isArray(pt) || pt.length < 2) continue;
+      if (!Number.isFinite(pt[0]) || !Number.isFinite(pt[1])) continue;
+      maxX = Math.max(maxX, pt[0] + 48);
+      maxY = Math.max(maxY, pt[1] + 80);
+    }
   }
   ir.meta.viewBox = [maxX, maxY];
 }
@@ -394,6 +476,7 @@ export function layoutArchitectureIr(raw) {
       if (!hasFiniteSize(c)) c.size = [140, 64];
     }
     repairArchitectureGeometry(ir);
+    routeCrossingEdges(ir);
     recomputeViewBox(ir);
     return ir;
   }
@@ -462,11 +545,13 @@ export function layoutArchitectureIr(raw) {
     });
   }
   repairArchitectureGeometry(ir);
+  routeCrossingEdges(ir);
   const maxX = originX + (layers.length || 1) * colW + 80;
   ir.meta.viewBox = [
     Math.max(320, maxX),
     Math.max(240, maxY + 160),
   ];
+  recomputeViewBox(ir);
   return ir;
 }
 

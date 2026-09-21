@@ -85,6 +85,9 @@ registry linking into the requirements document (no duplicate full cards).
    Architecture chat may claim the diagram is ready before IR arrives; if the
    middle panel has no diagram, the **same** chat bubble is rewritten to offer
    Regenerate diagram (it must not leave a false “diagram ready” line).
+   Before Archify deliver, `routeCrossingEdges` adds a bottom `via` detour for
+   long same-row edges that would pass through unrelated components
+   (`clean-flow/edge-through-node`).
 
 ## Bug dispatch (defect path)
 

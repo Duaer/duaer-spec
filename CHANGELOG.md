@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: auto-route architecture edges that cross unrelated nodes
+
+- Before Archify deliver, long same-row edges that would pass through other
+  components get a bottom `via` detour (`clean-flow/edge-through-node`)
+
 ### Docs: README covers FDE-01 baseline sign
 
 - zh-CN / en README: feature confirm fields, signed baseline before kickoff,
