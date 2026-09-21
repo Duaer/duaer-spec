@@ -59,6 +59,10 @@ import {
   envChecklistDeclaresNoCustomer,
   missingEnvChecklist,
 } from "../web/live-dev/env-check.mjs";
+import {
+  dataPrecheckDeclaresNoImport,
+  missingDataPrecheck,
+} from "../web/live-dev/data-precheck.mjs";
 import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -748,6 +752,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
    - exceptionCases = UAT 包，必须同时覆盖空态、失败、权限不足、超时、重试；有接口契约时写出对应错误码或 HTTP status（禁止只写一类）
    - apiContract = 接口契约路径（如 openapi/openapi.yaml 或 src/types/api.ts），或明确写「本模块无 HTTP API」
    - envChecklist = 环境检查：DNS、TLS、CORS、鉴权、第三方可达须全部写明且通过；无客户联调则写「无客户联调环境」。任一未通过不得开工
+   - dataPrecheck = 数据预检：字段映射、导入预检失败清单、可导出给业务清洗；无导入则写「本模块无导入」
    用户没提时：先根据产品形态填合理默认并写进 JSON，再在正文用一句话请用户改；不要长期留空。小项目可只有一个模块（id=main）。
 4. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
 5. ready=true 只表示**当前 active 模块**可确认，且上述字段都已非空、验收可检查。不是整系统开工。不要催用户立刻派工。
@@ -757,7 +762,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
    - 先写对用户说的纯文本（可多行，不要 JSON；正文里不要再列一遍选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
-{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","ready":false,"options":["可选A","可选B"]}
+{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","ready":false,"options":["可选A","可选B"]}
 说明：顶层字段与 ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
 const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 bug，不是做新功能。通过多轮对话整理成一张可派工的缺陷卡，使数字员工能复现、修复并回归。
@@ -793,6 +798,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用�
    - deviceMatrix / criticalPaths / exceptionCases = 若本轮改动触及联调范围则更新；否则可沿用或写「同基线」
    - apiContract = 若触及接口则更新路径，或写「本模块无 HTTP API」/「同基线」
    - envChecklist = 若触及客户环境则更新探测结果，或写「无客户联调环境」/「同基线」
+   - dataPrecheck = 若触及导入则更新映射与失败清单，或写「本模块无导入」/「同基线」
 3. 字段够清楚且可执行时 ready=true（确认前系统会自动校验）。缺基线/契约字段时先填合理默认或用 options 点选。
 4. 不要写代码。不要立刻派工。不要假设仓库路径。
 5. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）；界面可点选发送。禁止只让用户手打或「请回复数字」。
@@ -800,7 +806,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用�
    - 先写对用户说的纯文本（正文不要再列选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）：
-{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","ready":false,"options":["可选A","可选B"]}`;
+{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","ready":false,"options":["可选A","可选B"]}`;
 
 const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
 
@@ -829,23 +835,24 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将�
 5. deviceMatrix / criticalPaths / exceptionCases 是否已填且具体（禁止空；deviceMatrix 至少两个具体浏览器或国产终端，并写截图/云测证据和降级或 Polyfill，禁止只写「主流浏览器」；exceptionCases 必须覆盖空态、失败、权限不足、超时、重试；有接口时还要错误码或 HTTP status）
 6. apiContract 是否已填：OpenAPI/类型等路径，或明确「本模块无 HTTP API」（禁止空）
 7. envChecklist 是否已填：DNS、TLS、CORS、鉴权、第三方可达全部通过，或明确「无客户联调环境」；存在未通过项则 passed=false
-8. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
+8. dataPrecheck 是否已填：字段映射、导入预检失败清单、可导出，或明确「本模块无导入」
+9. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
 
 规则：
 - 若小改即可通过：修订确认卡字段（尤其把 acceptance 改成可检查句子，并补全基线与契约），passed=true
 - 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
 - 不要写代码。不要假设仓库路径。不要催派工。
 - 只输出一个 JSON，不要 markdown 围栏：
-{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"..."}`;
+{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），并补全 deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist；不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），并补全 deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck；不要编造用户没提过的大功能。
 
 规则：
-1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions / deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist
-2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版、手机 Safari，云测截图放 compat/，旧壳降级提示升级；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」；无客户联调则 envChecklist 写「无客户联调环境」，否则 DNS、TLS、CORS、鉴权、第三方可达全部写通过），并写进 assumptions
+1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions / deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck
+2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版、手机 Safari，云测截图放 compat/，旧壳降级提示升级；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」；无客户联调则 envChecklist 写「无客户联调环境」，否则 DNS、TLS、CORS、鉴权、第三方可达全部写通过；无导入则 dataPrecheck 写「本模块无导入」，否则写字段映射、导入预检失败清单、可导出），并写进 assumptions
 3. 不要写代码。不要假设仓库路径。
 4. 只输出一个 JSON，不要 markdown 围栏：
-{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"..."}`;
+{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"..."}`;
 
 const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即将锁定缺陷卡（尚未派工）。目标是：规范缺陷描述，使数字员工能复现、修复并回归。
 
@@ -1122,6 +1129,7 @@ function parseChatResult(content) {
               exceptionCases: flat(m.exceptionCases ?? m.card?.exceptionCases),
               apiContract: flat(m.apiContract ?? m.card?.apiContract),
               envChecklist: flat(m.envChecklist ?? m.card?.envChecklist),
+              dataPrecheck: flat(m.dataPrecheck ?? m.card?.dataPrecheck),
               dependsOn: Array.isArray(m.dependsOn)
                 ? m.dependsOn.map((x) => flat(x)).filter(Boolean).slice(0, 20)
                 : [],
@@ -1141,6 +1149,7 @@ function parseChatResult(content) {
       exceptionCases: flat(obj.exceptionCases),
       apiContract: flat(obj.apiContract),
       envChecklist: flat(obj.envChecklist),
+      dataPrecheck: flat(obj.dataPrecheck),
       ready: Boolean(obj.ready),
       activeModuleId: flat(obj.activeModuleId) || undefined,
       modules,
@@ -1164,6 +1173,7 @@ function parseChatResult(content) {
       exceptionCases: "",
       apiContract: "",
       envChecklist: "",
+      dataPrecheck: "",
       ready: false,
       options: [],
     };
@@ -1184,6 +1194,7 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
     exceptionCases: String(parsed?.exceptionCases || ""),
     apiContract: String(parsed?.apiContract || ""),
     envChecklist: String(parsed?.envChecklist || ""),
+    dataPrecheck: String(parsed?.dataPrecheck || ""),
     ready: Boolean(parsed?.ready),
     activeModuleId: parsed?.activeModuleId
       ? String(parsed.activeModuleId).slice(0, 80)
@@ -1202,6 +1213,7 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
           exceptionCases: String(m.exceptionCases || "").slice(0, 4000),
           apiContract: String(m.apiContract || "").slice(0, 4000),
           envChecklist: String(m.envChecklist || "").slice(0, 4000),
+          dataPrecheck: String(m.dataPrecheck || "").slice(0, 4000),
           dependsOn: Array.isArray(m.dependsOn)
             ? m.dependsOn.map(String).slice(0, 20)
             : [],
@@ -1366,6 +1378,7 @@ function parseAcceptResult(content, fallback) {
     exceptionCases: pick("exceptionCases"),
     apiContract: pick("apiContract"),
     envChecklist: pick("envChecklist"),
+    dataPrecheck: pick("dataPrecheck"),
   };
 }
 
@@ -1454,6 +1467,18 @@ function localAcceptCheck(card, { kind = "feature" } = {}) {
           : "「环境检查」必填（DNS、TLS、CORS、鉴权、第三方可达均通过，或写「无客户联调环境」）",
       );
     }
+    const dataPrecheck = String(card.dataPrecheck || "").trim();
+    if (
+      !dataPrecheckDeclaresNoImport(dataPrecheck) &&
+      (dataPrecheck.length < 4 || missingDataPrecheck(dataPrecheck).length)
+    ) {
+      const missing = missingDataPrecheck(dataPrecheck);
+      issues.push(
+        missing.length
+          ? `「数据预检」未写清：${missing.join("、")}（须含字段映射、导入预检失败清单、可导出，或写「本模块无导入」）`
+          : "「数据预检」必填（字段映射、导入预检失败清单、可导出，或写「本模块无导入」）",
+      );
+    }
   }
   return issues;
 }
@@ -1474,6 +1499,7 @@ async function autoAcceptCard(cfg, card, { kind = "feature", projectContext = nu
       exceptionCases: card.exceptionCases,
       apiContract: card.apiContract,
       envChecklist: card.envChecklist,
+      dataPrecheck: card.dataPrecheck,
     };
   }
   const ctxNote =
@@ -1505,6 +1531,7 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     exceptionCases: String(card.exceptionCases || "").trim(),
     apiContract: String(card.apiContract || "").trim(),
     envChecklist: String(card.envChecklist || "").trim(),
+    dataPrecheck: String(card.dataPrecheck || "").trim(),
   };
   if (kind === "bug" && projectContext) {
     normalized = {
@@ -1564,6 +1591,7 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     exceptionCases: review.exceptionCases || normalized.exceptionCases,
     apiContract: review.apiContract || normalized.apiContract,
     envChecklist: review.envChecklist || normalized.envChecklist,
+    dataPrecheck: review.dataPrecheck || normalized.dataPrecheck,
   };
 }
 
@@ -1612,6 +1640,7 @@ async function autoFixConfirmCard(cfg, card, issues, { kind = "feature", project
     exceptionCases: String(obj.exceptionCases || card.exceptionCases || "").trim(),
     apiContract: String(obj.apiContract || card.apiContract || "").trim(),
     envChecklist: String(obj.envChecklist || card.envChecklist || "").trim(),
+    dataPrecheck: String(obj.dataPrecheck || card.dataPrecheck || "").trim(),
   };
 }
 
@@ -6425,6 +6454,7 @@ async function handleApi(req, res) {
         exceptionCases: body.exceptionCases,
         apiContract: body.apiContract,
         envChecklist: body.envChecklist,
+        dataPrecheck: body.dataPrecheck,
       });
       const deskKind =
         String(body.deskKind || body.kind || "").trim() === "bug"
@@ -6479,6 +6509,7 @@ async function handleApi(req, res) {
         exceptionCases: body.exceptionCases,
         apiContract: body.apiContract,
         envChecklist: body.envChecklist,
+        dataPrecheck: body.dataPrecheck,
       });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       const deskKind =
@@ -6541,6 +6572,7 @@ async function handleApi(req, res) {
         exceptionCases: body.exceptionCases,
         apiContract: body.apiContract,
         envChecklist: body.envChecklist,
+        dataPrecheck: body.dataPrecheck,
       });
       if (!card.goal || !card.acceptance) {
         send(res, 400, { error: "goal and acceptance are required" });
@@ -6651,6 +6683,7 @@ async function handleApi(req, res) {
         exceptionCases: body.exceptionCases,
         apiContract: body.apiContract,
         envChecklist: body.envChecklist,
+        dataPrecheck: body.dataPrecheck,
       });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       if (!card.goal && !card.acceptance) {

@@ -38,6 +38,7 @@ function clipCard(card) {
       exceptionCases: "",
       apiContract: "",
       envChecklist: "",
+      dataPrecheck: "",
     };
   }
   return {
@@ -50,6 +51,7 @@ function clipCard(card) {
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
     apiContract: String(card.apiContract || "").slice(0, 4000),
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
+    dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
   };
 }
 

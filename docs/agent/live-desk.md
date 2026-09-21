@@ -88,6 +88,11 @@ registry linking into the requirements document (no duplicate full cards).
    states that there is no customer environment. A failed probe blocks
    confirm. Kickoff adds an environment-probe task before implement when a
    customer environment is declared. The desk does not scan that network.
+   The data precheck is an FDE-06 import pack: a field mapping, an import
+   failure list, and an export the business can clean. Or the card states
+   that this module has no import. Kickoff adds that precheck before
+   implement, after the environment probe when both exist. The desk does
+   not scan the customer database.
    Refreshing the desk restores those baseline fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.

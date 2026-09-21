@@ -17,6 +17,10 @@ import {
   envChecklistNeedsProbe,
   missingEnvChecklist,
 } from "../web/live-dev/env-check.mjs";
+import {
+  dataPrecheckNeedsTask,
+  missingDataPrecheck,
+} from "../web/live-dev/data-precheck.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -30,6 +34,7 @@ function clipCard(card) {
       exceptionCases: "",
       apiContract: "",
       envChecklist: "",
+      dataPrecheck: "",
     };
   }
   return {
@@ -42,6 +47,7 @@ function clipCard(card) {
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
     apiContract: String(card.apiContract || "").slice(0, 4000),
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
+    dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
   };
 }
 
@@ -391,10 +397,22 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       });
       envDeps.push(env.id);
     }
+    let beforeImpl = envDeps;
+    if (dataPrecheckNeedsTask(m.card?.dataPrecheck)) {
+      const dataGap = missingDataPrecheck(m.card?.dataPrecheck);
+      const dataNote = dataGap.length ? `; still missing ${dataGap.join("/")}` : "";
+      const data = push({
+        moduleId: m.id,
+        title: `FDE-06: data precheck «${m.title}» — field mapping, import failure list, export for cleanup${dataNote}`,
+        dependsOn: envDeps,
+        role: EMPLOYEE_ROLES.VERIFY_L3,
+      });
+      beforeImpl = [data.id];
+    }
     const impl = push({
       moduleId: m.id,
       title: `Implement module «${m.title}»: ${truncate(m.card.goal, 100)}`,
-      dependsOn: envDeps,
+      dependsOn: beforeImpl,
       role: EMPLOYEE_ROLES.IMPLEMENT,
     });
     const acceptLines = splitAcceptanceLines(m.card.acceptance);

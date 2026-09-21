@@ -223,7 +223,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="deviceMatrix"/);
   assert.match(html, /id="apiContract"/);
   assert.match(html, /id="envChecklist"/);
-  assert.match(html, /app\.js\?v=env-check-1/);
+  assert.match(html, /id="dataPrecheck"/);
+  assert.match(html, /app\.js\?v=data-precheck-1/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);
@@ -483,7 +484,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.equal(missingBody.passed, false);
   assert.ok(
     (missingBody.issues || []).some((x) =>
-      /设备矩阵|关键路径|异常态|接口契约|环境检查/.test(x),
+      /设备矩阵|关键路径|异常态|接口契约|环境检查|数据预检/.test(x),
     ),
   );
 
@@ -497,6 +498,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
     exceptionCases: "empty list; failure can retry; permission denied; timeout",
     apiContract: "本模块无 HTTP API",
     envChecklist: "DNS pass; TLS pass; CORS pass; auth pass; third-party reachable",
+    dataPrecheck: "field mapping in mapping.csv; import precheck failure list; export for business cleanup",
   };
   const ok = await fetch(`${live.base}/api/validate`, {
     method: "POST",

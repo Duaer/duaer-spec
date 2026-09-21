@@ -221,6 +221,12 @@
             <div class="req-structured" id="envChecklistView" tabindex="0"></div>
             <textarea id="envChecklist" class="req-edit" rows="1" data-i18n-placeholder="card.envChecklistPh" placeholder="例：DNS 通过；TLS 证书通过；CORS 通过；鉴权通过；第三方可达。或写「无客户联调环境」"></textarea>
           </div>
+          <div class="req-section field baseline-field" data-req="dataPrecheck" id="dataPrecheckField">
+            <span id="lblDataPrecheck" data-i18n="card.dataPrecheck">数据预检</span>
+            <p class="req-hint" id="dataPrecheckHint" data-i18n="card.dataPrecheckHint">须写字段映射、导入预检失败清单，并说明可导出；无导入则写「本模块无导入」</p>
+            <div class="req-structured" id="dataPrecheckView" tabindex="0"></div>
+            <textarea id="dataPrecheck" class="req-edit" rows="1" data-i18n-placeholder="card.dataPrecheckPh" placeholder="例：字段映射见 mapping.csv；导入预检失败清单；可导出给业务清洗。或写「本模块无导入」"></textarea>
+          </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>
           <button type="button" class="btn auto-handle-btn" id="autoFixCard" hidden data-i18n="card.autoHandle">
@@ -758,6 +764,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=env-check-1"></script>
+    <script type="module" src="/app.js?v=data-precheck-1"></script>
   </body>
 </html>

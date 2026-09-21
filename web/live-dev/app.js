@@ -260,6 +260,9 @@ const el = {
   envChecklist: document.getElementById("envChecklist"),
   envChecklistView: document.getElementById("envChecklistView"),
   envChecklistField: document.getElementById("envChecklistField"),
+  dataPrecheck: document.getElementById("dataPrecheck"),
+  dataPrecheckView: document.getElementById("dataPrecheckView"),
+  dataPrecheckField: document.getElementById("dataPrecheckField"),
   lblDevice: document.getElementById("lblDevice"),
   lblPaths: document.getElementById("lblPaths"),
   lblExceptions: document.getElementById("lblExceptions"),
@@ -941,6 +944,7 @@ function cardValues() {
     exceptionCases: (el.exceptionCases?.value || "").trim(),
     apiContract: (el.apiContract?.value || "").trim(),
     envChecklist: (el.envChecklist?.value || "").trim(),
+    dataPrecheck: (el.dataPrecheck?.value || "").trim(),
   };
 }
 
@@ -991,6 +995,7 @@ function applyActiveModuleToFields() {
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
+  if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   syncReqSections();
 }
 
@@ -1063,6 +1068,7 @@ function mergeModulesFromChatPayload(data) {
       exceptionCases: String(data.exceptionCases || data.modules?.[0]?.card?.exceptionCases || activeModule()?.card?.exceptionCases || ""),
       apiContract: String(data.apiContract || data.modules?.[0]?.card?.apiContract || activeModule()?.card?.apiContract || ""),
       envChecklist: String(data.envChecklist || data.modules?.[0]?.card?.envChecklist || activeModule()?.card?.envChecklist || ""),
+      dataPrecheck: String(data.dataPrecheck || data.modules?.[0]?.card?.dataPrecheck || activeModule()?.card?.dataPrecheck || ""),
     };
     const prev = activeModule();
     state.modules = [
@@ -1130,6 +1136,12 @@ function mergeModulesFromChatPayload(data) {
             old?.card?.envChecklist ||
             "",
         ),
+        dataPrecheck: String(
+          raw.dataPrecheck ||
+            raw.card?.dataPrecheck ||
+            old?.card?.dataPrecheck ||
+            "",
+        ),
       };
       if (old?.status === "confirmed") {
         byId.set(id, {
@@ -1171,6 +1183,7 @@ function mergeModulesFromChatPayload(data) {
     if (data.exceptionCases) m.card.exceptionCases = data.exceptionCases;
     if (data.apiContract) m.card.apiContract = data.apiContract;
     if (data.envChecklist) m.card.envChecklist = data.envChecklist;
+    if (data.dataPrecheck) m.card.dataPrecheck = data.dataPrecheck;
     if (data.ready) m.status = "ready";
   }
   applyActiveModuleToFields();
@@ -1975,6 +1988,7 @@ function setConfirmFieldsReadonly(ro) {
     "exceptionCases",
     "apiContract",
     "envChecklist",
+    "dataPrecheck",
   ]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
@@ -2000,6 +2014,7 @@ function restoreConfirmCardFromOriginal() {
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
+  if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   syncReqSections();
 }
 
@@ -2018,6 +2033,7 @@ function applyConfirmCardChrome() {
   if (el.exceptionCasesField) el.exceptionCasesField.hidden = bug;
   if (el.apiContractField) el.apiContractField.hidden = bug;
   if (el.envChecklistField) el.envChecklistField.hidden = bug;
+  if (el.dataPrecheckField) el.dataPrecheckField.hidden = bug;
   if (el.confirm && !modulesAllConfirmedLocal()) {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
@@ -2229,6 +2245,7 @@ function cardFingerprint(v) {
     exceptionCases: String(v.exceptionCases || "").trim(),
     apiContract: String(v.apiContract || "").trim(),
     envChecklist: String(v.envChecklist || "").trim(),
+    dataPrecheck: String(v.dataPrecheck || "").trim(),
   });
 }
 
@@ -2329,7 +2346,7 @@ function syncAutoHandleButtons() {
 function confirmFieldsOk(v = cardValues()) {
   if (!v.goal || !v.acceptance) return false;
   if (state.deskKind === "bug") return true;
-  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist);
+  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist && v.dataPrecheck);
 }
 
 function validationAllowsSend(kind) {
@@ -2657,7 +2674,7 @@ function applyCardChrome() {
   syncConfirmEnabled();
 }
 
-["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist"].forEach((id) => {
+["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist", "dataPrecheck"].forEach((id) => {
   if (!el[id]) return;
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
@@ -2993,6 +3010,7 @@ function applySavedCardFields(card, reviseCard) {
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
+  if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   const r = reviseCard || {};
   if (el.revGoal) el.revGoal.value = r.goal || "";
   if (el.revOut) el.revOut.value = r.outOfScope || "";
@@ -4835,6 +4853,7 @@ async function applyConfirmSuccess(data) {
         exceptionCases: String(m.card?.exceptionCases || m.exceptionCases || ""),
         apiContract: String(m.card?.apiContract || m.apiContract || ""),
         envChecklist: String(m.card?.envChecklist || m.envChecklist || ""),
+        dataPrecheck: String(m.card?.dataPrecheck || m.dataPrecheck || ""),
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
@@ -4856,6 +4875,7 @@ async function applyConfirmSuccess(data) {
         exceptionCases: data.card.exceptionCases || "",
         apiContract: data.card.apiContract || "",
         envChecklist: data.card.envChecklist || "",
+        dataPrecheck: data.card.dataPrecheck || "",
       };
     }
     applyActiveModuleToFields();
@@ -6258,6 +6278,7 @@ const REQ_FIELD_PAIRS = [
   { ta: "exceptionCases", view: "exceptionCasesView", emptyKey: "card.exceptionsPh" },
   { ta: "apiContract", view: "apiContractView", emptyKey: "card.apiContractPh" },
   { ta: "envChecklist", view: "envChecklistView", emptyKey: "card.envChecklistPh" },
+  { ta: "dataPrecheck", view: "dataPrecheckView", emptyKey: "card.dataPrecheckPh" },
   { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
   { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
@@ -6286,6 +6307,7 @@ function isReqReadonly(taId) {
       "exceptionCases",
       "apiContract",
       "envChecklist",
+    "dataPrecheck",
     ].includes(taId)
   ) {
     return Boolean(state.locked || el[taId]?.readOnly);

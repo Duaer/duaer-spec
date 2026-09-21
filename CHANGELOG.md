@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Feat: FDE-06 import precheck before kickoff
+
+- Feature confirm requires a field mapping, an import failure list, and an
+  export for cleanup, or an explicit no-import opt-out
+- Kickoff adds a data-precheck task before implement when an import is
+  declared
+
 ### Feat: FDE-03 environment checklist before kickoff
 
 - Feature confirm requires DNS, TLS, CORS, auth, and third-party reachability
