@@ -172,6 +172,7 @@ the table for their app.
 | E2E-200 | FDE-01: feature confirm requires device/paths/exceptions; unsigned baseline blocks kickoff; change order re-signs | `npm test` + `npm run test:live` + manual |
 | E2E-201 | Architecture IR with long same-row reverse edge (edge-through-node) auto-gets via detour and Archify render succeeds | `npm test` |
 | E2E-202 | Feature chat prompts + confirm placeholders guide device/paths/exceptions filling (not bare 待确认) | `npm run test:live` |
+| E2E-203 | Chat SSE done payload passes deviceMatrix / criticalPaths / exceptionCases into middle confirm card | `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -409,4 +410,5 @@ the table for their app.
 | E2E-200 | `261-fde-baseline-sign` | baseline sign gate + change order |
 | E2E-201 | `263-arch-edge-via` | auto via for edge-through-node |
 | E2E-202 | `264-baseline-field-guide` | guide filling baseline confirm fields |
+| E2E-203 | `265-baseline-chat-passthrough` | chat SSE keeps baseline fields |
 

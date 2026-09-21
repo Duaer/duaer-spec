@@ -286,6 +286,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(liveBin, /enrichChatOptions/);
   assert.match(liveBin, /deviceMatrix.*criticalPaths.*exceptionCases/s);
   assert.match(liveBin, /FDE-01 基线三块|deviceMatrix = 浏览器/);
+  assert.match(
+    liveBin,
+    /deviceMatrix: flat\(m\.deviceMatrix|deviceMatrix: String\(parsed\?\.deviceMatrix/,
+  );
   assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
   assert.match(liveBin, /buildWorkersProgress/);
   assert.match(liveBin, /advanceOrchestration|waveForWorker|releasedWaves/);

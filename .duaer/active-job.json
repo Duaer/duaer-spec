@@ -1,5 +1,5 @@
 {
-  "feature": "264-baseline-field-guide",
-  "branch": "fix/baseline-field-guide",
-  "worktree": ".worktree/fix-baseline-field-guide"
+  "feature": "265-baseline-chat-passthrough",
+  "branch": "fix/baseline-chat-passthrough",
+  "worktree": ".worktree/fix-baseline-chat-passthrough"
 }

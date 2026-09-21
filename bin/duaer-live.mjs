@@ -1104,6 +1104,9 @@ function parseChatResult(content) {
               outOfScope: flat(m.outOfScope ?? m.card?.outOfScope),
               acceptance: flat(m.acceptance ?? m.card?.acceptance),
               assumptions: flat(m.assumptions ?? m.card?.assumptions),
+              deviceMatrix: flat(m.deviceMatrix ?? m.card?.deviceMatrix),
+              criticalPaths: flat(m.criticalPaths ?? m.card?.criticalPaths),
+              exceptionCases: flat(m.exceptionCases ?? m.card?.exceptionCases),
               dependsOn: Array.isArray(m.dependsOn)
                 ? m.dependsOn.map((x) => flat(x)).filter(Boolean).slice(0, 20)
                 : [],
@@ -1118,6 +1121,9 @@ function parseChatResult(content) {
       outOfScope: flat(obj.outOfScope),
       acceptance: flat(obj.acceptance),
       assumptions: flat(obj.assumptions),
+      deviceMatrix: flat(obj.deviceMatrix),
+      criticalPaths: flat(obj.criticalPaths),
+      exceptionCases: flat(obj.exceptionCases),
       ready: Boolean(obj.ready),
       activeModuleId: flat(obj.activeModuleId) || undefined,
       modules,
@@ -1136,6 +1142,9 @@ function parseChatResult(content) {
       outOfScope: "",
       acceptance: "",
       assumptions: "",
+      deviceMatrix: "",
+      criticalPaths: "",
+      exceptionCases: "",
       ready: false,
       options: [],
     };
@@ -1151,6 +1160,9 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
     outOfScope: String(parsed?.outOfScope || ""),
     acceptance: String(parsed?.acceptance || ""),
     assumptions: String(parsed?.assumptions || ""),
+    deviceMatrix: String(parsed?.deviceMatrix || ""),
+    criticalPaths: String(parsed?.criticalPaths || ""),
+    exceptionCases: String(parsed?.exceptionCases || ""),
     ready: Boolean(parsed?.ready),
     activeModuleId: parsed?.activeModuleId
       ? String(parsed.activeModuleId).slice(0, 80)
@@ -1164,6 +1176,9 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
           outOfScope: String(m.outOfScope || "").slice(0, 4000),
           acceptance: String(m.acceptance || "").slice(0, 4000),
           assumptions: String(m.assumptions || "").slice(0, 4000),
+          deviceMatrix: String(m.deviceMatrix || "").slice(0, 4000),
+          criticalPaths: String(m.criticalPaths || "").slice(0, 4000),
+          exceptionCases: String(m.exceptionCases || "").slice(0, 4000),
           dependsOn: Array.isArray(m.dependsOn)
             ? m.dependsOn.map(String).slice(0, 20)
             : [],

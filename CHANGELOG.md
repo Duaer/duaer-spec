@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: pass FDE-01 baseline fields through chat SSE
+
+- `parseChatResult` / `chatDoneSsePayload` keep deviceMatrix, criticalPaths,
+  exceptionCases so the middle confirm card fills from chat JSON
+
 ### Fix: guide filling FDE-01 baseline confirm fields
 
 - Feature chat / accept / fix / revise prompts include device matrix, critical
