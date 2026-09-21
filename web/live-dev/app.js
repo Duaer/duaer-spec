@@ -263,6 +263,9 @@ const el = {
   dataPrecheck: document.getElementById("dataPrecheck"),
   dataPrecheckView: document.getElementById("dataPrecheckView"),
   dataPrecheckField: document.getElementById("dataPrecheckField"),
+  externalDeps: document.getElementById("externalDeps"),
+  externalDepsView: document.getElementById("externalDepsView"),
+  externalDepsField: document.getElementById("externalDepsField"),
   lblDevice: document.getElementById("lblDevice"),
   lblPaths: document.getElementById("lblPaths"),
   lblExceptions: document.getElementById("lblExceptions"),
@@ -945,6 +948,7 @@ function cardValues() {
     apiContract: (el.apiContract?.value || "").trim(),
     envChecklist: (el.envChecklist?.value || "").trim(),
     dataPrecheck: (el.dataPrecheck?.value || "").trim(),
+    externalDeps: (el.externalDeps?.value || "").trim(),
   };
 }
 
@@ -996,6 +1000,7 @@ function applyActiveModuleToFields() {
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
+  if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
   syncReqSections();
 }
 
@@ -1069,6 +1074,7 @@ function mergeModulesFromChatPayload(data) {
       apiContract: String(data.apiContract || data.modules?.[0]?.card?.apiContract || activeModule()?.card?.apiContract || ""),
       envChecklist: String(data.envChecklist || data.modules?.[0]?.card?.envChecklist || activeModule()?.card?.envChecklist || ""),
       dataPrecheck: String(data.dataPrecheck || data.modules?.[0]?.card?.dataPrecheck || activeModule()?.card?.dataPrecheck || ""),
+      externalDeps: String(data.externalDeps || data.modules?.[0]?.card?.externalDeps || activeModule()?.card?.externalDeps || ""),
     };
     const prev = activeModule();
     state.modules = [
@@ -1142,6 +1148,12 @@ function mergeModulesFromChatPayload(data) {
             old?.card?.dataPrecheck ||
             "",
         ),
+        externalDeps: String(
+          raw.externalDeps ||
+            raw.card?.externalDeps ||
+            old?.card?.externalDeps ||
+            "",
+        ),
       };
       if (old?.status === "confirmed") {
         byId.set(id, {
@@ -1184,6 +1196,7 @@ function mergeModulesFromChatPayload(data) {
     if (data.apiContract) m.card.apiContract = data.apiContract;
     if (data.envChecklist) m.card.envChecklist = data.envChecklist;
     if (data.dataPrecheck) m.card.dataPrecheck = data.dataPrecheck;
+    if (data.externalDeps) m.card.externalDeps = data.externalDeps;
     if (data.ready) m.status = "ready";
   }
   applyActiveModuleToFields();
@@ -1989,6 +2002,7 @@ function setConfirmFieldsReadonly(ro) {
     "apiContract",
     "envChecklist",
     "dataPrecheck",
+    "externalDeps",
   ]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
@@ -2015,6 +2029,7 @@ function restoreConfirmCardFromOriginal() {
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
+  if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
   syncReqSections();
 }
 
@@ -2034,6 +2049,7 @@ function applyConfirmCardChrome() {
   if (el.apiContractField) el.apiContractField.hidden = bug;
   if (el.envChecklistField) el.envChecklistField.hidden = bug;
   if (el.dataPrecheckField) el.dataPrecheckField.hidden = bug;
+  if (el.externalDepsField) el.externalDepsField.hidden = bug;
   if (el.confirm && !modulesAllConfirmedLocal()) {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
@@ -2246,6 +2262,7 @@ function cardFingerprint(v) {
     apiContract: String(v.apiContract || "").trim(),
     envChecklist: String(v.envChecklist || "").trim(),
     dataPrecheck: String(v.dataPrecheck || "").trim(),
+    externalDeps: String(v.externalDeps || "").trim(),
   });
 }
 
@@ -2346,7 +2363,7 @@ function syncAutoHandleButtons() {
 function confirmFieldsOk(v = cardValues()) {
   if (!v.goal || !v.acceptance) return false;
   if (state.deskKind === "bug") return true;
-  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist && v.dataPrecheck);
+  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist && v.dataPrecheck && v.externalDeps);
 }
 
 function validationAllowsSend(kind) {
@@ -2674,7 +2691,7 @@ function applyCardChrome() {
   syncConfirmEnabled();
 }
 
-["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist", "dataPrecheck"].forEach((id) => {
+["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist", "dataPrecheck", "externalDeps"].forEach((id) => {
   if (!el[id]) return;
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
@@ -3011,6 +3028,7 @@ function applySavedCardFields(card, reviseCard) {
   if (el.apiContract) el.apiContract.value = c.apiContract || "";
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
+  if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
   const r = reviseCard || {};
   if (el.revGoal) el.revGoal.value = r.goal || "";
   if (el.revOut) el.revOut.value = r.outOfScope || "";
@@ -4854,6 +4872,7 @@ async function applyConfirmSuccess(data) {
         apiContract: String(m.card?.apiContract || m.apiContract || ""),
         envChecklist: String(m.card?.envChecklist || m.envChecklist || ""),
         dataPrecheck: String(m.card?.dataPrecheck || m.dataPrecheck || ""),
+        externalDeps: String(m.card?.externalDeps || m.externalDeps || ""),
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
@@ -4876,6 +4895,7 @@ async function applyConfirmSuccess(data) {
         apiContract: data.card.apiContract || "",
         envChecklist: data.card.envChecklist || "",
         dataPrecheck: data.card.dataPrecheck || "",
+        externalDeps: data.card.externalDeps || "",
       };
     }
     applyActiveModuleToFields();
@@ -6279,6 +6299,7 @@ const REQ_FIELD_PAIRS = [
   { ta: "apiContract", view: "apiContractView", emptyKey: "card.apiContractPh" },
   { ta: "envChecklist", view: "envChecklistView", emptyKey: "card.envChecklistPh" },
   { ta: "dataPrecheck", view: "dataPrecheckView", emptyKey: "card.dataPrecheckPh" },
+  { ta: "externalDeps", view: "externalDepsView", emptyKey: "card.externalDepsPh" },
   { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
   { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
@@ -6308,6 +6329,7 @@ function isReqReadonly(taId) {
       "apiContract",
       "envChecklist",
     "dataPrecheck",
+    "externalDeps",
     ].includes(taId)
   ) {
     return Boolean(state.locked || el[taId]?.readOnly);

@@ -220,6 +220,7 @@ function cardBlock(card, labels) {
     [labels.apiContract, c.apiContract, "list"],
     [labels.envChecklist, c.envChecklist, "list"],
     [labels.dataPrecheck, c.dataPrecheck, "list"],
+    [labels.externalDeps, c.externalDeps, "list"],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
   return `<dl class="card-dl">${rows
@@ -582,6 +583,7 @@ function labelsFor(lang) {
       apiContract: "API contract",
       envChecklist: "Environment checklist",
       dataPrecheck: "Data precheck",
+      externalDeps: "External dependencies",
       baseline: "Baseline sign-off",
       statusDone: "Ready",
       statusPartial: "In progress",
@@ -620,6 +622,7 @@ function labelsFor(lang) {
       apiContract: "API契約",
       envChecklist: "環境チェック",
       dataPrecheck: "データ事前検査",
+      externalDeps: "外部依存",
       baseline: "ベースライン署名",
       statusDone: "完了",
       statusPartial: "進行中",
@@ -657,6 +660,7 @@ function labelsFor(lang) {
     apiContract: "接口契约",
     envChecklist: "环境检查",
     dataPrecheck: "数据预检",
+    externalDeps: "外部依赖",
     baseline: "基线签署",
     statusDone: "已产出",
     statusPartial: "进行中",

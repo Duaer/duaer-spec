@@ -93,6 +93,11 @@ registry linking into the requirements document (no duplicate full cards).
    that this module has no import. Kickoff adds that precheck before
    implement, after the environment probe when both exist. The desk does
    not scan the customer database.
+   External dependencies are an FDE-05 board: a blocker, an SLA, a backup
+   mock, and a parallel path. Or the card states that this module has no
+   external dependency. Kickoff adds that board before implement, after
+   the environment probe and data precheck when those exist. The desk does
+   not call the vendor.
    Refreshing the desk restores those baseline fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.

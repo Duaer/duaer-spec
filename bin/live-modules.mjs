@@ -21,6 +21,10 @@ import {
   dataPrecheckNeedsTask,
   missingDataPrecheck,
 } from "../web/live-dev/data-precheck.mjs";
+import {
+  externalDepsNeedsTask,
+  missingExternalDeps,
+} from "../web/live-dev/external-deps.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -35,6 +39,7 @@ function clipCard(card) {
       apiContract: "",
       envChecklist: "",
       dataPrecheck: "",
+      externalDeps: "",
     };
   }
   return {
@@ -48,6 +53,7 @@ function clipCard(card) {
     apiContract: String(card.apiContract || "").slice(0, 4000),
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
     dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
+    externalDeps: String(card.externalDeps || "").slice(0, 4000),
   };
 }
 
@@ -408,6 +414,17 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
         role: EMPLOYEE_ROLES.VERIFY_L3,
       });
       beforeImpl = [data.id];
+    }
+    if (externalDepsNeedsTask(m.card?.externalDeps)) {
+      const extGap = missingExternalDeps(m.card?.externalDeps);
+      const extNote = extGap.length ? `; still missing ${extGap.join("/")}` : "";
+      const ext = push({
+        moduleId: m.id,
+        title: `FDE-05: external deps «${m.title}» — blocker, SLA, mock, parallel path${extNote}`,
+        dependsOn: beforeImpl,
+        role: EMPLOYEE_ROLES.VERIFY_L3,
+      });
+      beforeImpl = [ext.id];
     }
     const impl = push({
       moduleId: m.id,

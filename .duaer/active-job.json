@@ -1,5 +1,5 @@
 {
-  "feature": "273-fde06-data-precheck",
-  "branch": "feat/fde06-data-precheck",
-  "worktree": ".worktree/feat-fde06-data-precheck"
+  "feature": "274-fde05-external-deps",
+  "branch": "feat/fde05-external-deps",
+  "worktree": ".worktree/feat-fde05-external-deps"
 }

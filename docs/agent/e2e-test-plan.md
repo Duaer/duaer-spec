@@ -179,6 +179,7 @@ the table for their app.
 | E2E-207 | FDE-04: device matrix needs two named targets, screenshot or cloud evidence, and a fallback; kickoff adds a compat task | `npm test` + `npm run test:live` |
 | E2E-208 | FDE-03: environment checklist needs DNS, TLS, CORS, auth, and third-party reachability passed, or a no-customer opt-out; a failed probe blocks confirm; kickoff adds a probe task before implement | `npm test` + `npm run test:live` |
 | E2E-209 | FDE-06: data precheck needs a field mapping, an import failure list, and an export, or a no-import opt-out; kickoff adds the precheck before implement | `npm test` + `npm run test:live` |
+| E2E-210 | FDE-05: external dependencies need a blocker, SLA, backup mock, and parallel path, or a no-dependency opt-out; kickoff adds the board before implement | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |

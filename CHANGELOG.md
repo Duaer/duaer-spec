@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Feat: FDE-05 external dependency board before kickoff
+
+- Feature confirm requires a blocker, SLA, backup mock, and parallel path,
+  or an explicit no-dependency opt-out
+- Kickoff adds that board before implement when a third party, ERP, or SSO
+  is declared
+
 ### Feat: FDE-06 import precheck before kickoff
 
 - Feature confirm requires a field mapping, an import failure list, and an

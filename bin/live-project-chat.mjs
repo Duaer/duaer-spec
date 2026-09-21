@@ -39,6 +39,7 @@ function clipCard(card) {
       apiContract: "",
       envChecklist: "",
       dataPrecheck: "",
+      externalDeps: "",
     };
   }
   return {
@@ -52,6 +53,7 @@ function clipCard(card) {
     apiContract: String(card.apiContract || "").slice(0, 4000),
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
     dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
+    externalDeps: String(card.externalDeps || "").slice(0, 4000),
   };
 }
 

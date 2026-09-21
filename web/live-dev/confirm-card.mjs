@@ -17,5 +17,6 @@ export function restoreConfirmCard(source) {
     apiContract: pick("apiContract"),
     envChecklist: pick("envChecklist"),
     dataPrecheck: pick("dataPrecheck"),
+    externalDeps: pick("externalDeps"),
   };
 }
