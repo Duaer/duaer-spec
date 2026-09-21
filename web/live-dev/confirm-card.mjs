@@ -18,5 +18,6 @@ export function restoreConfirmCard(source) {
     envChecklist: pick("envChecklist"),
     dataPrecheck: pick("dataPrecheck"),
     externalDeps: pick("externalDeps"),
+    perfBudget: pick("perfBudget"),
   };
 }

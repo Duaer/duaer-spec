@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Feat: FDE-08 performance budget before confirm
+
+- Feature confirm must name LCP, INP, bundle size, virtualized long lists, a weak-network check, and a large-data check
+- A vague speed line such as "pretty fast" fails local validate
+- Modules with no page performance requirement may write that opt-out
+- Kickoff schedules the budget before implement, after the environment probe, data precheck, and external-dependency board when those exist
+- The desk records the budget; it does not run a customer performance lab
+
 ## 0.27.1 — 2026-09-21
 
 ### Feat: FDE-05 external dependency board before kickoff

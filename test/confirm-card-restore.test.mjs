@@ -17,6 +17,7 @@ test("restoreConfirmCard keeps baseline fields from a module card", () => {
       envChecklist: "无客户联调环境",
       dataPrecheck: "本模块无导入",
       externalDeps: "本模块无外部依赖",
+      perfBudget: "本模块无页面性能要求",
     },
   });
   assert.equal(card.deviceMatrix, "Chrome latest two");
@@ -26,6 +27,7 @@ test("restoreConfirmCard keeps baseline fields from a module card", () => {
   assert.equal(card.envChecklist, "无客户联调环境");
   assert.equal(card.dataPrecheck, "本模块无导入");
   assert.equal(card.externalDeps, "本模块无外部依赖");
+  assert.equal(card.perfBudget, "本模块无页面性能要求");
   assert.equal(card.goal, "share a page");
 });
 
@@ -38,5 +40,6 @@ test("restoreConfirmCard accepts a flat card", () => {
   assert.equal(card.envChecklist, "");
   assert.equal(card.dataPrecheck, "");
   assert.equal(card.externalDeps, "");
+  assert.equal(card.perfBudget, "");
   assert.equal(card.deviceMatrix, "");
 });

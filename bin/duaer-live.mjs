@@ -67,6 +67,10 @@ import {
   externalDepsDeclaresNone,
   missingExternalDeps,
 } from "../web/live-dev/external-deps.mjs";
+import {
+  missingPerfBudget,
+  perfBudgetDeclaresNone,
+} from "../web/live-dev/perf-budget.mjs";
 import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -758,6 +762,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
    - envChecklist = 环境检查：DNS、TLS、CORS、鉴权、第三方可达须全部写明且通过；无客户联调则写「无客户联调环境」。任一未通过不得开工
    - dataPrecheck = 数据预检：字段映射、导入预检失败清单、可导出给业务清洗；无导入则写「本模块无导入」
    - externalDeps = 外部依赖：阻塞项、SLA、备用 Mock、并行路径；无第三方/ERP/SSO 则写「本模块无外部依赖」
+   - perfBudget = 性能预算：LCP、INP、包体、长列表虚拟滚动、弱网、大数据压测；写「挺快的」不合格；无页面则写「本模块无页面性能要求」
    用户没提时：先根据产品形态填合理默认并写进 JSON，再在正文用一句话请用户改；不要长期留空。小项目可只有一个模块（id=main）。
 4. acceptance 必须可客观检查（打开何处、看到什么、哪条命令通过）；禁止只写「更好用/更好看」。
 5. ready=true 只表示**当前 active 模块**可确认，且上述字段都已非空、验收可检查。不是整系统开工。不要催用户立刻派工。
@@ -767,7 +772,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
    - 先写对用户说的纯文本（可多行，不要 JSON；正文里不要再列一遍选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出一个 JSON 对象（不要 markdown 围栏）：
-{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","ready":false,"options":["可选A","可选B"]}
+{"modules":[{"id":"auth","title":"登录","status":"draft","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","perfBudget":"..."}],"activeModuleId":"auth","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","perfBudget":"...","ready":false,"options":["可选A","可选B"]}
 说明：顶层字段与 ready 对应 activeModuleId 那一模块；modules 为完整清单（可增删改名）。`;
 
 const BUG_CHAT_PROMPT = `你是「Duaer-spec FDE」缺陷助手。用户要修 bug，不是做新功能。通过多轮对话整理成一张可派工的缺陷卡，使数字员工能复现、修复并回归。
@@ -805,6 +810,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用�
    - envChecklist = 若触及客户环境则更新探测结果，或写「无客户联调环境」/「同基线」
    - dataPrecheck = 若触及导入则更新映射与失败清单，或写「本模块无导入」/「同基线」
    - externalDeps = 若触及第三方/ERP/SSO 则更新阻塞项、SLA、备用 Mock、并行路径，或写「本模块无外部依赖」/「同基线」
+   - perfBudget = 若有页面则更新 LCP、INP、包体、长列表虚拟滚动、弱网、大数据压测，或写「本模块无页面性能要求」/「同基线」
 3. 字段够清楚且可执行时 ready=true（确认前系统会自动校验）。缺基线/契约字段时先填合理默认或用 options 点选。
 4. 不要写代码。不要立刻派工。不要假设仓库路径。
 5. 只要问题是让用户做选择，必须在 options 填 2～5 个短选项（≤20字）；界面可点选发送。禁止只让用户手打或「请回复数字」。
@@ -812,7 +818,7 @@ const REVISE_CHAT_PROMPT = `你是「Duaer-spec FDE」改进对话助手。用�
    - 先写对用户说的纯文本（正文不要再列选项清单）
    - 然后单独一行：<<<JSON>>>
    - 再输出 JSON（不要 markdown 围栏）：
-{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","ready":false,"options":["可选A","可选B"]}`;
+{"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","perfBudget":"...","ready":false,"options":["可选A","可选B"]}`;
 
 const ARCHITECTURE_CHAT_PROMPT = `你是「Duaer-spec FDE」架构助手。需求已确认。通过多轮对话设计系统架构图，供数字员工按图开发。系统会把 JSON 自动渲染成图，用户看不到原始 JSON。
 
@@ -843,23 +849,24 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将�
 7. envChecklist 是否已填：DNS、TLS、CORS、鉴权、第三方可达全部通过，或明确「无客户联调环境」；存在未通过项则 passed=false
 8. dataPrecheck 是否已填：字段映射、导入预检失败清单、可导出，或明确「本模块无导入」
 9. externalDeps 是否已填：阻塞项、SLA、备用 Mock、并行路径，或明确「本模块无外部依赖」
-10. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
+10. perfBudget 是否已填：LCP、INP、包体、长列表虚拟滚动、弱网、大数据压测，或明确「本模块无页面性能要求」；禁止只写「挺快的」
+11. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
 
 规则：
 - 若小改即可通过：修订确认卡字段（尤其把 acceptance 改成可检查句子，并补全基线与契约），passed=true
 - 若缺关键信息：passed=false，issues 列出缺什么（中文，短句）
 - 不要写代码。不要假设仓库路径。不要催派工。
 - 只输出一个 JSON，不要 markdown 围栏：
-{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"..."}`;
+{"passed":false,"summary":"一句话结论","issues":["问题1"],"goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","perfBudget":"..."}`;
 
-const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），并补全 deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck / externalDeps；不要编造用户没提过的大功能。
+const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动验收未通过，请根据 issues 修订确认卡。优先把 acceptance 改成可客观检查的句子（打开何处、看到什么、哪条命令通过），并补全 deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck / externalDeps / perfBudget；不要编造用户没提过的大功能。
 
 规则：
-1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions / deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck / externalDeps
-2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版、手机 Safari，云测截图放 compat/，旧壳降级提示升级；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」；无客户联调则 envChecklist 写「无客户联调环境」，否则 DNS、TLS、CORS、鉴权、第三方可达全部写通过；无导入则 dataPrecheck 写「本模块无导入」，否则写字段映射、导入预检失败清单、可导出；无外部依赖则 externalDeps 写「本模块无外部依赖」，否则写阻塞项、SLA、备用 Mock、并行路径），并写进 assumptions
+1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions / deviceMatrix / criticalPaths / exceptionCases / apiContract / envChecklist / dataPrecheck / externalDeps / perfBudget
+2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版、手机 Safari，云测截图放 compat/，旧壳降级提示升级；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」；无客户联调则 envChecklist 写「无客户联调环境」，否则 DNS、TLS、CORS、鉴权、第三方可达全部写通过；无导入则 dataPrecheck 写「本模块无导入」，否则写字段映射、导入预检失败清单、可导出；无外部依赖则 externalDeps 写「本模块无外部依赖」，否则写阻塞项、SLA、备用 Mock、并行路径；无页面则 perfBudget 写「本模块无页面性能要求」，否则写 LCP、INP、包体、长列表虚拟滚动、弱网、大数据压测，禁止只写「挺快的」），并写进 assumptions
 3. 不要写代码。不要假设仓库路径。
 4. 只输出一个 JSON，不要 markdown 围栏：
-{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"..."}`;
+{"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"...","envChecklist":"...","dataPrecheck":"...","externalDeps":"...","perfBudget":"..."}`;
 
 const BUG_ACCEPT_PROMPT = `你是「Duaer-spec FDE」缺陷验收官。用户即将锁定缺陷卡（尚未派工）。目标是：规范缺陷描述，使数字员工能复现、修复并回归。
 
@@ -1138,6 +1145,7 @@ function parseChatResult(content) {
               envChecklist: flat(m.envChecklist ?? m.card?.envChecklist),
               dataPrecheck: flat(m.dataPrecheck ?? m.card?.dataPrecheck),
               externalDeps: flat(m.externalDeps ?? m.card?.externalDeps),
+              perfBudget: flat(m.perfBudget ?? m.card?.perfBudget),
               dependsOn: Array.isArray(m.dependsOn)
                 ? m.dependsOn.map((x) => flat(x)).filter(Boolean).slice(0, 20)
                 : [],
@@ -1159,6 +1167,7 @@ function parseChatResult(content) {
       envChecklist: flat(obj.envChecklist),
       dataPrecheck: flat(obj.dataPrecheck),
       externalDeps: flat(obj.externalDeps),
+      perfBudget: flat(obj.perfBudget),
       ready: Boolean(obj.ready),
       activeModuleId: flat(obj.activeModuleId) || undefined,
       modules,
@@ -1184,6 +1193,7 @@ function parseChatResult(content) {
       envChecklist: "",
       dataPrecheck: "",
       externalDeps: "",
+      perfBudget: "",
       ready: false,
       options: [],
     };
@@ -1206,6 +1216,7 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
     envChecklist: String(parsed?.envChecklist || ""),
     dataPrecheck: String(parsed?.dataPrecheck || ""),
     externalDeps: String(parsed?.externalDeps || ""),
+    perfBudget: String(parsed?.perfBudget || ""),
     ready: Boolean(parsed?.ready),
     activeModuleId: parsed?.activeModuleId
       ? String(parsed.activeModuleId).slice(0, 80)
@@ -1226,6 +1237,7 @@ function chatDoneSsePayload(parsed, { includeJsonBlock = true } = {}) {
           envChecklist: String(m.envChecklist || "").slice(0, 4000),
           dataPrecheck: String(m.dataPrecheck || "").slice(0, 4000),
           externalDeps: String(m.externalDeps || "").slice(0, 4000),
+          perfBudget: String(m.perfBudget || "").slice(0, 4000),
           dependsOn: Array.isArray(m.dependsOn)
             ? m.dependsOn.map(String).slice(0, 20)
             : [],
@@ -1392,6 +1404,7 @@ function parseAcceptResult(content, fallback) {
     envChecklist: pick("envChecklist"),
     dataPrecheck: pick("dataPrecheck"),
     externalDeps: pick("externalDeps"),
+    perfBudget: pick("perfBudget"),
   };
 }
 
@@ -1504,6 +1517,18 @@ function localAcceptCheck(card, { kind = "feature" } = {}) {
           : "「外部依赖」必填（阻塞项、SLA、备用 Mock、并行路径，或写「本模块无外部依赖」）",
       );
     }
+    const perfBudget = String(card.perfBudget || "").trim();
+    if (
+      !perfBudgetDeclaresNone(perfBudget) &&
+      (perfBudget.length < 4 || missingPerfBudget(perfBudget).length)
+    ) {
+      const missing = missingPerfBudget(perfBudget);
+      issues.push(
+        missing.length
+          ? `「性能预算」未写清：${missing.join("、")}（须含 LCP、INP、包体、长列表、弱网、大数据压测，或写「本模块无页面性能要求」）`
+          : "「性能预算」必填（LCP、INP、包体、长列表、弱网、大数据压测，或写「本模块无页面性能要求」）",
+      );
+    }
   }
   return issues;
 }
@@ -1526,6 +1551,7 @@ async function autoAcceptCard(cfg, card, { kind = "feature", projectContext = nu
       envChecklist: card.envChecklist,
       dataPrecheck: card.dataPrecheck,
       externalDeps: card.externalDeps,
+      perfBudget: card.perfBudget,
     };
   }
   const ctxNote =
@@ -1559,6 +1585,7 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     envChecklist: String(card.envChecklist || "").trim(),
     dataPrecheck: String(card.dataPrecheck || "").trim(),
     externalDeps: String(card.externalDeps || "").trim(),
+    perfBudget: String(card.perfBudget || "").trim(),
   };
   if (kind === "bug" && projectContext) {
     normalized = {
@@ -1620,6 +1647,7 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     envChecklist: review.envChecklist || normalized.envChecklist,
     dataPrecheck: review.dataPrecheck || normalized.dataPrecheck,
     externalDeps: review.externalDeps || normalized.externalDeps,
+    perfBudget: review.perfBudget || normalized.perfBudget,
   };
 }
 
@@ -1670,6 +1698,7 @@ async function autoFixConfirmCard(cfg, card, issues, { kind = "feature", project
     envChecklist: String(obj.envChecklist || card.envChecklist || "").trim(),
     dataPrecheck: String(obj.dataPrecheck || card.dataPrecheck || "").trim(),
     externalDeps: String(obj.externalDeps || card.externalDeps || "").trim(),
+    perfBudget: String(obj.perfBudget || card.perfBudget || "").trim(),
   };
 }
 
@@ -6485,6 +6514,7 @@ async function handleApi(req, res) {
         envChecklist: body.envChecklist,
         dataPrecheck: body.dataPrecheck,
         externalDeps: body.externalDeps,
+        perfBudget: body.perfBudget,
       });
       const deskKind =
         String(body.deskKind || body.kind || "").trim() === "bug"
@@ -6541,6 +6571,7 @@ async function handleApi(req, res) {
         envChecklist: body.envChecklist,
         dataPrecheck: body.dataPrecheck,
         externalDeps: body.externalDeps,
+        perfBudget: body.perfBudget,
       });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       const deskKind =
@@ -6605,6 +6636,7 @@ async function handleApi(req, res) {
         envChecklist: body.envChecklist,
         dataPrecheck: body.dataPrecheck,
         externalDeps: body.externalDeps,
+        perfBudget: body.perfBudget,
       });
       if (!card.goal || !card.acceptance) {
         send(res, 400, { error: "goal and acceptance are required" });
@@ -6717,6 +6749,7 @@ async function handleApi(req, res) {
         envChecklist: body.envChecklist,
         dataPrecheck: body.dataPrecheck,
         externalDeps: body.externalDeps,
+        perfBudget: body.perfBudget,
       });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       if (!card.goal && !card.acceptance) {

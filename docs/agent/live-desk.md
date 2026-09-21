@@ -98,6 +98,13 @@ registry linking into the requirements document (no duplicate full cards).
    external dependency. Kickoff adds that board before implement, after
    the environment probe and data precheck when those exist. The desk does
    not call the vendor.
+   The performance budget is an FDE-08 gate: LCP, INP, bundle size,
+   virtualized long lists, a weak-network check, and a large-data check.
+   A vague speed line such as "pretty fast" fails. Or the card states that
+   this module has no page performance requirement. Kickoff adds that
+   budget before implement, after the environment probe, data precheck, and
+   external-dependency board when those exist. The desk does not run a
+   customer performance lab.
    Refreshing the desk restores those baseline fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.

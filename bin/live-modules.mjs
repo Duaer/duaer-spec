@@ -25,6 +25,10 @@ import {
   externalDepsNeedsTask,
   missingExternalDeps,
 } from "../web/live-dev/external-deps.mjs";
+import {
+  missingPerfBudget,
+  perfBudgetNeedsTask,
+} from "../web/live-dev/perf-budget.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -40,6 +44,7 @@ function clipCard(card) {
       envChecklist: "",
       dataPrecheck: "",
       externalDeps: "",
+      perfBudget: "",
     };
   }
   return {
@@ -54,6 +59,7 @@ function clipCard(card) {
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
     dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
     externalDeps: String(card.externalDeps || "").slice(0, 4000),
+    perfBudget: String(card.perfBudget || "").slice(0, 4000),
   };
 }
 
@@ -425,6 +431,17 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
         role: EMPLOYEE_ROLES.VERIFY_L3,
       });
       beforeImpl = [ext.id];
+    }
+    if (perfBudgetNeedsTask(m.card?.perfBudget)) {
+      const perfGap = missingPerfBudget(m.card?.perfBudget);
+      const perfNote = perfGap.length ? `; still missing ${perfGap.join("/")}` : "";
+      const perf = push({
+        moduleId: m.id,
+        title: `FDE-08: perf budget «${m.title}» — LCP, INP, bundle, virtual list, weak net, large data${perfNote}`,
+        dependsOn: beforeImpl,
+        role: EMPLOYEE_ROLES.VERIFY_L3,
+      });
+      beforeImpl = [perf.id];
     }
     const impl = push({
       moduleId: m.id,

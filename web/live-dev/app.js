@@ -266,6 +266,9 @@ const el = {
   externalDeps: document.getElementById("externalDeps"),
   externalDepsView: document.getElementById("externalDepsView"),
   externalDepsField: document.getElementById("externalDepsField"),
+  perfBudget: document.getElementById("perfBudget"),
+  perfBudgetView: document.getElementById("perfBudgetView"),
+  perfBudgetField: document.getElementById("perfBudgetField"),
   lblDevice: document.getElementById("lblDevice"),
   lblPaths: document.getElementById("lblPaths"),
   lblExceptions: document.getElementById("lblExceptions"),
@@ -949,6 +952,7 @@ function cardValues() {
     envChecklist: (el.envChecklist?.value || "").trim(),
     dataPrecheck: (el.dataPrecheck?.value || "").trim(),
     externalDeps: (el.externalDeps?.value || "").trim(),
+    perfBudget: (el.perfBudget?.value || "").trim(),
   };
 }
 
@@ -1001,6 +1005,7 @@ function applyActiveModuleToFields() {
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
+  if (el.perfBudget) el.perfBudget.value = c.perfBudget || "";
   syncReqSections();
 }
 
@@ -1075,6 +1080,7 @@ function mergeModulesFromChatPayload(data) {
       envChecklist: String(data.envChecklist || data.modules?.[0]?.card?.envChecklist || activeModule()?.card?.envChecklist || ""),
       dataPrecheck: String(data.dataPrecheck || data.modules?.[0]?.card?.dataPrecheck || activeModule()?.card?.dataPrecheck || ""),
       externalDeps: String(data.externalDeps || data.modules?.[0]?.card?.externalDeps || activeModule()?.card?.externalDeps || ""),
+      perfBudget: String(data.perfBudget || data.modules?.[0]?.card?.perfBudget || activeModule()?.card?.perfBudget || ""),
     };
     const prev = activeModule();
     state.modules = [
@@ -1154,6 +1160,12 @@ function mergeModulesFromChatPayload(data) {
             old?.card?.externalDeps ||
             "",
         ),
+        perfBudget: String(
+          raw.perfBudget ||
+            raw.card?.perfBudget ||
+            old?.card?.perfBudget ||
+            "",
+        ),
       };
       if (old?.status === "confirmed") {
         byId.set(id, {
@@ -1197,6 +1209,7 @@ function mergeModulesFromChatPayload(data) {
     if (data.envChecklist) m.card.envChecklist = data.envChecklist;
     if (data.dataPrecheck) m.card.dataPrecheck = data.dataPrecheck;
     if (data.externalDeps) m.card.externalDeps = data.externalDeps;
+    if (data.perfBudget) m.card.perfBudget = data.perfBudget;
     if (data.ready) m.status = "ready";
   }
   applyActiveModuleToFields();
@@ -2003,6 +2016,7 @@ function setConfirmFieldsReadonly(ro) {
     "envChecklist",
     "dataPrecheck",
     "externalDeps",
+    "perfBudget",
   ]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
@@ -2030,6 +2044,7 @@ function restoreConfirmCardFromOriginal() {
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
+  if (el.perfBudget) el.perfBudget.value = c.perfBudget || "";
   syncReqSections();
 }
 
@@ -2050,6 +2065,7 @@ function applyConfirmCardChrome() {
   if (el.envChecklistField) el.envChecklistField.hidden = bug;
   if (el.dataPrecheckField) el.dataPrecheckField.hidden = bug;
   if (el.externalDepsField) el.externalDepsField.hidden = bug;
+  if (el.perfBudgetField) el.perfBudgetField.hidden = bug;
   if (el.confirm && !modulesAllConfirmedLocal()) {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
@@ -2263,6 +2279,7 @@ function cardFingerprint(v) {
     envChecklist: String(v.envChecklist || "").trim(),
     dataPrecheck: String(v.dataPrecheck || "").trim(),
     externalDeps: String(v.externalDeps || "").trim(),
+    perfBudget: String(v.perfBudget || "").trim(),
   });
 }
 
@@ -2363,7 +2380,7 @@ function syncAutoHandleButtons() {
 function confirmFieldsOk(v = cardValues()) {
   if (!v.goal || !v.acceptance) return false;
   if (state.deskKind === "bug") return true;
-  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist && v.dataPrecheck && v.externalDeps);
+  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract && v.envChecklist && v.dataPrecheck && v.externalDeps && v.perfBudget);
 }
 
 function validationAllowsSend(kind) {
@@ -2691,7 +2708,7 @@ function applyCardChrome() {
   syncConfirmEnabled();
 }
 
-["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist", "dataPrecheck", "externalDeps"].forEach((id) => {
+["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract", "envChecklist", "dataPrecheck", "externalDeps", "perfBudget"].forEach((id) => {
   if (!el[id]) return;
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
@@ -3029,6 +3046,7 @@ function applySavedCardFields(card, reviseCard) {
   if (el.envChecklist) el.envChecklist.value = c.envChecklist || "";
   if (el.dataPrecheck) el.dataPrecheck.value = c.dataPrecheck || "";
   if (el.externalDeps) el.externalDeps.value = c.externalDeps || "";
+  if (el.perfBudget) el.perfBudget.value = c.perfBudget || "";
   const r = reviseCard || {};
   if (el.revGoal) el.revGoal.value = r.goal || "";
   if (el.revOut) el.revOut.value = r.outOfScope || "";
@@ -4873,6 +4891,7 @@ async function applyConfirmSuccess(data) {
         envChecklist: String(m.card?.envChecklist || m.envChecklist || ""),
         dataPrecheck: String(m.card?.dataPrecheck || m.dataPrecheck || ""),
         externalDeps: String(m.card?.externalDeps || m.externalDeps || ""),
+        perfBudget: String(m.card?.perfBudget || m.perfBudget || ""),
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
@@ -4896,6 +4915,7 @@ async function applyConfirmSuccess(data) {
         envChecklist: data.card.envChecklist || "",
         dataPrecheck: data.card.dataPrecheck || "",
         externalDeps: data.card.externalDeps || "",
+        perfBudget: data.card.perfBudget || "",
       };
     }
     applyActiveModuleToFields();
@@ -6300,6 +6320,7 @@ const REQ_FIELD_PAIRS = [
   { ta: "envChecklist", view: "envChecklistView", emptyKey: "card.envChecklistPh" },
   { ta: "dataPrecheck", view: "dataPrecheckView", emptyKey: "card.dataPrecheckPh" },
   { ta: "externalDeps", view: "externalDepsView", emptyKey: "card.externalDepsPh" },
+  { ta: "perfBudget", view: "perfBudgetView", emptyKey: "card.perfBudgetPh" },
   { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
   { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
@@ -6330,6 +6351,7 @@ function isReqReadonly(taId) {
       "envChecklist",
     "dataPrecheck",
     "externalDeps",
+    "perfBudget",
     ].includes(taId)
   ) {
     return Boolean(state.locked || el[taId]?.readOnly);

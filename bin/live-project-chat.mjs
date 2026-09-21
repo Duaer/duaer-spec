@@ -40,6 +40,7 @@ function clipCard(card) {
       envChecklist: "",
       dataPrecheck: "",
       externalDeps: "",
+      perfBudget: "",
     };
   }
   return {
@@ -54,6 +55,7 @@ function clipCard(card) {
     envChecklist: String(card.envChecklist || "").slice(0, 4000),
     dataPrecheck: String(card.dataPrecheck || "").slice(0, 4000),
     externalDeps: String(card.externalDeps || "").slice(0, 4000),
+    perfBudget: String(card.perfBudget || "").slice(0, 4000),
   };
 }
 

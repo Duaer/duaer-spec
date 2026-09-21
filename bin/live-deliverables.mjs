@@ -221,6 +221,7 @@ function cardBlock(card, labels) {
     [labels.envChecklist, c.envChecklist, "list"],
     [labels.dataPrecheck, c.dataPrecheck, "list"],
     [labels.externalDeps, c.externalDeps, "list"],
+    [labels.perfBudget, c.perfBudget, "list"],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
   return `<dl class="card-dl">${rows
@@ -584,6 +585,7 @@ function labelsFor(lang) {
       envChecklist: "Environment checklist",
       dataPrecheck: "Data precheck",
       externalDeps: "External dependencies",
+      perfBudget: "Performance budget",
       baseline: "Baseline sign-off",
       statusDone: "Ready",
       statusPartial: "In progress",
@@ -623,6 +625,7 @@ function labelsFor(lang) {
       envChecklist: "環境チェック",
       dataPrecheck: "データ事前検査",
       externalDeps: "外部依存",
+      perfBudget: "性能予算",
       baseline: "ベースライン署名",
       statusDone: "完了",
       statusPartial: "進行中",
@@ -661,6 +664,7 @@ function labelsFor(lang) {
     envChecklist: "环境检查",
     dataPrecheck: "数据预检",
     externalDeps: "外部依赖",
+    perfBudget: "性能预算",
     baseline: "基线签署",
     statusDone: "已产出",
     statusPartial: "进行中",
