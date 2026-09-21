@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.27.0 — 2026-09-21
+
 ### Feat: FDE-07 UAT pack on confirm
 
 - Feature exception cases must cover empty, failure, permission, timeout, and retry
