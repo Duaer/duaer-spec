@@ -253,6 +253,9 @@ const el = {
   deviceMatrixField: document.getElementById("deviceMatrixField"),
   criticalPathsField: document.getElementById("criticalPathsField"),
   exceptionCasesField: document.getElementById("exceptionCasesField"),
+  apiContract: document.getElementById("apiContract"),
+  apiContractView: document.getElementById("apiContractView"),
+  apiContractField: document.getElementById("apiContractField"),
   lblDevice: document.getElementById("lblDevice"),
   lblPaths: document.getElementById("lblPaths"),
   lblExceptions: document.getElementById("lblExceptions"),
@@ -932,6 +935,7 @@ function cardValues() {
     deviceMatrix: (el.deviceMatrix?.value || "").trim(),
     criticalPaths: (el.criticalPaths?.value || "").trim(),
     exceptionCases: (el.exceptionCases?.value || "").trim(),
+    apiContract: (el.apiContract?.value || "").trim(),
   };
 }
 
@@ -980,6 +984,7 @@ function applyActiveModuleToFields() {
   if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
   if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
+  if (el.apiContract) el.apiContract.value = c.apiContract || "";
   syncReqSections();
 }
 
@@ -1050,6 +1055,7 @@ function mergeModulesFromChatPayload(data) {
       deviceMatrix: String(data.deviceMatrix || data.modules?.[0]?.card?.deviceMatrix || activeModule()?.card?.deviceMatrix || ""),
       criticalPaths: String(data.criticalPaths || data.modules?.[0]?.card?.criticalPaths || activeModule()?.card?.criticalPaths || ""),
       exceptionCases: String(data.exceptionCases || data.modules?.[0]?.card?.exceptionCases || activeModule()?.card?.exceptionCases || ""),
+      apiContract: String(data.apiContract || data.modules?.[0]?.card?.apiContract || activeModule()?.card?.apiContract || ""),
     };
     const prev = activeModule();
     state.modules = [
@@ -1105,6 +1111,12 @@ function mergeModulesFromChatPayload(data) {
             old?.card?.exceptionCases ||
             "",
         ),
+        apiContract: String(
+          raw.apiContract ||
+            raw.card?.apiContract ||
+            old?.card?.apiContract ||
+            "",
+        ),
       };
       if (old?.status === "confirmed") {
         byId.set(id, {
@@ -1144,6 +1156,7 @@ function mergeModulesFromChatPayload(data) {
     if (data.deviceMatrix) m.card.deviceMatrix = data.deviceMatrix;
     if (data.criticalPaths) m.card.criticalPaths = data.criticalPaths;
     if (data.exceptionCases) m.card.exceptionCases = data.exceptionCases;
+    if (data.apiContract) m.card.apiContract = data.apiContract;
     if (data.ready) m.status = "ready";
   }
   applyActiveModuleToFields();
@@ -1946,6 +1959,7 @@ function setConfirmFieldsReadonly(ro) {
     "deviceMatrix",
     "criticalPaths",
     "exceptionCases",
+    "apiContract",
   ]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
@@ -1969,6 +1983,7 @@ function restoreConfirmCardFromOriginal() {
   if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
   if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
+  if (el.apiContract) el.apiContract.value = c.apiContract || "";
   syncReqSections();
 }
 
@@ -1985,6 +2000,7 @@ function applyConfirmCardChrome() {
   if (el.deviceMatrixField) el.deviceMatrixField.hidden = bug;
   if (el.criticalPathsField) el.criticalPathsField.hidden = bug;
   if (el.exceptionCasesField) el.exceptionCasesField.hidden = bug;
+  if (el.apiContractField) el.apiContractField.hidden = bug;
   if (el.confirm && !modulesAllConfirmedLocal()) {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
@@ -2294,7 +2310,7 @@ function syncAutoHandleButtons() {
 function confirmFieldsOk(v = cardValues()) {
   if (!v.goal || !v.acceptance) return false;
   if (state.deskKind === "bug") return true;
-  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases);
+  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases && v.apiContract);
 }
 
 function validationAllowsSend(kind) {
@@ -2622,7 +2638,7 @@ function applyCardChrome() {
   syncConfirmEnabled();
 }
 
-["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases"].forEach((id) => {
+["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases", "apiContract"].forEach((id) => {
   if (!el[id]) return;
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
@@ -2956,6 +2972,7 @@ function applySavedCardFields(card, reviseCard) {
   if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
   if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
   if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
+  if (el.apiContract) el.apiContract.value = c.apiContract || "";
   const r = reviseCard || {};
   if (el.revGoal) el.revGoal.value = r.goal || "";
   if (el.revOut) el.revOut.value = r.outOfScope || "";
@@ -4806,6 +4823,7 @@ async function applyConfirmSuccess(data) {
         deviceMatrix: String(m.card?.deviceMatrix || m.deviceMatrix || ""),
         criticalPaths: String(m.card?.criticalPaths || m.criticalPaths || ""),
         exceptionCases: String(m.card?.exceptionCases || m.exceptionCases || ""),
+        apiContract: String(m.card?.apiContract || m.apiContract || ""),
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
@@ -4825,6 +4843,7 @@ async function applyConfirmSuccess(data) {
         deviceMatrix: data.card.deviceMatrix || "",
         criticalPaths: data.card.criticalPaths || "",
         exceptionCases: data.card.exceptionCases || "",
+        apiContract: data.card.apiContract || "",
       };
     }
     applyActiveModuleToFields();
@@ -6225,6 +6244,7 @@ const REQ_FIELD_PAIRS = [
   { ta: "deviceMatrix", view: "deviceMatrixView", emptyKey: "card.devicePh" },
   { ta: "criticalPaths", view: "criticalPathsView", emptyKey: "card.pathsPh" },
   { ta: "exceptionCases", view: "exceptionCasesView", emptyKey: "card.exceptionsPh" },
+  { ta: "apiContract", view: "apiContractView", emptyKey: "card.apiContractPh" },
   { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
   { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },

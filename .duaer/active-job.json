@@ -1,5 +1,5 @@
 {
-  "feature": "265-baseline-chat-passthrough",
-  "branch": "fix/baseline-chat-passthrough",
-  "worktree": ".worktree/fix-baseline-chat-passthrough"
+  "feature": "266-fde02-api-contract",
+  "branch": "feat/fde02-api-contract",
+  "worktree": ".worktree/feat-fde02-api-contract"
 }

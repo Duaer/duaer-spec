@@ -209,6 +209,12 @@
             <div class="req-structured" id="exceptionCasesView" tabindex="0"></div>
             <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.exceptionsPh" placeholder="例：空列表提示；权限不足提示；提交失败可重试"></textarea>
           </div>
+          <div class="req-section field baseline-field" data-req="apiContract" id="apiContractField">
+            <span id="lblApiContract" data-i18n="card.apiContract">接口契约</span>
+            <p class="req-hint" id="apiContractHint" data-i18n="card.apiContractHint">OpenAPI/类型路径；无 HTTP API 则写「本模块无 HTTP API」</p>
+            <div class="req-structured" id="apiContractView" tabindex="0"></div>
+            <textarea id="apiContract" class="req-edit" rows="1" data-i18n-placeholder="card.apiContractPh" placeholder="例：openapi/openapi.yaml 或 本模块无 HTTP API"></textarea>
+          </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>
           <button type="button" class="btn auto-handle-btn" id="autoFixCard" hidden data-i18n="card.autoHandle">

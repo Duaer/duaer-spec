@@ -7,6 +7,10 @@ import {
   EMPLOYEE_ROLES,
   clipEmployeeRole,
 } from "../web/live-dev/employee-catalog.mjs";
+import {
+  apiContractRefs,
+  modulesNeedApiContractTasks,
+} from "../web/live-dev/api-contract.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -18,6 +22,7 @@ function clipCard(card) {
       deviceMatrix: "",
       criticalPaths: "",
       exceptionCases: "",
+      apiContract: "",
     };
   }
   return {
@@ -28,6 +33,7 @@ function clipCard(card) {
     deviceMatrix: String(card.deviceMatrix || "").slice(0, 4000),
     criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
+    apiContract: String(card.apiContract || "").slice(0, 4000),
   };
 }
 
@@ -415,10 +421,35 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
     }
   }
 
+  const verifyDeps = [...moduleVerifyId.values()];
+  if (modulesNeedApiContractTasks(list)) {
+    const refs = apiContractRefs(list).join(" · ") || "declared contracts";
+    const sync = push({
+      moduleId: null,
+      title: `FDE-02: sync API contract as SSOT (${truncate(refs, 120)})`,
+      dependsOn: verifyDeps,
+      role: EMPLOYEE_ROLES.IMPLEMENT,
+    });
+    const mock = push({
+      moduleId: null,
+      title: "FDE-02: generate/update Mock from the contract",
+      dependsOn: [sync.id],
+      role: EMPLOYEE_ROLES.IMPLEMENT,
+    });
+    const ci = push({
+      moduleId: null,
+      title:
+        "FDE-02: CI provider contract test; add command to .duaer/memory/verify.json",
+      dependsOn: [mock.id],
+      role: EMPLOYEE_ROLES.VERIFY_L3,
+    });
+    verifyDeps.length = 0;
+    verifyDeps.push(ci.id);
+  }
   const verifyAll = push({
     moduleId: null,
     title: "Risk-based verification per testing.md (L0–L3 / Playwright when applicable)",
-    dependsOn: [...moduleVerifyId.values()],
+    dependsOn: verifyDeps,
     role: EMPLOYEE_ROLES.VERIFY_L3,
   });
   const readme = push({

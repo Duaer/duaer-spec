@@ -53,6 +53,7 @@ export function baselineFingerprint(modules) {
       deviceMatrix: String(m.card?.deviceMatrix || "").trim(),
       criticalPaths: String(m.card?.criticalPaths || "").trim(),
       exceptionCases: String(m.card?.exceptionCases || "").trim(),
+      apiContract: String(m.card?.apiContract || "").trim(),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
   return JSON.stringify(confirmed);

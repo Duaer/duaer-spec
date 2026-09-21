@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: FDE-02 API contract gate on confirm + kickoff tasks
+
+- Feature confirm requires `apiContract` (OpenAPI/types path or「本模块无 HTTP API」)
+- Kickoff injects contract sync / Mock / CI contract-test tasks when a path is declared
+- Deliverables and baseline fingerprint include the field
+
 ### Fix: pass FDE-01 baseline fields through chat SSE
 
 - `parseChatResult` / `chatDoneSsePayload` keep deviceMatrix, criticalPaths,

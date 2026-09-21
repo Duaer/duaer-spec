@@ -36,6 +36,7 @@ function clipCard(card) {
       deviceMatrix: "",
       criticalPaths: "",
       exceptionCases: "",
+      apiContract: "",
     };
   }
   return {
@@ -46,6 +47,7 @@ function clipCard(card) {
     deviceMatrix: String(card.deviceMatrix || "").slice(0, 4000),
     criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
+    apiContract: String(card.apiContract || "").slice(0, 4000),
   };
 }
 

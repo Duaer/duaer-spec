@@ -64,6 +64,7 @@ function mockCompletion(body) {
       deviceMatrix: "Chrome latest two",
       criticalPaths: "open desk / run validate",
       exceptionCases: "empty card fails validate",
+      apiContract: "本模块无 HTTP API",
     });
   } else if (isAccept) {
     content = JSON.stringify({
@@ -77,6 +78,7 @@ function mockCompletion(body) {
       deviceMatrix: "Chrome latest two",
       criticalPaths: "open desk / run validate",
       exceptionCases: "empty card fails validate",
+      apiContract: "本模块无 HTTP API",
     });
   } else {
     content = `ok\n<<<JSON>>>\n${JSON.stringify({
@@ -219,6 +221,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /req-section/);
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="deviceMatrix"/);
+  assert.match(html, /id="apiContract"/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);
@@ -285,6 +288,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
   assert.match(liveBin, /deviceMatrix.*criticalPaths.*exceptionCases/s);
+  assert.match(liveBin, /apiContract|接口契约/);
   assert.match(liveBin, /FDE-01 基线三块|deviceMatrix = 浏览器/);
   assert.match(
     liveBin,
@@ -476,7 +480,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const missingBody = await missingBaselineFields.json();
   assert.equal(missingBody.passed, false);
   assert.ok(
-    (missingBody.issues || []).some((x) => /设备矩阵|关键路径|异常态/.test(x)),
+    (missingBody.issues || []).some((x) =>
+      /设备矩阵|关键路径|异常态|接口契约/.test(x),
+    ),
   );
 
   const goodCard = {
@@ -487,6 +493,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
     deviceMatrix: "Chrome latest two",
     criticalPaths: "open desk / run validate",
     exceptionCases: "empty card fails validate",
+    apiContract: "本模块无 HTTP API",
   };
   const ok = await fetch(`${live.base}/api/validate`, {
     method: "POST",

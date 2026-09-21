@@ -72,8 +72,11 @@ registry linking into the requirements document (no duplicate full cards).
 1. Chat evolves **`modules[]`** (and `activeModuleId`).
 2. Each module has its own confirm card (goal / out-of-scope / checkable
    acceptance / assumptions / **device matrix / critical paths / exception
-   cases** for feature). Chat prompts must fill or offer options for the three
-   baseline fields (not leave them empty). Validate must pass before Confirm.
+   cases** / **API contract** for feature). Chat prompts must fill or offer
+   options for baseline and contract fields (not leave them empty). Validate
+   must pass before Confirm. `apiContract` is an OpenAPI/types path, or
+   explicit「本模块无 HTTP API」. Declared paths cause kickoff to inject FDE-02
+   shared tasks (sync SSOT, Mock from contract, CI contract test + verify.json).
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture
