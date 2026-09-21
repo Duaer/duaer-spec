@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Feature confirm requires a passed DNS/TLS/CORS/auth/third-party checklist, or a no-customer opt-out. Kickoff schedules the probe before implement.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs bin/live-modules.mjs web/live-dev/app.js web/live-dev/env-check.mjs — pass",
+    "L1": "npm test — 242 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
