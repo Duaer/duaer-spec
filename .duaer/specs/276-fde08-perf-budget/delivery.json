@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Feature confirm requires LCP, INP, bundle size, virtualized long lists, a weak-network check, and a large-data check, or a no-page-performance opt-out. A vague speed line fails. Kickoff schedules the budget before implement.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs bin/live-modules.mjs web/live-dev/app.js web/live-dev/perf-budget.mjs — pass",
+    "L1": "npm test — 254 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
