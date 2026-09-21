@@ -61,6 +61,9 @@ function mockCompletion(body) {
       outOfScope: "No Playwright browser automation",
       acceptance: "npm run test:live passes with mock LLM",
       assumptions: "Mock OpenAI server is enough for CI",
+      deviceMatrix: "Chrome latest two",
+      criticalPaths: "open desk / run validate",
+      exceptionCases: "empty card fails validate",
     });
   } else if (isAccept) {
     content = JSON.stringify({
@@ -71,6 +74,9 @@ function mockCompletion(body) {
       outOfScope: "No Playwright browser automation",
       acceptance: "npm run test:live passes with mock LLM",
       assumptions: "Mock OpenAI server is enough for CI",
+      deviceMatrix: "Chrome latest two",
+      criticalPaths: "open desk / run validate",
+      exceptionCases: "empty card fails validate",
     });
   } else {
     content = `ok\n<<<JSON>>>\n${JSON.stringify({
@@ -212,6 +218,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /progress-col/);
   assert.match(html, /req-section/);
   assert.match(html, /id="goalView"/);
+  assert.match(html, /id="deviceMatrix"/);
+  assert.match(html, /id="baselinePanel"/);
+  assert.match(html, /id="baselineSign"/);
   assert.match(html, /id="confirm"/);
   assert.match(html, /id="architectureSlotDeploy"/);
   assert.match(html, /id="architectureRetry"/);
@@ -408,7 +417,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.equal(health.ready, true);
 
   const gh = await (await fetch(`${live.base}/api/github`)).json();
-  assert.match(String(gh.url || ""), /github\.com\/fujiezee\/duaer-spec/);
+  assert.match(String(gh.url || ""), /github\.com\/(Duaer|fujiezee)\/duaer-spec/);
   assert.ok(
     gh.stars === null || typeof gh.stars === "number",
     "stars null or number",
@@ -445,11 +454,29 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   const vagueBody = await vague.json();
   assert.equal(vagueBody.passed, false);
 
+  const missingBaselineFields = await fetch(`${live.base}/api/validate`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      goal: "Ship live L3 smoke suite for validate gate",
+      acceptance: "npm run test:live passes with mock LLM",
+    }),
+  });
+  assert.equal(missingBaselineFields.status, 422);
+  const missingBody = await missingBaselineFields.json();
+  assert.equal(missingBody.passed, false);
+  assert.ok(
+    (missingBody.issues || []).some((x) => /设备矩阵|关键路径|异常态/.test(x)),
+  );
+
   const goodCard = {
     goal: "Ship live L3 smoke suite for validate gate",
     outOfScope: "No Playwright browser automation",
     acceptance: "npm run test:live passes with mock LLM",
     assumptions: "Mock OpenAI server is enough for CI",
+    deviceMatrix: "Chrome latest two",
+    criticalPaths: "open desk / run validate",
+    exceptionCases: "empty card fails validate",
   };
   const ok = await fetch(`${live.base}/api/validate`, {
     method: "POST",

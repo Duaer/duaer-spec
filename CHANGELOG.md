@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: FDE-01 signed scope + acceptance baseline before kickoff
+
+- Confirm card requires device matrix, critical paths, and exception cases (feature)
+- Dispatch requires a signed baseline (signer + fingerprint); change order clears sign and reopens confirm
+- Deliverables page shows baseline sign-off and change history
+
 ## 0.26.0 — 2026-09-20
 
 ### Fix: npm provenance repository URL after GitHub move

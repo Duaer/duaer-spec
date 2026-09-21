@@ -10,13 +10,24 @@ import {
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
-    return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+    return {
+      goal: "",
+      outOfScope: "",
+      acceptance: "",
+      assumptions: "",
+      deviceMatrix: "",
+      criticalPaths: "",
+      exceptionCases: "",
+    };
   }
   return {
     goal: String(card.goal || "").slice(0, 8000),
     outOfScope: String(card.outOfScope || "").slice(0, 8000),
     acceptance: String(card.acceptance || "").slice(0, 8000),
     assumptions: String(card.assumptions || "").slice(0, 8000),
+    deviceMatrix: String(card.deviceMatrix || "").slice(0, 4000),
+    criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
+    exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
   };
 }
 

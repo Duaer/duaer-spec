@@ -3522,3 +3522,7 @@ code {
     width: 100vw;
   }
 }
+
+.baseline-panel{margin-top:0.75rem;padding-top:0.75rem;border-top:1px solid var(--line,rgba(0,0,0,.08))}
+.baseline-actions{display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem}
+.baseline-field[hidden]{display:none!important}

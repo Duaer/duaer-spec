@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-21T00:20:00.000Z",
+  "summary": "FDE-01: confirm card baseline fields, signed fingerprint gate before kickoff, change order + deliverables.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs web/live-dev/app.js web/live-dev/baseline.mjs bin/live-modules.mjs — pass",
+    "L1": "npm test — 225 pass (incl. baseline-sign)",
+    "L3": "npm run test:live — pass"
+  }
+}

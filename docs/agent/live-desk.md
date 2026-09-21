@@ -71,11 +71,17 @@ registry linking into the requirements document (no duplicate full cards).
 
 1. Chat evolves **`modules[]`** (and `activeModuleId`).
 2. Each module has its own confirm card (goal / out-of-scope / checkable
-   acceptance / assumptions). Validate must pass before Confirm.
+   acceptance / assumptions / **device matrix / critical paths / exception
+   cases** for feature). Validate must pass before Confirm.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture
    review (Archify). After **architecture confirm**, kickoff UI opens.
+5. **FDE-01 baseline:** before 「写入 Brief 并启动」, the operator must **sign**
+   the scope+acceptance baseline (signer + timestamp; fingerprint of confirmed
+   module cards). Unsigned or stale fingerprint blocks dispatch. **Open change**
+   records a reason, clears the sign, returns modules to re-confirm, and
+   requires architecture re-confirm + re-sign.
    Architecture chat may claim the diagram is ready before IR arrives; if the
    middle panel has no diagram, the **same** chat bubble is rewritten to offer
    Regenerate diagram (it must not leave a false “diagram ready” line).

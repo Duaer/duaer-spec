@@ -48,6 +48,10 @@ import {
 } from "./live-archify.mjs";
 import { enrichChatOptions } from "../web/live-dev/choice-options.mjs";
 import { extractArchitectureIr } from "../web/live-dev/architecture-ir.mjs";
+import {
+  baselineIsValid,
+  clipBaseline,
+} from "../web/live-dev/baseline.mjs";
 import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -82,6 +86,7 @@ import {
   writeDeliverablesHtmlFile,
 } from "./live-deliverables.mjs";
 import {
+  clipCard,
   clipModules,
   clipActiveModuleId,
   modulesAllConfirmed,
@@ -1312,6 +1317,9 @@ function parseAcceptResult(content, fallback) {
     outOfScope: pick("outOfScope"),
     acceptance: pick("acceptance"),
     assumptions: pick("assumptions"),
+    deviceMatrix: pick("deviceMatrix"),
+    criticalPaths: pick("criticalPaths"),
+    exceptionCases: pick("exceptionCases"),
   };
 }
 
@@ -1352,6 +1360,20 @@ function localAcceptCheck(card, { kind = "feature" } = {}) {
       `${acceptLabel}须可客观检查（打开/看到/点击/命令通过等），避免无法核对的形容词`,
     );
   }
+  if (kind !== "bug") {
+    const deviceMatrix = String(card.deviceMatrix || "").trim();
+    const criticalPaths = String(card.criticalPaths || "").trim();
+    const exceptionCases = String(card.exceptionCases || "").trim();
+    if (deviceMatrix.length < 4) {
+      issues.push("「浏览器/设备矩阵」必填（如 Chrome 最近两版 / 手机 Safari）");
+    }
+    if (criticalPaths.length < 4) {
+      issues.push("「关键路径」必填（联调必须覆盖的主路径）");
+    }
+    if (exceptionCases.length < 4) {
+      issues.push("「异常态」必填（空态/失败/权限/超时等至少一类）");
+    }
+  }
   return issues;
 }
 
@@ -1366,6 +1388,9 @@ async function autoAcceptCard(cfg, card, { kind = "feature", projectContext = nu
       outOfScope: card.outOfScope,
       acceptance: card.acceptance,
       assumptions: card.assumptions,
+      deviceMatrix: card.deviceMatrix,
+      criticalPaths: card.criticalPaths,
+      exceptionCases: card.exceptionCases,
     };
   }
   const ctxNote =
@@ -1392,6 +1417,9 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     outOfScope: String(card.outOfScope || "").trim(),
     acceptance: String(card.acceptance || "").trim(),
     assumptions: String(card.assumptions || "").trim(),
+    deviceMatrix: String(card.deviceMatrix || "").trim(),
+    criticalPaths: String(card.criticalPaths || "").trim(),
+    exceptionCases: String(card.exceptionCases || "").trim(),
   };
   if (kind === "bug" && projectContext) {
     normalized = {
@@ -1446,6 +1474,9 @@ async function validateCardOnly(cfg, card, { kind = "feature", projectContext = 
     outOfScope: review.outOfScope || normalized.outOfScope,
     acceptance: review.acceptance || normalized.acceptance,
     assumptions,
+    deviceMatrix: review.deviceMatrix || normalized.deviceMatrix,
+    criticalPaths: review.criticalPaths || normalized.criticalPaths,
+    exceptionCases: review.exceptionCases || normalized.exceptionCases,
   };
 }
 
@@ -1489,6 +1520,9 @@ async function autoFixConfirmCard(cfg, card, issues, { kind = "feature", project
     outOfScope: String(obj.outOfScope || card.outOfScope || "").trim(),
     acceptance: String(obj.acceptance || card.acceptance || "").trim(),
     assumptions,
+    deviceMatrix: String(obj.deviceMatrix || card.deviceMatrix || "").trim(),
+    criticalPaths: String(obj.criticalPaths || card.criticalPaths || "").trim(),
+    exceptionCases: String(obj.exceptionCases || card.exceptionCases || "").trim(),
   };
 }
 
@@ -6292,12 +6326,15 @@ async function handleApi(req, res) {
     }
     try {
       const body = await readJson(req);
-      const card = {
-        goal: String(body.goal || body.change || "").trim(),
-        outOfScope: String(body.outOfScope || body.keep || "").trim(),
-        acceptance: String(body.acceptance || "").trim(),
-        assumptions: String(body.assumptions || body.reason || "").trim(),
-      };
+      const card = clipCard({
+        goal: body.goal || body.change,
+        outOfScope: body.outOfScope || body.keep,
+        acceptance: body.acceptance,
+        assumptions: body.assumptions || body.reason,
+        deviceMatrix: body.deviceMatrix,
+        criticalPaths: body.criticalPaths,
+        exceptionCases: body.exceptionCases,
+      });
       const deskKind =
         String(body.deskKind || body.kind || "").trim() === "bug"
           ? "bug"
@@ -6319,12 +6356,7 @@ async function handleApi(req, res) {
         passed: review.passed,
         summary: review.summary,
         issues: review.issues,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
-        },
+        card: clipCard(review),
         error: review.passed ? undefined : review.summary || "自动验收未通过",
       });
     } catch (err) {
@@ -6346,12 +6378,15 @@ async function handleApi(req, res) {
     }
     try {
       const body = await readJson(req);
-      const card = {
-        goal: String(body.goal || body.change || "").trim(),
-        outOfScope: String(body.outOfScope || body.keep || "").trim(),
-        acceptance: String(body.acceptance || "").trim(),
-        assumptions: String(body.assumptions || body.reason || "").trim(),
-      };
+      const card = clipCard({
+        goal: body.goal || body.change,
+        outOfScope: body.outOfScope || body.keep,
+        acceptance: body.acceptance,
+        assumptions: body.assumptions || body.reason,
+        deviceMatrix: body.deviceMatrix,
+        criticalPaths: body.criticalPaths,
+        exceptionCases: body.exceptionCases,
+      });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       const deskKind =
         String(body.deskKind || body.kind || "").trim() === "bug"
@@ -6381,12 +6416,7 @@ async function handleApi(req, res) {
         fixSummary: fixed.summary,
         summary: review.summary,
         issues: review.issues,
-        card: {
-          goal: review.goal,
-          outOfScope: review.outOfScope,
-          acceptance: review.acceptance,
-          assumptions: review.assumptions,
-        },
+        card: clipCard(review),
         error: review.passed ? undefined : review.summary || "自动验收未通过",
       });
     } catch (err) {
@@ -6408,12 +6438,15 @@ async function handleApi(req, res) {
     }
     try {
       const body = await readJson(req);
-      const card = {
-        goal: String(body.goal || "").trim(),
-        outOfScope: String(body.outOfScope || "").trim(),
-        acceptance: String(body.acceptance || "").trim(),
-        assumptions: String(body.assumptions || "").trim(),
-      };
+      const card = clipCard({
+        goal: body.goal,
+        outOfScope: body.outOfScope,
+        acceptance: body.acceptance,
+        assumptions: body.assumptions,
+        deviceMatrix: body.deviceMatrix,
+        criticalPaths: body.criticalPaths,
+        exceptionCases: body.exceptionCases,
+      });
       if (!card.goal || !card.acceptance) {
         send(res, 400, { error: "goal and acceptance are required" });
         return;
@@ -6441,21 +6474,11 @@ async function handleApi(req, res) {
           error: review.summary || "自动验收未通过",
           summary: review.summary,
           issues: review.issues,
-          card: {
-            goal: review.goal,
-            outOfScope: review.outOfScope,
-            acceptance: review.acceptance,
-            assumptions: review.assumptions,
-          },
+          card: clipCard(review),
         });
         return;
       }
-      const acceptedCard = {
-        goal: review.goal,
-        outOfScope: review.outOfScope,
-        acceptance: review.acceptance,
-        assumptions: review.assumptions,
-      };
+      const acceptedCard = clipCard(review);
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
         deskKind === "bug"
@@ -6523,12 +6546,15 @@ async function handleApi(req, res) {
     }
     try {
       const body = await readJson(req);
-      const card = {
-        goal: String(body.goal || "").trim(),
-        outOfScope: String(body.outOfScope || "").trim(),
-        acceptance: String(body.acceptance || "").trim(),
-        assumptions: String(body.assumptions || "").trim(),
-      };
+      const card = clipCard({
+        goal: body.goal,
+        outOfScope: body.outOfScope,
+        acceptance: body.acceptance,
+        assumptions: body.assumptions,
+        deviceMatrix: body.deviceMatrix,
+        criticalPaths: body.criticalPaths,
+        exceptionCases: body.exceptionCases,
+      });
       const issues = Array.isArray(body.issues) ? body.issues : [];
       if (!card.goal && !card.acceptance) {
         send(res, 400, { error: "确认卡为空，无法修正" });
@@ -6565,21 +6591,11 @@ async function handleApi(req, res) {
           summary: review.summary,
           fixSummary: fixed.summary,
           issues: review.issues,
-          card: {
-            goal: review.goal,
-            outOfScope: review.outOfScope,
-            acceptance: review.acceptance,
-            assumptions: review.assumptions,
-          },
+          card: clipCard(review),
         });
         return;
       }
-      const acceptedCard = {
-        goal: review.goal,
-        outOfScope: review.outOfScope,
-        acceptance: review.acceptance,
-        assumptions: review.assumptions,
-      };
+      const acceptedCard = clipCard(review);
       const incomingModules = Array.isArray(body.modules) ? body.modules : [];
       const moduleId =
         deskKind === "bug"
@@ -6778,6 +6794,16 @@ async function handleApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/dispatch") {
     try {
       const body = await readJson(req);
+      const modules = Array.isArray(body.modules) ? body.modules : [];
+      const baseline = clipBaseline(body.baseline);
+      if (!baselineIsValid(baseline, modules)) {
+        send(res, 422, {
+          error:
+            "范围+验收基线未签署或已过期；签署后才能写入 Brief 并启动（FDE-01）",
+          code: "BASELINE_REQUIRED",
+        });
+        return;
+      }
       const result = dispatchToRepo({
         jobId: body.jobId,
         repoPath: body.repoPath,

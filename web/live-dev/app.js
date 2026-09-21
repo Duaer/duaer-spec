@@ -24,6 +24,12 @@ import {
 } from "./architecture-mount.mjs?v=node-zoom-1";
 import { enrichChatOptions } from "./choice-options.mjs";
 import {
+  baselineFingerprint,
+  baselineIsValid,
+  clipBaseline,
+  emptyBaseline,
+} from "./baseline.mjs";
+import {
   annotateParallelTasks,
   assignPreviewWorkers,
   buildPreviewPoolFromModules,
@@ -134,6 +140,8 @@ const state = {
   /** Prior confirmed diagram kept above when a new one is designed. */
   architecturePrevious: null,
   architectureMessages: [],
+  /** FDE-01 signed scope/acceptance baseline */
+  baseline: emptyBaseline(),
   /** Revising but Terminal busy with no task progress — offer retry CTA. */
   reviseStuckHint: false,
   lastRevision: null, // { revision, change, keep, acceptance, reason }
@@ -232,10 +240,30 @@ const el = {
   outOfScope: document.getElementById("outOfScope"),
   acceptance: document.getElementById("acceptance"),
   assumptions: document.getElementById("assumptions"),
+  deviceMatrix: document.getElementById("deviceMatrix"),
+  criticalPaths: document.getElementById("criticalPaths"),
+  exceptionCases: document.getElementById("exceptionCases"),
   goalView: document.getElementById("goalView"),
   outOfScopeView: document.getElementById("outOfScopeView"),
   acceptanceView: document.getElementById("acceptanceView"),
   assumptionsView: document.getElementById("assumptionsView"),
+  deviceMatrixView: document.getElementById("deviceMatrixView"),
+  criticalPathsView: document.getElementById("criticalPathsView"),
+  exceptionCasesView: document.getElementById("exceptionCasesView"),
+  deviceMatrixField: document.getElementById("deviceMatrixField"),
+  criticalPathsField: document.getElementById("criticalPathsField"),
+  exceptionCasesField: document.getElementById("exceptionCasesField"),
+  lblDevice: document.getElementById("lblDevice"),
+  lblPaths: document.getElementById("lblPaths"),
+  lblExceptions: document.getElementById("lblExceptions"),
+  baselinePanel: document.getElementById("baselinePanel"),
+  baselineStatus: document.getElementById("baselineStatus"),
+  baselineSigner: document.getElementById("baselineSigner"),
+  baselineSignerRow: document.getElementById("baselineSignerRow"),
+  baselineChangeRow: document.getElementById("baselineChangeRow"),
+  baselineChangeReason: document.getElementById("baselineChangeReason"),
+  baselineSign: document.getElementById("baselineSign"),
+  baselineChange: document.getElementById("baselineChange"),
   confirm: document.getElementById("confirm"),
   result: document.getElementById("result"),
   lockHint: document.getElementById("lockHint"),
@@ -901,6 +929,9 @@ function cardValues() {
     outOfScope: (el.outOfScope?.value || "").trim(),
     acceptance: (el.acceptance?.value || "").trim(),
     assumptions: (el.assumptions?.value || "").trim(),
+    deviceMatrix: (el.deviceMatrix?.value || "").trim(),
+    criticalPaths: (el.criticalPaths?.value || "").trim(),
+    exceptionCases: (el.exceptionCases?.value || "").trim(),
   };
 }
 
@@ -946,6 +977,9 @@ function applyActiveModuleToFields() {
   if (el.outOfScope) el.outOfScope.value = c.outOfScope || "";
   if (el.acceptance) el.acceptance.value = c.acceptance || "";
   if (el.assumptions) el.assumptions.value = c.assumptions || "";
+  if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
+  if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
+  if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   syncReqSections();
 }
 
@@ -1013,6 +1047,9 @@ function mergeModulesFromChatPayload(data) {
       outOfScope: String(data.outOfScope || data.modules?.[0]?.outOfScope || data.modules?.[0]?.card?.outOfScope || activeModule()?.card?.outOfScope || ""),
       acceptance: String(data.acceptance || data.modules?.[0]?.acceptance || data.modules?.[0]?.card?.acceptance || activeModule()?.card?.acceptance || ""),
       assumptions: String(data.assumptions || data.modules?.[0]?.assumptions || data.modules?.[0]?.card?.assumptions || activeModule()?.card?.assumptions || ""),
+      deviceMatrix: String(data.deviceMatrix || data.modules?.[0]?.card?.deviceMatrix || activeModule()?.card?.deviceMatrix || ""),
+      criticalPaths: String(data.criticalPaths || data.modules?.[0]?.card?.criticalPaths || activeModule()?.card?.criticalPaths || ""),
+      exceptionCases: String(data.exceptionCases || data.modules?.[0]?.card?.exceptionCases || activeModule()?.card?.exceptionCases || ""),
     };
     const prev = activeModule();
     state.modules = [
@@ -1048,6 +1085,24 @@ function mergeModulesFromChatPayload(data) {
           raw.assumptions ||
             raw.card?.assumptions ||
             old?.card?.assumptions ||
+            "",
+        ),
+        deviceMatrix: String(
+          raw.deviceMatrix ||
+            raw.card?.deviceMatrix ||
+            old?.card?.deviceMatrix ||
+            "",
+        ),
+        criticalPaths: String(
+          raw.criticalPaths ||
+            raw.card?.criticalPaths ||
+            old?.card?.criticalPaths ||
+            "",
+        ),
+        exceptionCases: String(
+          raw.exceptionCases ||
+            raw.card?.exceptionCases ||
+            old?.card?.exceptionCases ||
             "",
         ),
       };
@@ -1086,6 +1141,9 @@ function mergeModulesFromChatPayload(data) {
     if (data.outOfScope) m.card.outOfScope = data.outOfScope;
     if (data.acceptance) m.card.acceptance = data.acceptance;
     if (data.assumptions) m.card.assumptions = data.assumptions;
+    if (data.deviceMatrix) m.card.deviceMatrix = data.deviceMatrix;
+    if (data.criticalPaths) m.card.criticalPaths = data.criticalPaths;
+    if (data.exceptionCases) m.card.exceptionCases = data.exceptionCases;
     if (data.ready) m.status = "ready";
   }
   applyActiveModuleToFields();
@@ -1880,7 +1938,15 @@ function renderReviseVersionChips() {
 }
 
 function setConfirmFieldsReadonly(ro) {
-  for (const id of ["goal", "outOfScope", "acceptance", "assumptions"]) {
+  for (const id of [
+    "goal",
+    "outOfScope",
+    "acceptance",
+    "assumptions",
+    "deviceMatrix",
+    "criticalPaths",
+    "exceptionCases",
+  ]) {
     if (el[id]) el[id].readOnly = Boolean(ro);
   }
   syncReqSections();
@@ -1900,6 +1966,9 @@ function restoreConfirmCardFromOriginal() {
   el.outOfScope.value = c.outOfScope || "";
   el.acceptance.value = c.acceptance || "";
   el.assumptions.value = c.assumptions || "";
+  if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
+  if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
+  if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   syncReqSections();
 }
 
@@ -1913,6 +1982,9 @@ function applyConfirmCardChrome() {
   if (el.lblAccept) el.lblAccept.textContent = t(bug ? "card.bugAccept" : "card.accept");
   if (el.acceptHint) el.acceptHint.textContent = t(bug ? "card.bugAcceptHint" : "card.acceptHint");
   if (el.lblAssume) el.lblAssume.textContent = t(bug ? "card.bugAssume" : "card.assume");
+  if (el.deviceMatrixField) el.deviceMatrixField.hidden = bug;
+  if (el.criticalPathsField) el.criticalPathsField.hidden = bug;
+  if (el.exceptionCasesField) el.exceptionCasesField.hidden = bug;
   if (el.confirm && !modulesAllConfirmedLocal()) {
     el.confirm.textContent = t(bug ? "card.bugConfirm" : "card.confirm");
   }
@@ -2119,6 +2191,9 @@ function cardFingerprint(v) {
     outOfScope: String(v.outOfScope || "").trim(),
     acceptance: String(v.acceptance || "").trim(),
     assumptions: String(v.assumptions || "").trim(),
+    deviceMatrix: String(v.deviceMatrix || "").trim(),
+    criticalPaths: String(v.criticalPaths || "").trim(),
+    exceptionCases: String(v.exceptionCases || "").trim(),
   });
 }
 
@@ -2216,9 +2291,17 @@ function syncAutoHandleButtons() {
   }
 }
 
+function confirmFieldsOk(v = cardValues()) {
+  if (!v.goal || !v.acceptance) return false;
+  if (state.deskKind === "bug") return true;
+  return Boolean(v.deviceMatrix && v.criticalPaths && v.exceptionCases);
+}
+
 function validationAllowsSend(kind) {
   const v = kind === "revise" ? reviseCardValues() : cardValues();
-  if (!v.goal || !v.acceptance) return false;
+  if (kind === "confirm" ? !confirmFieldsOk(v) : !v.goal || !v.acceptance) {
+    return false;
+  }
   return (
     state.validate.kind === kind &&
     state.validate.status === "passed" &&
@@ -2230,7 +2313,9 @@ function scheduleValidate(kind = currentValidateKind()) {
   if (modulesAllConfirmedLocal() && kind === "confirm") return;
   if (state.reviseLocked && kind === "revise") return;
   const v = kind === "revise" ? reviseCardValues() : cardValues();
-  if (!v.goal || !v.acceptance || !state.ready) {
+  const readyFields =
+    kind === "confirm" ? confirmFieldsOk(v) : Boolean(v.goal && v.acceptance);
+  if (!readyFields || !state.ready) {
     resetValidateGate();
     syncConfirmEnabled();
     return;
@@ -2264,7 +2349,9 @@ async function runValidate(kind, expectedFp) {
   const v = kind === "revise" ? reviseCardValues() : cardValues();
   const fp = cardFingerprint(v);
   if (expectedFp && fp !== expectedFp) return;
-  if (!v.goal || !v.acceptance || !state.ready) {
+  const readyFields =
+    kind === "confirm" ? confirmFieldsOk(v) : Boolean(v.goal && v.acceptance);
+  if (!readyFields || !state.ready) {
     if (seq === state.validateSeq) resetValidateGate();
     syncConfirmEnabled();
     return;
@@ -2341,7 +2428,7 @@ function refreshConfirmButtonOnly() {
     return;
   }
   const v = cardValues();
-  const fieldsOk = Boolean(v.goal && v.acceptance);
+  const fieldsOk = confirmFieldsOk(v);
   const validated = validationAllowsSend("confirm");
   const active = activeModule();
   const moduleLocked = active?.status === "confirmed";
@@ -2397,7 +2484,7 @@ function syncConfirmEnabled() {
     return;
   }
   const v = cardValues();
-  const fieldsOk = Boolean(v.goal && v.acceptance);
+  const fieldsOk = confirmFieldsOk(v);
   const validated = validationAllowsSend("confirm");
   const active = activeModule();
   const moduleLocked = active?.status === "confirmed";
@@ -2535,7 +2622,8 @@ function applyCardChrome() {
   syncConfirmEnabled();
 }
 
-["goal", "outOfScope", "acceptance", "assumptions"].forEach((id) => {
+["goal", "outOfScope", "acceptance", "assumptions", "deviceMatrix", "criticalPaths", "exceptionCases"].forEach((id) => {
+  if (!el[id]) return;
   el[id].addEventListener("input", () => {
     autoGrowTextarea(el[id]);
     schedulePersistProjectDesk();
@@ -2835,6 +2923,7 @@ async function persistProjectChat() {
         architecturePrevious: prevLite,
         architectureMessages: state.architectureMessages,
         dispatchPhase: state.dispatchPhase === "done" ? "done" : null,
+        baseline: state.baseline,
         validate: {
           kind: state.validate.kind,
           fingerprint: state.validate.fingerprint,
@@ -2864,6 +2953,9 @@ function applySavedCardFields(card, reviseCard) {
   if (el.outOfScope) el.outOfScope.value = c.outOfScope || "";
   if (el.acceptance) el.acceptance.value = c.acceptance || "";
   if (el.assumptions) el.assumptions.value = c.assumptions || "";
+  if (el.deviceMatrix) el.deviceMatrix.value = c.deviceMatrix || "";
+  if (el.criticalPaths) el.criticalPaths.value = c.criticalPaths || "";
+  if (el.exceptionCases) el.exceptionCases.value = c.exceptionCases || "";
   const r = reviseCard || {};
   if (el.revGoal) el.revGoal.value = r.goal || "";
   if (el.revOut) el.revOut.value = r.outOfScope || "";
@@ -2881,7 +2973,8 @@ function restoreValidateGate(saved) {
       : currentValidateKind();
   const values = kind === "revise" ? reviseCardValues() : cardValues();
   const fp = cardFingerprint(values);
-  const fieldsOk = Boolean(values.goal && values.acceptance);
+  const fieldsOk =
+    kind === "confirm" ? confirmFieldsOk(values) : Boolean(values.goal && values.acceptance);
   if (
     v &&
     (v.status === "passed" || v.status === "failed") &&
@@ -2975,6 +3068,7 @@ function clearDeskWorkspace() {
   state.reviseExpanded = {};
   state.reviseAccordionFp = "";
   state.dispatchPhase = null;
+  state.baseline = emptyBaseline();
   state.lastDeliveryAccepted = false;
   state.lastPreviewUrl = null;
   state.previewFollowLatest = true;
@@ -3156,6 +3250,10 @@ async function loadProjectChatIntoUi(projectPath) {
       ? data.architectureMessages
       : [];
     state.dispatchPhase = data.dispatchPhase === "done" ? "done" : null;
+    state.baseline = clipBaseline(data.baseline);
+    if (state.baseline.signer && el.baselineSigner) {
+      el.baselineSigner.value = state.baseline.signer;
+    }
     if (Array.isArray(data.modules) && data.modules.length) {
       state.modules = data.modules.map((m) => ({
         id: String(m.id),
@@ -4705,6 +4803,9 @@ async function applyConfirmSuccess(data) {
         outOfScope: String(m.card?.outOfScope || m.outOfScope || ""),
         acceptance: String(m.card?.acceptance || m.acceptance || ""),
         assumptions: String(m.card?.assumptions || m.assumptions || ""),
+        deviceMatrix: String(m.card?.deviceMatrix || m.deviceMatrix || ""),
+        criticalPaths: String(m.card?.criticalPaths || m.criticalPaths || ""),
+        exceptionCases: String(m.card?.exceptionCases || m.exceptionCases || ""),
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
@@ -4721,6 +4822,9 @@ async function applyConfirmSuccess(data) {
         outOfScope: data.card.outOfScope || "",
         acceptance: data.card.acceptance || "",
         assumptions: data.card.assumptions || "",
+        deviceMatrix: data.card.deviceMatrix || "",
+        criticalPaths: data.card.criticalPaths || "",
+        exceptionCases: data.card.exceptionCases || "",
       };
     }
     applyActiveModuleToFields();
@@ -5901,8 +6005,117 @@ function renderAgentList() {
   syncStartCommandField();
 }
 
+function syncBaselineUi() {
+  if (!el.baselinePanel) return;
+  const signed = baselineIsValid(state.baseline, state.modules);
+  const canSign =
+    modulesAllConfirmedLocal() &&
+    Boolean(state.architecture?.confirmed) &&
+    !signed &&
+    state.dispatchPhase !== "done";
+  if (el.baselineStatus) {
+    if (signed) {
+      el.baselineStatus.textContent = t("baseline.signedLine", {
+        signer: state.baseline.signer,
+        at: String(state.baseline.signedAt || "").replace("T", " ").slice(0, 19),
+      });
+    } else if (!modulesAllConfirmedLocal() || !state.architecture?.confirmed) {
+      el.baselineStatus.textContent = t("baseline.waitConfirm");
+    } else {
+      el.baselineStatus.textContent = t("baseline.needSign");
+    }
+  }
+  if (el.baselineSignerRow) el.baselineSignerRow.hidden = signed;
+  if (el.baselineChangeRow) el.baselineChangeRow.hidden = !signed;
+  if (el.baselineSign) {
+    el.baselineSign.hidden = signed;
+    el.baselineSign.disabled = !canSign || state.busy;
+  }
+  if (el.baselineChange) {
+    el.baselineChange.hidden = !signed || state.dispatchPhase === "done";
+    el.baselineChange.disabled = state.busy;
+  }
+  if (el.baselineSigner && !signed && !el.baselineSigner.value.trim()) {
+    /* keep empty for operator */
+  }
+}
+
+function signBaseline() {
+  const signer = String(el.baselineSigner?.value || "").trim();
+  if (!signer) {
+    addBubble("bot", t("baseline.needSigner"));
+    return;
+  }
+  if (!modulesAllConfirmedLocal() || !state.architecture?.confirmed) {
+    addBubble("bot", t("baseline.waitConfirm"));
+    return;
+  }
+  const fp = baselineFingerprint(state.modules);
+  if (!fp || fp === "[]") {
+    addBubble("bot", t("baseline.waitConfirm"));
+    return;
+  }
+  state.baseline = {
+    ...clipBaseline(state.baseline),
+    signedAt: new Date().toISOString(),
+    signer,
+    fingerprint: fp,
+  };
+  addBubble("bot", t("baseline.signedOk", { signer }));
+  syncBaselineUi();
+  syncDispatchButton();
+  schedulePersistProjectDesk();
+}
+
+function openBaselineChange() {
+  const reason = String(el.baselineChangeReason?.value || "").trim();
+  if (!reason) {
+    addBubble("bot", t("baseline.needChangeReason"));
+    return;
+  }
+  const prev = clipBaseline(state.baseline);
+  const changes = [
+    ...(prev.changes || []),
+    {
+      at: new Date().toISOString(),
+      signer: prev.signer || "",
+      reason,
+      fingerprint: prev.fingerprint || "",
+    },
+  ];
+  state.baseline = {
+    signedAt: null,
+    signer: "",
+    fingerprint: "",
+    changes,
+  };
+  state.modules = (state.modules || []).map((m) => ({
+    ...m,
+    status: "ready",
+  }));
+  state.locked = false;
+  state.architecture = {
+    ...state.architecture,
+    confirmed: false,
+    status: state.architecture.url ? "preview" : "idle",
+  };
+  state.dispatchGraphReady = false;
+  if (el.baselineChangeReason) el.baselineChangeReason.value = "";
+  if (el.baselineSigner) el.baselineSigner.value = "";
+  applyActiveModuleToFields();
+  setConfirmFieldsReadonly(false);
+  renderModuleTabs();
+  syncConfirmEnabled();
+  syncArchitecturePanel("stale");
+  syncBaselineUi();
+  syncDispatchButton();
+  addBubble("bot", t("baseline.changeOpened"));
+  schedulePersistProjectDesk();
+}
+
 function syncDispatchButton() {
   if (!el.doDispatch) return;
+  syncBaselineUi();
   if (state.dispatchPhase === "done") {
     el.doDispatch.textContent = t("dispatch.done");
     el.doDispatch.disabled = true;
@@ -5922,6 +6135,11 @@ function syncDispatchButton() {
   }
   if (state.locked && !state.architecture.confirmed) {
     el.doDispatch.textContent = t("arch.needConfirm");
+    el.doDispatch.disabled = true;
+    return;
+  }
+  if (!baselineIsValid(state.baseline, state.modules)) {
+    el.doDispatch.textContent = t("baseline.needSignBtn");
     el.doDispatch.disabled = true;
     return;
   }
@@ -6004,6 +6222,9 @@ const REQ_FIELD_PAIRS = [
   { ta: "outOfScope", view: "outOfScopeView", emptyKey: "card.placeholder" },
   { ta: "acceptance", view: "acceptanceView", emptyKey: "card.placeholder" },
   { ta: "assumptions", view: "assumptionsView", emptyKey: "card.placeholder" },
+  { ta: "deviceMatrix", view: "deviceMatrixView", emptyKey: "card.placeholder" },
+  { ta: "criticalPaths", view: "criticalPathsView", emptyKey: "card.placeholder" },
+  { ta: "exceptionCases", view: "exceptionCasesView", emptyKey: "card.placeholder" },
   { ta: "revGoal", view: "revGoalView", emptyKey: "revise.goalPh" },
   { ta: "revOut", view: "revOutView", emptyKey: "revise.outPh" },
   { ta: "revAccept", view: "revAcceptView", emptyKey: "revise.acceptPh" },
@@ -6021,7 +6242,17 @@ function reqSectionFor(ta) {
 }
 
 function isReqReadonly(taId) {
-  if (["goal", "outOfScope", "acceptance", "assumptions"].includes(taId)) {
+  if (
+    [
+      "goal",
+      "outOfScope",
+      "acceptance",
+      "assumptions",
+      "deviceMatrix",
+      "criticalPaths",
+      "exceptionCases",
+    ].includes(taId)
+  ) {
     return Boolean(state.locked || el[taId]?.readOnly);
   }
   if (["revGoal", "revOut", "revAccept", "revAssume"].includes(taId)) {
@@ -6430,6 +6661,13 @@ el.clearProjectsRoot?.addEventListener("click", async () => {
 
 el.repoFilter?.addEventListener("input", () => renderRepoList());
 
+el.baselineSign?.addEventListener("click", () => {
+  signBaseline();
+});
+el.baselineChange?.addEventListener("click", () => {
+  openBaselineChange();
+});
+
 el.doDispatch.addEventListener("click", async () => {
   if (state.busy) return;
   if (!state.jobId && !modulesAllConfirmedLocal()) {
@@ -6462,6 +6700,12 @@ el.doDispatch.addEventListener("click", async () => {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent = t("arch.needConfirm");
     syncArchitecturePanel("stale");
+    return;
+  }
+  if (!baselineIsValid(state.baseline, state.modules)) {
+    el.dispatchErr.hidden = false;
+    el.dispatchErr.textContent = t("baseline.needSign");
+    syncBaselineUi();
     return;
   }
   if (!state.dispatchGraphReady || !state.taskPool?.tasks?.length) {
@@ -6500,6 +6744,7 @@ el.doDispatch.addEventListener("click", async () => {
         deskKind: state.deskKind === "bug" ? "bug" : "feature",
         bugHotfix: Boolean(state.bugHotfix),
         rawAsk: state.rawAsk || "",
+        baseline: state.baseline,
       }),
     });
     const data = await res.json();

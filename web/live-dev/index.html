@@ -191,6 +191,24 @@
             <div class="req-structured" id="assumptionsView" tabindex="0"></div>
             <textarea id="assumptions" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
           </div>
+          <div class="req-section field baseline-field" data-req="deviceMatrix" id="deviceMatrixField">
+            <span id="lblDevice" data-i18n="card.device">浏览器/设备矩阵</span>
+            <p class="req-hint" id="deviceHint" data-i18n="card.deviceHint">如 Chrome 最近两版、手机 Safari；勿写「主流浏览器」</p>
+            <div class="req-structured" id="deviceMatrixView" tabindex="0"></div>
+            <textarea id="deviceMatrix" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
+          <div class="req-section field baseline-field" data-req="criticalPaths" id="criticalPathsField">
+            <span id="lblPaths" data-i18n="card.paths">关键路径</span>
+            <p class="req-hint" id="pathsHint" data-i18n="card.pathsHint">联调必须覆盖的主路径</p>
+            <div class="req-structured" id="criticalPathsView" tabindex="0"></div>
+            <textarea id="criticalPaths" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
+          <div class="req-section field baseline-field" data-req="exceptionCases" id="exceptionCasesField">
+            <span id="lblExceptions" data-i18n="card.exceptions">异常态</span>
+            <p class="req-hint" id="exceptionsHint" data-i18n="card.exceptionsHint">至少覆盖空态 / 失败 / 权限不足 / 超时之一</p>
+            <div class="req-structured" id="exceptionCasesView" tabindex="0"></div>
+            <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+          </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>
           <button type="button" class="btn auto-handle-btn" id="autoFixCard" hidden data-i18n="card.autoHandle">
@@ -295,6 +313,23 @@
               <span data-i18n="dispatch.deployTarget">计划托管平台</span>
               <p class="hint" data-i18n="dispatch.deployTargetHint">选好后数字员工按该平台约束写代码（Cloudflare 走 Workers/Pages 规则）</p>
               <div id="deployTargetList" class="deploy-target-list" role="radiogroup" aria-label="deploy target"></div>
+            </div>
+            <div id="baselinePanel" class="baseline-panel field">
+              <span data-i18n="baseline.mark">范围+验收基线（FDE-01）</span>
+              <p class="hint" data-i18n="baseline.hint">无签字基线不得开工；变更须开变更单并重新签署</p>
+              <p id="baselineStatus" class="meta baseline-status"></p>
+              <label class="field" id="baselineSignerRow">
+                <span data-i18n="baseline.signer">签字人</span>
+                <input id="baselineSigner" type="text" data-i18n-placeholder="baseline.signerPh" placeholder="姓名或角色" autocomplete="name" />
+              </label>
+              <label class="field" id="baselineChangeRow" hidden>
+                <span data-i18n="baseline.changeReason">变更说明</span>
+                <textarea id="baselineChangeReason" rows="2" data-i18n-placeholder="baseline.changePh" placeholder="为何改范围/验收"></textarea>
+              </label>
+              <div class="baseline-actions">
+                <button type="button" class="btn primary" id="baselineSign" data-i18n="baseline.sign">签署基线</button>
+                <button type="button" class="btn" id="baselineChange" hidden data-i18n="baseline.change">开变更</button>
+              </div>
             </div>
             <div class="agent-pick">
               <div class="agent-pick-head">

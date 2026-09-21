@@ -1,5 +1,5 @@
 {
-  "feature": "260-release-026",
-  "branch": "feat/release-026",
-  "worktree": ".worktree/feat-release-026"
+  "feature": "261-fde-baseline-sign",
+  "branch": "feat/fde-baseline-sign",
+  "worktree": ".worktree/feat-fde-baseline-sign"
 }

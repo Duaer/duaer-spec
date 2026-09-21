@@ -10,6 +10,7 @@ import {
   clipTaskPool,
   clipWorkerCount,
 } from "./live-modules.mjs";
+import { clipBaseline, emptyBaseline } from "../web/live-dev/baseline.mjs";
 import { projectChatKey } from "./live-project-chat-key.mjs";
 import {
   loadSessionPayload,
@@ -27,13 +28,24 @@ export function projectChatPath(liveRoot, projectPath) {
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
-    return { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+    return {
+      goal: "",
+      outOfScope: "",
+      acceptance: "",
+      assumptions: "",
+      deviceMatrix: "",
+      criticalPaths: "",
+      exceptionCases: "",
+    };
   }
   return {
     goal: String(card.goal || "").slice(0, 8000),
     outOfScope: String(card.outOfScope || "").slice(0, 8000),
     acceptance: String(card.acceptance || "").slice(0, 8000),
     assumptions: String(card.assumptions || "").slice(0, 8000),
+    deviceMatrix: String(card.deviceMatrix || "").slice(0, 4000),
+    criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
+    exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
   };
 }
 
@@ -290,6 +302,7 @@ function emptySession(projectPath = "") {
     architecturePrevious: null,
     architectureMessages: [],
     dispatchPhase: null,
+    baseline: emptyBaseline(),
   };
 }
 
@@ -354,6 +367,7 @@ export function readProjectChat(liveRoot, projectPath) {
       architecturePrevious: clipArchitecturePrevious(raw.architecturePrevious),
       architectureMessages: clipMessages(raw.architectureMessages),
       dispatchPhase: raw.dispatchPhase === "done" ? "done" : null,
+      baseline: clipBaseline(raw.baseline),
     };
   } catch {
     return empty;
@@ -412,6 +426,7 @@ export function writeProjectChat(liveRoot, payload) {
     architecturePrevious: clipArchitecturePrevious(payload.architecturePrevious),
     architectureMessages: clipMessages(payload.architectureMessages),
     dispatchPhase: payload.dispatchPhase === "done" ? "done" : null,
+    baseline: clipBaseline(payload.baseline),
   };
   saveSessionPayload(liveRoot, doc);
   return doc;

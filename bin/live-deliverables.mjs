@@ -214,6 +214,9 @@ function cardBlock(card, labels) {
     [labels.out, c.outOfScope, "chips"],
     [labels.accept, c.acceptance, "list"],
     [labels.assume, c.assumptions, "list"],
+    [labels.device, c.deviceMatrix, "list"],
+    [labels.paths, c.criticalPaths, "list"],
+    [labels.exceptions, c.exceptionCases, "list"],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
   return `<dl class="card-dl">${rows
@@ -385,6 +388,17 @@ export function buildDeliverablesModel(session, opts = {}) {
             status: m.status,
             card: m.card || {},
           })),
+        },
+        {
+          id: "req-baseline",
+          title: pickLang(lang, {
+            en: "Scope + acceptance baseline",
+            ja: "範囲・受入ベースライン",
+            zh: "范围+验收基线",
+          }),
+          kind: "baseline",
+          ready: Boolean(s.baseline?.signedAt && s.baseline?.signer),
+          baseline: s.baseline || null,
         },
       ],
     },
@@ -559,6 +573,10 @@ function labelsFor(lang) {
       out: "Out of scope",
       accept: "Acceptance",
       assume: "Assumptions",
+      device: "Browser / device matrix",
+      paths: "Critical paths",
+      exceptions: "Exception cases",
+      baseline: "Baseline sign-off",
       statusDone: "Ready",
       statusPartial: "In progress",
       statusEmpty: "Pending",
@@ -590,6 +608,10 @@ function labelsFor(lang) {
       out: "対象外",
       accept: "受入基準",
       assume: "前提",
+      device: "ブラウザ/端末",
+      paths: "重要パス",
+      exceptions: "異常系",
+      baseline: "ベースライン署名",
       statusDone: "完了",
       statusPartial: "進行中",
       statusEmpty: "未着手",
@@ -620,6 +642,10 @@ function labelsFor(lang) {
     out: "不做",
     accept: "验收标准",
     assume: "假设",
+    device: "浏览器/设备矩阵",
+    paths: "关键路径",
+    exceptions: "异常态",
+    baseline: "基线签署",
     statusDone: "已产出",
     statusPartial: "进行中",
     statusEmpty: "未开始",
@@ -691,6 +717,29 @@ function renderArtifact(art, L, lang) {
     <thead><tr><th>#</th><th>${esc(L.module)}</th><th></th><th></th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
+</article>`;
+  }
+  if (art.kind === "baseline") {
+    const b = art.baseline && typeof art.baseline === "object" ? art.baseline : {};
+    if (!b.signedAt || !b.signer) {
+      return `<article class="artifact" id="${artId}"><h3>${esc(art.title)}</h3><p class="empty">${esc(L.emptyCard)}</p></article>`;
+    }
+    const changes = Array.isArray(b.changes) ? b.changes : [];
+    const changeHtml = changes.length
+      ? `<ul class="baseline-changes">${changes
+          .map(
+            (c) =>
+              `<li><time>${esc(fmtAt(c.at, lang))}</time> — ${esc(c.reason || "")}${c.signer ? ` (${esc(c.signer)})` : ""}</li>`,
+          )
+          .join("")}</ul>`
+      : "";
+    return `<article class="artifact" id="${artId}">
+  <h3>${esc(art.title)}</h3>
+  <p class="eyebrow">${esc(L.baseline)}</p>
+  <dl class="card-dl">
+    <div class="card-row"><dt>${esc(L.baseline)}</dt><dd><p class="struct-p">${esc(b.signer)} · ${esc(fmtAt(b.signedAt, lang))}</p></dd></div>
+  </dl>
+  ${changeHtml}
 </article>`;
   }
   if (art.kind === "architecture") {

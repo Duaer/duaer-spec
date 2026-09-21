@@ -169,6 +169,7 @@ the table for their app.
 | E2E-197 | Composer Record + Send in compact `.composer-actions`; with STT configured, stop → `/api/transcribe` fills `#input`; without STT, Record opens Settings speech-model block | `npm run test:live` + manual |
 | E2E-198 | Settings speech recognition model block saves `sttBaseUrl` / `sttApiKey` / `sttModel`; publicConfig exposes `sttReady` | `npm test` + `npm run test:live` |
 | E2E-199 | Record click with no STT shows bot guide and opens Settings → speech model | `npm run test:live` + manual |
+| E2E-200 | FDE-01: feature confirm requires device/paths/exceptions; unsigned baseline blocks kickoff; change order re-signs | `npm test` + `npm run test:live` + manual |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -403,4 +404,5 @@ the table for their app.
 | E2E-197 | `256-chat-voice` / `257-composer-voice-compact` | composer voice / Record beside Send |
 | E2E-198 | `258-chat-stt` | STT model settings + /api/transcribe |
 | E2E-199 | `259-voice-guide-stt` | Record without STT opens Settings |
+| E2E-200 | `261-fde-baseline-sign` | baseline sign gate + change order |
 
