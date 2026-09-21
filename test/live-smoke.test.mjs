@@ -222,6 +222,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="deviceMatrix"/);
   assert.match(html, /id="apiContract"/);
+  assert.match(html, /app\.js\?v=baseline-restore-1/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);

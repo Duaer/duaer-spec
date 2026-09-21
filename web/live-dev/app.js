@@ -29,6 +29,7 @@ import {
   clipBaseline,
   emptyBaseline,
 } from "./baseline.mjs";
+import { restoreConfirmCard } from "./confirm-card.mjs";
 import {
   annotateParallelTasks,
   assignPreviewWorkers,
@@ -2210,6 +2211,7 @@ function cardFingerprint(v) {
     deviceMatrix: String(v.deviceMatrix || "").trim(),
     criticalPaths: String(v.criticalPaths || "").trim(),
     exceptionCases: String(v.exceptionCases || "").trim(),
+    apiContract: String(v.apiContract || "").trim(),
   });
 }
 
@@ -3276,12 +3278,7 @@ async function loadProjectChatIntoUi(projectPath) {
         id: String(m.id),
         title: String(m.title || m.id),
         status: String(m.status || "draft"),
-        card: {
-          goal: String(m.card?.goal || ""),
-          outOfScope: String(m.card?.outOfScope || ""),
-          acceptance: String(m.card?.acceptance || ""),
-          assumptions: String(m.card?.assumptions || ""),
-        },
+        card: restoreConfirmCard(m),
         dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
       }));
       state.activeModuleId =
@@ -3294,12 +3291,7 @@ async function loadProjectChatIntoUi(projectPath) {
           id: "main",
           title: "Main",
           status: data.locked ? "confirmed" : "draft",
-          card: {
-            goal: data.card.goal || "",
-            outOfScope: data.card.outOfScope || "",
-            acceptance: data.card.acceptance || "",
-            assumptions: data.card.assumptions || "",
-          },
+          card: restoreConfirmCard(data.card),
           dependsOn: [],
         },
       ];

@@ -1,5 +1,5 @@
 {
-  "feature": "266-fde02-api-contract",
-  "branch": "feat/fde02-api-contract",
-  "worktree": ".worktree/feat-fde02-api-contract"
+  "feature": "267-baseline-restore",
+  "branch": "fix/baseline-restore",
+  "worktree": ".worktree/fix-baseline-restore"
 }

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: keep baseline confirm fields after desk refresh
+
+- Restoring a project session copies device matrix, critical paths, exception
+  cases, and API contract back onto the confirm card
+
 ### Feat: FDE-02 API contract gate on confirm + kickoff tasks
 
 - Feature confirm requires `apiContract` (OpenAPI/types path or「本模块无 HTTP API」)

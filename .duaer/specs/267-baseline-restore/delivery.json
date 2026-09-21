@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Desk refresh restores device matrix, critical paths, exception cases, and API contract onto the confirm card.",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js web/live-dev/confirm-card.mjs — pass",
+    "L1": "npm test — 234 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
