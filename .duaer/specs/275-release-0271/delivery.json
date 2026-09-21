@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "0.27.1 is on main as v0.27.1, GitHub Release published, npm Trusted Publishing succeeded.",
+  "verification": {
+    "publish": "git push origin main develop v0.27.1 — fast-forward 1d6d164..26ede20",
+    "release": "https://github.com/Duaer/duaer-spec/releases/tag/v0.27.1",
+    "npm": "gh run 35558574069 success — + duaer-spec@0.27.1"
+  }
+}
