@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Feature device matrix must name two targets, evidence, and a fallback; kickoff schedules the compat check.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs bin/live-modules.mjs — pass",
+    "L1": "npm test — 239 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
