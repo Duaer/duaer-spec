@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Feature confirm requires a field mapping, an import failure list, and an export, or a no-import opt-out. Kickoff schedules the precheck before implement.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs bin/live-modules.mjs web/live-dev/app.js web/live-dev/data-precheck.mjs — pass",
+    "L1": "npm test — 246 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
