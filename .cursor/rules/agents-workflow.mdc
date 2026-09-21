@@ -54,7 +54,7 @@ cd .worktree/feat-login
   the `gh` + push needed for that publish — see `docs/agent/deploy-github.md`)
 - Promote **`develop` → `main`** only when the user asks to go online
 - Version: fast iteration bumps the **patch** (`0.27.1`, `0.27.2`, …). Next
-  after `0.27.0` is `0.27.1`. Do not bump the minor on every ship.
+  after `0.27.1` is `0.27.2`. Do not bump the minor on every ship.
 - English docs: no Chinese (CJK); Chinese docs may include English terms
 
 ## GitHub issue / PR intake

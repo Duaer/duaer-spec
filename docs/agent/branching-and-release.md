@@ -148,7 +148,7 @@ This repo ships often. The default bump is the **patch** (the last number):
 0.27.0 → 0.27.1 → 0.27.2 → …
 ```
 
-The next release after `0.27.0` is **`0.27.1`**. Do not jump to `0.28.0` just
+The next release after `0.27.1` is **`0.27.2`**. Do not jump to `0.28.0` just
 because features landed. Bump the minor or major only when the user asks for
 that cut, or when the change breaks adopters (`duaer init` / public CLI).
 

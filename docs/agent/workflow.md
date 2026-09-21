@@ -65,8 +65,8 @@ handling. They cannot be relaxed without explicit human override.
   delete the short branch.
 - Push only when the user explicitly requests remote publishing.
 - Promote **`develop` → `main`** only when the user explicitly asks to go online.
-- Fast iteration: the default version bump is the patch. Next after `0.27.0`
-  is `0.27.1`. Do not bump the minor on every ship.
+- Fast iteration: the default version bump is the patch. Next after `0.27.1`
+  is `0.27.2`. Do not bump the minor on every ship.
 
 Full matrix by issue type:
 [branching-and-release](branching-and-release.md).

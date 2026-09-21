@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.27.1 — 2026-09-21
+
 ### Feat: FDE-05 external dependency board before kickoff
 
 - Feature confirm requires a blocker, SLA, backup mock, and parallel path,
