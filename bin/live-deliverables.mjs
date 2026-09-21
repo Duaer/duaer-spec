@@ -218,6 +218,7 @@ function cardBlock(card, labels) {
     [labels.paths, c.criticalPaths, "list"],
     [labels.exceptions, c.exceptionCases, "list"],
     [labels.apiContract, c.apiContract, "list"],
+    [labels.envChecklist, c.envChecklist, "list"],
   ].filter(([, v]) => String(v || "").trim());
   if (!rows.length) return `<p class="empty">${esc(labels.emptyCard)}</p>`;
   return `<dl class="card-dl">${rows
@@ -578,6 +579,7 @@ function labelsFor(lang) {
       paths: "Critical paths",
       exceptions: "Exception cases",
       apiContract: "API contract",
+      envChecklist: "Environment checklist",
       baseline: "Baseline sign-off",
       statusDone: "Ready",
       statusPartial: "In progress",
@@ -614,6 +616,7 @@ function labelsFor(lang) {
       paths: "重要パス",
       exceptions: "異常系",
       apiContract: "API契約",
+      envChecklist: "環境チェック",
       baseline: "ベースライン署名",
       statusDone: "完了",
       statusPartial: "進行中",
@@ -649,6 +652,7 @@ function labelsFor(lang) {
     paths: "关键路径",
     exceptions: "异常态",
     apiContract: "接口契约",
+    envChecklist: "环境检查",
     baseline: "基线签署",
     statusDone: "已产出",
     statusPartial: "进行中",

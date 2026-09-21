@@ -1,5 +1,5 @@
 {
-  "feature": "271-fde04-compat",
-  "branch": "feat/fde04-compat",
-  "worktree": ".worktree/feat-fde04-compat"
+  "feature": "272-fde03-env-check",
+  "branch": "feat/fde03-env-check",
+  "worktree": ".worktree/feat-fde03-env-check"
 }

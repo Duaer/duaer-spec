@@ -13,6 +13,10 @@ import {
 } from "../web/live-dev/api-contract.mjs";
 import { missingUatCases } from "../web/live-dev/uat-pack.mjs";
 import { missingCompatMatrix } from "../web/live-dev/compat-matrix.mjs";
+import {
+  envChecklistNeedsProbe,
+  missingEnvChecklist,
+} from "../web/live-dev/env-check.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -25,6 +29,7 @@ function clipCard(card) {
       criticalPaths: "",
       exceptionCases: "",
       apiContract: "",
+      envChecklist: "",
     };
   }
   return {
@@ -36,6 +41,7 @@ function clipCard(card) {
     criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
     apiContract: String(card.apiContract || "").slice(0, 4000),
+    envChecklist: String(card.envChecklist || "").slice(0, 4000),
   };
 }
 
@@ -373,10 +379,22 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
 
   for (let i = 0; i < list.length; i += 1) {
     const m = list[i];
+    const envDeps = [];
+    if (envChecklistNeedsProbe(m.card?.envChecklist)) {
+      const envGap = missingEnvChecklist(m.card?.envChecklist);
+      const envNote = envGap.length ? `; still missing ${envGap.join("/")}` : "";
+      const env = push({
+        moduleId: m.id,
+        title: `FDE-03: env probe «${m.title}» — DNS, TLS, CORS, auth, third-party; block joint debug until green${envNote}`,
+        dependsOn: [],
+        role: EMPLOYEE_ROLES.VERIFY_L3,
+      });
+      envDeps.push(env.id);
+    }
     const impl = push({
       moduleId: m.id,
       title: `Implement module «${m.title}»: ${truncate(m.card.goal, 100)}`,
-      dependsOn: [],
+      dependsOn: envDeps,
       role: EMPLOYEE_ROLES.IMPLEMENT,
     });
     const acceptLines = splitAcceptanceLines(m.card.acceptance);

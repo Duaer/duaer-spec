@@ -37,6 +37,7 @@ function clipCard(card) {
       criticalPaths: "",
       exceptionCases: "",
       apiContract: "",
+      envChecklist: "",
     };
   }
   return {
@@ -48,6 +49,7 @@ function clipCard(card) {
     criticalPaths: String(card.criticalPaths || "").slice(0, 4000),
     exceptionCases: String(card.exceptionCases || "").slice(0, 4000),
     apiContract: String(card.apiContract || "").slice(0, 4000),
+    envChecklist: String(card.envChecklist || "").slice(0, 4000),
   };
 }
 

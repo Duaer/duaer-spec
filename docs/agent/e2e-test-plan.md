@@ -177,6 +177,7 @@ the table for their app.
 | E2E-205 | Desk refresh restores device matrix, critical paths, exception cases, and API contract on the confirm card | `npm test` + `npm run test:live` |
 | E2E-206 | FDE-07: feature exception cases must cover empty, failure, permission, timeout, and retry; a contract path also needs an error code; kickoff adds UAT tasks | `npm test` + `npm run test:live` |
 | E2E-207 | FDE-04: device matrix needs two named targets, screenshot or cloud evidence, and a fallback; kickoff adds a compat task | `npm test` + `npm run test:live` |
+| E2E-208 | FDE-03: environment checklist needs DNS, TLS, CORS, auth, and third-party reachability passed, or a no-customer opt-out; a failed probe blocks confirm; kickoff adds a probe task before implement | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |

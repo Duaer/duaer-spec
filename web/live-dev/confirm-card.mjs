@@ -15,5 +15,6 @@ export function restoreConfirmCard(source) {
     criticalPaths: pick("criticalPaths"),
     exceptionCases: pick("exceptionCases"),
     apiContract: pick("apiContract"),
+    envChecklist: pick("envChecklist"),
   };
 }

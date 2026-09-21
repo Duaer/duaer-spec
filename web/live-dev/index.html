@@ -215,6 +215,12 @@
             <div class="req-structured" id="apiContractView" tabindex="0"></div>
             <textarea id="apiContract" class="req-edit" rows="1" data-i18n-placeholder="card.apiContractPh" placeholder="例：openapi/openapi.yaml 或 本模块无 HTTP API"></textarea>
           </div>
+          <div class="req-section field baseline-field" data-req="envChecklist" id="envChecklistField">
+            <span id="lblEnvChecklist" data-i18n="card.envChecklist">环境检查</span>
+            <p class="req-hint" id="envChecklistHint" data-i18n="card.envChecklistHint">开工前 DNS、TLS、CORS、鉴权、第三方可达须全部通过；无客户联调则写「无客户联调环境」</p>
+            <div class="req-structured" id="envChecklistView" tabindex="0"></div>
+            <textarea id="envChecklist" class="req-edit" rows="1" data-i18n-placeholder="card.envChecklistPh" placeholder="例：DNS 通过；TLS 证书通过；CORS 通过；鉴权通过；第三方可达。或写「无客户联调环境」"></textarea>
+          </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>
           <button type="button" class="btn auto-handle-btn" id="autoFixCard" hidden data-i18n="card.autoHandle">
@@ -752,6 +758,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=baseline-restore-1"></script>
+    <script type="module" src="/app.js?v=env-check-1"></script>
   </body>
 </html>

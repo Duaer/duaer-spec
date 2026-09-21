@@ -54,6 +54,7 @@ export function baselineFingerprint(modules) {
       criticalPaths: String(m.card?.criticalPaths || "").trim(),
       exceptionCases: String(m.card?.exceptionCases || "").trim(),
       apiContract: String(m.card?.apiContract || "").trim(),
+      envChecklist: String(m.card?.envChecklist || "").trim(),
     }))
     .sort((a, b) => a.id.localeCompare(b.id));
   return JSON.stringify(confirmed);

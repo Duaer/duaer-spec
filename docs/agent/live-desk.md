@@ -83,7 +83,12 @@ registry linking into the requirements document (no duplicate full cards).
    The device matrix is an FDE-04 compat pack: at least two named browsers or
    domestic clients, screenshot or cloud evidence, and a polyfill or fallback.
    Kickoff adds a compat-evidence task per confirmed module.
-   Refreshing the desk restores those four fields from the saved session.
+   The environment checklist is an FDE-03 probe pack: DNS, TLS, CORS, auth,
+   and third-party reachability must all be recorded as passed, or the card
+   states that there is no customer environment. A failed probe blocks
+   confirm. Kickoff adds an environment-probe task before implement when a
+   customer environment is declared. The desk does not scan that network.
+   Refreshing the desk restores those baseline fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture

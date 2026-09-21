@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Feat: FDE-03 environment checklist before kickoff
+
+- Feature confirm requires DNS, TLS, CORS, auth, and third-party reachability
+  recorded as passed, or an explicit no-customer opt-out
+- A failed probe blocks confirm
+- Kickoff adds an environment-probe task before implement when a customer
+  environment is declared
+
 ### Feat: FDE-04 browser matrix must include evidence
 
 - Device matrix needs two named browsers or domestic clients, screenshot or
