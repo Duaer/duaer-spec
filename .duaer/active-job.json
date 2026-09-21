@@ -1,5 +1,5 @@
 {
-  "feature": "270-patch-version",
-  "branch": "docs/patch-version",
-  "worktree": ".worktree/docs-patch-version"
+  "feature": "271-fde04-compat",
+  "branch": "feat/fde04-compat",
+  "worktree": ".worktree/feat-fde04-compat"
 }

@@ -80,6 +80,9 @@ registry linking into the requirements document (no duplicate full cards).
    Exception cases are an FDE-07 UAT pack (empty, failure, permission, timeout,
    retry). A declared contract path also requires an error code or HTTP status
    in that text. Kickoff adds a UAT task per confirmed module.
+   The device matrix is an FDE-04 compat pack: at least two named browsers or
+   domestic clients, screenshot or cloud evidence, and a polyfill or fallback.
+   Kickoff adds a compat-evidence task per confirmed module.
    Refreshing the desk restores those four fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.

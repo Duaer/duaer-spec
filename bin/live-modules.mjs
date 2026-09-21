@@ -12,6 +12,7 @@ import {
   modulesNeedApiContractTasks,
 } from "../web/live-dev/api-contract.mjs";
 import { missingUatCases } from "../web/live-dev/uat-pack.mjs";
+import { missingCompatMatrix } from "../web/live-dev/compat-matrix.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -434,6 +435,15 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       role: EMPLOYEE_ROLES.VERIFY_L3,
     });
     uatIds.push(uat.id);
+    const compatGap = missingCompatMatrix(m.card?.deviceMatrix);
+    const compatNote = compatGap.length ? `; still missing ${compatGap.join("/")}` : "";
+    const compat = push({
+      moduleId: m.id,
+      title: `FDE-04: compat evidence «${m.title}» — named browsers, screenshot/cloud run, polyfill/fallback${compatNote}`,
+      dependsOn: [uat.id],
+      role: EMPLOYEE_ROLES.VERIFY_L3,
+    });
+    uatIds.push(compat.id);
   }
   let gate = uatIds.length ? uatIds : verifyDeps;
   if (modulesNeedApiContractTasks(list)) {

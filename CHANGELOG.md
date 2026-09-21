@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: FDE-04 browser matrix must include evidence
+
+- Device matrix needs two named browsers or domestic clients, screenshot or
+  cloud evidence, and a polyfill or fallback
+- Kickoff adds a compat-evidence task per confirmed module
+
 ### Docs: fast iteration uses patch versions
 
 - Default ship bump is the last number (`0.27.1`, `0.27.2`, …)

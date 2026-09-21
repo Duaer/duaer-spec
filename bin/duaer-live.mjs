@@ -54,6 +54,7 @@ import {
 } from "../web/live-dev/baseline.mjs";
 import { apiContractIsFilled, apiContractDeclaresNoHttp } from "../web/live-dev/api-contract.mjs";
 import { missingUatCases, uatMentionsErrorCode } from "../web/live-dev/uat-pack.mjs";
+import { missingCompatMatrix } from "../web/live-dev/compat-matrix.mjs";
 import { allocateUniqueBranch } from "./live-worktree-name.mjs";
 import {
   ensureGitInstalled,
@@ -738,7 +739,7 @@ const SYSTEM_PROMPT = `你是「Duaer-spec FDE」需求助手。通过多轮对�
 1. 缺关键可执行信息时，每次只问 1 个卡点问题；信息够时不要用「请从多种风格/方向里选一个」代替可执行的验收标准。
 2. 系统可能很大：边聊边发现模块清单 modules（id/title/status）。对话可以乱跳模块；把内容写进对应模块的确认卡字段，不要强迫用户按顺序说完。
 3. 每个功能模块维护确认卡字段：goal、outOfScope、acceptance、assumptions，以及 FDE-01 基线三块与 FDE-02 契约：
-   - deviceMatrix = 浏览器/设备矩阵（具体版本，如「Chrome 最近两版、手机 Safari」；禁止只写「主流浏览器」）
+   - deviceMatrix = 浏览器/设备矩阵：至少两个具体目标（如 Chrome 最近两版、手机 Safari、统信 UOS）；禁止只写「主流浏览器」。必须写证据位置（截图/录屏或云测）和降级或 Polyfill。
    - criticalPaths = 联调必须覆盖的主路径（短列表）
    - exceptionCases = UAT 包，必须同时覆盖空态、失败、权限不足、超时、重试；有接口契约时写出对应错误码或 HTTP status（禁止只写一类）
    - apiContract = 接口契约路径（如 openapi/openapi.yaml 或 src/types/api.ts），或明确写「本模块无 HTTP API」
@@ -819,7 +820,7 @@ const ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求验收官。用户即将�
 2. acceptance 是否可客观检查：必须写清「打开/看到/点击/返回/命令通过/接口返回」等可核对结果；禁止仅「更好用 / 更好看 / nicer / looks better」这类空话
 3. outOfScope 是否划清边界（可简短）
 4. assumptions 是否合理、不偷换目标
-5. deviceMatrix / criticalPaths / exceptionCases 是否已填且具体（禁止空；deviceMatrix 禁止只写「主流浏览器」；exceptionCases 必须覆盖空态、失败、权限不足、超时、重试；有接口时还要错误码或 HTTP status）
+5. deviceMatrix / criticalPaths / exceptionCases 是否已填且具体（禁止空；deviceMatrix 至少两个具体浏览器或国产终端，并写截图/云测证据和降级或 Polyfill，禁止只写「主流浏览器」；exceptionCases 必须覆盖空态、失败、权限不足、超时、重试；有接口时还要错误码或 HTTP status）
 6. apiContract 是否已填：OpenAPI/类型等路径，或明确「本模块无 HTTP API」（禁止空）
 7. 按该验收标准做完后，用户是否有理由满意（成品可核对，而非过程叙事）
 
@@ -834,7 +835,7 @@ const FIX_ACCEPT_PROMPT = `你是「Duaer-spec FDE」需求修正助手。自动
 
 规则：
 1. 针对每条 issue 修改 goal / outOfScope / acceptance / assumptions / deviceMatrix / criticalPaths / exceptionCases / apiContract
-2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」），并写进 assumptions
+2. 保持用户原意；缺信息时写合理、可检查的默认（如 Chrome 最近两版、手机 Safari，云测截图放 compat/，旧壳降级提示升级；主路径对齐 goal；异常态须同时写上空态、失败、权限不足、超时、重试，有接口则补错误码；无接口则写「本模块无 HTTP API」），并写进 assumptions
 3. 不要写代码。不要假设仓库路径。
 4. 只输出一个 JSON，不要 markdown 围栏：
 {"summary":"一句话说明改了什么","goal":"...","outOfScope":"...","acceptance":"...","assumptions":"...","deviceMatrix":"...","criticalPaths":"...","exceptionCases":"...","apiContract":"..."}`;
@@ -1396,8 +1397,13 @@ function localAcceptCheck(card, { kind = "feature" } = {}) {
     const deviceMatrix = String(card.deviceMatrix || "").trim();
     const criticalPaths = String(card.criticalPaths || "").trim();
     const exceptionCases = String(card.exceptionCases || "").trim();
-    if (deviceMatrix.length < 4) {
-      issues.push("「浏览器/设备矩阵」必填（如 Chrome 最近两版 / 手机 Safari）");
+    if (deviceMatrix.length < 4 || missingCompatMatrix(deviceMatrix).length) {
+      const missing = missingCompatMatrix(deviceMatrix);
+      issues.push(
+        missing.length
+          ? `「浏览器/设备矩阵」未写成可核对兼容包：${missing.join("、")}`
+          : "「浏览器/设备矩阵」必填（至少两个具体浏览器或国产终端，并写证据与降级）",
+      );
     }
     if (criticalPaths.length < 4) {
       issues.push("「关键路径」必填（联调必须覆盖的主路径）");
