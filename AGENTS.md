@@ -294,7 +294,9 @@ After normal development:
 12. Push only when the user explicitly requested remote publishing for the
     current request
 13. Promote **`develop` → `main`** only when the user explicitly asks to ship /
-    go online (see [branching-and-release](docs/agent/branching-and-release.md))
+    go online (see [branching-and-release](docs/agent/branching-and-release.md)).
+    Fast iteration: bump the **patch** (`0.27.1`, `0.27.2`, …). Do not bump
+    the minor on every ship. The next release after `0.27.0` is `0.27.1`.
 
 **Production hotfix:** base and merge into **`main`**, then merge the fix into
 **`develop`** so integration does not regress. Then clean up the worktree.
@@ -350,7 +352,8 @@ git worktree prune
 13. Stop worktree services; remove worktree; delete short branch; **handoff**
     restart on `develop` (`duaer handoff [--run]` / `.duaer/handoff.json`)
 14. Push only when explicitly requested
-15. Promote **`develop` → `main`** only when the user explicitly asks to go online
+15. Promote **`develop` → `main`** only when the user explicitly asks to go online.
+    Version bump is the patch (`0.27.1` next); see branching-and-release.
 
 Development must not begin before isolation steps 1–3 are complete.
 

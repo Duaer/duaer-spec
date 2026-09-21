@@ -1,0 +1,7 @@
+{
+  "status": "accepted",
+  "summary": "Fast iteration ships as patch versions. Next release after 0.27.0 is 0.27.1.",
+  "verification": {
+    "docs": "Policy only; no runtime change. testing.md docs waiver."
+  }
+}

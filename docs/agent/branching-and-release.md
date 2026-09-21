@@ -140,6 +140,22 @@ develop is green / accepted for release
 Never merge a random `feat/*` straight into `main` for a normal feature.
 Features land on **`develop` first**, then ride a promotion to **`main`**.
 
+### Version number (fast iteration)
+
+This repo ships often. The default bump is the **patch** (the last number):
+
+```text
+0.27.0 → 0.27.1 → 0.27.2 → …
+```
+
+The next release after `0.27.0` is **`0.27.1`**. Do not jump to `0.28.0` just
+because features landed. Bump the minor or major only when the user asks for
+that cut, or when the change breaks adopters (`duaer init` / public CLI).
+
+Set `package.json` `version`, move `CHANGELOG.md` `Unreleased` under that
+version, tag `vX.Y.Z`, and publish the GitHub Release (npm Trusted Publishing
+follows the release).
+
 ---
 
 ## 4. Flows by problem type

@@ -1,5 +1,5 @@
 {
-  "feature": "269-release-027",
-  "branch": "chore/release-027",
-  "worktree": ".worktree/chore-release-027"
+  "feature": "270-patch-version",
+  "branch": "docs/patch-version",
+  "worktree": ".worktree/docs-patch-version"
 }

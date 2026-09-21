@@ -33,6 +33,7 @@ For new behavior, fixes, refactors that change product behavior, or architecture
    as you go so progress is visible. Do not leave only coarse mega-tasks.
 7. Merge to **`develop`** when done (hotfix: **`main`**, then back-merge
    **`develop`**). Promote to **`main`** only if the user asks to go online.
+   Version bump is the patch (`0.27.1` next).
 8. **Handoff (mandatory):** stop processes bound to `.worktree/<id>/`, remove
    the worktree, then restart services from the primary checkout on `develop`
    using `.duaer/handoff.json` / `duaer handoff [--run]`. Never leave the user

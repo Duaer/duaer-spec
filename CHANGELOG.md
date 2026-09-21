@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Docs: fast iteration uses patch versions
+
+- Default ship bump is the last number (`0.27.1`, `0.27.2`, …)
+- Next release after `0.27.0` is `0.27.1`; do not jump the minor on every ship
+
 ## 0.27.0 — 2026-09-21
 
 ### Feat: FDE-07 UAT pack on confirm
