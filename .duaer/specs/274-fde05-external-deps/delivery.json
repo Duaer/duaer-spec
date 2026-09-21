@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Feature confirm requires a blocker, SLA, backup mock, and parallel path, or a no-dependency opt-out. Kickoff schedules the board before implement.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs bin/live-modules.mjs web/live-dev/app.js web/live-dev/external-deps.mjs — pass",
+    "L1": "npm test — 250 pass",
+    "L3": "npm run test:live — pass"
+  }
+}
