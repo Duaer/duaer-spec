@@ -219,6 +219,9 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /req-section/);
   assert.match(html, /id="goalView"/);
   assert.match(html, /id="deviceMatrix"/);
+  assert.match(html, /card\.devicePh|Chrome 最近两版/);
+  assert.match(html, /card\.pathsPh|登录 → 首页/);
+  assert.match(html, /card\.exceptionsPh|空列表提示/);
   assert.match(html, /id="baselinePanel"/);
   assert.match(html, /id="baselineSign"/);
   assert.match(html, /id="confirm"/);
@@ -281,6 +284,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
+  assert.match(liveBin, /deviceMatrix.*criticalPaths.*exceptionCases/s);
+  assert.match(liveBin, /FDE-01 基线三块|deviceMatrix = 浏览器/);
   assert.match(liveBin, /attachArchitectureRender|architectureUrl/);
   assert.match(liveBin, /buildWorkersProgress/);
   assert.match(liveBin, /advanceOrchestration|waveForWorker|releasedWaves/);
@@ -296,6 +301,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(i18nSrc, /arch\.renderMissing|arch\.retry|中间栏还没有/);
   assert.match(i18nSrc, /chat\.voice|chat\.voiceListening|chat\.voiceHint/);
   assert.match(i18nSrc, /setup\.sttBlock|chat\.voiceRecognizing|chat\.voiceNeedStt/);
+  assert.match(i18nSrc, /card\.devicePh|card\.pathsPh|card\.exceptionsPh/);
   assert.doesNotMatch(i18nSrc, /header\.beginner|小白也能做FDE|Beginners can do FDE too|chat\.emptyTitle/);
   assert.match(liveBin, /\/api\/transcribe|sttConfigReady|callSttTranscribe/);
   assert.match(css, /choice-chip/);

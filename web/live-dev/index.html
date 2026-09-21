@@ -195,19 +195,19 @@
             <span id="lblDevice" data-i18n="card.device">浏览器/设备矩阵</span>
             <p class="req-hint" id="deviceHint" data-i18n="card.deviceHint">如 Chrome 最近两版、手机 Safari；勿写「主流浏览器」</p>
             <div class="req-structured" id="deviceMatrixView" tabindex="0"></div>
-            <textarea id="deviceMatrix" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+            <textarea id="deviceMatrix" class="req-edit" rows="1" data-i18n-placeholder="card.devicePh" placeholder="例：Chrome 最近两版、手机 Safari"></textarea>
           </div>
           <div class="req-section field baseline-field" data-req="criticalPaths" id="criticalPathsField">
             <span id="lblPaths" data-i18n="card.paths">关键路径</span>
             <p class="req-hint" id="pathsHint" data-i18n="card.pathsHint">联调必须覆盖的主路径</p>
             <div class="req-structured" id="criticalPathsView" tabindex="0"></div>
-            <textarea id="criticalPaths" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+            <textarea id="criticalPaths" class="req-edit" rows="1" data-i18n-placeholder="card.pathsPh" placeholder="例：登录 → 首页 → 提交表单"></textarea>
           </div>
           <div class="req-section field baseline-field" data-req="exceptionCases" id="exceptionCasesField">
             <span id="lblExceptions" data-i18n="card.exceptions">异常态</span>
             <p class="req-hint" id="exceptionsHint" data-i18n="card.exceptionsHint">至少覆盖空态 / 失败 / 权限不足 / 超时之一</p>
             <div class="req-structured" id="exceptionCasesView" tabindex="0"></div>
-            <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.placeholder" placeholder="待确认"></textarea>
+            <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.exceptionsPh" placeholder="例：空列表提示；权限不足提示；提交失败可重试"></textarea>
           </div>
           <p id="lockHint" class="hint" data-i18n="card.lockHint">确认前自动校验；通过后才能发出</p>
           <p id="validateHint" class="hint validate-hint" hidden></p>

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: guide filling FDE-01 baseline confirm fields
+
+- Feature chat / accept / fix / revise prompts include device matrix, critical
+  paths, and exception cases (fill defaults or offer options — do not leave empty)
+- Confirm card placeholders show examples instead of bare「待确认」
+
 ### Fix: auto-route architecture edges that cross unrelated nodes
 
 - Before Archify deliver, long same-row edges that would pass through other

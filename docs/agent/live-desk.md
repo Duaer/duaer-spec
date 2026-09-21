@@ -72,7 +72,8 @@ registry linking into the requirements document (no duplicate full cards).
 1. Chat evolves **`modules[]`** (and `activeModuleId`).
 2. Each module has its own confirm card (goal / out-of-scope / checkable
    acceptance / assumptions / **device matrix / critical paths / exception
-   cases** for feature). Validate must pass before Confirm.
+   cases** for feature). Chat prompts must fill or offer options for the three
+   baseline fields (not leave them empty). Validate must pass before Confirm.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
 4. When all relevant modules are confirmed, the desk unlocks architecture

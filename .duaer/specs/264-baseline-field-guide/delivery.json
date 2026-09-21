@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-21T00:40:00.000Z",
+  "summary": "Guide chat and placeholders to fill FDE-01 baseline confirm fields.",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs web/live-dev/app.js — pass",
+    "L1": "node --test test/live-i18n-common.test.mjs — pass",
+    "L3": "npm run test:live — pass"
+  }
+}
