@@ -65,15 +65,17 @@ After install, these are the capabilities you actually use:
 A local web console (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
 
 - **Projects.** Create and switch projects; each keeps its own chat and progress.
-- **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Vague acceptance cannot be confirmed. Beside **Send**, tap **Record** to capture speech; with a **speech recognition (STT) model** in Settings (OpenAI-compatible `/audio/transcriptions`, e.g. whisper-1), the clip is decoded into the composer—edit, then send.
+- **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Feature cards also need **device matrix, critical paths, and exception cases**. Vague acceptance cannot be confirmed. Beside **Send**, tap **Record** to capture speech; with a **speech recognition (STT) model** in Settings (OpenAI-compatible `/audio/transcriptions`, e.g. whisper-1), the clip is decoded into the composer—edit, then send.
 - **Split big work into modules.** Confirm module by module; nothing starts until you kick off after the ones you care about are confirmed.
 - **Architecture diagram.** After requirements, review the system diagram; click it for fullscreen; kickoff waits until architecture is confirmed. If chat claims the diagram is ready but the middle panel is empty, the same bubble offers Regenerate — it does not leave a false “ready” line.
+- **Sign the scope + acceptance baseline before kickoff.** After architecture confirm, an operator must **sign** (signer + time; fingerprint of confirmed module cards). Unsigned or stale fingerprints block **Write Brief and start**. An **open change** (with reason) clears the sign, returns modules for re-confirm, then architecture and re-sign.
 - **Dispatch digital employees to code.** Pick a product folder and Cursor Agent or Claude Code; work happens in an isolated worktree, not directly on your long-lived branches.
 - **Visible task progress.** Work is a checklist; each finished item is checked off and the console refreshes; dependent tasks release in waves so agents don’t pile on blocked work.
 - **Employee roles.** Top-bar **digital employee** directory (Implementer / Functional regression / Deployer). Optional parallel workers on the same CLI. See the next section.
 - **Locales.** Console UI: zh-CN, zh-TW, en, ja, ko, es, pt-BR, fr, de, ru, vi.
 - **Deliverables and results.** Open a deliverables page (requirements timeline,
-  architecture, tasks, delivery); when done, open the page or the project folder.
+  confirmation, baseline sign-off and change history, architecture, tasks,
+  delivery); when done, open the page or the project folder.
 - **Revise when it’s not right.** Continue in left chat → re-confirm → relaunch on
   the same job without starting from scratch. After deploy, **Revise again** and
   **Fix a bug** stay on the result bar.
@@ -163,15 +165,21 @@ mock LLM — no paid API).
    content. Messy multi-topic talk is fine: the console evolves **`modules[]`**
    (tabs). Chat bubbles render **Markdown** (`**bold**`, code, links).  
 2. Per module: fill the confirm card (goal / out-of-scope / **checkable**
-   acceptance / assumptions). Vague acceptance fails the gate; validate must
-   pass before **Confirm**. Confirming a module **locks that card only** — it
-   does **not** write a Brief or start workers yet. Jump between modules freely.  
+   acceptance / assumptions; feature cards also need **device matrix /
+   critical paths / exception cases**). Vague acceptance or missing baseline
+   fields fails the gate; validate must pass before **Confirm**. Confirming a
+   module **locks that card only** — it does **not** write a Brief or start
+   workers yet. Jump between modules freely.  
 3. When **all** modules you care about are confirmed → review / confirm
-   **architecture** (Archify) → **kickoff**. Kickoff writes the Brief, builds a
-   **dependency-aware task pool** (`dependsOn`), and assigns work. Default is
-   **1** worker; optionally **N** parallel workers on the **same CLI**. Shared
-   tasks go to worker 1; module tasks round-robin. Each worker gets its own
-   **Terminal queue lane** (`live-terminal` / `live-terminal/w2`…).  
+   **architecture** (Archify) → **sign the scope + acceptance baseline**
+   (signer) → **kickoff**. Kickoff stays blocked while unsigned or when the
+   fingerprint no longer matches confirmed cards. Kickoff writes the Brief,
+   builds a **dependency-aware task pool** (`dependsOn`), and assigns work.
+   Default is **1** worker; optionally **N** parallel workers on the **same
+   CLI**. Shared tasks go to worker 1; module tasks round-robin. Each worker
+   gets its own **Terminal queue lane** (`live-terminal` /
+   `live-terminal/w2`…). To change scope: **open change** (reason) → clear
+   sign and re-confirm modules → architecture again → re-sign.  
 4. Pick a product repo (browse / scan / recent), or paste a path / project name.
    Missing paths are created; set **Projects parent folder** so short names
    resolve under it. Non-git folders get `git init -b develop`; missing
@@ -184,10 +192,10 @@ mock LLM — no paid API).
    `.worktree/feat-*` and opens **Terminal** for each worker lane.  
 7. Progress shows a **next-action** stage strip, then `tasks.md` polling.
    **View deliverables** (above progress) opens a generated HTML page of stage
-   artifacts (requirements doc timeline, confirmation, architecture, task pool,
-   delivery). On delivery, workers update the product **README** before
-   `delivery.json` is `accepted`. Then open **Results** (**View result** when a
-   page exists, otherwise **Open
+   artifacts (requirements doc timeline, confirmation, baseline sign-off and
+   change history, architecture, task pool, delivery). On delivery, workers
+   update the product **README** before `delivery.json` is `accepted`. Then open
+   **Results** (**View result** when a page exists, otherwise **Open
    project folder**).  
 8. If the result is not right: **Continue improving (left chat)** → confirm the
    revise card (same validate gate) → re-confirm architecture (keep or redesign)

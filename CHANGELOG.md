@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Docs: README covers FDE-01 baseline sign
+
+- zh-CN / en README: feature confirm fields, signed baseline before kickoff,
+  change order, deliverables baseline history
+
 ### Feat: FDE-01 signed scope + acceptance baseline before kickoff
 
 - Confirm card requires device matrix, critical paths, and exception cases (feature)

@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-21T00:25:00.000Z",
+  "summary": "Document FDE-01 baseline sign in README zh-CN and en.",
+  "verification": {
+    "waiver": "docs-only",
+    "note": "README + CHANGELOG only; CJK scan on README.md clean"
+  }
+}
