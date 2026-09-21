@@ -63,7 +63,7 @@ function mockCompletion(body) {
       assumptions: "Mock OpenAI server is enough for CI",
       deviceMatrix: "Chrome latest two",
       criticalPaths: "open desk / run validate",
-      exceptionCases: "empty card fails validate",
+      exceptionCases: "empty list; failure can retry; permission denied; timeout",
       apiContract: "本模块无 HTTP API",
     });
   } else if (isAccept) {
@@ -77,7 +77,7 @@ function mockCompletion(body) {
       assumptions: "Mock OpenAI server is enough for CI",
       deviceMatrix: "Chrome latest two",
       criticalPaths: "open desk / run validate",
-      exceptionCases: "empty card fails validate",
+      exceptionCases: "empty list; failure can retry; permission denied; timeout",
       apiContract: "本模块无 HTTP API",
     });
   } else {
@@ -493,7 +493,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
     assumptions: "Mock OpenAI server is enough for CI",
     deviceMatrix: "Chrome latest two",
     criticalPaths: "open desk / run validate",
-    exceptionCases: "empty card fails validate",
+    exceptionCases: "empty list; failure can retry; permission denied; timeout",
     apiContract: "本模块无 HTTP API",
   };
   const ok = await fetch(`${live.base}/api/validate`, {

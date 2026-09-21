@@ -205,9 +205,9 @@
           </div>
           <div class="req-section field baseline-field" data-req="exceptionCases" id="exceptionCasesField">
             <span id="lblExceptions" data-i18n="card.exceptions">异常态</span>
-            <p class="req-hint" id="exceptionsHint" data-i18n="card.exceptionsHint">至少覆盖空态 / 失败 / 权限不足 / 超时之一</p>
+            <p class="req-hint" id="exceptionsHint" data-i18n="card.exceptionsHint">须覆盖空态、失败、权限不足、超时、可重试；有接口时写错误码</p>
             <div class="req-structured" id="exceptionCasesView" tabindex="0"></div>
-            <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.exceptionsPh" placeholder="例：空列表提示；权限不足提示；提交失败可重试"></textarea>
+            <textarea id="exceptionCases" class="req-edit" rows="1" data-i18n-placeholder="card.exceptionsPh" placeholder="例：空列表提示；提交失败可重试；权限不足；超时；错误码 403"></textarea>
           </div>
           <div class="req-section field baseline-field" data-req="apiContract" id="apiContractField">
             <span id="lblApiContract" data-i18n="card.apiContract">接口契约</span>

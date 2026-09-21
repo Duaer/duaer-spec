@@ -175,6 +175,7 @@ the table for their app.
 | E2E-203 | Chat SSE done payload passes deviceMatrix / criticalPaths / exceptionCases into middle confirm card | `npm run test:live` |
 | E2E-204 | FDE-02: feature confirm requires apiContract; path injects pool tasks; no-HTTP opt-out skips pool tasks | `npm test` + `npm run test:live` |
 | E2E-205 | Desk refresh restores device matrix, critical paths, exception cases, and API contract on the confirm card | `npm test` + `npm run test:live` |
+| E2E-206 | FDE-07: feature exception cases must cover empty, failure, permission, timeout, and retry; a contract path also needs an error code; kickoff adds UAT tasks | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -415,4 +416,5 @@ the table for their app.
 | E2E-203 | `265-baseline-chat-passthrough` | chat SSE keeps baseline fields |
 | E2E-204 | `266-fde02-api-contract` | API contract gate + pool tasks |
 | E2E-205 | `267-baseline-restore` | refresh keeps baseline confirm fields |
+| E2E-206 | `268-fde07-uat` | UAT pack on exception cases + kickoff |
 

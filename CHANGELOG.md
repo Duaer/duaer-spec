@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: FDE-07 UAT pack on confirm
+
+- Feature exception cases must cover empty, failure, permission, timeout, and retry
+- A declared API contract also requires an error code or HTTP status in that text
+- Kickoff adds a UAT task per confirmed module
+
 ### Fix: keep baseline confirm fields after desk refresh
 
 - Restoring a project session copies device matrix, critical paths, exception

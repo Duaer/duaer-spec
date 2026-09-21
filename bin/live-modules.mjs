@@ -11,6 +11,7 @@ import {
   apiContractRefs,
   modulesNeedApiContractTasks,
 } from "../web/live-dev/api-contract.mjs";
+import { missingUatCases } from "../web/live-dev/uat-pack.mjs";
 
 function clipCard(card) {
   if (!card || typeof card !== "object") {
@@ -422,12 +423,31 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
   }
 
   const verifyDeps = [...moduleVerifyId.values()];
+  const uatIds = [];
+  for (const m of list) {
+    const missing = missingUatCases(m.card?.exceptionCases);
+    const gap = missing.length ? `; still missing ${missing.join("/")}` : "";
+    const uat = push({
+      moduleId: m.id,
+      title: `FDE-07: UAT pack «${m.title}» — empty / failure / permission / timeout / retry${gap}`,
+      dependsOn: [moduleVerifyId.get(m.id)].filter(Boolean),
+      role: EMPLOYEE_ROLES.VERIFY_L3,
+    });
+    uatIds.push(uat.id);
+  }
+  let gate = uatIds.length ? uatIds : verifyDeps;
   if (modulesNeedApiContractTasks(list)) {
     const refs = apiContractRefs(list).join(" · ") || "declared contracts";
+    const align = push({
+      moduleId: null,
+      title: `FDE-07: align UAT failures with contract error codes (${truncate(refs, 120)})`,
+      dependsOn: gate,
+      role: EMPLOYEE_ROLES.VERIFY_L3,
+    });
     const sync = push({
       moduleId: null,
       title: `FDE-02: sync API contract as SSOT (${truncate(refs, 120)})`,
-      dependsOn: verifyDeps,
+      dependsOn: [align.id],
       role: EMPLOYEE_ROLES.IMPLEMENT,
     });
     const mock = push({
@@ -443,13 +463,12 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       dependsOn: [mock.id],
       role: EMPLOYEE_ROLES.VERIFY_L3,
     });
-    verifyDeps.length = 0;
-    verifyDeps.push(ci.id);
+    gate = [ci.id];
   }
   const verifyAll = push({
     moduleId: null,
     title: "Risk-based verification per testing.md (L0–L3 / Playwright when applicable)",
-    dependsOn: verifyDeps,
+    dependsOn: gate,
     role: EMPLOYEE_ROLES.VERIFY_L3,
   });
   const readme = push({

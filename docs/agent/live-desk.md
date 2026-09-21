@@ -75,8 +75,11 @@ registry linking into the requirements document (no duplicate full cards).
    cases** / **API contract** for feature). Chat prompts must fill or offer
    options for baseline and contract fields (not leave them empty). Validate
    must pass before Confirm. `apiContract` is an OpenAPI/types path, or
-   explicit「本模块无 HTTP API」. Declared paths cause kickoff to inject FDE-02
+   an explicit no-HTTP statement. Declared paths cause kickoff to inject FDE-02
    shared tasks (sync SSOT, Mock from contract, CI contract test + verify.json).
+   Exception cases are an FDE-07 UAT pack (empty, failure, permission, timeout,
+   retry). A declared contract path also requires an error code or HTTP status
+   in that text. Kickoff adds a UAT task per confirmed module.
    Refreshing the desk restores those four fields from the saved session.
 3. Confirm locks **that module only**. It does **not** call `writeBrief` and does
    **not** start Terminal workers.
