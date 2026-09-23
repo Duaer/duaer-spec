@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "Compact FDE desk with calm slate light/dark themes and a persistent top-bar toggle.",
+  "verification": {
+    "commands": [
+      "node --check web/live-dev/app.js",
+      "node --test test/desk-theme.test.mjs test/live-i18n-common.test.mjs test/live-i18n-ja.test.mjs",
+      "npm run test:live"
+    ],
+    "result": "all pass"
+  }
+}
