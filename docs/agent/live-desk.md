@@ -169,7 +169,9 @@ Kickoff owns Brief creation and dispatch. Order after architecture confirm:
 2. **Recommend** digital-employee count (1–4) from parallel width; the operator
    may change it, then **confirm** to build the **派工图**. After a successful
    build, the confirm button and worker-count chips **lock** until the graph
-   is invalidated (re-decompose, architecture change, or open change).
+   is invalidated. Each new wave (architecture confirm, including after
+   **改进**) **redecomposes** and requires a **new** graph — button shows
+  「重新确认并生成派工图」when regenerating.
 3. Launch uses the confirmed pool and worker count.
 
 Additional notes:

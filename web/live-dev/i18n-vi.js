@@ -288,6 +288,7 @@ export const vi = {
   "dispatch.decomposeEmpty": "Chưa có nhiệm vụ",
   "dispatch.parallelChip": "Song song",
   "dispatch.confirmWorkersGraph": "Xác nhận số lượng và tạo đồ thị",
+  "dispatch.regenWorkersGraph": "Xác nhận lại và tạo lại đồ thị",
   "dispatch.confirmWorkersLocked": "Đã xác nhận — đồ thị sẵn sàng",
   "dispatch.graphBuilding": "Đang tạo đồ thị…",
   "dispatch.graphBuildFail": "Tạo đồ thị thất bại",

@@ -1,5 +1,5 @@
 {
-  "feature": "283-desk-theme-compact",
-  "branch": "feat/desk-theme-compact",
-  "worktree": ".worktree/feat-desk-theme-compact"
+  "feature": "284-dispatch-graph-regen",
+  "branch": "feat/dispatch-graph-regen",
+  "worktree": ".worktree/feat-dispatch-graph-regen"
 }

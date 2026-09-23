@@ -288,6 +288,7 @@ export const ja = {
   "dispatch.decomposeEmpty": "まだタスクがありません",
   "dispatch.parallelChip": "並列可",
   "dispatch.confirmWorkersGraph": "人数を確定して派工図を生成",
+  "dispatch.regenWorkersGraph": "人数を再確定して派工図を生成",
   "dispatch.confirmWorkersLocked": "確定済み — 派工図を生成済み",
   "dispatch.graphBuilding": "派工図を生成中…",
   "dispatch.graphBuildFail": "派工図の生成に失敗しました",

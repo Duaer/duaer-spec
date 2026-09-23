@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "Each architecture/improve wave forces a fresh 派工图; confirm button shows regenerate when rebuilding; stale clears old URL.",
+  "verification": {
+    "commands": [
+      "node --check web/live-dev/app.js",
+      "node --test test/task-graph.test.mjs test/live-i18n-common.test.mjs test/live-i18n-ja.test.mjs",
+      "npm run test:live"
+    ],
+    "result": "all pass"
+  }
+}

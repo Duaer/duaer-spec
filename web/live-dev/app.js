@@ -111,6 +111,8 @@ const state = {
   dispatchGraphReady: false,
   dispatchGraphBuilding: false,
   dispatchGraphUrl: null,
+  /** True after at least one successful graph build this desk session (regen copy). */
+  dispatchGraphBuiltOnce: false,
   /** Latest /api/status progress.tasks for dispatch-graph run colors. */
   lastJobProgress: null,
   recommendedWorkerCount: 1,
@@ -1290,14 +1292,21 @@ function syncConfirmWorkersGraphButton() {
   if (!btn) return;
   const busy = Boolean(state.dispatchGraphBuilding);
   const locked = Boolean(state.dispatchGraphReady);
+  const regen =
+    !locked &&
+    !busy &&
+    Boolean(state.dispatchGraphBuiltOnce);
   btn.disabled = busy || locked;
   btn.setAttribute("aria-busy", busy ? "true" : "false");
   btn.classList.toggle("is-busy", busy);
   btn.classList.toggle("is-locked", locked && !busy);
+  btn.classList.toggle("is-regen", regen);
   if (busy) {
     btn.textContent = t("dispatch.graphBuilding");
   } else if (locked) {
     btn.textContent = t("dispatch.confirmWorkersLocked");
+  } else if (regen) {
+    btn.textContent = t("dispatch.regenWorkersGraph");
   } else {
     btn.textContent = t("dispatch.confirmWorkersGraph");
   }
@@ -1310,20 +1319,47 @@ function syncOpenTaskGraphButton() {
   syncConfirmWorkersGraphButton();
 }
 
-function markDispatchGraphStale() {
-  if (!state.dispatchGraphReady) {
-    syncOpenTaskGraphButton();
-    renderWorkerCountList();
-    return;
-  }
+/**
+ * Drop the current 派工图 so the operator must confirm+build again.
+ * @param {{ silent?: boolean, hidePanel?: boolean }} [opts]
+ */
+function clearDispatchGraphState(opts = {}) {
+  const silent = Boolean(opts.silent);
+  const hidePanel = Boolean(opts.hidePanel);
   state.dispatchGraphReady = false;
+  state.dispatchGraphBuilding = false;
+  state.dispatchGraphUrl = null;
+  if (hidePanel && el.dispatch) el.dispatch.hidden = true;
   syncOpenTaskGraphButton();
   renderWorkerCountList();
-  if (el.dispatchErr) {
+  if (!silent && el.dispatchErr && state.dispatchGraphBuiltOnce) {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent = t("dispatch.graphStale");
   }
   schedulePersistProjectDesk();
+}
+
+/**
+ * Start a new kickoff wave: fresh task pool + new 派工图 required.
+ * @param {{ hidePanel?: boolean, silent?: boolean }} [opts]
+ */
+function resetDispatchGraphForNewWave(opts = {}) {
+  state.taskPool = null;
+  if (el.taskPoolList) el.taskPoolList.replaceChildren();
+  if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
+  clearDispatchGraphState({
+    silent: opts.silent !== false,
+    hidePanel: Boolean(opts.hidePanel),
+  });
+}
+
+function markDispatchGraphStale() {
+  if (!state.dispatchGraphReady && !state.dispatchGraphUrl) {
+    syncOpenTaskGraphButton();
+    renderWorkerCountList();
+    return;
+  }
+  clearDispatchGraphState({ silent: false, hidePanel: false });
 }
 
 function applyRecommendedWorkerCount(tasks) {
@@ -1393,9 +1429,7 @@ function decomposeTasksFromModules() {
   applyRecommendedWorkerCount(annotated);
   renderWorkerCountList();
   renderTaskPoolList(annotated);
-  state.dispatchGraphReady = false;
-  syncOpenTaskGraphButton();
-  schedulePersistProjectDesk();
+  clearDispatchGraphState({ silent: true, hidePanel: false });
   return state.taskPool;
 }
 
@@ -1476,13 +1510,16 @@ async function confirmWorkersAndBuildGraph() {
     }
     state.dispatchGraphUrl = String(data.url || "").trim() || null;
     state.dispatchGraphReady = true;
+    state.dispatchGraphBuiltOnce = true;
     syncOpenTaskGraphButton();
+    renderWorkerCountList();
     schedulePersistProjectDesk();
     addBubble("bot", t("dispatch.graphBuilt", { n: String(workerCount) }));
   } catch (err) {
     state.dispatchGraphReady = false;
     state.dispatchGraphUrl = null;
     syncOpenTaskGraphButton();
+    renderWorkerCountList();
     const msg =
       err instanceof Error ? err.message : t("dispatch.graphBuildFail");
     if (el.dispatchErr) {
@@ -1545,12 +1582,7 @@ async function openDispatchGraphPresent() {
 }
 
 function invalidateDispatchAfterArchChange() {
-  state.dispatchGraphReady = false;
-  state.dispatchGraphBuilding = false;
-  state.dispatchGraphUrl = null;
-  setConfirmWorkersGraphBusy(false);
-  syncOpenTaskGraphButton();
-  if (el.dispatch) el.dispatch.hidden = true;
+  clearDispatchGraphState({ silent: true, hidePanel: true });
 }
 
 function openDispatchCenterPage(projectPath) {
@@ -2174,7 +2206,9 @@ function beginBugFixFromCta() {
     state.dispatchPhase = null;
     state.taskPool = null;
     state.dispatchGraphReady = false;
+    state.dispatchGraphBuilding = false;
     state.dispatchGraphUrl = null;
+    state.dispatchGraphBuiltOnce = false;
     state.reviseLocked = false;
     state.revisePlanConfirmed = false;
     state.architecture = {
@@ -3023,6 +3057,7 @@ async function persistProjectChat() {
         bugHotfix: Boolean(state.bugHotfix),
         dispatchGraphReady: Boolean(state.dispatchGraphReady),
         dispatchGraphUrl: state.dispatchGraphUrl || null,
+        dispatchGraphBuiltOnce: Boolean(state.dispatchGraphBuiltOnce),
         reviseCard: reviseCardValues(),
         reviseCards: cardsLite,
         bugCards: bugCardsLite,
@@ -3164,6 +3199,7 @@ function clearDeskWorkspace() {
   state.dispatchGraphReady = false;
   state.dispatchGraphBuilding = false;
   state.dispatchGraphUrl = null;
+  state.dispatchGraphBuiltOnce = false;
   state.recommendedWorkerCount = 1;
   state.mode = "specify";
   if (el.moduleTabs) {
@@ -3416,6 +3452,9 @@ async function loadProjectChatIntoUi(projectPath) {
     state.bugHotfix = Boolean(data.bugHotfix);
     state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
     state.dispatchGraphUrl = String(data.dispatchGraphUrl || "").trim() || null;
+    state.dispatchGraphBuiltOnce = Boolean(
+      data.dispatchGraphBuiltOnce || data.dispatchGraphReady || data.dispatchGraphUrl,
+    );
     if (state.taskPool?.tasks?.length) {
       state.recommendedWorkerCount = recommendWorkerCount(state.taskPool.tasks, {
         max: 4,
@@ -5746,7 +5785,8 @@ function confirmArchitecture() {
   schedulePersistProjectDesk();
   addBubble("bot", t("arch.hintConfirmed"));
   // Decompose → recommend workers → confirm graph, then launch (incl. revise).
-  void showDispatchPanel();
+  // Always start a new 派工图 wave after architecture confirm.
+  void showDispatchPanel({ forceNewWave: true });
 }
 
 async function autoFixAccept(btn, issues, kind = "confirm") {
@@ -5900,7 +5940,8 @@ async function tryRecoverDispatchDone() {
   }
 }
 
-async function showDispatchPanel() {
+async function showDispatchPanel(opts = {}) {
+  const forceNewWave = Boolean(opts.forceNewWave);
   el.dispatch.hidden = false;
   el.dispatchErr.hidden = true;
   el.dispatchStatus.hidden = true;
@@ -5909,7 +5950,9 @@ async function showDispatchPanel() {
   if (state.projectPath && el.repoPath) {
     el.repoPath.value = state.projectPath;
   }
-  if (!state.taskPool?.tasks?.length) {
+  // Each architecture-confirm wave needs a fresh pool + new 派工图.
+  if (forceNewWave || !state.taskPool?.tasks?.length) {
+    resetDispatchGraphForNewWave({ silent: true, hidePanel: false });
     decomposeTasksFromModules();
   } else {
     applyRecommendedWorkerCount(state.taskPool.tasks);
@@ -6227,7 +6270,7 @@ function openBaselineChange() {
     confirmed: false,
     status: state.architecture.url ? "preview" : "idle",
   };
-  state.dispatchGraphReady = false;
+  clearDispatchGraphState({ silent: true, hidePanel: false });
   if (el.baselineChangeReason) el.baselineChangeReason.value = "";
   if (el.baselineSigner) el.baselineSigner.value = "";
   applyActiveModuleToFields();
@@ -7915,6 +7958,8 @@ function enterReviseMode() {
   state.reviseLocked = false;
   state.reviseDispatching = false;
   state.revisePlanConfirmed = false;
+  // New improve wave — prior 派工图 must not stay locked/ready.
+  resetDispatchGraphForNewWave({ silent: true, hidePanel: true });
   // Keep prior revise dialogue history (do not wipe reviseMessages).
   // Advance to the next iteration card — never overwrite prior reviseCards.
   const nextRev = nextReviseRevisionNumber();
@@ -8308,7 +8353,7 @@ async function confirmReviseAndDispatch() {
       el.reviseErr.hidden = false;
       el.reviseErr.textContent = t("dispatch.needGraphConfirm");
     }
-    void showDispatchPanel();
+    void showDispatchPanel({ forceNewWave: !state.taskPool?.tasks?.length });
     return;
   }
   await dispatchReviseAgent();
@@ -9158,8 +9203,15 @@ if (el.openTaskGraph) {
 }
 if (el.redecomposeTasks) {
   el.redecomposeTasks.addEventListener("click", () => {
+    const hadGraph =
+      state.dispatchGraphReady ||
+      Boolean(state.dispatchGraphUrl) ||
+      state.dispatchGraphBuiltOnce;
     decomposeTasksFromModules();
-    markDispatchGraphStale();
+    if (hadGraph && el.dispatchErr) {
+      el.dispatchErr.hidden = false;
+      el.dispatchErr.textContent = t("dispatch.graphStale");
+    }
   });
 }
   if (el.confirmWorkersGraph) {

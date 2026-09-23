@@ -288,6 +288,7 @@ export const fr = {
   "dispatch.decomposeEmpty": "Pas encore de tâches",
   "dispatch.parallelChip": "Parallèle",
   "dispatch.confirmWorkersGraph": "Confirmer le nombre et générer le graphe",
+  "dispatch.regenWorkersGraph": "Reconfirmer et régénérer le graphe",
   "dispatch.confirmWorkersLocked": "Confirmé — graphe prêt",
   "dispatch.graphBuilding": "Génération du graphe…",
   "dispatch.graphBuildFail": "Échec de génération du graphe",

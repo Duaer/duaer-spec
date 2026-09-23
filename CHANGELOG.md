@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: regenerate dispatch graph on every improve wave
+
+- Architecture confirm always starts a fresh task pool and unlocked confirm
+- 「再改一版」clears the prior 派工图; button shows「重新确认并生成派工图」
+- Stale / re-decompose clears the old graph URL so view cannot open a leftover
+
 ### Feat: compact desk theme with light/dark toggle
 
 - Tighter shell, header, columns, and field spacing
