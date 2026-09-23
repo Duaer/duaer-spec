@@ -1,5 +1,5 @@
 {
-  "feature": "280-arch-bottom-via-label",
-  "branch": "fix/arch-label-overlap",
-  "worktree": ".worktree/fix-arch-label-overlap"
+  "feature": "281-release-0272",
+  "branch": "feat/release-0272",
+  "worktree": ".worktree/feat-release-0272"
 }

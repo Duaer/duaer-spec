@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.27.2 — 2026-09-23
+
 ### Fix: bottom-via edge labels stay under the floor
 
 - Bottom/top via labels use `labelAt` on the via corridor instead of
