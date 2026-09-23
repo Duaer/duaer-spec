@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Create mode refuses when the target project directory already exists. Open from the list or browse still works. Existing folder contents are left untouched.",
+  "verification": {
+    "L0": "node --check bin/live-repo-path.mjs bin/duaer-live.mjs web/live-dev/app.js — pass",
+    "L1": "npm test — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

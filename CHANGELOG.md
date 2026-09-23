@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: creating a project no longer reuses an existing directory
+
+- Create mode refuses when the target folder already exists on disk
+- Open an existing project from the list or browse; do not create over it
+- Hint copy tells the operator to rename or open the existing project
+
 ### Feat: FDE-08 performance budget before confirm
 
 - Feature confirm must name LCP, INP, bundle size, virtualized long lists, a weak-network check, and a large-data check

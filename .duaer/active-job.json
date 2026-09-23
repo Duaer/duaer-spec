@@ -1,5 +1,5 @@
 {
-  "feature": "276-fde08-perf-budget",
-  "branch": "feat/fde08-perf-budget",
-  "worktree": ".worktree/feat-fde08-perf-budget"
+  "feature": "277-project-dir-reuse",
+  "branch": "fix/project-dir-reuse",
+  "worktree": ".worktree/fix-project-dir-reuse"
 }

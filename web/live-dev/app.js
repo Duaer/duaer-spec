@@ -8909,6 +8909,7 @@ async function activateProjectPath(pathOrName, meta = {}) {
     return;
   }
   const requireMeta = meta.requireMeta !== false;
+  const create = meta.create === true;
   const title = String(meta.title ?? "").trim();
   const description = String(meta.description ?? "").trim();
   if (requireMeta) {
@@ -8930,6 +8931,7 @@ async function activateProjectPath(pathOrName, meta = {}) {
     if (requireMeta || title) body.title = title;
     if (requireMeta || description) body.description = description;
     if (requireMeta) body.requireMeta = true;
+    if (create) body.create = true;
     const res = await fetch("/api/projects/activate", {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -9174,6 +9176,7 @@ el.projectActivate?.addEventListener("click", () => {
     title: (el.projectTitle?.value || "").trim(),
     description: (el.projectDescription?.value || "").trim(),
     requireMeta: true,
+    create: true,
   });
 });
 
@@ -9202,6 +9205,7 @@ el.projectBrowse?.addEventListener("click", async () => {
         title,
         description,
         requireMeta: true,
+        create: false,
       });
     }
   } catch (err) {

@@ -77,6 +77,7 @@ import {
   CURSOR_INSTALL_CMD as TOOLING_CURSOR_INSTALL,
 } from "./live-tooling.mjs";
 import {
+  assertProductDirFreeForCreate,
   ensureProductDir,
   resolveProductRepoPath,
 } from "./live-repo-path.mjs";
@@ -2551,14 +2552,23 @@ function activateProject(body = {}) {
   }
   const titleIn = String(body.title || "").trim();
   const descriptionIn = String(body.description || "").trim();
+  const create = body.create === true || body.mode === "create";
   const abs = resolveProductRepoPath(raw, {
     projectsRoot: cfg.projectsRoot,
   });
+  if (create) {
+    assertProductDirFreeForCreate(abs);
+  } else if (!fs.existsSync(abs)) {
+    const e = new Error(`项目目录不存在：${abs}`);
+    e.code = "PATH_MISSING";
+    e.path = abs;
+    throw e;
+  }
   const ensured = ensureProductDir(abs);
   const existing = readRepos().find(
     (r) => normalizeRepoPath(r.path) === normalizeRepoPath(abs),
   );
-  const isNew = Boolean(ensured.created) || !existing;
+  const isNew = Boolean(ensured.created) || (create && !existing);
   const needMeta = Boolean(body.requireMeta) || isNew;
   if (needMeta && !titleIn) {
     const e = new Error("请填写项目名称");
@@ -2575,12 +2585,17 @@ function activateProject(body = {}) {
     exact: true,
     ensureDuaer: false,
   });
-  const savedTitle =
-    titleIn ||
-    existing?.title ||
-    existing?.name ||
-    path.basename(probe.path);
-  const savedDesc = descriptionIn || existing?.description || "";
+  // Opening an existing project keeps prior title/description unless the
+  // caller sends non-empty replacements. Create always writes the new meta.
+  const savedTitle = create
+    ? titleIn || path.basename(probe.path)
+    : titleIn ||
+      existing?.title ||
+      existing?.name ||
+      path.basename(probe.path);
+  const savedDesc = create
+    ? descriptionIn
+    : descriptionIn || existing?.description || "";
   rememberRepo(probe.path, {
     title: savedTitle,
     name: savedTitle,

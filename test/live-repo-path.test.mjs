@@ -8,6 +8,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
+  assertProductDirFreeForCreate,
   ensureProductDir,
   resolveProductRepoPath,
 } from "../bin/live-repo-path.mjs";
@@ -70,9 +71,41 @@ test("ensureProductDir refuses $HOME and FS root", () => {
   }
 });
 
+test("assertProductDirFreeForCreate refuses an existing directory", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const target = path.join(home, "Projects", "taken");
+  fs.mkdirSync(target, { recursive: true });
+  fs.writeFileSync(path.join(target, "keep.txt"), "do not wipe\n");
+  try {
+    assert.throws(
+      () => assertProductDirFreeForCreate(target),
+      (err) => err && err.code === "PATH_EXISTS",
+    );
+    assert.equal(
+      fs.readFileSync(path.join(target, "keep.txt"), "utf8"),
+      "do not wipe\n",
+    );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("assertProductDirFreeForCreate allows a missing path", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const target = path.join(home, "Projects", "fresh");
+  try {
+    assert.equal(assertProductDirFreeForCreate(target), path.resolve(target));
+    assert.equal(fs.existsSync(target), false);
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
 test("live sources wire product dir ensure", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
-  assert.match(live, /ensureProductDir/);
+  assert.match(live, /assertProductDirFreeForCreate/);
+  assert.match(live, /body\.create === true|create === true/);
+  assert.doesNotMatch(live, /isNew = Boolean\(ensured\.created\) \|\| !existing/);
   assert.match(live, /resolveProductRepoPath/);
   assert.match(live, /projectsRoot/);
   assert.match(live, /\/api\/projects\/pick-root/);
@@ -97,4 +130,5 @@ test("live sources wire product dir ensure", () => {
   assert.match(js, /\/api\/projects\/pick-root/);
   assert.match(js, /pickProjectsRoot/);
   assert.match(js, /el\.projectsRoot\?\.addEventListener\("click"/);
+  assert.match(js, /create:\s*true/);
 });

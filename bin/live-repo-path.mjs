@@ -54,6 +54,28 @@ export function resolveProductRepoPath(repoPath, opts = {}) {
 }
 
 /**
+ * Create mode must not reuse an on-disk folder (would clobber the prior project).
+ * @param {string} absPath
+ */
+export function assertProductDirFreeForCreate(absPath) {
+  const abs = resolve(String(absPath || ""));
+  if (!abs) {
+    const e = new Error("请填写仓库绝对路径，或项目名（需先设置产品父目录）");
+    e.code = "EMPTY_PATH";
+    throw e;
+  }
+  if (existsSync(abs)) {
+    const e = new Error(
+      `项目目录已存在：${abs}。请换一个目录名，或从「已有项目」打开。`,
+    );
+    e.code = "PATH_EXISTS";
+    e.path = abs;
+    throw e;
+  }
+  return abs;
+}
+
+/**
  * Create missing directory (recursive). Refuses FS root and $HOME itself.
  * @returns {{ path: string, created: boolean }}
  */
