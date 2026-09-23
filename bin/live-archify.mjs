@@ -355,17 +355,19 @@ export function repairArchitectureGeometry(ir) {
       e.label = truncateToUnits(String(e.label).trim(), MAX_EDGE_LABEL_UNITS);
       if (!e.label) delete e.label;
     }
-    if (e.label && e.labelAt == null) {
+    if (e.label && e.labelAt == null && e.labelDx == null && e.labelDy == null) {
       // Pull labels above the edge so they clear horizontally adjacent boxes.
-      e.labelDy = -28;
+      e.labelDy = -36;
     }
   }
   return ir;
 }
 
 /**
- * Detour long same-row edges that would pass through unrelated components.
- * Archify clean-flow rejects those as edge-through-node.
+ * Detour edges that would pass through unrelated components.
+ * Same-row long edges prefer a bottom/top via under/over the floor.
+ * Diagonal / stacked edges pick a corridor whose segments stay clear
+ * of unrelated boxes (Archify clean-flow edge-through-node).
  * @param {object} ir
  */
 export function routeCrossingEdges(ir) {
@@ -375,11 +377,15 @@ export function routeCrossingEdges(ir) {
   if (components.length < 3 || !connections.length) return ir;
 
   const byId = new Map();
+  let maxRight = 0;
+  let minLeft = Infinity;
+  let floorY = 0;
+  let ceilY = Infinity;
   for (const c of components) {
     if (!c?.id || !hasFinitePos(c)) continue;
     const w = hasFiniteSize(c) ? c.size[0] : 140;
     const h = hasFiniteSize(c) ? c.size[1] : 64;
-    byId.set(c.id, {
+    const box = {
       id: c.id,
       x: c.pos[0],
       y: c.pos[1],
@@ -389,48 +395,305 @@ export function routeCrossingEdges(ir) {
       cy: c.pos[1] + h / 2,
       bottom: c.pos[1] + h,
       top: c.pos[1],
-    });
+      right: c.pos[0] + w,
+      left: c.pos[0],
+    };
+    byId.set(c.id, box);
+    maxRight = Math.max(maxRight, box.right);
+    minLeft = Math.min(minLeft, box.left);
+    floorY = Math.max(floorY, box.bottom);
+    ceilY = Math.min(ceilY, box.top);
   }
   if (byId.size < 3) return ir;
 
-  let floorY = 0;
-  for (const b of byId.values()) floorY = Math.max(floorY, b.bottom);
+  const CLEAR = 8;
+
+  /** Axis-aligned segment vs box with clearance (Archify uses ~2px). */
+  function segHitsBox(x1, y1, x2, y2, box) {
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+    return (
+      maxX >= box.left - CLEAR &&
+      minX <= box.right + CLEAR &&
+      maxY >= box.top - CLEAR &&
+      minY <= box.bottom + CLEAR
+    );
+  }
+
+  function pathClear(pts, skipA, skipB) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const [x1, y1] = pts[i];
+      const [x2, y2] = pts[i + 1];
+      for (const other of byId.values()) {
+        if (other.id === skipA || other.id === skipB) continue;
+        if (segHitsBox(x1, y1, x2, y2, other)) return false;
+      }
+    }
+    return true;
+  }
+
+  /** Port point on a box side. */
+  function port(box, side) {
+    switch (side) {
+      case "left":
+        return [box.left, box.cy];
+      case "right":
+        return [box.right, box.cy];
+      case "top":
+        return [box.cx, box.top];
+      case "bottom":
+        return [box.cx, box.bottom];
+      default:
+        return [box.cx, box.cy];
+    }
+  }
+
+  function tryRoute(a, b, fromSide, toSide, via) {
+    const pts = [port(a, fromSide), ...via, port(b, toSide)];
+    if (!pathClear(pts, a.id, b.id)) return null;
+    return { fromSide, toSide, via };
+  }
+
+  /** Vertical gutters between sorted unique column centers. */
+  function gutterXs() {
+    const cols = [...byId.values()]
+      .map((b) => b.cx)
+      .sort((x, y) => x - y);
+    const uniq = [];
+    for (const x of cols) {
+      if (!uniq.length || Math.abs(uniq[uniq.length - 1] - x) > 40) uniq.push(x);
+    }
+    const gutters = [Math.round(minLeft - 56), Math.round(maxRight + 56)];
+    for (let i = 0; i < uniq.length - 1; i++) {
+      const leftBoxes = [...byId.values()].filter((b) => Math.abs(b.cx - uniq[i]) < 48);
+      const rightBoxes = [...byId.values()].filter(
+        (b) => Math.abs(b.cx - uniq[i + 1]) < 48,
+      );
+      const rightEdge = Math.max(...leftBoxes.map((b) => b.right));
+      const leftEdge = Math.min(...rightBoxes.map((b) => b.left));
+      if (leftEdge - rightEdge > 40) {
+        gutters.push(Math.round((rightEdge + leftEdge) / 2));
+      }
+    }
+    return gutters;
+  }
+
   let detourIndex = 0;
 
   for (const e of connections) {
     if (!e || typeof e !== "object") continue;
-    if (Array.isArray(e.via) && e.via.length) continue;
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
-    const span = Math.abs(a.cx - b.cx);
-    if (span < 160) continue;
 
-    const minX = Math.min(a.cx, b.cx);
-    const maxX = Math.max(a.cx, b.cx);
-    const bandTop = Math.min(a.top, b.top) - 12;
-    const bandBot = Math.max(a.bottom, b.bottom) + 12;
+    const horizSpan = Math.abs(a.cx - b.cx);
+    const vertSpan = Math.abs(a.cy - b.cy);
+    if (horizSpan < 40 && vertSpan < 80) continue;
+
+    const boxMinX = Math.min(a.left, b.left);
+    const boxMaxX = Math.max(a.right, b.right);
+    const boxMinY = Math.min(a.top, b.top);
+    const boxMaxY = Math.max(a.bottom, b.bottom);
+
     let blocked = false;
     for (const other of byId.values()) {
       if (other.id === a.id || other.id === b.id) continue;
-      if (other.x + other.w <= minX + 12 || other.x >= maxX - 12) continue;
-      if (other.y < bandBot && other.y + other.h > bandTop) {
+      const inBox =
+        other.right > boxMinX + 8 &&
+        other.left < boxMaxX - 8 &&
+        other.bottom > boxMinY + 8 &&
+        other.top < boxMaxY - 8;
+      if (inBox) {
         blocked = true;
         break;
       }
     }
+
+    if (!blocked && Array.isArray(e.via) && e.via.length) {
+      const viaY = Number(e.via[0]?.[1]);
+      if (
+        Number.isFinite(viaY) &&
+        (e.fromSide === "bottom" || e.toSide === "bottom")
+      ) {
+        for (const other of byId.values()) {
+          if (other.id === a.id || other.id === b.id) continue;
+          const underA =
+            Math.abs(other.cx - a.cx) < 48 &&
+            other.top >= a.bottom - 4 &&
+            other.top < viaY;
+          const underB =
+            Math.abs(other.cx - b.cx) < 48 &&
+            other.top >= b.bottom - 4 &&
+            other.top < viaY;
+          if (underA || underB) {
+            blocked = true;
+            break;
+          }
+        }
+      }
+    }
+
     if (!blocked) continue;
 
-    const viaY = floorY + 48 + detourIndex * 28;
+    const sameRow = vertSpan < 80 && horizSpan >= 160;
+    const candidates = [];
+
+    if (sameRow) {
+      const viaYBot = floorY + 48 + detourIndex * 28;
+      const viaYTop = ceilY - 48 - detourIndex * 28;
+      candidates.push(
+        tryRoute(a, b, "bottom", "bottom", [
+          [Math.round(a.cx), Math.round(viaYBot)],
+          [Math.round(b.cx), Math.round(viaYBot)],
+        ]),
+      );
+      candidates.push(
+        tryRoute(a, b, "top", "top", [
+          [Math.round(a.cx), Math.round(viaYTop)],
+          [Math.round(b.cx), Math.round(viaYTop)],
+        ]),
+      );
+      // Side corridors for same-row when floor/ceil are blocked
+      for (const side of ["right", "left"]) {
+        const viaX =
+          side === "right"
+            ? Math.round(maxRight + 56 + detourIndex * 36)
+            : Math.round(minLeft - 56 - detourIndex * 36);
+        candidates.push(
+          tryRoute(a, b, side, side, [
+            [viaX, Math.round(a.cy)],
+            [viaX, Math.round(b.cy)],
+          ]),
+        );
+      }
+    } else {
+      const gutters = gutterXs();
+      const ceil = ceilY - 48 - detourIndex * 20;
+      const floor = floorY + 48 + detourIndex * 20;
+      for (const gx of gutters) {
+        // Approach destination from the gutter side
+        const toSide = b.cx < gx ? "right" : "left";
+        const fromSide = a.cx < gx ? "right" : "left";
+        // Top wrap into gutter then into target
+        candidates.push(
+          tryRoute(a, b, "top", toSide, [
+            [Math.round(a.cx), Math.round(ceil)],
+            [Math.round(gx), Math.round(ceil)],
+            [Math.round(gx), Math.round(b.cy)],
+          ]),
+        );
+        candidates.push(
+          tryRoute(a, b, fromSide, toSide, [
+            [Math.round(gx), Math.round(a.cy)],
+            [Math.round(gx), Math.round(b.cy)],
+          ]),
+        );
+        candidates.push(
+          tryRoute(a, b, fromSide, "bottom", [
+            [Math.round(gx), Math.round(a.cy)],
+            [Math.round(gx), Math.round(floor)],
+            [Math.round(b.cx), Math.round(floor)],
+          ]),
+        );
+        candidates.push(
+          tryRoute(a, b, "bottom", toSide, [
+            [Math.round(a.cx), Math.round(floor)],
+            [Math.round(gx), Math.round(floor)],
+            [Math.round(gx), Math.round(b.cy)],
+          ]),
+        );
+      }
+      // Prefer right outer when mid is leftish (matches stacked fixtures)
+      const preferRight =
+        (a.cx + b.cx) / 2 <= (minLeft + maxRight) / 2 + (maxRight - minLeft) * 0.1;
+      const orderedSides = preferRight ? ["right", "left"] : ["left", "right"];
+      for (const side of orderedSides) {
+        const viaX =
+          side === "right"
+            ? Math.round(maxRight + 56 + detourIndex * 36)
+            : Math.round(minLeft - 56 - detourIndex * 36);
+        candidates.push(
+          tryRoute(a, b, side, side, [
+            [viaX, Math.round(a.cy)],
+            [viaX, Math.round(b.cy)],
+          ]),
+        );
+      }
+    }
+
+    const chosen = candidates.find(Boolean);
+    if (!chosen) continue;
+
     detourIndex += 1;
-    e.fromSide = "bottom";
-    e.toSide = "bottom";
-    e.via = [
-      [Math.round(a.cx), Math.round(viaY)],
-      [Math.round(b.cx), Math.round(viaY)],
-    ];
-    if (e.label && e.labelAt == null && e.labelDy == null) {
-      e.labelDy = -28;
+    e.fromSide = chosen.fromSide;
+    e.toSide = chosen.toSide;
+    e.via = chosen.via;
+    if (e.label && e.labelAt == null) {
+      if (chosen.fromSide === "bottom" || chosen.toSide === "bottom") {
+        e.labelDy = -36;
+        delete e.labelDx;
+      } else if (chosen.fromSide === "top" || chosen.toSide === "top") {
+        e.labelDy = 36;
+        delete e.labelDx;
+      } else {
+        e.labelDx = chosen.fromSide === "right" ? -36 : 36;
+        delete e.labelDy;
+      }
+    }
+  }
+  return ir;
+}
+
+/**
+ * Stacked nodes on a vertical edge leave the default mid-edge label on a box.
+ * Place the label in the gap between the two boxes, offset sideways.
+ * @param {object} ir
+ */
+export function repairEdgeLabelPlacement(ir) {
+  if (!ir || typeof ir !== "object") return ir;
+  const components = Array.isArray(ir.components) ? ir.components : [];
+  const connections = Array.isArray(ir.connections) ? ir.connections : [];
+  const byId = new Map();
+  for (const c of components) {
+    if (!c?.id || !hasFinitePos(c)) continue;
+    const w = hasFiniteSize(c) ? c.size[0] : 140;
+    const h = hasFiniteSize(c) ? c.size[1] : 64;
+    byId.set(c.id, {
+      cx: c.pos[0] + w / 2,
+      cy: c.pos[1] + h / 2,
+      left: c.pos[0],
+      right: c.pos[0] + w,
+      top: c.pos[1],
+      bottom: c.pos[1] + h,
+    });
+  }
+  for (const e of connections) {
+    if (!e?.label || e.labelAt != null) continue;
+    const a = byId.get(e.from);
+    const b = byId.get(e.to);
+    if (!a || !b) continue;
+    const horizSpan = Math.abs(a.cx - b.cx);
+    const vertSpan = Math.abs(a.cy - b.cy);
+    if (vertSpan >= 60 && horizSpan < 80) {
+      const upper = a.cy <= b.cy ? a : b;
+      const lower = a.cy <= b.cy ? b : a;
+      const gapY = (upper.bottom + lower.top) / 2;
+      e.labelAt = [Math.round(a.cx + 56), Math.round(gapY)];
+      delete e.labelDx;
+      delete e.labelDy;
+      continue;
+    }
+    if (horizSpan >= 60 && vertSpan < 80) {
+      // Horizontal: lift above the band so the label clears the boxes
+      if (e.labelDy == null && e.labelDx == null) {
+        e.labelDy = -36;
+      }
+      continue;
+    }
+    if (e.labelDy == null && e.labelDx == null) {
+      e.labelDy = -36;
     }
   }
   return ir;
@@ -477,6 +740,7 @@ export function layoutArchitectureIr(raw) {
     }
     repairArchitectureGeometry(ir);
     routeCrossingEdges(ir);
+    repairEdgeLabelPlacement(ir);
     recomputeViewBox(ir);
     return ir;
   }
@@ -546,6 +810,7 @@ export function layoutArchitectureIr(raw) {
   }
   repairArchitectureGeometry(ir);
   routeCrossingEdges(ir);
+  repairEdgeLabelPlacement(ir);
   const maxX = originX + (layers.length || 1) * colW + 80;
   ir.meta.viewBox = [
     Math.max(320, maxX),

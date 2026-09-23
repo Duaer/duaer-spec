@@ -16,6 +16,7 @@ import {
   layoutArchitectureIr,
   renderArchitectureHtml,
   routeCrossingEdges,
+  repairEdgeLabelPlacement,
   sanitizeArchitectureIr,
   DUAER_EMBED_FIT_STYLE_ID,
   DUAER_EMBED_ZOOM_SCRIPT_ID,
@@ -115,14 +116,84 @@ test("routeCrossingEdges detours same-row reverse edge through nodes", () => {
   });
   const c4 = ir.connections.find((c) => c.id === "c4");
   assert.ok(c4);
+  // Same-row reverse edge: bottom via under the floor (clear — no column mates)
   assert.equal(c4.fromSide, "bottom");
   assert.equal(c4.toSide, "bottom");
   assert.ok(Array.isArray(c4.via) && c4.via.length >= 2);
+  assert.equal(c4.via[0][1], c4.via[1][1], "bottom via keeps a shared y");
   const neighbor = ir.connections.find((c) => c.id === "c5");
   assert.ok(!neighbor.via);
 
   routeCrossingEdges(ir);
   assert.equal(ir.connections.find((c) => c.id === "c4").via.length, 2);
+});
+
+test("routeCrossingEdges corridor-detours stacked column mates (speaker→editor)", () => {
+  const ir = layoutArchitectureIr({
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "clean-flow stacked", quality_profile: "standard" },
+    components: [
+      { id: "speaker", type: "external", label: "讲解人", size: [140, 64], pos: [48, 96] },
+      { id: "assets", type: "database", label: "素材库", size: [140, 64], pos: [48, 226] },
+      { id: "ai", type: "backend", label: "AI", size: [140, 64], pos: [268, 96] },
+      { id: "editor", type: "frontend", label: "编辑器", size: [140, 64], pos: [268, 226] },
+      { id: "gen", type: "backend", label: "生成", size: [140, 64], pos: [268, 356] },
+      { id: "store", type: "database", label: "存储", size: [140, 64], pos: [708, 96] },
+      { id: "compat", type: "backend", label: "兼容", size: [140, 64], pos: [708, 226] },
+    ],
+    connections: [
+      { id: "c1", from: "speaker", to: "ai", label: "初稿" },
+      { id: "c2", from: "ai", to: "editor", label: "定稿" },
+      { id: "c3", from: "speaker", to: "editor", label: "口述" },
+      { id: "c4", from: "assets", to: "gen", label: "素材" },
+      { id: "c5", from: "store", to: "gen", label: "读取" },
+    ],
+    boundaries: [],
+    cards: [],
+  });
+  const c3 = ir.connections.find((c) => c.id === "c3");
+  assert.ok(c3?.via?.length >= 2);
+  // Corridor-aware: top wrap into a gutter (plain side via clips co-row nodes)
+  assert.ok(["top", "bottom", "left", "right"].includes(c3.fromSide));
+  assert.ok(["top", "bottom", "left", "right"].includes(c3.toSide));
+  assert.ok(c3.via.every((pt) => Number.isFinite(pt[0]) && Number.isFinite(pt[1])));
+  const c5 = ir.connections.find((c) => c.id === "c5");
+  assert.ok(c5?.via?.length >= 2);
+  const c2 = ir.connections.find((c) => c.id === "c2");
+  assert.ok(Array.isArray(c2.labelAt) && c2.labelAt.length === 2);
+  assert.equal(c2.labelDx, undefined);
+  assert.equal(c2.labelDy, undefined);
+});
+
+test("renderArchitectureHtml accepts stacked column IR that used to fail clean-flow", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-stack-"));
+  const out = renderArchitectureHtml(root, {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: { title: "clean-flow stacked", quality_profile: "standard" },
+    components: [
+      { id: "speaker", type: "external", label: "讲解人", size: [140, 64], pos: [48, 96] },
+      { id: "assets", type: "database", label: "素材库", size: [140, 64], pos: [48, 226] },
+      { id: "ai", type: "backend", label: "AI", size: [140, 64], pos: [268, 96] },
+      { id: "editor", type: "frontend", label: "编辑器", size: [140, 64], pos: [268, 226] },
+      { id: "gen", type: "backend", label: "生成", size: [140, 64], pos: [268, 356] },
+      { id: "store", type: "database", label: "存储", size: [140, 64], pos: [708, 96] },
+      { id: "compat", type: "backend", label: "兼容", size: [140, 64], pos: [708, 226] },
+    ],
+    connections: [
+      { id: "c1", from: "speaker", to: "ai", label: "初稿" },
+      { id: "c2", from: "ai", to: "editor", label: "定稿" },
+      { id: "c3", from: "speaker", to: "editor", label: "口述" },
+      { id: "c4", from: "assets", to: "gen", label: "素材" },
+      { id: "c5", from: "store", to: "gen", label: "读取" },
+    ],
+    boundaries: [],
+    cards: [],
+  });
+  assert.ok(fs.existsSync(out.htmlPath));
+  assert.ok(out.ir.connections.find((c) => c.id === "c3")?.via?.length >= 2);
+  fs.rmSync(root, { recursive: true, force: true });
 });
 
 test("renderArchitectureHtml accepts PPT IR with long reverse edge", () => {
@@ -333,7 +404,7 @@ test("repairGeometry fits long CJK sublabels and edge labels for Archify", () =>
   assert.ok(fs.existsSync(out.htmlPath));
   assert.ok(out.ir.components.find((c) => c.id === "banstore").size[0] >= 130);
   const edge = out.ir.connections.find((c) => c.id === "c1");
-  assert.equal(edge.labelDy, -28);
+  assert.equal(edge.labelDy, -36);
   assert.ok(String(edge.label).length <= 20);
   fs.rmSync(root, { recursive: true, force: true });
 });

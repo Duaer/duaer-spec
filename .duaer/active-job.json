@@ -1,5 +1,5 @@
 {
-  "feature": "278-project-create-unique",
-  "branch": "fix/project-create-unique",
-  "worktree": ".worktree/fix-project-create-unique"
+  "feature": "279-arch-side-detour",
+  "branch": "fix/arch-clean-flow",
+  "worktree": ".worktree/fix-arch-clean-flow"
 }

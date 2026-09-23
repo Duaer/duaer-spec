@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Corridor-aware Archify edge detours (validated bottom/top/side/gutter) plus vertical labelAt so stacked clean-flow IR renders.",
+  "verification": {
+    "commands": ["node --test test/live-archify.test.mjs"],
+    "result": "16 pass / 0 fail"
+  }
+}

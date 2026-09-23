@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fix: architecture corridor detour when edges cross stacked nodes
+
+- Auto-routing validates candidate corridors (bottom/top wrap, side, gutter)
+  so detours stay clear of unrelated boxes — not only avoid bottom exits
+- Vertical edge labels use `labelAt` in the inter-box gap
+- Fixes Archify `clean-flow/edge-through-node` and label-overlap failures on stacked layouts
+
 ### Fix: create project uses a unique short name under the parent only
 
 - Create form no longer accepts absolute paths; folder name is a short name under the product parent
