@@ -388,7 +388,36 @@ test("desk wires bug dispatch skip-architecture helpers", () => {
   assert.match(js, /enterDeskKind/);
   assert.match(js, /buildPreviewPoolForBug/);
   assert.match(js, /syncStartBugFixButtons|beginBugFixFromCta/);
+  assert.match(js, /ensureBugModuleOnDesk/);
+  assert.match(js, /list\.length < 1/);
+  assert.doesNotMatch(js, /moduleTabs\.hidden = state\.deskKind === "bug"/);
   assert.match(html, /id="bugHotfix"/);
   assert.match(html, /id="startBugFix"/);
   assert.doesNotMatch(html, /id="deskKindSwitch"/);
+});
+
+test("buildPreviewPoolForBug prefers id=bug when mixed with feature modules", () => {
+  const pool = buildPreviewPoolForBug([
+    {
+      id: "login",
+      title: "Login",
+      status: "confirmed",
+      card: { goal: "Feature goal", acceptance: "ok", outOfScope: "", assumptions: "" },
+      dependsOn: [],
+    },
+    {
+      id: "bug",
+      title: "Defect",
+      status: "confirmed",
+      card: {
+        goal: "Crash on save",
+        acceptance: "No crash",
+        outOfScope: "",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  assert.match(pool.tasks[0].title, /Defect|Crash/);
+  assert.equal(pool.tasks[0].moduleId, "bug");
 });

@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fix: keep requirement modules clickable during bug path
+
+-「改缺陷」appends a `bug` tab instead of wiping prior modules; tabs stay
+  visible; confirmed feature cards are readonly when selected
+- Bug task pool prefers the `bug` module when feature modules are also confirmed
+- Light theme wells/borders use `--inset*` / `--line` (no fixed near-black fills)
+
 ### Fix: light theme contrast and denser compact spacing
 
 - Replace leftover dark hardcodes (inputs, composer, bubbles, wells) with

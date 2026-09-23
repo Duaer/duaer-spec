@@ -276,11 +276,12 @@ export function aggregateModulesCard(modules) {
  */
 export function buildBugTaskPool(modules, { deployNeeded = false, deployTaskText = null } = {}) {
   const list = clipModules(modules).filter((m) => m.status === "confirmed");
+  const pick = list.find((m) => m.id === "bug") || list[0];
   const card =
-    list[0]?.card ||
+    pick?.card ||
     ({ goal: "", outOfScope: "", acceptance: "", assumptions: "" });
-  const modId = list[0]?.id || "bug";
-  const title = String(list[0]?.title || "Bug").slice(0, 80);
+  const modId = pick?.id || "bug";
+  const title = String(pick?.title || "Bug").slice(0, 80);
   const tasks = [];
   let n = 1;
   const push = (partial) => {

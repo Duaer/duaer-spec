@@ -1,5 +1,5 @@
 {
-  "feature": "285-desk-light-compact",
-  "branch": "fix/desk-light-compact",
-  "worktree": ".worktree/fix-desk-light-compact"
+  "feature": "286-modules-bug-theme",
+  "branch": "fix/modules-bug-theme",
+  "worktree": ".worktree/fix-modules-bug-theme"
 }

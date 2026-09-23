@@ -140,9 +140,11 @@ The middle column shows a **修 bug** button in the same bottom CTA row as
 **再改一版** (not a top kind switch). Before the first delivery it appears in
 the bottom strip under results; after delivery it sits beside「再改一版」.
 
-1. One **defect card** (symptom / out of scope / fixed-when / env). No multi-module
-   growth from chat. **Project delivery facts** (preview URL, start scripts,
-   local path/port hints) are injected into chat + `assumptions` automatically —
+1. Appends a **defect module tab** (`bug`) beside prior requirement modules —
+   it does **not** wipe them. Switching tabs shows that module’s card
+   (confirmed feature tabs are readonly). Chat merge updates only the defect
+   card. **Project delivery facts** (preview URL, start scripts, local
+   path/port hints) are injected into chat + `assumptions` automatically —
    do not re-ask the operator. Suspected cause defaults to「待复现定位」; online
    emergency defaults to **no** (fix from develop) unless the user says
    production/urgent.
@@ -150,11 +152,12 @@ the bottom strip under results; after delivery it sits beside「再改一版」.
    (sorted by time in deliverables). They are later iterations, not a parallel track.
 3. After confirm, **architecture is skipped by default** (operator may still
    design if contracts or security change).
-4. Kickoff builds a short pool: reproduce → fix → acceptance atoms → regress →
-   README → stamp.
+4. Kickoff builds a short pool from the **bug** module only: reproduce → fix →
+   acceptance atoms → regress → README → stamp.
 5. Worktree branch is **`fix/<name>`** from `develop`. Optional **production
    hotfix** checkbox bases the worktree on **`main`** when that branch exists.
-6. Feature path (`deskKind=feature`) is unchanged.
+6. Feature path (`deskKind=feature`) drops the defect tab and keeps requirement
+   modules.
 
 The chat column’s right edge has a **导航** control that jumps to: chat bottom ·
 confirm card · result · progress.

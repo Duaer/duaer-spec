@@ -216,7 +216,10 @@ export function buildPreviewPoolForBug(modules) {
   const list = (Array.isArray(modules) ? modules : []).filter(
     (m) => m && m.status === "confirmed",
   );
-  const m = list[0] || { id: "bug", title: "Bug", card: {} };
+  const m =
+    list.find((x) => x.id === "bug") ||
+    list[0] ||
+    { id: "bug", title: "Bug", card: {} };
   const title = String(m.title || m.id || "Bug").slice(0, 80);
   const card = m.card && typeof m.card === "object" ? m.card : {};
   const tasks = [];

@@ -351,6 +351,10 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /class="top-btn"/);
   assert.match(js, /toggleTheme|initTheme|duaer\.live\.theme|theme\.mjs/);
   assert.match(css, /\[data-theme="light"\]|--brand-size|theme-compact|#themeToggle/);
+  assert.match(css, /--inset|--inset-strong/);
+  assert.doesNotMatch(css, /rgba\(8,\s*14,\s*20/);
+  assert.match(js, /ensureBugModuleOnDesk/);
+  assert.match(js, /confirmedModulesForPool/);
   assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);
   assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);

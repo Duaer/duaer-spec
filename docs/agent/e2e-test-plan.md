@@ -185,6 +185,7 @@ the table for their app.
 | E2E-213 | Create project accepts only a short folder name under the parent; absolute paths, duplicate folders, and duplicate titles are refused | `npm test` + `npm run test:live` |
 | E2E-214 | Architecture edges that would cross unrelated boxes get a clear corridor via; vertical labels use gap `labelAt`; Archify render succeeds | `npm test` |
 | E2E-216 | Desk shell is compact; light/dark theme toggle persists `duaer.live.theme` and applies on desk + dispatch center | `npm run test:live` |
+| E2E-217 | After「改缺陷」, prior requirement module tabs stay visible/clickable; light wells use theme inset tokens | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -427,4 +428,6 @@ the table for their app.
 | E2E-205 | `267-baseline-restore` | refresh keeps baseline confirm fields |
 | E2E-206 | `268-fde07-uat` | UAT pack on exception cases + kickoff |
 | E2E-207 | `271-fde04-compat` | browser matrix evidence + kickoff |
+| E2E-216 | `283-desk-theme-compact` / `285-desk-light-compact` | compact shell + light/dark theme |
+| E2E-217 | `286-modules-bug-theme` | bug path keeps module tabs; theme inset tokens |
 

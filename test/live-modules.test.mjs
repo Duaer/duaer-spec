@@ -337,6 +337,38 @@ test("buildBugTaskPool is reproduce → fix → regress (not modular implement)"
   assert.ok(!pool.tasks.some((t) => /Implement module/i.test(t.title)));
 });
 
+test("buildBugTaskPool prefers id=bug when feature modules are also confirmed", () => {
+  const pool = buildBugTaskPool([
+    {
+      id: "login",
+      title: "Login",
+      status: "confirmed",
+      card: {
+        goal: "Ship login",
+        outOfScope: "",
+        acceptance: "Users can sign in",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+    {
+      id: "bug",
+      title: "缺陷",
+      status: "confirmed",
+      card: {
+        goal: "Login button does nothing on Safari",
+        outOfScope: "New SSO",
+        acceptance: "Repro closed; click Login opens /home",
+        assumptions: "Safari 17",
+      },
+      dependsOn: [],
+    },
+  ]);
+  assert.equal(pool.kind, "bug");
+  assert.match(pool.tasks[0].title, /缺陷|Safari/);
+  assert.equal(pool.tasks[0].moduleId, "bug");
+});
+
 test("project chat persists deskKind bug", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-kind-"));
   const projectPath = path.join(root, "app");

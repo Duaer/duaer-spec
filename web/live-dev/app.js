@@ -1038,7 +1038,8 @@ function renderModuleTabs() {
   if (!el.moduleTabs) return;
   ensureModulesSeed();
   const list = state.modules;
-  el.moduleTabs.hidden = state.deskKind === "bug" || list.length < 1;
+  // Keep tabs visible in bug mode so prior requirement modules stay reachable.
+  el.moduleTabs.hidden = list.length < 1;
   el.moduleTabs.replaceChildren();
   for (const m of list) {
     const btn = document.createElement("button");
@@ -1050,20 +1051,24 @@ function renderModuleTabs() {
     btn.setAttribute("aria-selected", active ? "true" : "false");
     if (active) btn.classList.add("is-active");
     if (m.status === "confirmed") btn.classList.add("is-confirmed");
+    if (m.id === "bug") btn.classList.add("is-bug");
     btn.textContent = `${m.title} · ${statusLabel(m.status)}`;
     btn.addEventListener("click", () => {
       if (m.id === state.activeModuleId) return;
       syncActiveModuleCardFromFields();
       state.activeModuleId = m.id;
       applyActiveModuleToFields();
+      applyConfirmCardChrome();
       resetValidateGate();
       setConfirmFieldsReadonly(
-        m.status === "confirmed" || modulesAllConfirmedLocal(),
+        m.status === "confirmed" ||
+          (modulesAllConfirmedLocal() && m.id !== "bug"),
       );
       renderModuleTabs();
       syncConfirmEnabled();
       if (
         m.status !== "confirmed" &&
+        !(state.deskKind === "bug" && m.id !== "bug") &&
         !modulesAllConfirmedLocal() &&
         state.mode !== "revise"
       ) {
@@ -1101,18 +1106,21 @@ function mergeModulesFromChatPayload(data) {
       externalDeps: String(data.externalDeps || data.modules?.[0]?.card?.externalDeps || activeModule()?.card?.externalDeps || ""),
       perfBudget: String(data.perfBudget || data.modules?.[0]?.card?.perfBudget || activeModule()?.card?.perfBudget || ""),
     };
-    const prev = activeModule();
+    const kept = (state.modules || []).filter((m) => m.id !== "bug");
+    const prevBug = (state.modules || []).find((m) => m.id === "bug");
+    const bugConfirmed = prevBug?.status === "confirmed";
     state.modules = [
+      ...kept,
       {
         id: "bug",
         title: t("card.bugModuleTitle"),
-        status: prev?.status === "confirmed" ? "confirmed" : "draft",
-        card: prev?.status === "confirmed" ? prev.card : card,
+        status: bugConfirmed ? "confirmed" : "draft",
+        card: bugConfirmed ? prevBug.card : card,
         dependsOn: [],
       },
     ];
     state.activeModuleId = "bug";
-    if (prev?.status !== "confirmed") applyActiveModuleToFields();
+    if (!bugConfirmed) applyActiveModuleToFields();
     renderModuleTabs();
     return;
   }
@@ -1412,9 +1420,19 @@ function renderWorkerCountList() {
   }
 }
 
-function decomposeTasksFromModules() {
+function confirmedModulesForPool() {
   ensureModulesSeed();
   const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  if (state.deskKind === "bug") {
+    const bug = confirmed.filter((m) => m.id === "bug");
+    return bug.length ? bug : confirmed.slice(0, 1);
+  }
+  return confirmed.filter((m) => m.id !== "bug");
+}
+
+function decomposeTasksFromModules() {
+  ensureModulesSeed();
+  const confirmed = confirmedModulesForPool();
   if (!confirmed.length) {
     state.taskPool = null;
     renderTaskPoolList([]);
@@ -1440,7 +1458,7 @@ function syncTaskPoolPreview() {
 async function syncTaskPoolPreviewAsync() {
   if (!el.taskPoolPreview) return;
   ensureModulesSeed();
-  const confirmed = state.modules.filter((m) => m.status === "confirmed");
+  const confirmed = confirmedModulesForPool();
   if (!confirmed.length || !state.locked || !state.architecture?.confirmed) {
     if (el.taskPoolEmpty) el.taskPoolEmpty.hidden = false;
     renderTaskPoolList([]);
@@ -2117,9 +2135,9 @@ function restoreConfirmCardFromOriginal() {
   syncReqSections();
 }
 
-/** Top confirm card chrome never becomes 改进卡. */
+/** Top confirm card chrome never becomes 改进卡. Labels follow the active tab. */
 function applyConfirmCardChrome() {
-  const bug = state.deskKind === "bug";
+  const bug = activeModule()?.id === "bug";
   if (el.cardMark) el.cardMark.textContent = t(bug ? "card.bugMark" : "card.mark");
   if (el.cardTitle) el.cardTitle.textContent = t(bug ? "card.bugTitle" : "card.title");
   if (el.lblGoal) el.lblGoal.textContent = t(bug ? "card.bugGoal" : "card.goal");
@@ -2191,6 +2209,23 @@ function syncStartBugFixButtons() {
   }
 }
 
+function ensureBugModuleOnDesk() {
+  const kept = (state.modules || []).filter((m) => m && m.id !== "bug");
+  let bug = (state.modules || []).find((m) => m?.id === "bug");
+  if (!bug) {
+    bug = {
+      id: "bug",
+      title: t("card.bugModuleTitle"),
+      status: "draft",
+      card: { goal: "", outOfScope: "", acceptance: "", assumptions: "" },
+      dependsOn: [],
+    };
+  }
+  state.modules = [...kept, bug];
+  state.activeModuleId = "bug";
+  return bug;
+}
+
 function beginBugFixFromCta() {
   if (state.busy || state.reviseDispatching) return;
   if (!state.projectPath) {
@@ -2200,6 +2235,7 @@ function beginBugFixFromCta() {
   const fromDelivery = Boolean(state.locked || state.lastDeliveryAccepted);
   if (fromDelivery) {
     // Fresh defect card on this project (same spirit as「再改一版」).
+    // Keep prior requirement modules — append a bug tab instead of wiping them.
     state.locked = false;
     state.lastDeliveryAccepted = false;
     state.jobId = null;
@@ -2225,16 +2261,14 @@ function beginBugFixFromCta() {
     if (el.dispatch) el.dispatch.hidden = true;
     setConfirmFieldsReadonly(false);
     state.deskKind = "bug";
-    state.modules = [
-      {
-        id: "bug",
-        title: t("card.bugModuleTitle"),
-        status: "draft",
-        card: { goal: "", outOfScope: "", acceptance: "", assumptions: "" },
-        dependsOn: [],
-      },
-    ];
-    state.activeModuleId = "bug";
+    ensureModulesSeed();
+    ensureBugModuleOnDesk();
+    const bug = state.modules.find((m) => m.id === "bug");
+    if (bug) {
+      bug.status = "draft";
+      bug.card = { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+      bug.title = t("card.bugModuleTitle");
+    }
     applyActiveModuleToFields();
     applyConfirmCardChrome();
     renderModuleTabs();
@@ -2276,39 +2310,36 @@ function enterDeskKind(kind) {
   if (state.locked && next !== "bug") return;
   state.deskKind = next;
   if (next === "bug") {
-    const card = activeModule()?.card || {
-      goal: "",
-      outOfScope: "",
-      acceptance: "",
-      assumptions: "",
-    };
-    state.modules = [
-      {
-        id: "bug",
-        title: t("card.bugModuleTitle"),
-        status: "draft",
-        card: state.locked
-          ? { goal: "", outOfScope: "", acceptance: "", assumptions: "" }
-          : card,
-        dependsOn: [],
-      },
-    ];
-    state.activeModuleId = "bug";
+    ensureModulesSeed();
+    ensureBugModuleOnDesk();
+    const bug = state.modules.find((m) => m.id === "bug");
+    if (bug && bug.status !== "confirmed") {
+      if (state.locked) {
+        bug.card = { goal: "", outOfScope: "", acceptance: "", assumptions: "" };
+      }
+      bug.title = t("card.bugModuleTitle");
+    }
     applyActiveModuleToFields();
-  } else if (
-    state.modules.length === 1 &&
-    state.modules[0]?.id === "bug"
-  ) {
-    state.modules = [
-      {
-        id: "main",
-        title: "Main",
-        status: "draft",
-        card: { ...state.modules[0].card },
-        dependsOn: [],
-      },
-    ];
-    state.activeModuleId = "main";
+  } else {
+    // Leave bug mode: keep requirement modules; drop the defect tab.
+    const kept = (state.modules || []).filter((m) => m && m.id !== "bug");
+    if (kept.length) {
+      state.modules = kept;
+      if (!kept.some((m) => m.id === state.activeModuleId)) {
+        state.activeModuleId = kept[0].id;
+      }
+    } else {
+      state.modules = [
+        {
+          id: "main",
+          title: "Main",
+          status: "draft",
+          card: { goal: "", outOfScope: "", acceptance: "", assumptions: "" },
+          dependsOn: [],
+        },
+      ];
+      state.activeModuleId = "main";
+    }
     applyActiveModuleToFields();
   }
   applyConfirmCardChrome();

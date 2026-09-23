@@ -18,6 +18,9 @@
   --overlay: rgba(8, 10, 14, 0.52);
   --bg-soft: rgba(255, 255, 255, 0.035);
   --code-bg: rgba(255, 255, 255, 0.06);
+  --inset: color-mix(in srgb, var(--ink) 6%, transparent);
+  --inset-soft: color-mix(in srgb, var(--ink) 3.5%, transparent);
+  --inset-strong: color-mix(in srgb, var(--ink) 9%, transparent);
   --panel-shine: none;
   --font-display: "Outfit", "Avenir Next", sans-serif;
   --font-mono: "Chivo Mono", ui-monospace, monospace;
@@ -51,6 +54,9 @@
   --overlay: rgba(20, 26, 34, 0.28);
   --bg-soft: rgba(20, 26, 34, 0.04);
   --code-bg: rgba(20, 26, 34, 0.06);
+  --inset: color-mix(in srgb, var(--ink) 4.5%, transparent);
+  --inset-soft: color-mix(in srgb, var(--ink) 2.5%, transparent);
+  --inset-strong: color-mix(in srgb, var(--ink) 7%, transparent);
   --panel-shine: none;
 }
 
@@ -793,7 +799,7 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   display: inline-block;
   margin-top: 0.15rem;
   padding: 0.1rem 0.4rem;
-  border: 1px solid rgba(63, 86, 108, 0.65);
+  border: 1px solid var(--line);
   font-size: 0.68rem;
   letter-spacing: 0.03em;
   color: var(--mute);
@@ -1562,6 +1568,10 @@ a.btn[hidden] {
   opacity: 0.78;
 }
 
+.module-tab.is-bug {
+  border-color: color-mix(in srgb, var(--register) 45%, var(--line));
+}
+
 .module-meta {
   margin: 0 0 0.5rem;
   font-size: 0.8rem;
@@ -1759,7 +1769,7 @@ a.btn[hidden] {
   min-width: 0;
   max-width: 100%;
   padding: 0 0.15rem 0.55rem;
-  border-bottom: 1px solid rgba(63, 86, 108, 0.55);
+  border-bottom: 1px solid var(--line);
 }
 
 .deliverables-open {
@@ -1790,8 +1800,8 @@ a.btn[hidden] {
   flex-shrink: 0;
   margin: 0.55rem 0 0.35rem;
   padding: 0.5rem 0.55rem;
-  border: 1px solid rgba(63, 86, 108, 0.55);
-  background: rgba(8, 14, 20, 0.35);
+  border: 1px solid var(--line);
+  background: var(--inset);
 }
 
 .delivery-cockpit[hidden] {
@@ -1810,7 +1820,7 @@ a.btn[hidden] {
 .delivery-stage {
   margin: 0;
   padding: 0.15rem 0.4rem;
-  border: 1px solid rgba(63, 86, 108, 0.55);
+  border: 1px solid var(--line);
   font-size: 0.68rem;
   letter-spacing: 0.02em;
   color: var(--mute);
@@ -1856,7 +1866,7 @@ a.btn[hidden] {
   margin: 0.35rem 0 0;
   padding: 1.1rem 0.95rem;
   border: 1px solid var(--line);
-  background: rgba(8, 14, 20, 0.35);
+  background: var(--inset);
   color: var(--mute);
 }
 
@@ -1978,7 +1988,7 @@ a.btn[hidden] {
   margin: 0;
   padding: 0.5rem 0.65rem 0.5rem 1.55rem;
   border: 1px solid var(--line);
-  background: rgba(8, 14, 20, 0.4);
+  background: var(--inset);
   color: var(--ink);
   font-size: 0.9rem;
   line-height: 1.45;
@@ -2028,8 +2038,8 @@ a.btn[hidden] {
 .req-structured .req-mod {
   margin: 0 0 0.65rem;
   padding: 0.45rem 0.55rem 0.5rem;
-  border: 1px solid rgba(63, 86, 108, 0.55);
-  background: rgba(8, 14, 20, 0.35);
+  border: 1px solid var(--line);
+  background: var(--inset);
 }
 
 .req-structured .req-mod:last-child {
@@ -2310,7 +2320,7 @@ a.btn[hidden] {
 .architecture-slot-main {
   margin: 1rem 0 0.35rem;
   padding: 0.85rem 0.15rem 0.35rem;
-  border-top: 1px solid rgba(63, 86, 108, 0.55);
+  border-top: 1px solid var(--line);
 }
 
 .architecture-slot-main .architecture-panel {
@@ -2502,7 +2512,7 @@ a.btn[hidden] {
   font-size: 0.65rem;
   line-height: 1.35;
   color: var(--ink);
-  background: rgba(8, 14, 20, 0.55);
+  background: var(--inset-strong);
   border: 1px solid var(--line);
   word-break: break-all;
   white-space: pre-wrap;
@@ -2529,7 +2539,7 @@ a.btn[hidden] {
   font-size: 0.72rem;
   white-space: pre-wrap;
   word-break: break-all;
-  background: rgba(8, 14, 20, 0.55);
+  background: var(--inset-strong);
   border: 1px solid var(--line);
   color: var(--ink);
 }
@@ -2629,7 +2639,7 @@ a.btn[hidden] {
 .progress-meter {
   height: 3px;
   margin: 0 0 0.65rem;
-  background: rgba(63, 86, 108, 0.55);
+  background: color-mix(in srgb, var(--register) 28%, transparent);
   overflow: hidden;
 }
 
@@ -2666,8 +2676,8 @@ a.btn[hidden] {
   line-height: 1.45;
   overflow-wrap: anywhere;
   word-break: break-word;
-  border: 1px solid rgba(63, 86, 108, 0.65);
-  background: rgba(8, 14, 20, 0.35);
+  border: 1px solid var(--line);
+  background: var(--inset);
   max-width: 100%;
   box-sizing: border-box;
 }
@@ -2691,7 +2701,7 @@ a.btn[hidden] {
   color: var(--mute);
   padding: 0.4rem 0.5rem;
   border: 1px solid transparent;
-  background: rgba(8, 14, 20, 0.2);
+  background: var(--inset-soft);
   line-height: 1.4;
   min-width: 0;
   max-width: 100%;
@@ -2747,7 +2757,7 @@ a.btn[hidden] {
   font-size: 0.65rem;
   line-height: 1.4;
   color: var(--mute);
-  background: rgba(8, 14, 20, 0.55);
+  background: var(--inset-strong);
   border: 1px solid var(--line);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -2763,7 +2773,7 @@ a.btn[hidden] {
 .worker-lane {
   padding: 0.55rem 0.6rem 0.65rem;
   border: 1px solid var(--line);
-  background: rgba(8, 14, 20, 0.35);
+  background: var(--inset);
   min-width: 0;
 }
 
@@ -3213,7 +3223,7 @@ a.btn[hidden] {
 
 .revise-version-body {
   padding: 0 0.65rem 0.65rem;
-  border-top: 1px solid rgba(63, 86, 108, 0.45);
+  border-top: 1px solid var(--line);
 }
 
 .revise-version-fields {
@@ -3434,7 +3444,7 @@ a.btn[hidden] {
 .setup-guide-cmd {
   margin: 0 0 0.35rem;
   padding: 0.55rem 0.7rem;
-  background: rgba(8, 14, 20, 0.55);
+  background: var(--inset-strong);
   border: 1px solid var(--line);
   color: var(--ink);
   font-family: var(--font-mono);
