@@ -23,7 +23,8 @@ Three columns: chat | confirm/progress | delivery. Prefer a **compact** shell
 **light** via `html[data-theme]`; the top bar toggles and persists
 `duaer.live.theme` in `localStorage` (also on the dispatch-center page).
 Palettes use a soft blue accent — avoid harsh orange glow and dense hatch
-backgrounds that fatigue long sessions.
+backgrounds that fatigue long sessions. Light theme keeps the same tokens
+for inputs/composer/bubbles (no leftover dark hardcodes).
 
 | Column | Role |
 |---|---|

@@ -17,8 +17,9 @@ test("theme.mjs and desk wire light/dark toggle", () => {
   const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
   assert.match(css, /\[data-theme="light"\]/);
   assert.match(css, /\[data-theme="dark"\]/);
-  assert.match(css, /--brand-size/);
-  assert.doesNotMatch(css, /#e05a2b|rgba\(224,\s*90,\s*43/);
+  assert.match(css, /--brand-size|--input-bg|--on-accent|--composer-bg/);
+  assert.doesNotMatch(css, /#e05a2b|rgba\(224,\s*90,\s*43|#13202b|#0b1118|#1a100c/);
+  assert.doesNotMatch(css, /color:\s*#9fe8dc/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /id="themeToggle"/);
   assert.match(html, /duaer\.live\.theme/);

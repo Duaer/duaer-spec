@@ -1,0 +1,11 @@
+{
+  "status": "accepted",
+  "summary": "Light theme uses shared tokens for inputs/composer/bubbles; denser compact spacing.",
+  "verification": {
+    "commands": [
+      "node --test test/desk-theme.test.mjs",
+      "npm run test:live"
+    ],
+    "result": "all pass"
+  }
+}

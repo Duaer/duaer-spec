@@ -1,5 +1,5 @@
 {
-  "feature": "284-dispatch-graph-regen",
-  "branch": "feat/dispatch-graph-regen",
-  "worktree": ".worktree/feat-dispatch-graph-regen"
+  "feature": "285-desk-light-compact",
+  "branch": "fix/desk-light-compact",
+  "worktree": ".worktree/fix-desk-light-compact"
 }

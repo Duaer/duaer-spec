@@ -1,7 +1,6 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  /* Calm slate desk — soft blue accent, no orange glow */
   --steel: #1a1e24;
   --plate: #232830;
   --plate-2: #2c333c;
@@ -10,34 +9,48 @@
   --line: #3c4450;
   --register: #6b9fd4;
   --lock: #5aaa8f;
+  --on-accent: #ffffff;
+  --input-bg: #1c232c;
+  --composer-bg: #1c232c;
+  --well: #151a20;
   --glow: transparent;
   --shadow: 0 6px 20px rgba(0, 0, 0, 0.32);
   --overlay: rgba(8, 10, 14, 0.52);
   --bg-soft: rgba(255, 255, 255, 0.035);
+  --code-bg: rgba(255, 255, 255, 0.06);
   --panel-shine: none;
   --font-display: "Outfit", "Avenir Next", sans-serif;
   --font-mono: "Chivo Mono", ui-monospace, monospace;
   --radius-panel: 3px;
-  --space-shell: 0.35rem 0.45rem 0.4rem;
-  --space-layout-gap: 0.45rem;
-  --brand-size: clamp(1.15rem, 2vw, 1.5rem);
-  --top-btn-h: 1.7rem;
+  --space-shell: 0.22rem 0.32rem 0.28rem;
+  --space-layout-gap: 0.3rem;
+  --brand-size: clamp(1.02rem, 1.7vw, 1.28rem);
+  --top-btn-h: 1.5rem;
+  --card-pad: 0.7rem 0.75rem 0.8rem;
+  --field-gap: 0.2rem;
+  --field-mb: 0.4rem;
+  --body-size: 0.86rem;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --steel: #ebeef2;
+  --steel: #e8ebf0;
   --plate: #ffffff;
-  --plate-2: #f2f4f7;
-  --ink: #1c232d;
-  --mute: #5a6572;
-  --line: #cfd5dd;
-  --register: #3d6ea5;
-  --lock: #2d7a62;
+  --plate-2: #f3f5f8;
+  --ink: #141a22;
+  --mute: #4a5563;
+  --line: #c5ccd6;
+  --register: #2f5f96;
+  --lock: #217a5c;
+  --on-accent: #ffffff;
+  --input-bg: #ffffff;
+  --composer-bg: #f3f5f8;
+  --well: #eef1f5;
   --glow: transparent;
-  --shadow: 0 3px 12px rgba(28, 35, 45, 0.07);
-  --overlay: rgba(28, 35, 45, 0.32);
-  --bg-soft: rgba(28, 35, 45, 0.035);
+  --shadow: 0 2px 10px rgba(20, 26, 34, 0.08);
+  --overlay: rgba(20, 26, 34, 0.28);
+  --bg-soft: rgba(20, 26, 34, 0.04);
+  --code-bg: rgba(20, 26, 34, 0.06);
   --panel-shine: none;
 }
 
@@ -61,8 +74,8 @@ body {
   font-family: var(--font-display);
   color: var(--ink);
   background: var(--steel);
-  line-height: 1.4;
-  font-size: 0.92rem;
+  line-height: 1.35;
+  font-size: var(--body-size);
 }
 
 /* Thin scrollbars for desk columns */
@@ -412,7 +425,7 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   padding: 0;
   display: flex;
   flex-direction: column;
-  background: #0b1118;
+  background: var(--well);
 }
 
 .dispatch-center-views {
@@ -657,7 +670,7 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   list-style: none;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--teal, #2f9e8f);
+  color: var(--lock);
   padding: 0.15rem 0;
 }
 
@@ -787,37 +800,37 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
 }
 
 .project-status.is-drafting {
-  color: #9fb0c0;
+  color: var(--mute);
 }
 
 .project-status.is-confirming {
-  border-color: rgba(47, 158, 143, 0.55);
-  color: #9fe8dc;
+  border-color: color-mix(in srgb, var(--lock) 55%, transparent);
+  color: var(--lock);
 }
 
 .project-status.is-building {
   border-color: rgba(212, 168, 75, 0.65);
-  color: #e8c87a;
+  color: var(--register);
 }
 
 .project-status.is-delivered {
-  border-color: rgba(47, 158, 143, 0.8);
-  background: rgba(47, 158, 143, 0.12);
-  color: #9fe8dc;
+  border-color: color-mix(in srgb, var(--lock) 80%, transparent);
+  background: color-mix(in srgb, var(--lock) 12%, transparent);
+  color: var(--lock);
 }
 
 .project-status.is-revising {
   border-color: rgba(127, 149, 168, 0.8);
-  color: #c5d4e0;
+  color: var(--mute);
 }
 
 .project-deliverables {
   align-self: flex-start;
   font-size: 0.75rem;
   padding: 0.25rem 0.55rem;
-  background: rgba(47, 158, 143, 0.1);
+  background: color-mix(in srgb, var(--lock) 10%, transparent);
   border-color: var(--lock);
-  color: #9fe8dc;
+  color: var(--lock);
 }
 
 .dispatch-project-summary {
@@ -1086,7 +1099,7 @@ body.history-open {
 
 .chat-quicknav-menu button:hover,
 .chat-quicknav-menu button:focus-visible {
-  background: rgba(47, 158, 143, 0.12);
+  background: color-mix(in srgb, var(--lock) 12%, transparent);
   color: var(--register);
   outline: none;
 }
@@ -1128,7 +1141,7 @@ body.history-open {
   margin: 0;
   padding: 0.55rem 0.7rem 0.55rem 2.15rem;
   border-left: 2px solid var(--register);
-  background: rgba(47, 158, 143, 0.08);
+  background: color-mix(in srgb, var(--lock) 8%, transparent);
   font-size: 0.88rem;
   line-height: 1.4;
   color: var(--mute);
@@ -1160,7 +1173,7 @@ body.history-open {
 
 .bubble {
   max-width: 92%;
-  padding: 0.45rem 0.65rem;
+  padding: 0.35rem 0.55rem;
   white-space: normal;
   word-break: break-word;
   animation: rise 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
@@ -1185,7 +1198,7 @@ body.history-open {
 
 .bubble.user {
   align-self: flex-end;
-  background: #13202b;
+  background: var(--input-bg);
   border: 1px solid var(--register);
   color: var(--ink);
 }
@@ -1214,7 +1227,7 @@ body.history-open {
   font-size: 0.9em;
   padding: 0.05em 0.3em;
   border-radius: 3px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
 }
 
 .bubble-body pre.chat-code {
@@ -1222,13 +1235,13 @@ body.history-open {
   padding: 0.5em 0.65em;
   overflow-x: auto;
   border-radius: 4px;
-  background: rgba(0, 0, 0, 0.06);
+  background: var(--code-bg);
   white-space: pre-wrap;
   font-size: 0.85em;
 }
 
 .bubble-body a {
-  color: var(--register, #0d6e6e);
+  color: var(--register);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -1304,7 +1317,7 @@ body.history-open {
 }
 
 .bug-hotfix-row input {
-  accent-color: var(--accent, #7f95a8);
+  accent-color: var(--register);
 }
 
 .desk-bottom-actions {
@@ -1330,7 +1343,7 @@ body.history-open {
 .action-chip:focus-visible {
   border-color: var(--lock);
   color: var(--ink);
-  background: rgba(47, 158, 143, 0.15);
+  background: color-mix(in srgb, var(--lock) 15%, transparent);
 }
 
 .chip:focus-visible {
@@ -1340,10 +1353,10 @@ body.history-open {
 .composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.4rem;
-  padding: 0.55rem 0.65rem;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
   border-top: 1px solid var(--line);
-  background: linear-gradient(180deg, #162331 0%, #13202b 100%);
+  background: var(--composer-bg);
   align-items: end;
 }
 
@@ -1381,15 +1394,15 @@ input[type="text"] {
   resize: vertical;
   border: 1px solid var(--line);
   border-radius: 0;
-  padding: 0.65rem 0.75rem;
+  padding: 0.45rem 0.55rem;
   font: inherit;
-  background: #13202b;
+  background: var(--input-bg);
   color: var(--ink);
 }
 
 textarea::placeholder,
 input::placeholder {
-  color: #5f7386;
+  color: var(--mute);
 }
 
 textarea:focus,
@@ -1447,27 +1460,27 @@ a.btn[hidden] {
   align-self: end;
   background: var(--register);
   border-color: var(--register);
-  color: #1a100c;
+  color: var(--on-accent);
 }
 
 .btn.primary:hover,
 .btn.primary:focus-visible {
-  background: #f06a3a;
-  border-color: #f06a3a;
-  color: #1a100c;
+  background: color-mix(in srgb, var(--register) 88%, #000);
+  border-color: color-mix(in srgb, var(--register) 88%, #000);
+  color: var(--on-accent);
 }
 
 .btn.confirm {
   width: 100%;
   margin-top: 0.55rem;
-  background: rgba(47, 158, 143, 0.14);
+  background: color-mix(in srgb, var(--lock) 14%, transparent);
   border-color: var(--lock);
-  color: #9fe8dc;
+  color: var(--lock);
 }
 
 .btn.confirm:not(:disabled):hover,
 .btn.confirm:not(:disabled):focus-visible {
-  background: rgba(47, 158, 143, 0.28);
+  background: color-mix(in srgb, var(--lock) 28%, transparent);
   border-color: var(--lock);
   color: var(--ink);
 }
@@ -1497,7 +1510,7 @@ a.btn[hidden] {
 }
 
 .card-panel {
-  padding: 1.15rem 1.2rem 1.25rem;
+  padding: var(--card-pad);
   align-self: stretch;
   overflow-x: hidden;
   overflow-y: auto;
@@ -1578,7 +1591,7 @@ a.btn[hidden] {
   line-height: 1.4;
   max-height: 14rem;
   overflow: auto;
-  border: 1px solid var(--border, #c9c4b8);
+  border: 1px solid var(--line);
   border-radius: 4px;
   background: transparent;
 }
@@ -1589,7 +1602,7 @@ a.btn[hidden] {
   align-items: baseline;
   gap: 0.35rem 0.5rem;
   padding: 0.35rem 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--border, #c9c4b8) 70%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
 .task-pool-item:last-child {
@@ -1610,14 +1623,14 @@ a.btn[hidden] {
   font-size: 0.68rem;
   font-weight: 650;
   padding: 0.1rem 0.35rem;
-  border: 1px solid var(--register, #2f9e8f);
-  color: var(--register, #2f9e8f);
+  border: 1px solid var(--register);
+  color: var(--register);
   border-radius: 2px;
 }
 
 .worker-recommend {
   margin: 0.25rem 0 0;
-  color: var(--register, #2f9e8f);
+  color: var(--register);
 }
 
 #confirmWorkersGraph {
@@ -1684,8 +1697,8 @@ a.btn[hidden] {
 .worker-count-chip[aria-pressed="true"] {
   border-color: var(--register);
   color: var(--register);
-  background: rgba(47, 158, 143, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(47, 158, 143, 0.35);
+  background: color-mix(in srgb, var(--lock) 14%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lock) 35%, transparent);
 }
 
 .worker-count-chip .w-label {
@@ -1709,7 +1722,7 @@ a.btn[hidden] {
   height: auto;
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
-  background: #0b1118;
+  background: var(--well);
   overflow: visible;
 }
 
@@ -1738,7 +1751,7 @@ a.btn[hidden] {
   gap: 0.65rem;
   background-image:
     linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 14px),
-    linear-gradient(165deg, rgba(47, 158, 143, 0.06), transparent 42%);
+    linear-gradient(165deg, color-mix(in srgb, var(--lock) 6%, transparent), transparent 42%);
 }
 
 .progress-head {
@@ -1754,14 +1767,14 @@ a.btn[hidden] {
   width: 100%;
   margin: 0.45rem 0 0.15rem;
   font-size: 0.82rem;
-  background: rgba(47, 158, 143, 0.12);
+  background: color-mix(in srgb, var(--lock) 12%, transparent);
   border-color: var(--lock);
-  color: #9fe8dc;
+  color: var(--lock);
 }
 
 .deliverables-open:not(:disabled):hover,
 .deliverables-open:not(:disabled):focus-visible {
-  background: rgba(47, 158, 143, 0.24);
+  background: color-mix(in srgb, var(--lock) 24%, transparent);
   color: var(--ink);
 }
 
@@ -1805,13 +1818,13 @@ a.btn[hidden] {
 
 .delivery-stage.is-partial {
   border-color: rgba(212, 168, 75, 0.65);
-  color: #e8c87a;
+  color: var(--register);
 }
 
 .delivery-stage.is-done {
-  border-color: rgba(47, 158, 143, 0.75);
-  background: rgba(47, 158, 143, 0.14);
-  color: #9fe8dc;
+  border-color: color-mix(in srgb, var(--lock) 75%, transparent);
+  background: color-mix(in srgb, var(--lock) 14%, transparent);
+  color: var(--lock);
 }
 
 .delivery-next {
@@ -1890,9 +1903,9 @@ a.btn[hidden] {
 
 .field {
   display: grid;
-  gap: 0.25rem;
-  margin-bottom: 0.55rem;
-  font-size: 0.88rem;
+  gap: var(--field-gap);
+  margin-bottom: var(--field-mb);
+  font-size: 0.84rem;
   color: var(--ink);
 }
 
@@ -1998,7 +2011,7 @@ a.btn[hidden] {
   width: 1.15rem;
   height: 1.15rem;
   border-radius: 2px;
-  background: rgba(47, 158, 143, 0.2);
+  background: color-mix(in srgb, var(--lock) 20%, transparent);
   border: 1px solid var(--lock);
   color: var(--lock);
   font-family: var(--font-mono);
@@ -2009,7 +2022,7 @@ a.btn[hidden] {
 
 .req-structured .req-empty {
   margin: 0;
-  color: #5f7386;
+  color: var(--mute);
 }
 
 .req-structured .req-mod {
@@ -2151,7 +2164,7 @@ a.btn[hidden] {
 .result {
   margin-top: 1rem;
   padding: 0.85rem;
-  background: #0f1822;
+  background: var(--well);
   border: 1px solid var(--line);
   color: var(--ink);
   white-space: pre-wrap;
@@ -2223,7 +2236,7 @@ a.btn[hidden] {
 
 .repo-chip[aria-pressed="true"] {
   border-color: var(--lock);
-  background: rgba(47, 158, 143, 0.1);
+  background: color-mix(in srgb, var(--lock) 10%, transparent);
 }
 
 .repo-chip strong {
@@ -2351,7 +2364,7 @@ a.btn[hidden] {
   height: auto;
   margin: 0.45rem 0 0.65rem;
   border: 1px solid var(--line);
-  background: #0b1118;
+  background: var(--well);
   /* Content-driven height — no iframe, no inner scrollbar. */
   overflow: visible;
 }
@@ -2432,7 +2445,7 @@ a.btn[hidden] {
 .deploy-target-chip[aria-pressed="true"] {
   border-color: var(--register);
   color: var(--register);
-  background: rgba(47, 158, 143, 0.12);
+  background: color-mix(in srgb, var(--lock) 12%, transparent);
 }
 
 .agent-chip {
@@ -2456,7 +2469,7 @@ a.btn[hidden] {
 
 .agent-chip[aria-pressed="true"] {
   border-color: var(--lock);
-  background: rgba(47, 158, 143, 0.12);
+  background: color-mix(in srgb, var(--lock) 12%, transparent);
 }
 
 .agent-chip.is-missing {
@@ -2623,7 +2636,7 @@ a.btn[hidden] {
 .progress-meter-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, var(--lock), #4ec4b4);
+  background: linear-gradient(90deg, var(--lock), color-mix(in srgb, var(--lock) 70%, #fff));
   transition: width 280ms ease;
 }
 
@@ -2689,7 +2702,7 @@ a.btn[hidden] {
 
 .progress-tasks li[data-done="true"] {
   color: var(--ink);
-  background: rgba(47, 158, 143, 0.08);
+  background: color-mix(in srgb, var(--lock) 8%, transparent);
 }
 
 .progress-tasks li .mark {
@@ -2894,9 +2907,9 @@ a.btn[hidden] {
 }
 
 .preview-actions .btn.confirm {
-  background: rgba(47, 158, 143, 0.18);
+  background: color-mix(in srgb, var(--lock) 18%, transparent);
   border-color: var(--lock);
-  color: #9fe8dc;
+  color: var(--lock);
 }
 
 .preview-actions .btn.revise-cta {
@@ -3088,7 +3101,7 @@ a.btn[hidden] {
   font-weight: 700;
   color: var(--ink);
   border-color: var(--lock);
-  background: rgba(47, 158, 143, 0.16);
+  background: color-mix(in srgb, var(--lock) 16%, transparent);
 }
 
 .preview-panel > .hint {
@@ -3163,7 +3176,7 @@ a.btn[hidden] {
 
 .revise-version-item {
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.12);
+  background: var(--code-bg);
   padding: 0;
 }
 
@@ -3313,7 +3326,7 @@ a.btn[hidden] {
   font-weight: 700;
   color: var(--ink);
   border-color: var(--lock);
-  background: rgba(47, 158, 143, 0.16);
+  background: color-mix(in srgb, var(--lock) 16%, transparent);
 }
 
 .revise-panel .hint {
@@ -3464,7 +3477,7 @@ a.btn[hidden] {
 .provider-chip[aria-pressed="true"] {
   border-color: var(--lock);
   color: var(--lock);
-  background: rgba(47, 158, 143, 0.1);
+  background: color-mix(in srgb, var(--lock) 10%, transparent);
 }
 
 code {

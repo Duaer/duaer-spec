@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: light theme contrast and denser compact spacing
+
+- Replace leftover dark hardcodes (inputs, composer, bubbles, wells) with
+  theme tokens so light mode text/controls stay readable
+- Primary/confirm buttons use on-accent / lock tokens; tighten shell density
+
 ### Fix: regenerate dispatch graph on every improve wave
 
 - Architecture confirm always starts a fresh task pool and unlocked confirm
