@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: compact desk theme with light/dark toggle
+
+- Tighter shell, header, columns, and field spacing
+- Calmer slate palettes (soft blue accent; no orange glow / hatch)
+- Top-bar light/dark toggle persists across reload (desk + dispatch center)
+
 ### Fix: lock confirm-workers after dispatch graph builds
 
 - After「确认人数并生成派工图」succeeds, the button stays locked (and worker

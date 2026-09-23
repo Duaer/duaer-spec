@@ -4,13 +4,28 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Duaer-spec FDE</title>
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("duaer.live.theme");
+          if (t !== "light" && t !== "dark") {
+            t = window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+          }
+          document.documentElement.setAttribute("data-theme", t);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;700&family=Outfit:wght@500;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="/styles.css?v=quicknav-visible-1" />
+    <link rel="stylesheet" href="/styles.css?v=theme-compact-1" />
   </head>
   <body>
     <div class="shell">
@@ -74,6 +89,19 @@
                 <option value="vi">Tiếng Việt</option>
               </select>
             </label>
+            <button
+              type="button"
+              class="top-btn"
+              id="themeToggle"
+              data-theme="dark"
+              aria-pressed="true"
+              data-i18n-aria="theme.aria"
+              aria-label="切换浅色或深色"
+            >
+              <span class="theme-icon theme-icon-moon" aria-hidden="true">☾</span>
+              <span class="theme-icon theme-icon-sun" aria-hidden="true">☀</span>
+              <span id="themeToggleLabel" data-i18n="theme.toLight">浅色</span>
+            </button>
             <a
               id="githubStars"
               class="top-btn github-btn"

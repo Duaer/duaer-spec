@@ -10,6 +10,7 @@ import {
   setLocale,
   applyDomI18n,
 } from "./i18n.js";
+import { getTheme, initTheme, toggleTheme } from "./theme.mjs";
 import { structuredHtml, escapeHtml, reqEditModel, serializeReqEdit } from "./structured-html.mjs";
 import {
   deriveProjectDeliveryStatus,
@@ -448,6 +449,8 @@ const el = {
   cardPanel: document.querySelector(".card-panel"),
   updateNotice: document.getElementById("updateNotice"),
   langSelect: document.getElementById("langSelect"),
+  themeToggle: document.getElementById("themeToggle"),
+  themeToggleLabel: document.getElementById("themeToggleLabel"),
   historyToggle: document.getElementById("historyToggle"),
   employeeToggle: document.getElementById("employeeToggle"),
   employeePanel: document.getElementById("employeePanel"),
@@ -888,7 +891,21 @@ function explainChatBlocked() {
   addBubble("bot", msg);
 }
 
+function syncThemeToggleUi() {
+  const theme = getTheme();
+  if (el.themeToggle) {
+    el.themeToggle.dataset.theme = theme;
+    el.themeToggle.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    el.themeToggle.setAttribute("aria-label", t("theme.aria"));
+  }
+  if (el.themeToggleLabel) {
+    el.themeToggleLabel.textContent =
+      theme === "dark" ? t("theme.toLight") : t("theme.toDark");
+  }
+}
+
 function syncDynamicI18n() {
+  syncThemeToggleUi();
   for (const p of state.providers) {
     if (p.id === "custom") p.label = t("provider.custom");
   }
@@ -9259,6 +9276,14 @@ onLocaleChange(() => {
 });
 
 const initialLocale = initI18n();
+initTheme();
+syncThemeToggleUi();
+if (el.themeToggle) {
+  el.themeToggle.addEventListener("click", () => {
+    toggleTheme();
+    syncThemeToggleUi();
+  });
+}
 if (el.langSelect) {
   el.langSelect.value = initialLocale;
   el.langSelect.addEventListener("change", () => {
@@ -9266,6 +9291,7 @@ if (el.langSelect) {
   });
 }
 applyDomI18n();
+syncThemeToggleUi();
 syncChatPlaceholder();
 wireReqSections();
 syncComposerEnabled();

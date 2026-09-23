@@ -4,7 +4,8 @@
  * Same top nav as the console; project / employee / settings open on `/`.
  * Graph rebuilds from live job progress so node status stays current.
  */
-import { t, getLocale, initI18n, onLocaleChange, setLocale } from "./i18n.js";
+import { t, getLocale, initI18n, onLocaleChange, setLocale, applyDomI18n } from "./i18n.js";
+import { getTheme, initTheme, toggleTheme } from "./theme.mjs";
 import {
   mountArchitectureDiagram,
   clearArchitectureMount,
@@ -126,6 +127,20 @@ async function refreshGithubStars() {
   }
 }
 
+function syncThemeToggleUi() {
+  const btn = document.getElementById("themeToggle");
+  const label = document.getElementById("themeToggleLabel");
+  const theme = getTheme();
+  if (btn) {
+    btn.dataset.theme = theme;
+    btn.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+    btn.setAttribute("aria-label", t("theme.aria"));
+  }
+  if (label) {
+    label.textContent = theme === "dark" ? t("theme.toLight") : t("theme.toDark");
+  }
+}
+
 function wireTopNav() {
   projectToggle?.addEventListener("click", () => {
     goDesk("projects");
@@ -142,6 +157,11 @@ function wireTopNav() {
       setLocale(langSelect.value);
     });
   }
+  const themeToggle = document.getElementById("themeToggle");
+  themeToggle?.addEventListener("click", () => {
+    toggleTheme();
+    syncThemeToggleUi();
+  });
   viewGraphBtn?.addEventListener("click", () => setViewMode("graph"));
   viewArchBtn?.addEventListener("click", () => setViewMode("architecture"));
   void refreshGithubStars();
@@ -434,11 +454,15 @@ async function load() {
 }
 
 initI18n();
+initTheme();
+applyDomI18n();
+syncThemeToggleUi();
 wireTopNav();
 onLocaleChange(() => {
   if (langSelect) langSelect.value = getLocale();
   if (viewGraphBtn) viewGraphBtn.textContent = t("dispatch.viewGraph");
   if (viewArchBtn) viewArchBtn.textContent = t("dispatch.viewArchitecture");
+  syncThemeToggleUi();
   renderRail();
   void renderStage(currentPath());
 });

@@ -18,7 +18,12 @@ Also see root [`README.md`](../../README.md) (EN) / [`README.zh-CN.md`](../../RE
 
 ## Layout
 
-Three columns:
+Three columns: chat | confirm/progress | delivery. Prefer a **compact** shell
+(tighter gaps, smaller brand). Color themes are **dark** (default) and
+**light** via `html[data-theme]`; the top bar toggles and persists
+`duaer.live.theme` in `localStorage` (also on the dispatch-center page).
+Palettes use a soft blue accent — avoid harsh orange glow and dense hatch
+backgrounds that fatigue long sessions.
 
 | Column | Role |
 |---|---|
