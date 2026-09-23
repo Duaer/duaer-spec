@@ -1,5 +1,5 @@
 {
-  "feature": "288-settings-close-compact",
-  "branch": "fix/settings-close-compact",
-  "worktree": ".worktree/fix-settings-close-compact"
+  "feature": "289-settings-close-click",
+  "branch": "fix/settings-close-click",
+  "worktree": ".worktree/fix-settings-close-click"
 }

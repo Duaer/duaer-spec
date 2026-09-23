@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: Settings「关闭」click + cache bust
+
+- Bump `app.js` / `styles.css` query so browsers drop the old ready-gated close
+- Harden close via `closeSettingsDrawer` + capture-phase panel listener
+- Larger close hit target; drop sticky-head clip that could swallow clicks
+
 ### Fix: Settings always closable + denser drawers
 
 - Close Settings without model ready (关闭 / backdrop / gear / Escape)

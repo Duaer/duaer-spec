@@ -226,7 +226,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="dataPrecheck"/);
   assert.match(html, /id="externalDeps"/);
   assert.match(html, /id="perfBudget"/);
-  assert.match(html, /app\.js\?v=perf-budget-1/);
+  assert.match(html, /app\.js\?v=settings-close-3/);
+  assert.match(html, /styles\.css\?v=settings-close-3/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);
@@ -262,6 +263,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /progress-empty-title|progress\.emptyTitle/);
 
   const js = await (await fetch(`${live.base}/app.js`)).text();
+  assert.match(js, /closeSettingsDrawer/);
   assert.match(js, /openDeliverablesPage|\/api\/projects\/deliverables/);
   assert.match(js, /paintDeliveryCockpit|deriveProjectDeliveryStatus|deliveryStatus/);
   assert.match(css, /delivery-cockpit|project-status|project-deliverables/);

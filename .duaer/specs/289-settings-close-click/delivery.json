@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-09-23T10:35:00.000Z",
+  "verification": {
+    "L0": "node --check web/live-dev/app.js",
+    "L1": "npm test (pass)",
+    "L3": "npm run test:live (pass)"
+  },
+  "summary": "Cache-bust app.js/styles.css; harden Settings close with closeSettingsDrawer + capture listener."
+}

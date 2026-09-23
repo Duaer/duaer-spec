@@ -552,9 +552,8 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
   gap: 0.5rem;
   margin-bottom: 0.5rem;
   flex-shrink: 0;
-  position: sticky;
-  top: -0.7rem;
-  z-index: 1;
+  position: relative;
+  z-index: 2;
   background: var(--plate);
   padding-top: 0.1rem;
 }
@@ -571,9 +570,15 @@ body.dispatch-center-page #dispatchCenterToggle[aria-current="page"] {
 }
 
 .history-close {
-  min-width: auto;
-  padding: 0.22rem 0.5rem;
-  font-size: 0.74rem;
+  position: relative;
+  z-index: 3;
+  flex-shrink: 0;
+  min-width: 3.2rem;
+  min-height: 1.7rem;
+  padding: 0.28rem 0.65rem;
+  font-size: 0.78rem;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .settings-drawer {

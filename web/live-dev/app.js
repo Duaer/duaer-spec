@@ -3932,13 +3932,23 @@ function setSettingsOpen(open) {
     }
   }
   el.settingsPanel.hidden = !want;
+  el.settingsPanel.setAttribute("aria-hidden", want ? "false" : "true");
   if (el.cfgOpen) {
     el.cfgOpen.setAttribute("aria-expanded", want ? "true" : "false");
   }
   if (el.settingsClose) {
     el.settingsClose.hidden = false;
+    el.settingsClose.disabled = false;
   }
   syncDrawerBackdrop();
+}
+
+function closeSettingsDrawer(ev) {
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  setSettingsOpen(false);
 }
 
 function fillAliyunFields(cfg) {
@@ -4536,13 +4546,23 @@ el.cfgOpen?.addEventListener("click", () => {
       provider: state.providerId || state.lastCfg?.provider,
     });
   } else {
-    setSettingsOpen(false);
+    closeSettingsDrawer();
   }
 });
 
-el.settingsClose?.addEventListener("click", () => {
-  setSettingsOpen(false);
-});
+el.settingsClose?.addEventListener("click", closeSettingsDrawer);
+// Capture-phase backup: sticky head / overlays must not swallow 关闭.
+el.settingsPanel?.addEventListener(
+  "click",
+  (ev) => {
+    const t = ev.target;
+    if (!(t instanceof Element)) return;
+    if (t.id === "settingsClose" || t.closest?.("#settingsClose")) {
+      closeSettingsDrawer(ev);
+    }
+  },
+  true,
+);
 
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -8791,7 +8811,7 @@ document.addEventListener("keydown", (ev) => {
     return;
   }
   if (el.settingsPanel && !el.settingsPanel.hidden) {
-    setSettingsOpen(false);
+    closeSettingsDrawer();
     return;
   }
   if (el.employeePanel && !el.employeePanel.hidden) {
@@ -9354,7 +9374,7 @@ if (el.historyClose) {
 if (el.historyBackdrop) {
   el.historyBackdrop.addEventListener("click", () => {
     if (el.settingsPanel && !el.settingsPanel.hidden) {
-      setSettingsOpen(false);
+      closeSettingsDrawer();
       return;
     }
     if (el.employeePanel && !el.employeePanel.hidden) {

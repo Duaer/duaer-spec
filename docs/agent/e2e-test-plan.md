@@ -188,6 +188,7 @@ the table for their app.
 | E2E-217 | After「改缺陷」, prior requirement module tabs stay visible/clickable; light wells use theme inset tokens | `npm test` + `npm run test:live` |
 | E2E-218 | Bug confirm merges modules (keeps prior tabs); progress run-blocks use theme insets; denser progress column | `npm test` + `npm run test:live` |
 | E2E-219 | Settings closes without model ready (关闭 / backdrop / gear / Escape); denser drawers | `npm test` + `npm run test:live` |
+| E2E-220 | Settings「关闭」click works; asset cache-bust forces new close handler | `npm test` + `npm run test:live` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -434,4 +435,5 @@ the table for their app.
 | E2E-217 | `286-modules-bug-theme` | bug path keeps module tabs; theme inset tokens |
 | E2E-218 | `287-progress-modules-ux` | bug confirm merge + progress theme densify |
 | E2E-219 | `288-settings-close-compact` | settings always closable + denser drawers |
+| E2E-220 | `289-settings-close-click` | close button + asset cache bust |
 

@@ -30,6 +30,7 @@ test("duaer-live opens desk URL without model gate on serve", () => {
 
 test("desk UI shows shell when model missing and allows closing Settings", () => {
   const js = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
+  const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(js, /function showSetup/);
   assert.match(js, /el\.desk\.hidden\s*=\s*false/);
   assert.match(js, /setup\.hintOpenSettings/);
@@ -38,12 +39,15 @@ test("desk UI shows shell when model missing and allows closing Settings", () =>
     /First-time config:\s*keep drawer open until saved/,
   );
   assert.match(js, /settingsClose\.hidden\s*=\s*false/);
+  assert.match(js, /function closeSettingsDrawer/);
+  assert.match(js, /closeSettingsDrawer/);
   // Close must work without state.ready (button, backdrop, Escape, gear).
   assert.doesNotMatch(
     js,
     /settingsClose[\s\S]{0,120}if\s*\(\s*state\.ready\s*\)\s*setSettingsOpen\(false\)/,
   );
-  assert.match(js, /setSettingsOpen\(false\)/);
   assert.match(js, /Re-open from the gear must not clear/);
-  assert.match(js, /Escape[\s\S]{0,200}setSettingsOpen\(false\)/);
+  assert.match(js, /Escape[\s\S]{0,280}closeSettingsDrawer/);
+  assert.match(html, /app\.js\?v=settings-close-3/);
+  assert.match(html, /styles\.css\?v=settings-close-3/);
 });
