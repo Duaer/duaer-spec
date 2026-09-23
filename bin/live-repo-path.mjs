@@ -4,7 +4,7 @@
 
 import { existsSync, mkdirSync, statSync } from "node:fs";
 import { homedir } from "node:os";
-import { basename, isAbsolute, join, parse, resolve } from "node:path";
+import { basename, isAbsolute, parse, resolve } from "node:path";
 
 /**
  * @param {string} repoPath
@@ -54,6 +54,37 @@ export function resolveProductRepoPath(repoPath, opts = {}) {
 }
 
 /**
+ * Create mode: only a single short folder name under the product parent.
+ * Absolute paths and nested paths are refused so parent + name stay one story.
+ * @param {string} folderName
+ * @param {{ projectsRoot?: string, home?: string }} [opts]
+ */
+export function resolveCreateProductRepoPath(folderName, opts = {}) {
+  const raw = String(folderName || "")
+    .trim()
+    .replace(/[\\/]+$/, "");
+  if (!raw) {
+    const e = new Error("请填写要新建的目录短名");
+    e.code = "EMPTY_PATH";
+    throw e;
+  }
+  if (isAbsolute(raw) || /[\\/]/.test(raw) || raw === "." || raw === "..") {
+    const e = new Error(
+      "新建只能填目录短名（如 my-app），不要填绝对路径。目录将建在产品父目录下；已有项目请从下方列表打开或点「浏览…」",
+    );
+    e.code = "NEED_SHORT_NAME";
+    throw e;
+  }
+  const projectsRoot = String(opts.projectsRoot || "").trim();
+  if (!projectsRoot) {
+    const e = new Error("新建前请先选择产品父目录");
+    e.code = "NEED_PROJECTS_ROOT";
+    throw e;
+  }
+  return resolveProductRepoPath(raw, opts);
+}
+
+/**
  * Create mode must not reuse an on-disk folder (would clobber the prior project).
  * @param {string} absPath
  */
@@ -76,8 +107,44 @@ export function assertProductDirFreeForCreate(absPath) {
 }
 
 /**
+ * Create mode must not reuse a registered project path or display title.
+ * @param {{ path: string, title?: string }} want
+ * @param {Array<{ path?: string, title?: string, name?: string }>} repos
+ */
+export function assertProjectIdentityFreeForCreate(want, repos = []) {
+  const abs = resolve(String(want?.path || ""));
+  const title = String(want?.title || "")
+    .trim()
+    .toLowerCase();
+  const list = Array.isArray(repos) ? repos : [];
+  for (const r of list) {
+    const p = resolve(String(r?.path || ""));
+    if (p && abs && p === abs) {
+      const e = new Error(
+        `项目已存在：${abs}。请换一个目录名，或从「已有项目」打开。`,
+      );
+      e.code = "PROJECT_EXISTS";
+      e.path = abs;
+      throw e;
+    }
+    const other = String(r?.title || r?.name || "")
+      .trim()
+      .toLowerCase();
+    if (title && other && title === other) {
+      const e = new Error(
+        `已有同名项目「${r.title || r.name}」。请换一个项目名称，或从「已有项目」打开。`,
+      );
+      e.code = "TITLE_EXISTS";
+      e.path = p || undefined;
+      throw e;
+    }
+  }
+  return abs;
+}
+
+/**
  * Create missing directory (recursive). Refuses FS root and $HOME itself.
- * @returns {{ path: string, created: boolean }}
+ * @returns {{ path: string, created: boolean, name?: string }}
  */
 export function ensureProductDir(absPath, opts = {}) {
   const abs = resolve(String(absPath || ""));

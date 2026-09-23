@@ -507,7 +507,7 @@
       <p id="historyErr" class="hint" hidden></p>
 
       <section class="project-create" id="projectCreate">
-        <p class="project-section-label" data-i18n="project.createTitle">新建 / 打开项目</p>
+        <p class="project-section-label" data-i18n="project.createTitle">新建项目</p>
         <label class="field">
           <span data-i18n="dispatch.projectsRoot">产品父目录</span>
           <input
@@ -527,8 +527,8 @@
           <button type="button" class="btn" id="clearProjectsRoot" data-i18n="dispatch.clearProjectsRoot">清除</button>
         </div>
         <label class="field">
-          <span data-i18n="project.folderLabel">目录名或绝对路径</span>
-          <input id="projectFolder" type="text" data-i18n-placeholder="project.folderPh" placeholder="my-app 或 /Users/…/my-app" autocomplete="off" />
+          <span data-i18n="project.folderLabel">新建目录名</span>
+          <input id="projectFolder" type="text" data-i18n-placeholder="project.folderPh" placeholder="my-app" autocomplete="off" />
         </label>
         <label class="field">
           <span data-i18n="project.titleLabel">项目名称</span>
@@ -539,10 +539,10 @@
           <textarea id="projectDescription" rows="2" data-i18n-placeholder="project.descPh" placeholder="一两句：给谁用、解决什么问题…"></textarea>
         </label>
         <div class="repo-actions">
-          <button type="button" class="btn primary" id="projectActivate" data-i18n="project.activate">选为当前项目</button>
-          <button type="button" class="btn" id="projectBrowse" data-i18n="project.browse">浏览…</button>
+          <button type="button" class="btn primary" id="projectActivate" data-i18n="project.activate">新建并打开</button>
+          <button type="button" class="btn" id="projectBrowse" data-i18n="project.browse">浏览打开…</button>
         </div>
-        <p class="hint" data-i18n="project.createHint">新建须填名称与背景；短名在父目录下创建新文件夹。目录已存在时请换名，或从下方「已有项目」打开。未选项目前不能对话。</p>
+        <p class="hint" data-i18n="project.createHint">先选父目录，再填短名、名称与背景。短名不能带路径，也不能与已有目录或项目重名。已有项目从下方列表打开，或点「浏览打开…」。</p>
       </section>
 
       <p class="project-section-label" data-i18n="project.listTitle">已有项目</p>

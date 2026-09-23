@@ -90,6 +90,8 @@ test("live sources wire project-first APIs and UI", () => {
   assert.match(js, /create:\s*true/);
   assert.match(js, /showHistoryErr\(t\("project\.needTitle"\)\)/);
   assert.match(live, /assertProductDirFreeForCreate/);
+  assert.match(live, /resolveCreateProductRepoPath/);
+  assert.match(html, /新建目录名|project\.folderLabel/);
   assert.match(js, /project\.working/);
   const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
   assert.match(css, /\.history-drawer\s*\{[^}]*overflow-y:\s*auto/);

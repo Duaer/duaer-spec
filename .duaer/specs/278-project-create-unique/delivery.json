@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "summary": "Create uses only a short folder name under the product parent. Absolute paths, existing folders, and duplicate project titles are refused. Open from the list or browse still works.",
+  "verification": {
+    "L0": "node --check bin/live-repo-path.mjs bin/duaer-live.mjs — pass",
+    "L1": "npm test — pass",
+    "L3": "npm run test:live — pass"
+  }
+}

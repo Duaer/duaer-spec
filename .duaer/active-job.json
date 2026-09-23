@@ -1,5 +1,5 @@
 {
-  "feature": "277-project-dir-reuse",
-  "branch": "fix/project-dir-reuse",
-  "worktree": ".worktree/fix-project-dir-reuse"
+  "feature": "278-project-create-unique",
+  "branch": "fix/project-create-unique",
+  "worktree": ".worktree/fix-project-create-unique"
 }

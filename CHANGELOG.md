@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: create project uses a unique short name under the parent only
+
+- Create form no longer accepts absolute paths; folder name is a short name under the product parent
+- Duplicate on-disk folders and duplicate project titles are refused
+- Open existing projects from the list or Browse to open; create and open are separate
+
 ### Fix: creating a project no longer reuses an existing directory
 
 - Create mode refuses when the target folder already exists on disk

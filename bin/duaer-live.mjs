@@ -78,7 +78,9 @@ import {
 } from "./live-tooling.mjs";
 import {
   assertProductDirFreeForCreate,
+  assertProjectIdentityFreeForCreate,
   ensureProductDir,
+  resolveCreateProductRepoPath,
   resolveProductRepoPath,
 } from "./live-repo-path.mjs";
 import {
@@ -2546,18 +2548,42 @@ function activateProject(body = {}) {
   const cfg = readConfig();
   let raw = String(body.path || body.name || "").trim();
   if (!raw) {
-    const e = new Error("请填写目录名或绝对路径");
+    const e = new Error(
+      body.create === true || body.mode === "create"
+        ? "请填写要新建的目录短名"
+        : "请填写目录名或绝对路径",
+    );
     e.code = "EMPTY_PATH";
     throw e;
   }
   const titleIn = String(body.title || "").trim();
   const descriptionIn = String(body.description || "").trim();
   const create = body.create === true || body.mode === "create";
-  const abs = resolveProductRepoPath(raw, {
-    projectsRoot: cfg.projectsRoot,
-  });
+  if (create) {
+    if (!titleIn) {
+      const e = new Error("请填写项目名称");
+      e.code = "NEED_TITLE";
+      throw e;
+    }
+    if (!descriptionIn) {
+      const e = new Error("请填写简单的背景描述");
+      e.code = "NEED_DESCRIPTION";
+      throw e;
+    }
+  }
+  const abs = create
+    ? resolveCreateProductRepoPath(raw, {
+        projectsRoot: cfg.projectsRoot,
+      })
+    : resolveProductRepoPath(raw, {
+        projectsRoot: cfg.projectsRoot,
+      });
   if (create) {
     assertProductDirFreeForCreate(abs);
+    assertProjectIdentityFreeForCreate(
+      { path: abs, title: titleIn },
+      readRepos(),
+    );
   } else if (!fs.existsSync(abs)) {
     const e = new Error(`项目目录不存在：${abs}`);
     e.code = "PATH_MISSING";

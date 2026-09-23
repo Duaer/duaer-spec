@@ -9,7 +9,9 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import {
   assertProductDirFreeForCreate,
+  assertProjectIdentityFreeForCreate,
   ensureProductDir,
+  resolveCreateProductRepoPath,
   resolveProductRepoPath,
 } from "../bin/live-repo-path.mjs";
 
@@ -71,6 +73,69 @@ test("ensureProductDir refuses $HOME and FS root", () => {
   }
 });
 
+test("resolveCreateProductRepoPath accepts only a short name under parent", () => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const root = path.join(home, "Projects");
+  fs.mkdirSync(root);
+  try {
+    assert.equal(
+      resolveCreateProductRepoPath("my-app", { projectsRoot: root, home }),
+      path.join(root, "my-app"),
+    );
+    assert.throws(
+      () =>
+        resolveCreateProductRepoPath("/Users/morgan/pcdemo", {
+          projectsRoot: root,
+          home,
+        }),
+      (err) => err && err.code === "NEED_SHORT_NAME",
+    );
+    assert.throws(
+      () =>
+        resolveCreateProductRepoPath("nested/path", {
+          projectsRoot: root,
+          home,
+        }),
+      (err) => err && err.code === "NEED_SHORT_NAME",
+    );
+    assert.throws(
+      () => resolveCreateProductRepoPath("my-app", { projectsRoot: "", home }),
+      (err) => err && err.code === "NEED_PROJECTS_ROOT",
+    );
+  } finally {
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test("assertProjectIdentityFreeForCreate refuses duplicate path or title", () => {
+  const repos = [
+    { path: "/Users/me/Projects/a", title: "Invoice desk", name: "Invoice desk" },
+  ];
+  assert.throws(
+    () =>
+      assertProjectIdentityFreeForCreate(
+        { path: "/Users/me/Projects/a", title: "Other" },
+        repos,
+      ),
+    (err) => err && err.code === "PROJECT_EXISTS",
+  );
+  assert.throws(
+    () =>
+      assertProjectIdentityFreeForCreate(
+        { path: "/Users/me/Projects/b", title: "invoice desk" },
+        repos,
+      ),
+    (err) => err && err.code === "TITLE_EXISTS",
+  );
+  assert.equal(
+    assertProjectIdentityFreeForCreate(
+      { path: "/Users/me/Projects/b", title: "Fresh desk" },
+      repos,
+    ),
+    path.resolve("/Users/me/Projects/b"),
+  );
+});
+
 test("assertProductDirFreeForCreate refuses an existing directory", () => {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
   const target = path.join(home, "Projects", "taken");
@@ -104,6 +169,8 @@ test("assertProductDirFreeForCreate allows a missing path", () => {
 test("live sources wire product dir ensure", () => {
   const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
   assert.match(live, /assertProductDirFreeForCreate/);
+  assert.match(live, /resolveCreateProductRepoPath/);
+  assert.match(live, /assertProjectIdentityFreeForCreate/);
   assert.match(live, /body\.create === true|create === true/);
   assert.doesNotMatch(live, /isNew = Boolean\(ensured\.created\) \|\| !existing/);
   assert.match(live, /resolveProductRepoPath/);
