@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.3: desk light/compact UX, bug-path module tabs, Settings close, progress theme, remove chat quicknav. Tag v0.27.3 published; npm Trusted Publishing succeeded.",
+  "verification": {
+    "commands": [
+      "gh release view v0.27.3",
+      "gh run view 35850501756",
+      "npm view duaer-spec version"
+    ],
+    "result": "GitHub Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.3; npm publish run success; registry latest 0.27.3"
+  }
+}
