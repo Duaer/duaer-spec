@@ -4032,7 +4032,10 @@ function showSetup(cfg) {
   applyProvider(id, { fillEmptyOnly: Boolean(cfg?.baseUrl || cfg?.model) });
   // Always show the desk; open Settings so the operator can fill the model.
   if (el.desk) el.desk.hidden = false;
-  state.ready = false;
+  // Re-open from the gear must not clear an already-ready session.
+  if (!cfg?.ready) {
+    state.ready = false;
+  }
   syncComposerEnabled();
   setSettingsOpen(true);
   if (el.meta) {
@@ -4526,20 +4529,19 @@ el.clearAwsCfg?.addEventListener("click", () => {
 });
 
 el.cfgOpen?.addEventListener("click", () => {
-  const open = el.settingsPanel?.hidden !== false;
-  if (open) {
+  if (el.settingsPanel?.hidden) {
     showSetup({
       ...(state.lastCfg || {}),
       providers: state.providers,
       provider: state.providerId || state.lastCfg?.provider,
     });
-  } else if (state.ready) {
+  } else {
     setSettingsOpen(false);
   }
 });
 
 el.settingsClose?.addEventListener("click", () => {
-  if (state.ready) setSettingsOpen(false);
+  setSettingsOpen(false);
 });
 
 el.form.addEventListener("submit", (e) => {
@@ -8786,6 +8788,18 @@ document.addEventListener("keydown", (ev) => {
   if (ev.key !== "Escape") return;
   if (el.deployPicker && !el.deployPicker.hidden) {
     closeDeployPicker();
+    return;
+  }
+  if (el.settingsPanel && !el.settingsPanel.hidden) {
+    setSettingsOpen(false);
+    return;
+  }
+  if (el.employeePanel && !el.employeePanel.hidden) {
+    setEmployeeOpen(false);
+    return;
+  }
+  if (el.historyPanel && !el.historyPanel.hidden) {
+    setHistoryOpen(false);
   }
 });
 
@@ -8900,10 +8914,6 @@ function setHistoryOpen(open) {
   if (!el.historyPanel) return;
   const want = Boolean(open);
   if (want && el.settingsPanel && !el.settingsPanel.hidden) {
-    if (!state.ready) {
-      // Cannot open projects over mandatory first-time settings.
-      return;
-    }
     el.settingsPanel.hidden = true;
     if (el.cfgOpen) el.cfgOpen.setAttribute("aria-expanded", "false");
   }
@@ -9344,7 +9354,7 @@ if (el.historyClose) {
 if (el.historyBackdrop) {
   el.historyBackdrop.addEventListener("click", () => {
     if (el.settingsPanel && !el.settingsPanel.hidden) {
-      if (state.ready) setSettingsOpen(false);
+      setSettingsOpen(false);
       return;
     }
     if (el.employeePanel && !el.employeePanel.hidden) {

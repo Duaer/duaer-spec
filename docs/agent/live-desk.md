@@ -8,7 +8,7 @@ inside the chosen product repo.
 
 `duaer live` starts the console on **port 8787** (`http://127.0.0.1:8787`). A missing
 model does not block startup — the Settings drawer opens so the operator can save
-credentials, then chat.
+credentials (always dismissible via 关闭 / backdrop / gear / Escape), then chat.
 
 **Agents:** do not start a second console or use another port. Prefer LaunchAgent
 `com.duaer.live8787`. Interactive `duaer live` may open the browser once;

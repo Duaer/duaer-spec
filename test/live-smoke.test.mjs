@@ -357,6 +357,11 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /ensureBugModuleOnDesk/);
   assert.match(js, /confirmedModulesForPool/);
   assert.match(js, /mergeBugModuleIntoList|Never let a bug-only/);
+  assert.match(js, /Re-open from the gear must not clear/);
+  assert.doesNotMatch(
+    js,
+    /settingsClose[\s\S]{0,80}if\s*\(\s*state\.ready\s*\)\s*setSettingsOpen\(false\)/,
+  );
   assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);
   assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);

@@ -38,4 +38,12 @@ test("desk UI shows shell when model missing and allows closing Settings", () =>
     /First-time config:\s*keep drawer open until saved/,
   );
   assert.match(js, /settingsClose\.hidden\s*=\s*false/);
+  // Close must work without state.ready (button, backdrop, Escape, gear).
+  assert.doesNotMatch(
+    js,
+    /settingsClose[\s\S]{0,120}if\s*\(\s*state\.ready\s*\)\s*setSettingsOpen\(false\)/,
+  );
+  assert.match(js, /setSettingsOpen\(false\)/);
+  assert.match(js, /Re-open from the gear must not clear/);
+  assert.match(js, /Escape[\s\S]{0,200}setSettingsOpen\(false\)/);
 });

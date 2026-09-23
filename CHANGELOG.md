@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Fix: Settings always closable + denser drawers
+
+- Close Settings without model ready (关闭 / backdrop / gear / Escape)
+- Re-opening Settings from the gear no longer clears `ready`
+- Tighter shell, buttons, and settings drawer spacing
+
 ### Fix: progress theme + bug confirm keeps requirement tabs
 
 - Confirming a defect merges into existing modules (API no longer returns
