@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Bottom/top via edge labels pin labelAt on the via corridor so 改稿 no longer overlaps artifact.",
+  "verification": {
+    "commands": ["node --check bin/live-archify.mjs", "node --test test/live-archify.test.mjs"],
+    "result": "17 pass / 0 fail"
+  }
+}

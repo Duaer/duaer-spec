@@ -196,6 +196,46 @@ test("renderArchitectureHtml accepts stacked column IR that used to fail clean-f
   fs.rmSync(root, { recursive: true, force: true });
 });
 
+test("renderArchitectureHtml keeps bottom-via label under the floor (改稿/artifact)", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-via-label-"));
+  const out = renderArchitectureHtml(root, {
+    schema_version: 1,
+    diagram_type: "architecture",
+    meta: {
+      title: "人生到底为了什么 · 10分钟演讲PPT生成链路",
+      quality_profile: "standard",
+    },
+    components: [
+      { id: "speaker", type: "external", label: "讲者", size: [140, 64], pos: [1148, 96] },
+      { id: "draft", type: "backend", label: "AI 起草", size: [140, 64], pos: [48, 96] },
+      { id: "revise", type: "frontend", label: "改稿工作台", size: [140, 64], pos: [268, 96] },
+      { id: "gen", type: "backend", label: "PPT 生成器", size: [140, 64], pos: [488, 96] },
+      { id: "check", type: "backend", label: "兼容校验", size: [140, 64], pos: [708, 96] },
+      { id: "store", type: "database", label: "内容与版本库", size: [140, 64], pos: [488, 226] },
+      { id: "artifact", type: "cloud", label: "产物仓库", size: [140, 64], pos: [708, 226] },
+      { id: "compat", type: "external", label: "四端打开", size: [140, 64], pos: [928, 96] },
+    ],
+    connections: [
+      { id: "c1", from: "speaker", to: "revise", label: "改稿", variant: "emphasis" },
+      { id: "c2", from: "draft", to: "revise", label: "初稿" },
+      { id: "c3", from: "revise", to: "gen", label: "定稿", variant: "emphasis" },
+      { id: "c4", from: "gen", to: "check", label: "送检" },
+      { id: "c5", from: "check", to: "gen", label: "回修" },
+      { id: "c6", from: "revise", to: "store", label: "存稿" },
+      { id: "c7", from: "gen", to: "artifact", label: "产出" },
+      { id: "c8", from: "artifact", to: "compat", label: "四端验证" },
+      { id: "c9", from: "compat", to: "speaker", label: "截图存证" },
+    ],
+    boundaries: [],
+    cards: [],
+  });
+  assert.ok(fs.existsSync(out.htmlPath));
+  const c1 = out.ir.connections.find((c) => c.id === "c1");
+  assert.ok(c1?.fromSide === "bottom" && c1?.toSide === "bottom");
+  assert.ok(Array.isArray(c1.labelAt) && c1.labelAt[1] > 300);
+  fs.rmSync(root, { recursive: true, force: true });
+});
+
 test("renderArchitectureHtml accepts PPT IR with long reverse edge", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-ppt-"));
   const out = renderArchitectureHtml(root, {

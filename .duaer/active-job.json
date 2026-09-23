@@ -1,5 +1,5 @@
 {
-  "feature": "279-arch-side-detour",
-  "branch": "fix/arch-clean-flow",
-  "worktree": ".worktree/fix-arch-clean-flow"
+  "feature": "280-arch-bottom-via-label",
+  "branch": "fix/arch-label-overlap",
+  "worktree": ".worktree/fix-arch-label-overlap"
 }

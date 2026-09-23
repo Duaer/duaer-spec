@@ -122,8 +122,10 @@ registry linking into the requirements document (no duplicate full cards).
    (`via` + sides) for edges that would pass through unrelated components:
    same-row edges prefer a bottom/top wrap; stacked or diagonal edges try
    gutters and outer sides, keeping every segment clear of other boxes
-   (`clean-flow/edge-through-node`). Vertical edge labels use `labelAt` in
-   the gap between stacked boxes so they do not sit on the nodes.
+   (`clean-flow/edge-through-node`). Edge labels on bottom/top vias use
+   `labelAt` on the via corridor (not a negative `labelDy` that pulls them
+   into mid-row boxes). Vertical stacked edges use `labelAt` in the gap
+   between boxes.
 
 ## Bug dispatch (defect path)
 

@@ -631,12 +631,14 @@ export function routeCrossingEdges(ir) {
     e.toSide = chosen.toSide;
     e.via = chosen.via;
     if (e.label && e.labelAt == null) {
+      // Final placement is repaired by repairEdgeLabelPlacement; leave
+      // bottom/top vias unmarked so that helper can pin labelAt on the via.
       if (chosen.fromSide === "bottom" || chosen.toSide === "bottom") {
-        e.labelDy = -36;
         delete e.labelDx;
+        delete e.labelDy;
       } else if (chosen.fromSide === "top" || chosen.toSide === "top") {
-        e.labelDy = 36;
         delete e.labelDx;
+        delete e.labelDy;
       } else {
         e.labelDx = chosen.fromSide === "right" ? -36 : 36;
         delete e.labelDy;
@@ -647,33 +649,111 @@ export function routeCrossingEdges(ir) {
 }
 
 /**
- * Stacked nodes on a vertical edge leave the default mid-edge label on a box.
- * Place the label in the gap between the two boxes, offset sideways.
+ * Keep edge labels off component boxes.
+ * Bottom vias must place the label *below* the via (labelDy > 0) — a negative
+ * dy pulls the label up into nodes that sit above the detour.
+ * Vertical stacked edges get labelAt in the inter-box gap.
  * @param {object} ir
  */
 export function repairEdgeLabelPlacement(ir) {
   if (!ir || typeof ir !== "object") return ir;
   const components = Array.isArray(ir.components) ? ir.components : [];
   const connections = Array.isArray(ir.connections) ? ir.connections : [];
+  const boxes = [];
   const byId = new Map();
   for (const c of components) {
     if (!c?.id || !hasFinitePos(c)) continue;
     const w = hasFiniteSize(c) ? c.size[0] : 140;
     const h = hasFiniteSize(c) ? c.size[1] : 64;
-    byId.set(c.id, {
+    const box = {
+      id: c.id,
       cx: c.pos[0] + w / 2,
       cy: c.pos[1] + h / 2,
       left: c.pos[0],
       right: c.pos[0] + w,
       top: c.pos[1],
       bottom: c.pos[1] + h,
-    });
+    };
+    byId.set(c.id, box);
+    boxes.push(box);
   }
+
+  const LABEL_W = 36;
+  const LABEL_H = 16;
+
+  function overlapsAny(lx, ly) {
+    const left = lx - LABEL_W / 2;
+    const right = lx + LABEL_W / 2;
+    const top = ly - LABEL_H / 2;
+    const bottom = ly + LABEL_H / 2;
+    for (const box of boxes) {
+      if (
+        right > box.left &&
+        left < box.right &&
+        bottom > box.top &&
+        top < box.bottom
+      ) {
+        return box;
+      }
+    }
+    return null;
+  }
+
+  function edgeMid(e, a, b) {
+    if (Array.isArray(e.via) && e.via.length >= 2) {
+      const first = e.via[0];
+      const last = e.via[e.via.length - 1];
+      return [
+        (Number(first[0]) + Number(last[0])) / 2,
+        (Number(first[1]) + Number(last[1])) / 2,
+      ];
+    }
+    return [(a.cx + b.cx) / 2, (a.cy + b.cy) / 2];
+  }
+
   for (const e of connections) {
-    if (!e?.label || e.labelAt != null) continue;
+    if (!e?.label) continue;
     const a = byId.get(e.from);
     const b = byId.get(e.to);
     if (!a || !b) continue;
+
+    const via = Array.isArray(e.via) ? e.via : null;
+    const bottomVia =
+      via &&
+      via.length >= 2 &&
+      (e.fromSide === "bottom" || e.toSide === "bottom");
+    const topVia =
+      via &&
+      via.length >= 2 &&
+      (e.fromSide === "top" || e.toSide === "top") &&
+      !bottomVia;
+
+    if (bottomVia) {
+      // Stay under the floor detour — never pull up into co-row / mid-row boxes
+      const midX = (Number(via[0][0]) + Number(via[via.length - 1][0])) / 2;
+      const viaY = Number(via[0][1]);
+      e.labelAt = [Math.round(midX), Math.round(viaY + 18)];
+      delete e.labelDx;
+      delete e.labelDy;
+      continue;
+    }
+    if (topVia) {
+      const midX = (Number(via[0][0]) + Number(via[via.length - 1][0])) / 2;
+      const viaY = Number(via[0][1]);
+      e.labelAt = [Math.round(midX), Math.round(viaY - 18)];
+      delete e.labelDx;
+      delete e.labelDy;
+      continue;
+    }
+
+    if (e.labelAt != null) {
+      const hit = overlapsAny(e.labelAt[0], e.labelAt[1]);
+      if (!hit) continue;
+      // Nudge below the overlapping box
+      e.labelAt = [Math.round(hit.cx), Math.round(hit.bottom + 18)];
+      continue;
+    }
+
     const horizSpan = Math.abs(a.cx - b.cx);
     const vertSpan = Math.abs(a.cy - b.cy);
     if (vertSpan >= 60 && horizSpan < 80) {
@@ -685,15 +765,26 @@ export function repairEdgeLabelPlacement(ir) {
       delete e.labelDy;
       continue;
     }
-    if (horizSpan >= 60 && vertSpan < 80) {
-      // Horizontal: lift above the band so the label clears the boxes
-      if (e.labelDy == null && e.labelDx == null) {
-        e.labelDy = -36;
-      }
-      continue;
-    }
+
     if (e.labelDy == null && e.labelDx == null) {
       e.labelDy = -36;
+    }
+
+    // If the offset mid still lands on a box, pin labelAt clear of it
+    const [mx, my] = edgeMid(e, a, b);
+    const lx = mx + (Number(e.labelDx) || 0);
+    const ly = my + (Number(e.labelDy) || 0);
+    const hit = overlapsAny(lx, ly);
+    if (hit) {
+      const below = hit.bottom + 18;
+      const above = hit.top - 18;
+      const preferBelow = Math.abs(below - ly) <= Math.abs(above - ly);
+      e.labelAt = [
+        Math.round(hit.cx),
+        Math.round(preferBelow ? below : above),
+      ];
+      delete e.labelDx;
+      delete e.labelDy;
     }
   }
   return ir;

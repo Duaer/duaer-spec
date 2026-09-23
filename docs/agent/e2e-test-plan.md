@@ -184,6 +184,7 @@ the table for their app.
 | E2E-212 | Creating a new project refuses when the target directory already exists; open from the project list still works | `npm test` + `npm run test:live` |
 | E2E-213 | Create project accepts only a short folder name under the parent; absolute paths, duplicate folders, and duplicate titles are refused | `npm test` + `npm run test:live` |
 | E2E-214 | Architecture edges that would cross unrelated boxes get a clear corridor via; vertical labels use gap `labelAt`; Archify render succeeds | `npm test` |
+| E2E-215 | Bottom-via edge labels stay under the floor (`labelAt` on via) so they do not overlap mid-row boxes (e.g. 改稿 / artifact) | `npm test` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |

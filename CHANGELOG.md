@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: bottom-via edge labels stay under the floor
+
+- Bottom/top via labels use `labelAt` on the via corridor instead of
+  `labelDy: -36`, which pulled「改稿」up onto mid-row boxes like `artifact`
+
 ### Fix: architecture corridor detour when edges cross stacked nodes
 
 - Auto-routing validates candidate corridors (bottom/top wrap, side, gutter)
