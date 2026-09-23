@@ -1,5 +1,5 @@
 {
-  "feature": "290-remove-quicknav",
-  "branch": "fix/remove-quicknav",
-  "worktree": ".worktree/fix-remove-quicknav"
+  "feature": "291-release-0273",
+  "branch": "chore/release-0273",
+  "worktree": ".worktree/chore-release-0273"
 }

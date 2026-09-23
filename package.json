@@ -1,6 +1,6 @@
 {
   "name": "duaer-spec",
-  "version": "0.27.2",
+  "version": "0.27.3",
   "description": "Norms → satisfactory delivery: digital employees for Cursor and Claude Code — talk in plain language, no Spec workflow required",
   "type": "module",
   "bin": {
