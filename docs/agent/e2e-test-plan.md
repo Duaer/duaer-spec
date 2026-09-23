@@ -143,7 +143,7 @@ the table for their app.
 | E2E-171 | Creating or switching project ignores a stale status poll so 派工进度 does not pollute the new desk | `npm test` |
 | E2E-172 | Desk sessions use SQLite; legacy project-chats JSON imports on first open; schema_version migrations run | `npm test` |
 | E2E-173 | Config, repos, and live jobs import into desk.sqlite; live data is local-only (not packaged) | `npm test` |
-| E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图; revise same gate | `npm test` |
+| E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图 then locks confirm button; revise same gate | `npm test` |
 | E2E-175 | Confirm workers → Archify accepts task IR (edge ≥24px); render failure shows in chat | `npm test` + manual |
 | E2E-176 | FDE desk only on :8787; LaunchAgent sets DUAER_LIVE_NO_BROWSER; no alternate desk ports | `npm test` |
 | E2E-177 | 「查看派工图」opens Archify present=1 fullscreen with clickable nodes (same as architecture) | `npm test` + manual |

@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "After confirm+build, 确认人数并生成派工图 stays locked (chips too) until the dispatch graph is invalidated.",
+  "verification": {
+    "commands": [
+      "node --check web/live-dev/app.js",
+      "node --test test/task-graph.test.mjs test/live-i18n-common.test.mjs test/live-i18n-ja.test.mjs",
+      "npm run test:live"
+    ],
+    "result": "all pass"
+  }
+}

@@ -285,6 +285,7 @@ export const ru = {
   "dispatch.decomposeEmpty": "Задач ещё нет",
   "dispatch.parallelChip": "Параллельно",
   "dispatch.confirmWorkersGraph": "Подтвердить число и построить граф",
+  "dispatch.confirmWorkersLocked": "Подтверждено — граф готов",
   "dispatch.graphBuilding": "Строим граф…",
   "dispatch.graphBuildFail": "Не удалось построить граф",
   "dispatch.graphBuildFailDetail": "Не удалось построить граф: {msg}",

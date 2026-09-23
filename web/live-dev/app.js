@@ -1268,18 +1268,40 @@ function renderTaskPoolList(tasks) {
   }
 }
 
+function syncConfirmWorkersGraphButton() {
+  const btn = el.confirmWorkersGraph;
+  if (!btn) return;
+  const busy = Boolean(state.dispatchGraphBuilding);
+  const locked = Boolean(state.dispatchGraphReady);
+  btn.disabled = busy || locked;
+  btn.setAttribute("aria-busy", busy ? "true" : "false");
+  btn.classList.toggle("is-busy", busy);
+  btn.classList.toggle("is-locked", locked && !busy);
+  if (busy) {
+    btn.textContent = t("dispatch.graphBuilding");
+  } else if (locked) {
+    btn.textContent = t("dispatch.confirmWorkersLocked");
+  } else {
+    btn.textContent = t("dispatch.confirmWorkersGraph");
+  }
+}
+
 function syncOpenTaskGraphButton() {
-  if (!el.openTaskGraph) return;
-  el.openTaskGraph.disabled = !state.dispatchGraphReady;
+  if (el.openTaskGraph) {
+    el.openTaskGraph.disabled = !state.dispatchGraphReady;
+  }
+  syncConfirmWorkersGraphButton();
 }
 
 function markDispatchGraphStale() {
   if (!state.dispatchGraphReady) {
     syncOpenTaskGraphButton();
+    renderWorkerCountList();
     return;
   }
   state.dispatchGraphReady = false;
   syncOpenTaskGraphButton();
+  renderWorkerCountList();
   if (el.dispatchErr) {
     el.dispatchErr.hidden = false;
     el.dispatchErr.textContent = t("dispatch.graphStale");
@@ -1304,12 +1326,15 @@ function renderWorkerCountList() {
   el.workerCountList.replaceChildren();
   const cur = Math.max(1, Math.min(4, Number(state.workerCount) || 1));
   state.workerCount = cur;
+  const chipsLocked =
+    Boolean(state.dispatchGraphReady) || Boolean(state.dispatchGraphBuilding);
   for (let n = 1; n <= 4; n += 1) {
     const b = document.createElement("button");
     b.type = "button";
     b.className = "worker-count-chip";
     b.setAttribute("aria-pressed", n === cur ? "true" : "false");
     b.setAttribute("aria-label", String(n));
+    b.disabled = chipsLocked;
     const num = document.createElement("span");
     num.textContent = String(n);
     b.appendChild(num);
@@ -1323,6 +1348,7 @@ function renderWorkerCountList() {
     sub.textContent = label;
     b.appendChild(sub);
     b.addEventListener("click", () => {
+      if (chipsLocked) return;
       if (state.workerCount !== n) {
         state.workerCount = n;
         markDispatchGraphStale();
@@ -1378,20 +1404,14 @@ async function syncTaskPoolPreviewAsync() {
 }
 
 function setConfirmWorkersGraphBusy(busy) {
-  const btn = el.confirmWorkersGraph;
-  if (!btn) return;
-  btn.disabled = Boolean(busy);
-  btn.setAttribute("aria-busy", busy ? "true" : "false");
-  btn.classList.toggle("is-busy", Boolean(busy));
-  if (busy) {
-    btn.textContent = t("dispatch.graphBuilding");
-  } else {
-    btn.textContent = t("dispatch.confirmWorkersGraph");
-  }
+  state.dispatchGraphBuilding = Boolean(busy);
+  syncConfirmWorkersGraphButton();
+  renderWorkerCountList();
 }
 
 async function confirmWorkersAndBuildGraph() {
   if (state.dispatchGraphBuilding) return;
+  if (state.dispatchGraphReady) return;
   ensureModulesSeed();
   if (!state.architecture?.confirmed) {
     if (el.dispatchErr) {

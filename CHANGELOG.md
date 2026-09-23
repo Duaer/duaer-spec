@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Fix: lock confirm-workers after dispatch graph builds
+
+- After「确认人数并生成派工图」succeeds, the button stays locked (and worker
+  chips disable) until the graph is invalidated
+
 ## 0.27.2 — 2026-09-23
 
 ### Fix: bottom-via edge labels stay under the floor

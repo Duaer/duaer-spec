@@ -285,6 +285,7 @@ export const ko = {
   "dispatch.decomposeEmpty": "아직 작업 없음",
   "dispatch.parallelChip": "병렬",
   "dispatch.confirmWorkersGraph": "인원 확정 후 배정 그래프 생성",
+  "dispatch.confirmWorkersLocked": "확정됨 — 배정 그래프 준비됨",
   "dispatch.graphBuilding": "배정 그래프 생성 중…",
   "dispatch.graphBuildFail": "배정 그래프 생성 실패",
   "dispatch.graphBuildFailDetail": "배정 그래프 생성 실패: {msg}",

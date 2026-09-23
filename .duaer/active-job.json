@@ -1,5 +1,5 @@
 {
-  "feature": "281-release-0272",
-  "branch": "feat/release-0272",
-  "worktree": ".worktree/feat-release-0272"
+  "feature": "282-dispatch-confirm-lock",
+  "branch": "feat/dispatch-confirm-lock",
+  "worktree": ".worktree/feat-dispatch-confirm-lock"
 }

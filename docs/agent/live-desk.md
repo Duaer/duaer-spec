@@ -162,7 +162,9 @@ Kickoff owns Brief creation and dispatch. Order after architecture confirm:
 1. **Decompose** atomic tasks (one per acceptance line + impl / verify /
    shared steps). Parallelizable tasks (same dependency wave) are marked.
 2. **Recommend** digital-employee count (1–4) from parallel width; the operator
-   may change it, then **confirm** to build the **派工图**.
+   may change it, then **confirm** to build the **派工图**. After a successful
+   build, the confirm button and worker-count chips **lock** until the graph
+   is invalidated (re-decompose, architecture change, or open change).
 3. Launch uses the confirmed pool and worker count.
 
 Additional notes:

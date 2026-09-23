@@ -285,6 +285,7 @@ export const ptBR = {
   "dispatch.decomposeEmpty": "Ainda sem tarefas",
   "dispatch.parallelChip": "Paralelo",
   "dispatch.confirmWorkersGraph": "Confirmar quantidade e gerar grafo",
+  "dispatch.confirmWorkersLocked": "Confirmado — grafo pronto",
   "dispatch.graphBuilding": "Gerando o grafo…",
   "dispatch.graphBuildFail": "Falha ao gerar o grafo",
   "dispatch.graphBuildFailDetail": "Falha ao gerar o grafo: {msg}",
