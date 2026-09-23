@@ -1,0 +1,8 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.2: architecture clean-flow, project create uniqueness, FDE-08. Tag v0.27.2 published.",
+  "verification": {
+    "commands": ["gh release view v0.27.2"],
+    "result": "GitHub Release published; npm Trusted Publishing via release event"
+  }
+}
