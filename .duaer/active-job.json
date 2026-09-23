@@ -1,5 +1,5 @@
 {
-  "feature": "289-settings-close-click",
-  "branch": "fix/settings-close-click",
-  "worktree": ".worktree/fix-settings-close-click"
+  "feature": "290-remove-quicknav",
+  "branch": "fix/remove-quicknav",
+  "worktree": ".worktree/fix-remove-quicknav"
 }

@@ -214,8 +214,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
 
   const html = await (await fetch(`${live.base}/`)).text();
   assert.match(html, /chat-panel/);
-  assert.match(html, /id="chatQuickNav"/);
-  assert.match(html, /data-nav="progress"/);
+  assert.doesNotMatch(html, /id="chatQuickNav"|chat-quicknav|data-nav=/);
+  assert.match(html, /id="log"/);
   assert.match(html, /card-panel/);
   assert.match(html, /progress-col/);
   assert.match(html, /req-section/);
@@ -226,8 +226,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="dataPrecheck"/);
   assert.match(html, /id="externalDeps"/);
   assert.match(html, /id="perfBudget"/);
-  assert.match(html, /app\.js\?v=settings-close-3/);
-  assert.match(html, /styles\.css\?v=settings-close-3/);
+  assert.match(html, /app\.js\?v=remove-quicknav-1/);
+  assert.match(html, /styles\.css\?v=remove-quicknav-1/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);
@@ -252,9 +252,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(css, /width:\s*100%/);
   assert.match(css, /\.top\s*\{[^}]*position:\s*sticky/s);
   assert.match(css, /\.card-panel\s*\{[^}]*overflow-y:\s*auto/s);
-  assert.match(css, /\.chat-quicknav/);
-  assert.match(css, /right:\s*0\.4rem/);
-  assert.doesNotMatch(css, /translate\(50%/);
+  assert.doesNotMatch(css, /\.chat-quicknav/);
   assert.match(css, /\.chat-panel,\s*\.card-panel,\s*\.progress-col/s);
   assert.match(css, /progress-task-text|overflow-wrap:\s*anywhere/);
   assert.match(css, /\.progress-status[^{]*\{[^}]*overflow-wrap:\s*anywhere/s);
@@ -270,9 +268,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /finishArchitectureChatResult|applyArchitectureFromChatPayload|retryArchitectureDesign/);
   assert.match(js, /announceArchitectureMissing|rewriteArchitectureStreamBubble/);
   assert.match(js, /architectureUrl|components\.length/);
-  assert.match(js, /wireChatQuickNav/);
+  assert.doesNotMatch(js, /wireChatQuickNav|jumpQuickNav/);
   assert.match(js, /appendBugCardEntry/);
-  assert.match(js, /jumpQuickNav/);
   assert.match(js, /accepted \|\| previewVisible/);
   assert.match(js, /validationAllowsSend/);
   assert.match(js, /refreshConfirmButtonOnly|focusNextUnconfirmedModule/);

@@ -234,9 +234,6 @@ const el = {
   settingsClose: document.getElementById("settingsClose"),
   desk: document.getElementById("desk"),
   log: document.getElementById("log"),
-  chatQuickNav: document.getElementById("chatQuickNav"),
-  chatQuickNavMenu: document.getElementById("chatQuickNavMenu"),
-  chatQuickNavWrap: document.getElementById("chatQuickNavWrap"),
   chatEmpty: document.getElementById("chatEmpty"),
   form: document.getElementById("composer"),
   input: document.getElementById("input"),
@@ -595,69 +592,6 @@ function focusRightPanel({ smooth = true, force = false } = {}) {
 function scrollChatToLatest() {
   if (!el.log) return;
   el.log.scrollTop = el.log.scrollHeight;
-}
-
-function setChatQuickNavOpen(open) {
-  if (!el.chatQuickNav || !el.chatQuickNavMenu) return;
-  el.chatQuickNav.setAttribute("aria-expanded", open ? "true" : "false");
-  el.chatQuickNavMenu.hidden = !open;
-}
-
-function quickNavTarget(kind) {
-  if (kind === "chat") return el.log;
-  if (kind === "card") {
-    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
-    return el.confirm || el.cardPanel;
-  }
-  if (kind === "result") {
-    if (el.previewPanel && !el.previewPanel.hidden) return el.previewPanel;
-    if (el.revisePanel && !el.revisePanel.hidden) return el.revisePanel;
-    return el.confirm || el.cardPanel;
-  }
-  if (kind === "progress") {
-    return activeProgressFocusEl() || el.progressCol;
-  }
-  return null;
-}
-
-function jumpQuickNav(kind) {
-  setChatQuickNavOpen(false);
-  if (kind === "chat") {
-    clearPanelUserScroll(el.log);
-    scrollChatToLatest();
-    return;
-  }
-  const target = quickNavTarget(kind);
-  if (!target) return;
-  if (kind === "progress") {
-    clearPanelUserScroll(el.progressCol);
-    scrollPanelToTarget(el.progressCol, target, { smooth: true, force: true });
-    return;
-  }
-  clearPanelUserScroll(el.cardPanel);
-  scrollPanelToTarget(el.cardPanel, target, { smooth: true, force: true });
-}
-
-function wireChatQuickNav() {
-  if (!el.chatQuickNav || el.chatQuickNav.dataset.bound === "1") return;
-  el.chatQuickNav.dataset.bound = "1";
-  el.chatQuickNav.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    const open = el.chatQuickNav.getAttribute("aria-expanded") !== "true";
-    setChatQuickNavOpen(open);
-  });
-  el.chatQuickNavMenu?.addEventListener("click", (ev) => {
-    const btn = ev.target?.closest?.("[data-nav]");
-    if (!btn) return;
-    ev.preventDefault();
-    jumpQuickNav(btn.getAttribute("data-nav"));
-  });
-  document.addEventListener("click", (ev) => {
-    if (!el.chatQuickNavWrap?.contains(ev.target)) setChatQuickNavOpen(false);
-  });
-  document.addEventListener("keydown", (ev) => {
-    if (ev.key === "Escape") setChatQuickNavOpen(false);
-  });
 }
 
 function syncChatPlaceholder() {
@@ -9481,7 +9415,6 @@ syncComposerEnabled();
 renderWorkerCountList();
 wirePanelScrollHold(el.cardPanel);
 wirePanelScrollHold(el.progressCol);
-wireChatQuickNav();
 
 if (el.autoFixCard) {
   el.autoFixCard.addEventListener("click", () => {

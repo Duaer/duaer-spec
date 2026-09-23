@@ -160,8 +160,7 @@ the bottom strip under results; after delivery it sits beside「再改一版」.
 6. Feature path (`deskKind=feature`) drops the defect tab and keeps requirement
    modules.
 
-The chat column’s right edge has a **导航** control that jumps to: chat bottom ·
-confirm card · result · progress.
+The chat column no longer shows a floating「导航」control.
 
 See [ADR 003](../adr/003-bug-dispatch.md).
 

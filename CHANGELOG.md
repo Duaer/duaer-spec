@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: remove chat「导航」control
+
+- Drop the floating quick-nav button and menu from the chat column
+
 ### Fix: Settings「关闭」click + cache bust
 
 - Bump `app.js` / `styles.css` query so browsers drop the old ready-gated close

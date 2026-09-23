@@ -48,6 +48,6 @@ test("desk UI shows shell when model missing and allows closing Settings", () =>
   );
   assert.match(js, /Re-open from the gear must not clear/);
   assert.match(js, /Escape[\s\S]{0,280}closeSettingsDrawer/);
-  assert.match(html, /app\.js\?v=settings-close-3/);
-  assert.match(html, /styles\.css\?v=settings-close-3/);
+  assert.match(html, /app\.js\?v=remove-quicknav-1/);
+  assert.match(html, /styles\.css\?v=remove-quicknav-1/);
 });
