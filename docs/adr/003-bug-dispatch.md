@@ -10,9 +10,9 @@ required modular confirm plus architecture. Bug work needs a shorter gate and
 
 1. Persist per-project `deskKind`: `feature` | `bug`.
 2. Bug appends a defect module (`bug`) beside prior requirement modules (does
-   not wipe them). Default architecture skip, short task pool from the bug
-   module only (reproduce → fix → regress), and
-   `allocateUniqueBranch(..., kind: "fix")`.
+   not wipe them). Confirm API merges the defect into the incoming module list.
+   Default architecture skip, short task pool from the bug module only
+   (reproduce → fix → regress), and `allocateUniqueBranch(..., kind: "fix")`.
 3. Optional hotfix toggle bases the worktree on `main` when that branch exists.
 4. Bug chat / validate **auto-fill** project delivery facts (preview URL, start
    scripts, local env hints) into `assumptions` and must not gate on missing

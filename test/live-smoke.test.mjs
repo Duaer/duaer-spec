@@ -292,6 +292,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(js, /enrichChatOptions|choice-chip|chat\.optFeature/);
   const liveBin = fs.readFileSync(LIVE_BIN, "utf8");
   assert.match(liveBin, /enrichChatOptions/);
+  assert.match(liveBin, /mergeBugModuleIntoList/);
   assert.match(liveBin, /deviceMatrix.*criticalPaths.*exceptionCases/s);
   assert.match(liveBin, /apiContract|接口契约/);
   assert.match(liveBin, /FDE-01 基线三块|deviceMatrix = 浏览器/);
@@ -355,6 +356,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.doesNotMatch(css, /rgba\(8,\s*14,\s*20/);
   assert.match(js, /ensureBugModuleOnDesk/);
   assert.match(js, /confirmedModulesForPool/);
+  assert.match(js, /mergeBugModuleIntoList|Never let a bug-only/);
   assert.match(js, /refreshGithubStars|\/api\/github|formatStarCount/);
   assert.match(liveBin, /\/api\/github|refreshGithubMeta|stargazers_count/);
   assert.match(html, /id="settingsPanel"|settings-drawer/);

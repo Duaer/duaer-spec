@@ -2210,7 +2210,36 @@ function syncStartBugFixButtons() {
 }
 
 function ensureBugModuleOnDesk() {
-  const kept = (state.modules || []).filter((m) => m && m.id !== "bug");
+  let kept = (state.modules || []).filter((m) => m && m.id !== "bug");
+  // Recover a readonly requirement tab when an older wipe left only `bug`.
+  if (
+    !kept.length &&
+    state.originalCard &&
+    (state.originalCard.goal || state.originalCard.acceptance)
+  ) {
+    kept = [
+      {
+        id: "main",
+        title: "Main",
+        status: "confirmed",
+        card: {
+          goal: String(state.originalCard.goal || ""),
+          outOfScope: String(state.originalCard.outOfScope || ""),
+          acceptance: String(state.originalCard.acceptance || ""),
+          assumptions: String(state.originalCard.assumptions || ""),
+          deviceMatrix: String(state.originalCard.deviceMatrix || ""),
+          criticalPaths: String(state.originalCard.criticalPaths || ""),
+          exceptionCases: String(state.originalCard.exceptionCases || ""),
+          apiContract: String(state.originalCard.apiContract || ""),
+          envChecklist: String(state.originalCard.envChecklist || ""),
+          dataPrecheck: String(state.originalCard.dataPrecheck || ""),
+          externalDeps: String(state.originalCard.externalDeps || ""),
+          perfBudget: String(state.originalCard.perfBudget || ""),
+        },
+        dependsOn: [],
+      },
+    ];
+  }
   let bug = (state.modules || []).find((m) => m?.id === "bug");
   if (!bug) {
     bug = {
@@ -2304,6 +2333,11 @@ function isFeatureIntentText(text) {
 function enterDeskKind(kind) {
   const next = kind === "bug" ? "bug" : "feature";
   if (state.deskKind === next && next === "bug" && !state.locked) {
+    ensureModulesSeed();
+    ensureBugModuleOnDesk();
+    applyActiveModuleToFields();
+    applyConfirmCardChrome();
+    renderModuleTabs();
     syncStartBugFixButtons();
     return;
   }
@@ -3481,6 +3515,15 @@ async function loadProjectChatIntoUi(projectPath) {
     state.workerCount = Number(data.workerCount) > 0 ? Number(data.workerCount) : 1;
     state.deskKind = data.deskKind === "bug" ? "bug" : "feature";
     state.bugHotfix = Boolean(data.bugHotfix);
+    if (state.deskKind === "bug") {
+      ensureBugModuleOnDesk();
+      if (data.activeModuleId) {
+        const want = String(data.activeModuleId);
+        if (state.modules.some((m) => m.id === want)) {
+          state.activeModuleId = want;
+        }
+      }
+    }
     state.dispatchGraphReady = Boolean(data.dispatchGraphReady);
     state.dispatchGraphUrl = String(data.dispatchGraphUrl || "").trim() || null;
     state.dispatchGraphBuiltOnce = Boolean(
@@ -4982,7 +5025,7 @@ async function autoHandleFromGate(kind, btn) {
 
 async function applyConfirmSuccess(data) {
   if (Array.isArray(data.modules) && data.modules.length) {
-    state.modules = data.modules.map((m) => ({
+    const mapped = data.modules.map((m) => ({
       id: String(m.id),
       title: String(m.title || m.id),
       status: m.status === "confirmed" ? "confirmed" : String(m.status || "draft"),
@@ -5002,6 +5045,29 @@ async function applyConfirmSuccess(data) {
       },
       dependsOn: Array.isArray(m.dependsOn) ? m.dependsOn.map(String) : [],
     }));
+    const bugConfirm =
+      state.deskKind === "bug" ||
+      data.deskKind === "bug" ||
+      mapped.some((m) => m.id === "bug");
+    if (bugConfirm) {
+      // Never let a bug-only server payload wipe prior requirement modules.
+      const kept = (state.modules || []).filter((m) => m && m.id !== "bug");
+      const byId = new Map(kept.map((m) => [m.id, m]));
+      for (const m of mapped) {
+        if (m.id === "bug") continue;
+        byId.set(m.id, m);
+      }
+      const bug = mapped.find((m) => m.id === "bug") || mapped[0];
+      state.modules = bug
+        ? [...byId.values()].filter((m) => m.id !== "bug").concat([
+            bug.id === "bug"
+              ? bug
+              : { ...bug, id: "bug", title: bug.title || t("card.bugModuleTitle") },
+          ])
+        : [...byId.values()];
+    } else {
+      state.modules = mapped;
+    }
   }
   if (data.activeModuleId || data.moduleId) {
     state.activeModuleId = String(data.activeModuleId || data.moduleId);
@@ -5027,7 +5093,11 @@ async function applyConfirmSuccess(data) {
     }
     applyActiveModuleToFields();
   }
-  const allDone = Boolean(data.modulesAllConfirmed) || modulesAllConfirmedLocal();
+  const allDone =
+    Boolean(data.modulesAllConfirmed) ||
+    (state.deskKind === "bug"
+      ? Boolean(state.modules?.some((m) => m.id === "bug" && m.status === "confirmed"))
+      : modulesAllConfirmedLocal());
   state.locked = allDone;
   // Brief is written at kickoff — do not set jobId from module confirm.
   if (data.jobId) state.jobId = data.jobId;

@@ -246,6 +246,25 @@ export function confirmModuleInList(modules, moduleId, card) {
   );
 }
 
+/**
+ * Keep prior requirement modules when confirming a defect.
+ * Replaces only the `bug` slot (or appends it) instead of wiping the list.
+ */
+export function mergeBugModuleIntoList(existing, bugCard, { title = "缺陷" } = {}) {
+  const kept = clipModules(existing).filter((m) => m.id !== "bug");
+  const card = clipCard(bugCard);
+  return [
+    ...kept,
+    {
+      id: "bug",
+      title: String(title || "缺陷").slice(0, 80),
+      status: "draft",
+      card,
+      dependsOn: [],
+    },
+  ];
+}
+
 /** Aggregate confirmed modules into one Brief-shaped card. */
 export function aggregateModulesCard(modules) {
   const list = clipModules(modules).filter((m) => m.status === "confirmed");

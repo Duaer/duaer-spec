@@ -7,6 +7,7 @@ import {
   clipModules,
   modulesAllConfirmed,
   confirmModuleInList,
+  mergeBugModuleIntoList,
   aggregateModulesCard,
   buildTaskPoolFromModules,
   buildBugTaskPool,
@@ -367,6 +368,36 @@ test("buildBugTaskPool prefers id=bug when feature modules are also confirmed", 
   assert.equal(pool.kind, "bug");
   assert.match(pool.tasks[0].title, /缺陷|Safari/);
   assert.equal(pool.tasks[0].moduleId, "bug");
+});
+
+test("mergeBugModuleIntoList keeps prior feature modules", () => {
+  const merged = mergeBugModuleIntoList(
+    [
+      {
+        id: "login",
+        title: "Login",
+        status: "confirmed",
+        card: {
+          goal: "Ship login",
+          outOfScope: "",
+          acceptance: "ok",
+          assumptions: "",
+        },
+        dependsOn: [],
+      },
+    ],
+    {
+      goal: "Crash on save",
+      outOfScope: "",
+      acceptance: "No crash",
+      assumptions: "",
+    },
+  );
+  assert.equal(merged.length, 2);
+  assert.equal(merged[0].id, "login");
+  assert.equal(merged[0].status, "confirmed");
+  assert.equal(merged[1].id, "bug");
+  assert.match(merged[1].card.goal, /Crash/);
 });
 
 test("project chat persists deskKind bug", () => {

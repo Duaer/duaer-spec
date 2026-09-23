@@ -1,5 +1,5 @@
 {
-  "feature": "286-modules-bug-theme",
-  "branch": "fix/modules-bug-theme",
-  "worktree": ".worktree/fix-modules-bug-theme"
+  "feature": "287-progress-modules-ux",
+  "branch": "fix/progress-modules-ux",
+  "worktree": ".worktree/fix-progress-modules-ux"
 }

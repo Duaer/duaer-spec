@@ -113,6 +113,7 @@ import {
   clipActiveModuleId,
   modulesAllConfirmed,
   confirmModuleInList,
+  mergeBugModuleIntoList,
   aggregateModulesCard,
   buildTaskPoolFromModules,
   buildBugTaskPool,
@@ -6720,15 +6721,7 @@ async function handleApi(req, res) {
             "main";
       let modules =
         deskKind === "bug"
-          ? [
-              {
-                id: "bug",
-                title: "缺陷",
-                status: "draft",
-                card: acceptedCard,
-                dependsOn: [],
-              },
-            ]
+          ? mergeBugModuleIntoList(incomingModules, acceptedCard)
           : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
@@ -6742,7 +6735,10 @@ async function handleApi(req, res) {
         ];
       }
       modules = confirmModuleInList(modules, moduleId, acceptedCard);
-      const allConfirmed = modulesAllConfirmed(modules);
+      const allConfirmed =
+        deskKind === "bug"
+          ? modules.some((m) => m.id === "bug" && m.status === "confirmed")
+          : modulesAllConfirmed(modules);
       // Per-module confirm never writes Brief / launches agents — kickoff owns that.
       send(res, 200, {
         ok: true,
@@ -6842,15 +6838,7 @@ async function handleApi(req, res) {
             "main";
       let modules =
         deskKind === "bug"
-          ? [
-              {
-                id: "bug",
-                title: "缺陷",
-                status: "draft",
-                card: acceptedCard,
-                dependsOn: [],
-              },
-            ]
+          ? mergeBugModuleIntoList(incomingModules, acceptedCard)
           : clipModules(incomingModules, acceptedCard);
       if (!modules.length) {
         modules = [
@@ -6864,7 +6852,10 @@ async function handleApi(req, res) {
         ];
       }
       modules = confirmModuleInList(modules, moduleId, acceptedCard);
-      const allConfirmed = modulesAllConfirmed(modules);
+      const allConfirmed =
+        deskKind === "bug"
+          ? modules.some((m) => m.id === "bug" && m.status === "confirmed")
+          : modulesAllConfirmed(modules);
       send(res, 200, {
         ok: true,
         passed: true,

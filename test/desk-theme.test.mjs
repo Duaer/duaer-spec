@@ -21,6 +21,7 @@ test("theme.mjs and desk wire light/dark toggle", () => {
   assert.match(css, /--inset|--inset-strong|--inset-soft/);
   assert.doesNotMatch(css, /#e05a2b|rgba\(224,\s*90,\s*43|#13202b|#0b1118|#1a100c/);
   assert.doesNotMatch(css, /rgba\(8,\s*14,\s*20/);
+  assert.doesNotMatch(css, /rgba\(26,\s*40,\s*54|rgba\(34,\s*52,\s*69/);
   assert.doesNotMatch(css, /color:\s*#9fe8dc/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /id="themeToggle"/);

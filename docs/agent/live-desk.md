@@ -141,7 +141,8 @@ The middle column shows a **修 bug** button in the same bottom CTA row as
 the bottom strip under results; after delivery it sits beside「再改一版」.
 
 1. Appends a **defect module tab** (`bug`) beside prior requirement modules —
-   it does **not** wipe them. Switching tabs shows that module’s card
+   it does **not** wipe them. Confirming the defect **merges** into the existing
+   module list (API + client). Switching tabs shows that module’s card
    (confirmed feature tabs are readonly). Chat merge updates only the defect
    card. **Project delivery facts** (preview URL, start scripts, local
    path/port hints) are injected into chat + `assumptions` automatically —

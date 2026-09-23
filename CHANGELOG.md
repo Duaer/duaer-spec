@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Fix: progress theme + bug confirm keeps requirement tabs
+
+- Confirming a defect merges into existing modules (API no longer returns
+  bug-only list that wiped prior tabs)
+- Client hardens applyConfirmSuccess; restores a Main tab from originalCard
+  when an older wipe left only `bug`
+- Progress run blocks / meters use inset tokens; denser progress + shell spacing
+
 ### Fix: keep requirement modules clickable during bug path
 
 -「改缺陷」appends a `bug` tab instead of wiping prior modules; tabs stay
