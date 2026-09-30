@@ -232,5 +232,6 @@ npx duaer-spec init --here --method
 ```
 
 Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)
+Done checklist: [`docs/done-checklist.md`](docs/done-checklist.md)
 
 When agent ops and method conflict, **agent ops win**.

@@ -173,3 +173,4 @@ Worktree 是整仓副本，Brief 在仓库内的 `.duaer/specs/`：
 ```
 
 英文源：[`README.md`](README.md) · 采纳细节：[`ADOPT.md`](ADOPT.md)
+做完清单：[`docs/done-checklist.md`](docs/done-checklist.md)
