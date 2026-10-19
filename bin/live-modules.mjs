@@ -2,7 +2,7 @@
  * Modular requirements + dependency-aware task pool for live desk FDE.
  */
 
-import { splitAcceptanceLines } from "../web/live-dev/acceptance-lines.mjs";
+import { acceptanceAtoms } from "../web/live-dev/acceptance-lines.mjs";
 import {
   EMPLOYEE_ROLES,
   clipEmployeeRole,
@@ -334,7 +334,7 @@ export function buildBugTaskPool(modules, { deployNeeded = false, deployTaskText
     role: EMPLOYEE_ROLES.IMPLEMENT,
   });
   let prevId = fix.id;
-  const acceptLines = splitAcceptanceLines(card.acceptance);
+  const acceptLines = acceptanceAtoms(card.acceptance, card.goal);
   if (acceptLines.length) {
     for (const line of acceptLines) {
       const acc = push({
@@ -469,7 +469,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
       dependsOn: beforeImpl,
       role: EMPLOYEE_ROLES.IMPLEMENT,
     });
-    const acceptLines = splitAcceptanceLines(m.card.acceptance);
+    const acceptLines = acceptanceAtoms(m.card.acceptance, m.card.goal);
     let prevId = impl.id;
     if (acceptLines.length) {
       for (const line of acceptLines) {
@@ -623,8 +623,8 @@ ${lines.join("\n")}
 **原子任务规则（强制）：**
 - 每个勾选项只做一个可独立验证的功能点；不要把多项验收揉进同一条
 - 进度必须可监控：只用 \`- [ ]\` / \`- [x]\` 勾选；禁止无 checkbox 的笼统进度叙事
-- 若清单仍偏粗：开工后先按 Acceptance 扩成「一条验收一勾选」（仍用 T00x），保存后再做
-- 不要为了凑数合并无关步骤；也不要人为限制条数
+- 验收按换行、分号或句子拆开；验收为空时按目标的句子拆。仍是一句就保持一条
+- 不要为了凑数合并无关步骤，也不要编造占位任务；不要人为限制条数
 `;
 }
 

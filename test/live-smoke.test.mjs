@@ -226,8 +226,8 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /id="dataPrecheck"/);
   assert.match(html, /id="externalDeps"/);
   assert.match(html, /id="perfBudget"/);
-  assert.match(html, /app\.js\?v=remove-quicknav-1/);
-  assert.match(html, /styles\.css\?v=remove-quicknav-1/);
+  assert.match(html, /app\.js\?v=atomic-clause-1/);
+  assert.match(html, /styles\.css\?v=atomic-clause-1/);
   assert.match(html, /card\.devicePh|Chrome 最近两版/);
   assert.match(html, /card\.pathsPh|登录 → 首页/);
   assert.match(html, /card\.exceptionsPh|空列表提示/);

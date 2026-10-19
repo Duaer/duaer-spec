@@ -283,7 +283,7 @@ export const ko = {
   "dispatch.viewArchitecture": "시스템 아키텍처",
   "dispatch.centerArchEmpty": "이 프로젝트에는 아직 시스템 아키텍처 다이어그램이 없습니다",
   "dispatch.decomposeTitle": "작업 분해",
-  "dispatch.decomposeHint": "아키텍처 확인 후 수락 기준을 원자 작업으로 분해; 병렬 가능 표시",
+  "dispatch.decomposeHint": "아키텍처 확인 후 문장마다 원자 작업으로 분해; 병렬 가능 표시",
   "dispatch.redecompose": "다시 분해",
   "dispatch.decomposeEmpty": "아직 작업 없음",
   "dispatch.parallelChip": "병렬",

@@ -283,7 +283,7 @@ export const fr = {
   "dispatch.viewArchitecture": "Architecture",
   "dispatch.centerArchEmpty": "Pas encore de diagramme d’architecture pour ce projet",
   "dispatch.decomposeTitle": "Décomposition des tâches",
-  "dispatch.decomposeHint": "Après confirmation d'architecture, découper l'acceptation en tâches atomiques ; les parallèles sont marquées",
+  "dispatch.decomposeHint": "Après confirmation d'architecture, une tâche atomique par phrase ; les parallèles sont marquées",
   "dispatch.redecompose": "Redécomposer",
   "dispatch.decomposeEmpty": "Pas encore de tâches",
   "dispatch.parallelChip": "Parallèle",

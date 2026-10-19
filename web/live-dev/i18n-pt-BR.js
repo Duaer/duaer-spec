@@ -283,7 +283,7 @@ export const ptBR = {
   "dispatch.viewArchitecture": "Arquitetura",
   "dispatch.centerArchEmpty": "Este projeto ainda não tem diagrama de arquitetura",
   "dispatch.decomposeTitle": "Decomposição de tarefas",
-  "dispatch.decomposeHint": "Após confirmar a arquitetura, divida a aceitação em tarefas atômicas; paralelas são marcadas",
+  "dispatch.decomposeHint": "Após confirmar a arquitetura, separe cada frase em uma tarefa atômica; paralelas são marcadas",
   "dispatch.redecompose": "Redecompor",
   "dispatch.decomposeEmpty": "Ainda sem tarefas",
   "dispatch.parallelChip": "Paralelo",

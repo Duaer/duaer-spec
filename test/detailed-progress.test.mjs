@@ -25,6 +25,45 @@ test("splitAcceptanceLines splits bullets and semicolons", () => {
   assert.equal(splitAcceptanceLines("A; B；C").length, 3);
 });
 
+test("splitAcceptanceLines splits sentences and keeps a single clause whole", () => {
+  assert.deepEqual(splitAcceptanceLines("打开首页看到主色。标题加大。"), [
+    "打开首页看到主色",
+    "标题加大",
+  ]);
+  assert.deepEqual(
+    splitAcceptanceLines("Open the form. Submit shows the dashboard."),
+    ["Open the form", "Submit shows the dashboard"],
+  );
+  assert.deepEqual(splitAcceptanceLines("1. Open login 2. See home"), [
+    "Open login",
+    "See home",
+  ]);
+  assert.deepEqual(splitAcceptanceLines("Open /login see form"), [
+    "Open /login see form",
+  ]);
+  assert.deepEqual(
+    splitAcceptanceLines("Open http://127.0.0.1:8787/login and see the form"),
+    ["Open http://127.0.0.1:8787/login and see the form"],
+  );
+  assert.deepEqual(splitAcceptanceLines("Wait 1.5 seconds. Then show the form."), [
+    "Wait 1.5 seconds",
+    "Then show the form",
+  ]);
+  assert.deepEqual(splitAcceptanceLines("(none)"), []);
+  assert.deepEqual(splitAcceptanceLines(""), []);
+});
+
+test("buildDetailedProductTasksMd does not pad filler atomic steps", () => {
+  const md = buildDetailedProductTasksMd({
+    goal: "用户能登录。首页显示卡片。",
+    acceptance: "",
+    deployNeeded: false,
+  });
+  assert.match(md, /Satisfy acceptance \(alone\): 用户能登录/);
+  assert.match(md, /Satisfy acceptance \(alone\): 首页显示卡片/);
+  assert.doesNotMatch(md, /atomic step/);
+});
+
 test("buildDetailedProductTasksMd yields ≥6 checkboxes", () => {
   const md = buildDetailedProductTasksMd({
     goal: "Landing page for tea shop",
@@ -71,6 +110,19 @@ test("buildDetailedRevisionTasksMd yields ≥5 R{n}-* boxes", () => {
   assert.ok(boxes.length >= 5, `expected ≥5, got ${boxes.length}`);
   assert.match(block, /Apply revision: Make hero taller/);
   assert.match(block, /Update product README/);
+  assert.doesNotMatch(block, /atomic step/);
+});
+
+test("buildDetailedRevisionTasksMd splits a multi-sentence change", () => {
+  const block = buildDetailedRevisionTasksMd({
+    revN: 3,
+    change: "Make the hero taller. Keep the footer.",
+    acceptance: "Hero is taller",
+  });
+  assert.match(block, /Apply revision \(alone\): Make the hero taller/);
+  assert.match(block, /Apply revision \(alone\): Keep the footer/);
+  assert.match(block, /Satisfy revision acceptance \(alone\): Hero is taller/);
+  assert.doesNotMatch(block, /atomic step/);
 });
 
 test("parseWorktreeActivityFromGit prefers product files in summary", () => {

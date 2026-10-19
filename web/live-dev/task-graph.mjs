@@ -3,7 +3,7 @@
  */
 
 import {
-  splitAcceptanceLines,
+  acceptanceAtoms,
   truncateText,
 } from "./acceptance-lines.mjs";
 
@@ -144,7 +144,7 @@ export function buildPreviewPoolFromModules(modules) {
       title: `Implement «${title}»`,
       dependsOn: [],
     });
-    const acceptLines = splitAcceptanceLines(card.acceptance);
+    const acceptLines = acceptanceAtoms(card.acceptance, card.goal);
     let prevId = impl.id;
     if (acceptLines.length) {
       for (const line of acceptLines) {
@@ -251,7 +251,7 @@ export function buildPreviewPoolForBug(modules) {
     dependsOn: [repro.id],
   });
   let prevId = fix.id;
-  const acceptLines = splitAcceptanceLines(card.acceptance);
+  const acceptLines = acceptanceAtoms(card.acceptance, card.goal);
   if (acceptLines.length) {
     for (const line of acceptLines) {
       const acc = push({

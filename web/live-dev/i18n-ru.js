@@ -283,7 +283,7 @@ export const ru = {
   "dispatch.viewArchitecture": "Архитектура",
   "dispatch.centerArchEmpty": "У этого проекта ещё нет диаграммы архитектуры",
   "dispatch.decomposeTitle": "Разбиение задач",
-  "dispatch.decomposeHint": "После подтверждения архитектуры разбейте приёмку на атомарные задачи; параллельные помечены",
+  "dispatch.decomposeHint": "После подтверждения архитектуры разбейте каждое предложение на атомарную задачу; параллельные помечены",
   "dispatch.redecompose": "Разбить снова",
   "dispatch.decomposeEmpty": "Задач ещё нет",
   "dispatch.parallelChip": "Параллельно",

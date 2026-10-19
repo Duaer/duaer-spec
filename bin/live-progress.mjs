@@ -5,11 +5,12 @@
 
 import { workerOrchestrationState } from "./live-orchestrate.mjs";
 import {
+  acceptanceAtoms,
   splitAcceptanceLines,
   truncateText,
 } from "../web/live-dev/acceptance-lines.mjs";
 
-export { splitAcceptanceLines, truncateText };
+export { acceptanceAtoms, splitAcceptanceLines, truncateText };
 
 /**
  * Product dispatch checklist: one checkbox per atomic function / acceptance
@@ -22,7 +23,7 @@ export function buildDetailedProductTasksMd({
   deployNeeded = false,
   deployTaskText = null,
 } = {}) {
-  const acceptLines = splitAcceptanceLines(acceptance);
+  const acceptLines = acceptanceAtoms(acceptance, goal);
   const items = [];
   let n = 1;
   const push = (text) => {
@@ -39,7 +40,6 @@ export function buildDetailedProductTasksMd({
     }
   } else {
     push("Wire UI / API / data needed for Acceptance (one slice)");
-    push("Cover one edge case from Assumptions / Acceptance");
   }
   push("Risk-based verification per testing.md");
   push(
@@ -54,10 +54,6 @@ export function buildDetailedProductTasksMd({
         "Deploy with GitHub CLI (`gh`) + Actions；公网 URL 写入 preview.url",
     );
   }
-  // Soft floor so the progress column is useful on tiny briefs — not a cap.
-  while (items.length < 6) {
-    push(`Complete remaining Brief scope (atomic step ${n})`);
-  }
 
   return `# Tasks
 
@@ -68,8 +64,8 @@ ${items.join("\n")}
 **拆任务规则（无条数上限）：**
 - **原子可验证：** 每个任务只做一个可独立验收的功能点；不要把多个验收项揉进同一条
 - **进度可监控：** 每条必须是 \`- [ ]\` / \`- [x]\` 勾选项（FDE 轮询此文件显示进度与编排放行）；禁止无 checkbox 的笼统进度
-- 若清单仍偏粗：开工后先按 Acceptance / Goal 扩成「一条功能一勾选」（仍用 T00x），保存后再做
-- 不要为了凑数合并无关步骤；也不要人为卡在 12 条以内
+- 验收按换行、分号或句子拆开；验收为空时按 Goal 的句子拆。仍是一句就保持一条
+- 不要为了凑数合并无关步骤，也不要编造占位任务；不要人为限制条数
 
 **必须**在 delivery.json 写入 preview（页面或本地/公网服务地址均可）：
 \`\`\`json
@@ -90,6 +86,7 @@ export function buildDetailedRevisionTasksMd({
   acceptance = "",
 } = {}) {
   const n = Number(revN) || 1;
+  const changeLines = splitAcceptanceLines(change);
   const acceptLines = splitAcceptanceLines(acceptance);
   const items = [];
   let i = 1;
@@ -97,9 +94,15 @@ export function buildDetailedRevisionTasksMd({
     items.push(`- [ ] R${n}-${i} ${text}`);
     i += 1;
   };
-  push(
-    `Apply revision: ${truncateText(change, 140) || "(see Revision block)"}`,
-  );
+  if (changeLines.length > 1) {
+    for (const c of changeLines) {
+      push(`Apply revision (alone): ${truncateText(c, 140)}`);
+    }
+  } else {
+    push(
+      `Apply revision: ${truncateText(changeLines[0] || change, 140) || "(see Revision block)"}`,
+    );
+  }
   if (acceptLines.length) {
     for (const a of acceptLines) {
       push(`Satisfy revision acceptance (alone): ${truncateText(a, 120)}`);
@@ -114,9 +117,6 @@ export function buildDetailedRevisionTasksMd({
   push(
     "启动/更新可打开的服务，并 stamp delivery.json accepted（必须更新 preview.url：页面或 http://localhost:…）",
   );
-  while (items.length < 5) {
-    push(`Complete remaining revision scope (atomic step ${i})`);
-  }
   return items.join("\n");
 }
 

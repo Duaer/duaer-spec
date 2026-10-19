@@ -283,7 +283,7 @@ export const zhTW = {
   "dispatch.viewArchitecture": "系統架構",
   "dispatch.centerArchEmpty": "這個專案還沒有系統架構圖",
   "dispatch.decomposeTitle": "任務拆解",
-  "dispatch.decomposeHint": "架構確認後依驗收拆成原子任務；可並行者會標示",
+  "dispatch.decomposeHint": "架構確認後依句子拆成原子任務；可並行者會標示",
   "dispatch.redecompose": "重新拆解",
   "dispatch.decomposeEmpty": "尚未拆解任務",
   "dispatch.parallelChip": "可並行",

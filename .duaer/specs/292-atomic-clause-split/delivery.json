@@ -1,0 +1,10 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-19T01:30:00.000Z",
+  "verification": {
+    "L0": "node --check bin/duaer-live.mjs && node --check web/live-dev/app.js && node --check web/live-dev/acceptance-lines.mjs",
+    "L1": "npm test (271 pass)",
+    "L3": "npm run test:live (pass)"
+  },
+  "summary": "Kickoff splits acceptance into one task per sentence; empty acceptance uses goal sentences; filler atomic-step rows are gone."
+}

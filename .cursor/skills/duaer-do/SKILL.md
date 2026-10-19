@@ -60,7 +60,9 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
      deliverable atom (not a mega-phase).
    - Every item is a markdown checkbox (`- [ ]` / `- [x]`) so progress can be
      polled; check off immediately when that atom is done.
-   - Prefer one checkbox per Acceptance line; no artificial upper count.
+   - Prefer one checkbox per Acceptance clause (line, semicolon, or sentence).
+     Empty acceptance uses goal sentences. No artificial upper count and no
+     filler tasks.
    Skip a heavy plan unless architecture or contracts change.
 
 4. **Work** — Implement open tasks; mark `[x]` as you go. No scope beyond Spec.

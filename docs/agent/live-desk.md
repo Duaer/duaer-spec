@@ -168,8 +168,10 @@ See [ADR 003](../adr/003-bug-dispatch.md).
 
 Kickoff owns Brief creation and dispatch. Order after architecture confirm:
 
-1. **Decompose** atomic tasks (one per acceptance line + impl / verify /
-   shared steps). Parallelizable tasks (same dependency wave) are marked.
+1. **Decompose** atomic tasks: one checkbox per acceptance line, semicolon-separated
+   clause, or sentence, plus impl / verify / shared steps. Empty acceptance
+   falls back to sentences in the goal. One remaining sentence stays one
+   acceptance task. Parallelizable tasks (same dependency wave) are marked.
 2. **Recommend** digital-employee count (1–4) from parallel width; the operator
    may change it, then **confirm** to build the **派工图**. After a successful
    build, the confirm button and worker-count chips **lock** until the graph
@@ -192,7 +194,9 @@ Additional notes:
   `role: implement | verify-l3 | deploy`. With workerCount ≥ 2, verify-l3 and
   deploy tasks go to the last lane.
 - **Atomic + monitorable:** one checkbox task per independently verifiable
-  acceptance line (plus impl / verify / deploy / shared steps). Agents must mark
+  acceptance clause (line, semicolon, or sentence; empty acceptance uses goal
+  sentences) plus impl / verify / deploy / shared steps. A single sentence
+  stays one task. Agents must mark
   `- [x]` as each atom completes so the desk can poll progress and release waves.
 - **Worker count** is recommended from parallel width (cap 4). Optional **N**
   parallel workers on the **same** CLI (Cursor Agent or Claude Code — not mixed).

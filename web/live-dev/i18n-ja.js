@@ -283,7 +283,7 @@ export const ja = {
   "dispatch.viewArchitecture": "システムアーキテクチャ",
   "dispatch.centerArchEmpty": "このプロジェクトにはまだアーキテクチャ図がありません",
   "dispatch.decomposeTitle": "タスク分解",
-  "dispatch.decomposeHint": "アーキテクチャ確認後、受入条件を原子タスクに分解。並列可能なものは印付き",
+  "dispatch.decomposeHint": "アーキテクチャ確認後、文ごとに原子タスクへ分解。並列可能なものは印付き",
   "dispatch.redecompose": "再分解",
   "dispatch.decomposeEmpty": "まだタスクがありません",
   "dispatch.parallelChip": "並列可",

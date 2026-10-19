@@ -190,6 +190,7 @@ the table for their app.
 | E2E-219 | Settings closes without model ready (关闭 / backdrop / gear / Escape); denser drawers | `npm test` + `npm run test:live` |
 | E2E-220 | Settings「关闭」click works; asset cache-bust forces new close handler | `npm test` + `npm run test:live` |
 | E2E-221 | Chat column has no「导航」quick-nav control | `npm run test:live` |
+| E2E-222 | Empty acceptance decomposes from goal sentences; checklists do not pad filler atomic-step tasks | `npm test` |
 
 | E2E-156 | Accepted chat bubble preview URL is a clickable `<a>` (http(s) or /api/…) | `npm test` + `npm run test:live` |
 | E2E-157 | `http://host/api/result/…` chat links render as one clean `<a>` (no nested HTML garble) | `npm test` |
@@ -197,7 +198,7 @@ the table for their app.
 | E2E-160 | 打开看看 opens focused preview URL (not always latest delivery resolve) | `npm test` + `npm run test:live` |
 | E2E-161 | 打开看看 uses project start URL, not docs/*.md preview paths | `npm test` + `npm run test:live` |
 | E2E-162 | Architecture / task-path click opens present=1 fullscreen in a new tab | `npm test` + `npm run test:live` |
-| E2E-163 | Task breakdown: multi-line acceptance → one atomic checkbox task per line; progress monitorable via `- [ ]`/`- [x]` | `npm test` |
+| E2E-163 | Task breakdown: acceptance splits into one atomic checkbox per line, semicolon, or sentence; progress monitorable via `- [ ]`/`- [x]` | `npm test` |
 | E2E-164 | Live desk Japanese (`ja`) locale: select option, catalog parity with en, deliverables `lang=ja` | `npm test` + manual |
 | E2E-165 | Top 数字员工 directory lists Implementer + Functional regression + Deployer; kickoff tasks carry role | `npm test` + `npm run test:live` |
 | E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
@@ -438,4 +439,5 @@ the table for their app.
 | E2E-219 | `288-settings-close-compact` | settings always closable + denser drawers |
 | E2E-220 | `289-settings-close-click` | close button + asset cache bust |
 | E2E-221 | `290-remove-quicknav` | no chat 导航 control |
+| E2E-222 | `292-atomic-clause-split` | sentence split and goal fallback |
 

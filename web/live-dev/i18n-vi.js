@@ -283,7 +283,7 @@ export const vi = {
   "dispatch.viewArchitecture": "Kiến trúc hệ thống",
   "dispatch.centerArchEmpty": "Dự án này chưa có sơ đồ kiến trúc hệ thống",
   "dispatch.decomposeTitle": "Phân rã nhiệm vụ",
-  "dispatch.decomposeHint": "Sau khi xác nhận kiến trúc, tách tiêu chí thành nhiệm vụ nguyên tử; song song được đánh dấu",
+  "dispatch.decomposeHint": "Sau khi xác nhận kiến trúc, tách từng câu thành nhiệm vụ nguyên tử; song song được đánh dấu",
   "dispatch.redecompose": "Phân rã lại",
   "dispatch.decomposeEmpty": "Chưa có nhiệm vụ",
   "dispatch.parallelChip": "Song song",

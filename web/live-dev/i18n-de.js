@@ -283,7 +283,7 @@ export const de = {
   "dispatch.viewArchitecture": "Systemarchitektur",
   "dispatch.centerArchEmpty": "Für dieses Projekt gibt es noch kein Architekturdiagramm",
   "dispatch.decomposeTitle": "Aufgabenzerlegung",
-  "dispatch.decomposeHint": "Nach Architektur-Bestätigung Akzeptanz in atomare Aufgaben zerlegen; parallele werden markiert",
+  "dispatch.decomposeHint": "Nach Architektur-Bestätigung jeden Satz in eine atomare Aufgabe zerlegen; parallele werden markiert",
   "dispatch.redecompose": "Erneut zerlegen",
   "dispatch.decomposeEmpty": "Noch keine Aufgaben",
   "dispatch.parallelChip": "Parallel",

@@ -132,6 +132,52 @@ test("buildTaskPoolFromModules splits multi-line acceptance into atomic tasks", 
   assert.ok(boxes.length >= 5);
 });
 
+test("buildTaskPoolFromModules splits a paragraph into sentence atoms", () => {
+  const pool = buildTaskPoolFromModules([
+    {
+      id: "home",
+      title: "Home",
+      status: "confirmed",
+      card: {
+        goal: "Landing",
+        outOfScope: "",
+        acceptance: "打开首页看到主色。标题加大。",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  const acceptTasks = pool.tasks.filter((t) =>
+    /Satisfy acceptance \(alone\)/.test(t.title),
+  );
+  assert.equal(acceptTasks.length, 2);
+  assert.match(acceptTasks[0].title, /打开首页看到主色/);
+  assert.match(acceptTasks[1].title, /标题加大/);
+});
+
+test("buildTaskPoolFromModules uses goal sentences when acceptance is empty", () => {
+  const pool = buildTaskPoolFromModules([
+    {
+      id: "home",
+      title: "Home",
+      status: "confirmed",
+      card: {
+        goal: "用户能登录。首页显示卡片。",
+        outOfScope: "",
+        acceptance: "",
+        assumptions: "",
+      },
+      dependsOn: [],
+    },
+  ]);
+  const acceptTasks = pool.tasks.filter((t) =>
+    /Satisfy acceptance \(alone\)/.test(t.title),
+  );
+  assert.equal(acceptTasks.length, 2);
+  assert.match(acceptTasks[0].title, /用户能登录/);
+  assert.match(acceptTasks[1].title, /首页显示卡片/);
+});
+
 test("buildTaskPoolFromModules has dependsOn chain", () => {
   const pool = buildTaskPoolFromModules([
     {

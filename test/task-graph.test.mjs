@@ -96,6 +96,37 @@ test("buildPreviewPoolFromModules splits multi-line acceptance", () => {
   assert.match(acceptTasks[1].title, /submit works/);
 });
 
+test("buildPreviewPoolFromModules splits sentences and falls back to goal", () => {
+  const sentences = buildPreviewPoolFromModules([
+    {
+      id: "home",
+      title: "Home",
+      status: "confirmed",
+      card: {
+        goal: "Landing",
+        acceptance: "Hero is visible. Footer stays put.",
+      },
+      dependsOn: [],
+    },
+  ]);
+  const fromAccept = sentences.tasks.filter((t) => /^Accept «/.test(t.title));
+  assert.equal(fromAccept.length, 2);
+  assert.match(fromAccept[0].title, /Hero is visible/);
+  assert.match(fromAccept[1].title, /Footer stays put/);
+
+  const fromGoal = buildPreviewPoolFromModules([
+    {
+      id: "home",
+      title: "Home",
+      status: "confirmed",
+      card: { goal: "Show the hero. Keep the footer.", acceptance: "" },
+      dependsOn: [],
+    },
+  ]);
+  const goalTasks = fromGoal.tasks.filter((t) => /^Accept «/.test(t.title));
+  assert.equal(goalTasks.length, 2);
+});
+
 test("assignPreviewWorkers fans modules across workers", () => {
   const pool = buildPreviewPoolFromModules(modules);
   const one = assignPreviewWorkers(pool, 1);

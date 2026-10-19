@@ -144,8 +144,9 @@ The tasks.md should be immediately executable - each task must be specific enoug
   one file-scoped change, or one verification slice) — not a bundled mega-task.
 - Every task is a markdown checkbox (`- [ ]` / `- [x]`) so progress is
   monitorable; agents mark `[x]` as each atom completes.
-- Prefer one task per Acceptance / independent-test criterion. No artificial
-  upper count; refine if still too coarse.
+- Prefer one task per Acceptance clause (line, semicolon, or sentence) or
+  independent-test criterion. Empty acceptance uses goal sentences. No
+  artificial upper count and no filler tasks; refine if still too coarse.
 
 **Verification is DEFAULT**: For each user story, generate verification tasks
 from `.duaer/memory/testing.md` (L0–L3 as the risk table requires). Do **not**
