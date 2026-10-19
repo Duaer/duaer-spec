@@ -1,5 +1,5 @@
 {
-  "feature": "292-atomic-clause-split",
-  "branch": "feat/atomic-clause-split",
-  "worktree": ".worktree/feat-atomic-clause-split"
+  "feature": "293-release-0274",
+  "branch": "chore/release-0274",
+  "worktree": ".worktree/chore-release-0274"
 }
