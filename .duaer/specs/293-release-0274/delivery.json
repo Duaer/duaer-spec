@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.4: sentence-level atomic task split. Tag v0.27.4 published; npm Trusted Publishing succeeded.",
+  "verification": {
+    "commands": [
+      "gh release view v0.27.4",
+      "gh run view 39186028077",
+      "curl https://registry.npmjs.org/duaer-spec/latest"
+    ],
+    "result": "GitHub Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.4; npm publish run success; registry latest 0.27.4"
+  }
+}
