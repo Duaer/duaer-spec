@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.27.5 — 2026-10-23
+
+### Feat: Ponytail skills for Claude sessions in this repo
+
+- Add `.claude/skills/ponytail` and `.claude/skills/ponytail-review` (MIT, upstream texts)
+- A Candex or Claude Code session started in duaer-spec can load these skills
+- Hooks and the token-cost band are not included
+
 ## 0.27.4 — 2026-10-19
 
 ### Feat: split coarse acceptance into sentence-level tasks
