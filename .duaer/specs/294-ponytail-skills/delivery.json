@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.5: Ponytail and Ponytail review skills in .claude/skills. Tag v0.27.5 published; npm Trusted Publishing succeeded.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "gh release view v0.27.5",
+      "gh run view 39831378778",
+      "curl https://registry.npmjs.org/duaer-spec/latest"
+    ],
+    "result": "npm test 271 pass. GitHub Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.5. npm publish run success. Registry latest 0.27.5. Package includes .claude/skills/ponytail/SKILL.md and .claude/skills/ponytail-review/SKILL.md."
+  }
+}
