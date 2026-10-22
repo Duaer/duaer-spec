@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.27.6 — 2026-10-23
+
+### Fix: init installs packaged Claude skills
+
+- `duaer init` and `duaer update` copy `.claude/skills/ponytail` and `.claude/skills/ponytail-review` into the target project
+
 ## 0.27.5 — 2026-10-23
 
 ### Feat: Ponytail skills for Claude sessions in this repo
