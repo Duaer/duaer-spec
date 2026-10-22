@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.6: duaer init and update copy packaged Ponytail skills into .claude/skills. Tag v0.27.6 published; npm latest is 0.27.6.",
+  "verification": {
+    "commands": [
+      "node --check bin/duaer.mjs",
+      "npm test",
+      "gh release view v0.27.6",
+      "gh run view 39832567309",
+      "curl https://registry.npmjs.org/duaer-spec/0.27.6"
+    ],
+    "result": "npm test 272 pass. GitHub Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.6. npm publish run success. Registry latest 0.27.6."
+  }
+}
