@@ -244,7 +244,7 @@ the table for their app.
 | E2E-011 | Installed docs (`DUADER.md`, `docs/agent/`) document `update` | manual |
 | E2E-012 | `README.zh-CN.md` covers install, update, branch model | manual |
 | E2E-013 | Worktree id ≠ Brief `<nnn-slug>`; path is `.worktree/feat-…/.duaer/specs/…` | manual |
-| E2E-014 | Init installs Cursor + Claude hosts (`CLAUDE.md`, `.claude/skills`) | manual |
+| E2E-014 | Init installs Cursor + Claude hosts (`CLAUDE.md`, `.claude/skills`, including `ponytail` and `ponytail-review`) | manual |
 | E2E-015 | Init installs Codex skills under `.agents/skills/` | manual |
 | E2E-016 | Init installs Copilot/Windsurf/Cline/Continue/Gemini/Aider adapters | manual |
 | E2E-017 | `.duaer/memory/testing.md` defines levels + risk table + DoD | manual |

@@ -299,6 +299,18 @@ function installCursorMethod(target, opts) {
   console.log('  .cursor/rules/duaer-spec.mdc')
 }
 
+function installPackagedClaudeSkills(target, opts) {
+  const srcRoot = join(PKG_ROOT, '.claude', 'skills')
+  if (!existsSync(srcRoot)) return
+  for (const name of readdirSync(srcRoot).sort()) {
+    const src = join(srcRoot, name)
+    if (!statSync(src).isDirectory()) continue
+    if (!existsSync(join(src, 'SKILL.md'))) continue
+    copyPath(src, join(target, '.claude', 'skills', name), opts)
+    console.log(`  .claude/skills/${name}`)
+  }
+}
+
 function installClaudeMethod(target, opts) {
   mirrorDuaerSkills(
     target,
@@ -306,6 +318,7 @@ function installClaudeMethod(target, opts) {
     opts,
     '.claude/skills/duaer-*  (mirrored from .cursor/skills)',
   )
+  installPackagedClaudeSkills(target, opts)
 
   ensureDir(join(target, '.claude', 'rules'))
   const claudeRule = join(PKG_ROOT, '.claude', 'rules', 'duaer-spec.md')
@@ -767,6 +780,8 @@ function checkWorkplace(target) {
     ['.cursor/skills/duaer-specify/SKILL.md', 'method'],
     ['.claude/rules/duaer-spec.md', 'method'],
     ['.claude/skills/duaer-do/SKILL.md', 'method'],
+    ['.claude/skills/ponytail/SKILL.md', 'method'],
+    ['.claude/skills/ponytail-review/SKILL.md', 'method'],
     ['.agents/skills/duaer-do/SKILL.md', 'method'],
     ['CLAUDE.md', 'method'],
     ['GEMINI.md', 'method'],

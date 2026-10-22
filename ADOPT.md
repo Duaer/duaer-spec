@@ -54,7 +54,7 @@ Devin, Cline, Continue, Gemini CLI, and Aider — see the file list below.
 
 - Autonomous job loop (ask → Brief → **understand** → work → accept)  
 - Cursor: `.cursor/rules` + `.cursor/skills`  
-- Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills`  
+- Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills` (includes Ponytail and Ponytail review)  
 - Codex: `AGENTS.md` + `.agents/skills`  
 - Copilot: `.github/copilot-instructions.md`  
 - Windsurf / Devin: `.windsurf/rules`, `.devin/rules`  
