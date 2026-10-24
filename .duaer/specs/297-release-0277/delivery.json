@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "summary": "Released 0.27.7. duaer init and the published package install the method skeleton and an empty specs directory. Tag v0.27.7 is on main. npm latest is 0.27.7.",
+  "verification": {
+    "commands": [
+      "node --check bin/duaer.mjs",
+      "npm test",
+      "gh release view v0.27.7",
+      "gh run view 40061375880",
+      "curl https://registry.npmjs.org/duaer-spec/latest"
+    ],
+    "result": "npm test 275 pass. GitHub Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.7. npm publish run 40061375880 success. Registry latest 0.27.7. Published tarball has .duaer/memory/testing.md and no .duaer/specs/ or .duaer/active-job.json."
+  }
+}
