@@ -146,7 +146,7 @@ function ensureDir(p) {
   mkdirSync(p, { recursive: true })
 }
 
-function copyPath(from, to, { force }) {
+function copyPath(from, to, { force, skipNames }) {
   if (!existsSync(from)) {
     throw new Error(`Package missing required path: ${from}`)
   }
@@ -154,6 +154,7 @@ function copyPath(from, to, { force }) {
   if (srcIsDir) {
     ensureDir(to)
     for (const name of readdirSync(from)) {
+      if (skipNames?.has(name)) continue
       copyPath(join(from, name), join(to, name), { force })
     }
     return { skipped: false, merged: true }
@@ -261,10 +262,17 @@ function writeDefaultHandoff(target, { force }) {
   console.log('  .duaer/handoff.json')
 }
 
+/** Job history of this package. Adopters start their own specs directory. */
+const PACKAGED_PROGRESS = new Set(['specs', 'active-job.json'])
+
 function installMethod(target, opts) {
   console.log('Installing Duaer method…')
-  copyPath(join(PKG_ROOT, '.duaer'), join(target, '.duaer'), opts)
-  console.log('  .duaer/')
+  copyPath(join(PKG_ROOT, '.duaer'), join(target, '.duaer'), {
+    ...opts,
+    skipNames: PACKAGED_PROGRESS,
+  })
+  ensureDir(join(target, '.duaer', 'specs'))
+  console.log('  .duaer/ (method; empty specs/)')
   writeDefaultPolicy(target, opts)
   writeDefaultHandoff(target, opts)
 

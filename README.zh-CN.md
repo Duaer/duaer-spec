@@ -83,6 +83,8 @@
 npx duaer-spec init --here
 ```
 
+`init` 安装方法骨架（`memory`、`templates`、`extensions`、`integrations`、`scripts`、`workflows`），并创建空的 `.duaer/specs/`，供当前项目自己的任务使用。duaer-spec 仓库里的 Brief 历史留在 duaer-spec 仓库。
+
 ## 更新
 
 **全局 CLI**（已 `npm i -g duaer-spec` 时）：

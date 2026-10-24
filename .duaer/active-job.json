@@ -1,5 +1,5 @@
 {
-  "feature": "295-ponytail-init",
-  "branch": "feat/ponytail-init",
-  "worktree": ".worktree/feat-ponytail-init"
+  "feature": "296-init-omit-progress",
+  "branch": "feat/init-omit-progress",
+  "worktree": ".worktree/feat-init-omit-progress"
 }

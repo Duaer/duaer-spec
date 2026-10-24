@@ -11,6 +11,8 @@
     "bin",
     "web",
     ".duaer",
+    "!.duaer/specs",
+    "!.duaer/active-job.json",
     ".cursor",
     ".claude",
     "AGENTS.md",

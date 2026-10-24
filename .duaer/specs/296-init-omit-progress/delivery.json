@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "summary": "duaer init and the published package install the method skeleton and an empty specs directory. Brief history and active-job.json from this repository stay here.",
+  "verification": {
+    "commands": [
+      "node --check bin/duaer.mjs",
+      "node --test test/init-omit-progress.test.mjs test/init-ponytail-skills.test.mjs",
+      "npm test"
+    ],
+    "result": "L0 node --check passed. Fresh init writes method files and an empty specs directory. init --force keeps an adopter job. npm pack --dry-run omits .duaer/specs/ and .duaer/active-job.json and still lists .duaer/memory/testing.md. npm test 275 pass, 0 fail. L3 waived: init packaging is not a live-desk path."
+  }
+}

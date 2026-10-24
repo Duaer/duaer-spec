@@ -62,6 +62,7 @@ Devin, Cline, Continue, Gemini CLI, and Aider — see the file list below.
 - Continue: `.continue/rules/`  
 - Gemini CLI: `GEMINI.md`  
 - Aider: `.aider.conf.yml` → reads `AGENTS.md`  
+- Method skeleton under `.duaer/` (`memory`, `templates`, `extensions`, `integrations`, `scripts`, `workflows`) and an empty `.duaer/specs/` for this project's jobs. Brief history of duaer-spec stays in the duaer-spec repository  
 - `.duaer/handoff.json` + `duaer handoff` after worktree remove  
 - Agent ops: `main` / `develop` / `feat` / `fix` + `.worktree/`  
 - Verification contract: `.duaer/memory/testing.md` (risk-based checks before accept)  

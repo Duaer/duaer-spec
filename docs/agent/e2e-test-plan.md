@@ -29,6 +29,7 @@ the table for their app.
 | ID | Title | Status |
 |---|---|---|
 | E2E-001 | After `duaer init`, banner says talk to agent — no slash ops | manual |
+| E2E-223 | `duaer init` installs the method skeleton and an empty `.duaer/specs/`; the package file list omits duaer-spec Brief history and `active-job.json` | `npm test` |
 | E2E-002 | README: install once, then plain-language asks | manual |
 | E2E-003 | Always-on rule requires autonomous job loop without user slash | manual |
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
@@ -440,4 +441,5 @@ the table for their app.
 | E2E-220 | `289-settings-close-click` | close button + asset cache bust |
 | E2E-221 | `290-remove-quicknav` | no chat 导航 control |
 | E2E-222 | `292-atomic-clause-split` | sentence split and goal fallback |
+| E2E-223 | `296-init-omit-progress` | init method skeleton; empty specs; package omits Brief history |
 
