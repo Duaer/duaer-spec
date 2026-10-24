@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.27.7 — 2026-10-24
+
+### Fix: init omits duaer-spec job progress
+
+- `duaer init` installs the method skeleton and an empty `.duaer/specs/` for the adopting project's own jobs
+- The published package omits `.duaer/specs/` and `.duaer/active-job.json`
+- An adopting project's existing specs and `active-job.json` stay in place on update
+
 ## 0.27.6 — 2026-10-23
 
 ### Fix: init installs packaged Claude skills
