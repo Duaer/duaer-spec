@@ -4,6 +4,10 @@
 
 ## 0.27.8 — 2026-10-26
 
+### Docs
+
+- README (en, zh-CN) and ADOPT describe the review gate and PR mode for everyday use
+
 ### Feat: PR + CI merge loop (opt-in)
 
 - `.duaer/memory/pr.json` (`{ "enabled": true, "base": "develop" }`) turns on PR mode: push → `gh pr create` → CI → failures and Request changes go back as tasks (max 3 CI rounds) → `gh pr merge` when green; turning it on authorizes pushing the request branch and merging its PR
