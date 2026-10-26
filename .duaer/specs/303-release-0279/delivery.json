@@ -1,0 +1,14 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T03:30:00Z",
+  "summary": "Released 0.27.9: Claude review hook commit reminder. Tag v0.27.9 on main; GitHub Release published; npm latest 0.27.9.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "gh release view v0.27.9",
+      "gh run list --workflow npm-publish.yml",
+      "npm view duaer-spec dist-tags.latest"
+    ],
+    "result": "npm test 297 pass. Release https://github.com/Duaer/duaer-spec/releases/tag/v0.27.9. Publish run success. npm latest 0.27.9."
+  }
+}
