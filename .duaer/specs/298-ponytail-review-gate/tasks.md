@@ -14,4 +14,7 @@
 - [x] T012 Docs: README (en, zh-CN), live-desk.md, E2E-224, CHANGELOG
 - [x] T013 Tests `test/review-gate.test.mjs`; `npm test` and `npm run test:live` pass
 - [x] T014 Version `0.27.8`; this repo dogfoods the stop hooks
+- [x] T016 Review R1 #1: a stale review restarts at Round 1
+- [x] T017 Review R1 #2: desk reopen as tested `reviewGateReopen`
+- [x] T018 Review R1 #3: JSDoc back on `buildBugTaskPool`
 - [ ] T015 Ponytail review of this job's diff passes (`review.md`, Verdict: Ship.)
