@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.27.10 — 2026-10-26
+
+### Fix: handoff no longer restarts the FDE desk
+
 - Handoff no longer restarts the FDE desk: `.duaer/handoff.json`, `AGENTS.md` and the workflow rules drop the `launchctl kickstart …live8787` step, which reloaded the desk on every job handoff
 
 ## 0.27.9 — 2026-10-26
