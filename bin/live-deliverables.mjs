@@ -496,6 +496,13 @@ export function buildDeliverablesModel(session, opts = {}) {
             : "empty",
       artifacts: [
         {
+          id: "code-review",
+          title: pickLang(lang, { en: "Code review", ja: "コードレビュー", zh: "代码评审" }),
+          kind: "note",
+          ready: Boolean(opts.reviewText),
+          body: String(opts.reviewText || "").slice(0, 12000),
+        },
+        {
           id: "delivery-stamp",
           title: pickLang(lang, {
             en: "Delivery stamp",

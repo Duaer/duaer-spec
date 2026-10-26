@@ -36,6 +36,11 @@ import {
   verifyNudgePrompt,
 } from "./live-verify-gate.mjs";
 import {
+  reviewInstructions,
+  reviewPasses,
+  reviewStatus,
+} from "../.duaer/hooks/review-gate.mjs";
+import {
   deployPromptForTarget,
   isDeployPlanned,
   normalizeDeployTarget,
@@ -5947,6 +5952,31 @@ function dispatchStatus(jobId) {
     if (accepted && verifyGate && verifyGate.result && verifyGate.result !== "pass") {
       accepted = false;
     }
+    // Machine verify passed → the Ponytail review must pass too, or the stamp reopens.
+    if (accepted && verifyGate?.result === "pass" && featureDir) {
+      const review = reviewStatus(featureDir, dispatch.worktreePath);
+      if (!reviewPasses(review)) {
+        verifyGate = { result: "review", review: review.result, round: review.round };
+        if (review.result !== "stuck") {
+          verifyNudge = {
+            fingerprint: `REVIEW:${review.result}:${review.round}:${review.verdict}`,
+            result: "review",
+            instructions: reviewInstructions(featureDir, review),
+          };
+        }
+        delivery = { ...delivery, status: "open", review: verifyGate };
+        delete delivery.acceptedAt;
+        try {
+          fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`, "utf8");
+        } catch {
+          // keep in-memory reopen even if the stamp file cannot be rewritten
+        }
+        accepted = false;
+      }
+    }
+    if (!accepted && delivery?.status === "open" && delivery.review && (!verifyGate || verifyGate.result === "pass")) {
+      verifyGate = delivery.review;
+    }
     if (!accepted && live.job.status === "accepted" && verifyGate && verifyGate.result !== "pass") {
       try {
         const nextJob = {
@@ -7479,9 +7509,19 @@ async function handleApi(req, res) {
           job = null;
         }
       }
+      let reviewText = "";
+      const briefDir = job?.status?.dispatch?.featureDir || job?.dispatch?.featureDir;
+      if (briefDir) {
+        try {
+          reviewText = fs.readFileSync(path.join(briefDir, "review.md"), "utf8");
+        } catch {
+          // no review yet
+        }
+      }
       const model = buildDeliverablesModel(session, {
         job,
         lang,
+        reviewText,
         projectTitle: path.basename(projectPath),
       });
       if (asJson) {

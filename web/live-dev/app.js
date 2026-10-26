@@ -7378,8 +7378,16 @@ function fillRunProgress(block, data) {
   }
   const gate = data?.verifyGate;
   if (block.summary && gate && gate.result && gate.result !== "pass") {
+    const reviewKey = {
+      missing: "verify.reviewMissing",
+      fix: "verify.reviewFix",
+      stale: "verify.reviewStale",
+      stuck: "verify.reviewStuck",
+    }[gate.review];
     const line =
-      gate.result === "fail"
+      gate.result === "review" && reviewKey
+        ? t(reviewKey, { round: String(gate.round ?? "") })
+        : gate.result === "fail"
         ? t("verify.fail", {
             command: gate.command || "",
             code: String(gate.exitCode ?? ""),

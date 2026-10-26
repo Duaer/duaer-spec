@@ -351,6 +351,14 @@ export function evaluateVerifyGate({
 
 export function verifyNudgePrompt({ nudge, worktreePath, featureDir }) {
   if (!nudge) return "";
+  if (nudge.result === "review") {
+    return `Duaer
+
+工作目录: ${worktreePath}
+
+${nudge.instructions || ""}
+`;
+  }
   if (nudge.result === "missing" || nudge.result === "invalid") {
     return `Duaer
 
