@@ -220,6 +220,10 @@ test("desk reopen: failing review reopens, stuck stops nudging, pass keeps the s
   assert.match(fix.nudge.instructions, /Round: 2/);
   assert.equal(stamp.status, "accepted", "input not mutated");
 
+  const staleA = reviewGateReopen(stamp, "/b", { result: "stale", round: 1, verdict: "Ship.", commit: "aaaaaaa" });
+  const staleB = reviewGateReopen(stamp, "/b", { result: "stale", round: 1, verdict: "Ship.", commit: "bbbbbbb" });
+  assert.notEqual(staleA.nudge.fingerprint, staleB.nudge.fingerprint, "later revision still nudges");
+
   const stuck = reviewGateReopen(stamp, "/b", { result: "stuck", round: 2, verdict: "fix 1 first." });
   assert.equal(stuck.delivery.status, "open");
   assert.equal(stuck.nudge, null);

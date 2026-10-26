@@ -60,7 +60,7 @@ function codeMatches(repoRoot, commit) {
 }
 
 /**
- * @returns {{ result: "pass"|"waived"|"missing"|"fix"|"stale"|"stuck", round: number, verdict: string }}
+ * @returns {{ result: "pass"|"waived"|"missing"|"fix"|"stale"|"stuck", round: number, verdict: string, commit?: string }}
  * stuck = still failing after MAX_ROUNDS; a human decides next.
  */
 export function reviewStatus(featureDir, repoRoot) {
@@ -72,7 +72,7 @@ export function reviewStatus(featureDir, repoRoot) {
   const file = path.join(featureDir, REVIEW_FILE);
   if (!fs.existsSync(file)) return { result: "missing", round: 0, verdict: "" };
   const review = parseReview(fs.readFileSync(file, "utf8"));
-  const out = { round: review.round, verdict: review.verdict };
+  const out = { round: review.round, verdict: review.verdict, commit: review.commit };
   if (!review.ship) {
     return { ...out, result: review.round >= MAX_ROUNDS ? "stuck" : "fix" };
   }

@@ -367,7 +367,8 @@ export function reviewGateReopen(delivery, featureDir, review) {
       review.result === "stuck"
         ? null
         : {
-            fingerprint: `REVIEW:${review.result}:${review.round}:${review.verdict}`,
+            // The commit tells revisions apart: each one may go stale at Round 1 again.
+            fingerprint: `REVIEW:${review.result}:${review.round}:${review.commit || ""}:${review.verdict}`,
             result: "review",
             instructions: reviewInstructions(featureDir, review),
           },
