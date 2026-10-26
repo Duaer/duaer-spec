@@ -33,8 +33,10 @@ import {
 import {
   evaluateVerifyGate,
   regressionLane,
+  reviewGateReopen,
   verifyNudgePrompt,
 } from "./live-verify-gate.mjs";
+import { reviewStatus } from "../.duaer/hooks/review-gate.mjs";
 import {
   deployPromptForTarget,
   isDeployPlanned,
@@ -5947,6 +5949,24 @@ function dispatchStatus(jobId) {
     if (accepted && verifyGate && verifyGate.result && verifyGate.result !== "pass") {
       accepted = false;
     }
+    // Machine verify passed → the Ponytail review must pass too, or the stamp reopens.
+    const reopen =
+      accepted && verifyGate?.result === "pass" && featureDir
+        ? reviewGateReopen(delivery, featureDir, reviewStatus(featureDir, dispatch.worktreePath))
+        : null;
+    if (reopen) {
+      ({ delivery, gate: verifyGate } = reopen);
+      if (reopen.nudge) verifyNudge = reopen.nudge;
+      try {
+        fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`, "utf8");
+      } catch {
+        // keep in-memory reopen even if the stamp file cannot be rewritten
+      }
+      accepted = false;
+    }
+    if (!accepted && delivery?.status === "open" && delivery.review && (!verifyGate || verifyGate.result === "pass")) {
+      verifyGate = delivery.review;
+    }
     if (!accepted && live.job.status === "accepted" && verifyGate && verifyGate.result !== "pass") {
       try {
         const nextJob = {
@@ -7479,9 +7499,19 @@ async function handleApi(req, res) {
           job = null;
         }
       }
+      let reviewText = "";
+      const briefDir = job?.status?.dispatch?.featureDir || job?.dispatch?.featureDir;
+      if (briefDir) {
+        try {
+          reviewText = fs.readFileSync(path.join(briefDir, "review.md"), "utf8");
+        } catch {
+          // no review yet
+        }
+      }
       const model = buildDeliverablesModel(session, {
         job,
         lang,
+        reviewText,
         projectTitle: path.basename(projectPath),
       });
       if (asJson) {

@@ -66,6 +66,7 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
    Skip a heavy plan unless architecture or contracts change.
 
 4. **Work** — Implement open tasks; mark `[x]` as you go. No scope beyond Spec.
+   Code the `ponytail` skill way (level full): smallest complete change.
 
 5. **Accept** — Converge against Spec **and** `.duaer/memory/testing.md`:
    run required verification (or record a written waiver), stamp `delivery.json`
@@ -73,12 +74,23 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
    implement them when small enough; otherwise one clear remaining note.
    Never accept on Spec match alone when required levels were not run.
 
+   **Review gate (enforced):** before the stamp, commit, run the
+   `ponytail-review` skill on the job diff against the integration branch, and
+   write `review.md` in the Brief: `Round: N`, `Commit: <git rev-parse HEAD>`,
+   then the full report. Only `Verdict: Ship.` passes. Otherwise add each
+   **Must fix** item as a `- [ ]` task, fix it, review again; Should fix / Nice
+   to have are recorded only. After round 2 still failing, stop and say a human
+   must decide. Code changed after the review needs a new review. A
+   `verify.json` waiver `docs-only` skips the review. `duaer check`, the agent
+   stop hooks and the FDE desk all reopen a stamp that fails this gate.
+
 6. **Handoff** — One line to the human:
    - `✅ Job accepted — ready for your review.`
    - `⏳ Job not accepted yet — <one sentence>.` (**not** for FDE / live-dispatch
      — see below)
    - During Understand wait: `⏳ Confirming intent — <one sentence restatement>.`
-   Never claim done unless accepted + tasks clear. Git is not locked by this.
+   Never claim done unless accepted + tasks clear + review passed. Git is not
+   locked by this.
 
 ### FDE live-dispatch (mandatory finish)
 

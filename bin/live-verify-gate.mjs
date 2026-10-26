@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { reviewInstructions, reviewPasses } from "../.duaer/hooks/review-gate.mjs";
 
 export const VERIFY_REL = path.join(".duaer", "memory", "verify.json");
 export const DOCS_WAIVER = "docs-only";
@@ -349,8 +350,41 @@ export function evaluateVerifyGate({
   };
 }
 
+/**
+ * After machine verify passed: an accept without a passing Ponytail review
+ * reopens. Returns null when the stamp stands.
+ */
+export function reviewGateReopen(delivery, featureDir, review) {
+  if (reviewPasses(review)) return null;
+  const gate = { result: "review", review: review.result, round: review.round };
+  const next = { ...delivery, status: "open", review: gate };
+  delete next.acceptedAt;
+  return {
+    delivery: next,
+    gate,
+    // stuck: a human decides; stop nudging.
+    nudge:
+      review.result === "stuck"
+        ? null
+        : {
+            // The commit tells revisions apart: each one may go stale at Round 1 again.
+            fingerprint: `REVIEW:${review.result}:${review.round}:${review.commit || ""}:${review.verdict}`,
+            result: "review",
+            instructions: reviewInstructions(featureDir, review),
+          },
+  };
+}
+
 export function verifyNudgePrompt({ nudge, worktreePath, featureDir }) {
   if (!nudge) return "";
+  if (nudge.result === "review") {
+    return `Duaer
+
+工作目录: ${worktreePath}
+
+${nudge.instructions || ""}
+`;
+  }
   if (nudge.result === "missing" || nudge.result === "invalid") {
     return `Duaer
 

@@ -40,7 +40,14 @@ commands, phase names, or CLI flags.
 4. **Understand before Work:** restate precise goal / scope / acceptance; if
    the ask is vague, confirm with the human before implementing. Do not jump
    from a casual sentence to code.
-5. One handoff line; never claim done unless `delivery.json` is `accepted`.
+5. **Ponytail:** write code the `ponytail` skill way (smallest complete
+   change). Before stamping `accepted`, commit, run `ponytail-review` on the
+   job diff and save it as `review.md` in the Brief (`Round: N`,
+   `Commit: <sha>`, full report). Only `Verdict: Ship.` passes; Must fix items
+   become tasks, at most 2 rounds. `duaer check`, the agent stop hooks and the
+   FDE desk all reopen a stamp without a passing, current review.
+6. One handoff line; never claim done unless `delivery.json` is `accepted`
+   and the review passed.
 
 ## GitHub Issue Handling
 

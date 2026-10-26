@@ -56,6 +56,8 @@
 
 控制台在放行前会自己跑产品仓 `.duaer/memory/verify.json` 里的命令。退出码不是 0，或没有这份契约，就不会保持「已交付」。纯文档任务要显式写 `{ "waiver": "docs-only" }`。
 
+**代码评审闸门。** 数字员工按 Ponytail 方式写代码（最小的完整改动）。验收前对本次改动跑 `ponytail-review`，结果存为 Brief 里的 `review.md`。只有针对当前代码的 `Verdict: Ship.` 才放行；Must fix 退回成任务，最多 2 轮。`duaer init` 会为 Claude Code、Cursor、Codex 装好 Ponytail skill，并把收尾钩子合并进 `.claude/settings.json` 和 `.cursor/hooks.json`，所以直接在编辑器里对话也一样生效。`duaer check` / `duaer job`、收尾钩子和控制台都会把没过评审的「已交付」打回。
+
 ### 部署：支持的几种方式
 
 开工前在控制台选 **计划托管平台**。选好后，数字员工按该平台约束写代码，并由**部署员工**负责上线（把公网地址写进交付预览）。

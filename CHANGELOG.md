@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.27.8 — 2026-10-26
+
+### Feat: enforced Ponytail review gate
+
+- A job counts as accepted only when the Brief's `review.md` says `Verdict: Ship.` for the current code (`.duaer/hooks/review-gate.mjs`); a `docs-only` verify waiver skips it
+- `duaer check` / `duaer job` apply the gate to the active job
+- `duaer init` / `update` install the Ponytail skills under `.claude`, `.cursor` and `.agents`, and merge a Claude Code `Stop` hook and a Cursor `stop` hook that send an unreviewed accept back to the agent; existing hook entries are kept
+- FDE task pools add a code-review task before the accept stamp; the desk reopens an accept that fails review, nudges the regression lane, and after 2 failing rounds shows that a human must decide
+- The deliverables page shows the code review
+- Rules, `AGENTS.md` and the `duaer-do` skill tell employees to code the Ponytail way and run `ponytail-review` before accept
+
 ## 0.27.7 — 2026-10-24
 
 ### Fix: init omits duaer-spec job progress

@@ -101,6 +101,8 @@ With multiple workers, the **last lane** owns functional regression (and deploy 
 
 Before a job can stay accepted, the console runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
 
+**Code review gate.** Employees code the Ponytail way (smallest complete change). Before accept they run `ponytail-review` on the job diff and save `review.md` in the Brief. Only `Verdict: Ship.` for the current code passes; Must fix items go back as tasks, at most 2 rounds. `duaer init` installs the Ponytail skills for Claude Code, Cursor and Codex and merges a stop hook into `.claude/settings.json` and `.cursor/hooks.json`, so the gate holds in a plain editor chat too. `duaer check` / `duaer job`, the stop hooks and the console all reopen a stamp that fails it.
+
 ### Deploy: supported hosts
 
 Before kickoff, pick a **planned host** on the console. Coding follows that platform; the **Deployer** employee publishes and writes the public URL into delivery preview.

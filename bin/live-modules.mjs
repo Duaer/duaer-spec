@@ -289,6 +289,10 @@ export function aggregateModulesCard(modules) {
   return { goal, outOfScope, acceptance, assumptions };
 }
 
+// Last code-touching step, so the review sees the final diff (README included).
+const REVIEW_TASK_TITLE =
+  "Code review: run ponytail-review on the job diff; write review.md (Round, Commit, report); Must fix → new tasks, max 2 rounds";
+
 /**
  * Short defect task pool: reproduce → fix → acceptance atoms → regress → README → stamp.
  * Used when desk kind is bug (not the modular feature implement chain).
@@ -360,11 +364,17 @@ export function buildBugTaskPool(modules, { deployNeeded = false, deployTaskText
     dependsOn: [verify.id],
     role: EMPLOYEE_ROLES.IMPLEMENT,
   });
+  const review = push({
+    moduleId: null,
+    title: REVIEW_TASK_TITLE,
+    dependsOn: [readme.id],
+    role: EMPLOYEE_ROLES.VERIFY_L3,
+  });
   push({
     moduleId: null,
     title:
       "Stamp delivery.json accepted with verification evidence (preview.url when applicable)",
-    dependsOn: [readme.id],
+    dependsOn: [review.id],
     role: EMPLOYEE_ROLES.IMPLEMENT,
   });
   if (deployNeeded) {
@@ -578,11 +588,17 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
     dependsOn: [verifyAll.id],
     role: EMPLOYEE_ROLES.IMPLEMENT,
   });
+  const review = push({
+    moduleId: null,
+    title: REVIEW_TASK_TITLE,
+    dependsOn: [readme.id],
+    role: EMPLOYEE_ROLES.VERIFY_L3,
+  });
   push({
     moduleId: null,
     title:
       "Start preview service; stamp delivery.json accepted with preview.url",
-    dependsOn: [readme.id],
+    dependsOn: [review.id],
     role: EMPLOYEE_ROLES.IMPLEMENT,
   });
   if (deployNeeded) {

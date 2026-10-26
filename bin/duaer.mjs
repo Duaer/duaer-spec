@@ -25,6 +25,7 @@ import {
   maybePrintUpdateHint,
   runSelfUpdate,
 } from './update-check.mjs'
+import { reviewPasses, reviewReason, reviewStatus } from '../.duaer/hooks/review-gate.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PKG_ROOT = resolve(__dirname, '..')
@@ -279,6 +280,7 @@ function installMethod(target, opts) {
   installCursorMethod(target, opts)
   installClaudeMethod(target, opts)
   installCodexMethod(target, opts)
+  installReviewHooks(target)
 
   copyPath(join(PKG_ROOT, 'DUADER.md'), join(target, 'DUADER.md'), opts)
   console.log('  DUADER.md')
@@ -297,6 +299,7 @@ function mirrorDuaerSkills(target, skillsDir, opts, label) {
 
 function installCursorMethod(target, opts) {
   mirrorDuaerSkills(target, join(target, '.cursor', 'skills'), opts, '.cursor/skills/duaer-*')
+  installPackagedSkills(target, '.cursor', opts)
 
   ensureDir(join(target, '.cursor', 'rules'))
   copyPath(
@@ -307,16 +310,56 @@ function installCursorMethod(target, opts) {
   console.log('  .cursor/rules/duaer-spec.mdc')
 }
 
-function installPackagedClaudeSkills(target, opts) {
+// Packaged non-duaer skills (Ponytail) live under .claude/skills and go to every skill host.
+function installPackagedSkills(target, hostDir, opts) {
   const srcRoot = join(PKG_ROOT, '.claude', 'skills')
   if (!existsSync(srcRoot)) return
   for (const name of readdirSync(srcRoot).sort()) {
     const src = join(srcRoot, name)
     if (!statSync(src).isDirectory()) continue
     if (!existsSync(join(src, 'SKILL.md'))) continue
-    copyPath(src, join(target, '.claude', 'skills', name), opts)
-    console.log(`  .claude/skills/${name}`)
+    copyPath(src, join(target, hostDir, 'skills', name), opts)
+    console.log(`  ${hostDir}/skills/${name}`)
   }
+}
+
+const REVIEW_HOOK = '.duaer/hooks/review-gate.mjs'
+
+// Merge one hook entry into a host's JSON config; keep everything already there.
+function mergeHookConfig(file, label, add) {
+  let config = {}
+  if (existsSync(file)) {
+    try {
+      config = JSON.parse(readFileSync(file, 'utf8'))
+    } catch {
+      console.log(`skip (unreadable JSON, add the review hook by hand): ${file}`)
+      return
+    }
+  }
+  if (JSON.stringify(config).includes(REVIEW_HOOK)) {
+    console.log(`  ${label} (review hook present)`)
+    return
+  }
+  add(config)
+  ensureDir(dirname(file))
+  writeFileSync(file, JSON.stringify(config, null, 2) + '\n', 'utf8')
+  console.log(`  ${label} ← review stop hook`)
+}
+
+function installReviewHooks(target) {
+  mergeHookConfig(join(target, '.claude', 'settings.json'), '.claude/settings.json', (c) => {
+    c.hooks ??= {}
+    c.hooks.Stop ??= []
+    c.hooks.Stop.push({
+      hooks: [{ type: 'command', command: `node "$CLAUDE_PROJECT_DIR/${REVIEW_HOOK}" claude` }],
+    })
+  })
+  mergeHookConfig(join(target, '.cursor', 'hooks.json'), '.cursor/hooks.json', (c) => {
+    c.version ??= 1
+    c.hooks ??= {}
+    c.hooks.stop ??= []
+    c.hooks.stop.push({ command: `node ${REVIEW_HOOK} cursor` })
+  })
 }
 
 function installClaudeMethod(target, opts) {
@@ -326,7 +369,7 @@ function installClaudeMethod(target, opts) {
     opts,
     '.claude/skills/duaer-*  (mirrored from .cursor/skills)',
   )
-  installPackagedClaudeSkills(target, opts)
+  installPackagedSkills(target, '.claude', opts)
 
   ensureDir(join(target, '.claude', 'rules'))
   const claudeRule = join(PKG_ROOT, '.claude', 'rules', 'duaer-spec.md')
@@ -362,6 +405,7 @@ function installCodexMethod(target, opts) {
     opts,
     '.agents/skills/duaer-*  (Codex; mirrored from .cursor/skills)',
   )
+  installPackagedSkills(target, '.agents', opts)
 }
 
 function stripRuleComment(md) {
@@ -758,6 +802,15 @@ function listFeatures(target) {
     .map((name) => featureVerdict(name, join(root, name)))
 }
 
+// The Ponytail review gate applies to the active job only, so jobs accepted
+// before the gate existed keep their stamp in --all-jobs listings.
+function withReviewGate(target, feature) {
+  if (!feature || feature.verdict !== 'accepted') return feature
+  const status = reviewStatus(join(target, '.duaer', 'specs', feature.name), target)
+  if (reviewPasses(status)) return feature
+  return { ...feature, verdict: 'unaccepted', blockers: [reviewReason(status)] }
+}
+
 function resolveActiveJobName(target, features) {
   const marker = readJson(activeJobPath(target), null)
   if (marker?.feature && features.some((f) => f.name === marker.feature)) {
@@ -790,6 +843,7 @@ function checkWorkplace(target) {
     ['.claude/skills/duaer-do/SKILL.md', 'method'],
     ['.claude/skills/ponytail/SKILL.md', 'method'],
     ['.claude/skills/ponytail-review/SKILL.md', 'method'],
+    ['.duaer/hooks/review-gate.mjs', 'method'],
     ['.agents/skills/duaer-do/SKILL.md', 'method'],
     ['CLAUDE.md', 'method'],
     ['GEMINI.md', 'method'],
@@ -814,8 +868,11 @@ function checkWorkplace(target) {
 }
 
 function checkDelivery(target, { allJobs, policy }) {
-  const features = listFeatures(target)
-  const activeName = resolveActiveJobName(target, features)
+  const listed = listFeatures(target)
+  const activeName = resolveActiveJobName(target, listed)
+  const features = listed.map((f) =>
+    f.name === activeName ? withReviewGate(target, f) : f,
+  )
   const active = features.find((f) => f.name === activeName) || null
 
   console.log('\n## Handoff (jobs)\n')
@@ -931,7 +988,7 @@ function cmdJob(opts) {
   const policy = loadPolicy(target)
   const features = listFeatures(target)
   const activeName = resolveActiveJobName(target, features)
-  const active = features.find((f) => f.name === activeName) || null
+  const active = withReviewGate(target, features.find((f) => f.name === activeName) || null)
 
   console.log(`Status @ ${target}`)
   if (!active) {
