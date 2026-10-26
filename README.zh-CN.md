@@ -56,6 +56,8 @@
 
 控制台在放行前会自己跑产品仓 `.duaer/memory/verify.json` 里的命令。退出码不是 0，或没有这份契约，就不会保持「已交付」。纯文档任务要显式写 `{ "waiver": "docs-only" }`。
 
+**PR 模式（可选开启）。** 把 `.duaer/memory/pr.json` 设为 `{ "enabled": true, "base": "develop" }` 后，任务不再本地合并，而是走 GitHub PR：push → `gh pr create` → CI → 失败和 Request changes 退回给数字员工改（CI 最多 3 轮）→ 全绿后自动合并。PR 合并了才算「已交付」。需要先登录 `gh`。打开这个开关，就等于授权 push 本次任务的分支并合并它的 PR。
+
 **代码评审闸门。** 数字员工按 Ponytail 方式写代码（最小的完整改动）。验收前对本次改动跑 `ponytail-review`，结果存为 Brief 里的 `review.md`。只有针对当前代码的 `Verdict: Ship.` 才放行；Must fix 退回成任务，最多 2 轮。`duaer init` 会为 Claude Code、Cursor、Codex 装好 Ponytail skill，并把收尾钩子合并进 `.claude/settings.json` 和 `.cursor/hooks.json`，所以不开控制台、由 Claude Code 或 Cursor 自己按 duaer-spec 规则干活时（终端或编辑器里都算），也一样生效。`duaer check` / `duaer job`、收尾钩子和控制台都会把没过评审的「已交付」打回。
 
 ### 部署：支持的几种方式
