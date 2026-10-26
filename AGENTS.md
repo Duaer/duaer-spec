@@ -340,9 +340,8 @@ git worktree prune
 * Stop worktree-bound services before remove; then restart from the primary
   checkout on **`develop`** via `.duaer/handoff.json` / `duaer handoff [--run]`
   (mandatory handoff — see [branching-and-release](docs/agent/branching-and-release.md))
-* FDE desk is **only** `http://127.0.0.1:8787` (`com.duaer.live8787`). Never
-  start `duaer-live` on another port; do not open Cursor Browser just to check
-  the desk (see `.cursor/rules/fde-8787-only.mdc`)
+* FDE desk: never start or restart it on handoff. Start it only when the user
+  asks, and only on `http://127.0.0.1:8787` (see `.cursor/rules/fde-8787-only.mdc`)
 
 ## Development Workflow
 

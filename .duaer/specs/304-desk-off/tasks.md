@@ -1,0 +1,4 @@
+- [x] T001 Remove desk restart from `.duaer/handoff.json`
+- [x] T002 Rules and docs: never start or restart the desk on handoff
+- [x] T003 CHANGELOG Unreleased
+- [x] T004 `npm test` passes
