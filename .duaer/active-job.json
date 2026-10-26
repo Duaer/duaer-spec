@@ -1,5 +1,5 @@
 {
-  "feature": "298-ponytail-review-gate",
-  "branch": "feat/ponytail-review-gate",
-  "worktree": ".worktree/feat-ponytail-review-gate"
+  "feature": "299-review-gate-wording",
+  "branch": "fix/review-gate-wording",
+  "worktree": ".worktree/fix-review-gate-wording"
 }

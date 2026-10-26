@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T00:00:00Z",
+  "summary": "README review-gate paragraph names console and command use.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "node bin/duaer.mjs check . --delivery --strict"
+    ],
+    "result": "docs only; npm test pass; review Ship."
+  }
+}

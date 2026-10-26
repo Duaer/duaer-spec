@@ -1,0 +1,1 @@
+- [x] T001 Reword the review-gate paragraph in README.md and README.zh-CN.md
