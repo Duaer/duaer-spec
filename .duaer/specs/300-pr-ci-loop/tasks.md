@@ -11,4 +11,7 @@
 - [x] T009 Progress line for PR states in all 11 locales; deliverables PR link
 - [x] T010 Rules, `AGENTS.md`, `duaer-do`, branching-and-release § PR mode, live-desk, README (en, zh-CN), E2E-225, CHANGELOG
 - [x] T011 Tests `test/pr-gate.test.mjs` (fake `gh`), specDir hook test; `npm test` and `npm run test:live` pass
+- [x] T013 Review R1 #1: staleness only on the job branch (also fixes the 0.27.8 review gate)
+- [x] T014 Review R1 #2: CI rounds count only the PR's commits
+- [x] T015 Review R1 #3: cache confirmed merge (`pr-gate.json`); hook quiet on `gh` error
 - [ ] T012 Ponytail review of this job's diff passes
