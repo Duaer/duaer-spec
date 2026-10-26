@@ -25,7 +25,7 @@ import {
   maybePrintUpdateHint,
   runSelfUpdate,
 } from './update-check.mjs'
-import { reviewPasses, reviewReason, reviewStatus } from '../.duaer/hooks/review-gate.mjs'
+import { jobGate } from '../.duaer/hooks/review-gate.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PKG_ROOT = resolve(__dirname, '..')
@@ -802,13 +802,14 @@ function listFeatures(target) {
     .map((name) => featureVerdict(name, join(root, name)))
 }
 
-// The Ponytail review gate applies to the active job only, so jobs accepted
+// The review / PR gate applies to the active job only, so jobs accepted
 // before the gate existed keep their stamp in --all-jobs listings.
 function withReviewGate(target, feature) {
   if (!feature || feature.verdict !== 'accepted') return feature
-  const status = reviewStatus(join(target, '.duaer', 'specs', feature.name), target)
-  if (reviewPasses(status)) return feature
-  return { ...feature, verdict: 'unaccepted', blockers: [reviewReason(status)] }
+  const branch = String(readJson(activeJobPath(target), null)?.branch || '')
+  const gate = jobGate(join(target, '.duaer', 'specs', feature.name), target, { branch })
+  if (gate.ok) return feature
+  return { ...feature, verdict: 'unaccepted', blockers: [gate.reason] }
 }
 
 function resolveActiveJobName(target, features) {

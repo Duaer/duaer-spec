@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Ponytail review gate. A job stamped accepted only counts when the Brief's
- * review.md says `Verdict: Ship.` for the current code. Shared by
+ * Delivery gate. A job stamped accepted only counts when the Brief's
+ * review.md says `Verdict: Ship.` for the current code and, in PR mode
+ * (pr-gate.mjs), its PR is merged. Shared by
  * `duaer check` / `duaer job`, the FDE desk, and the agent stop hooks:
  *
  *   node .duaer/hooks/review-gate.mjs claude   # Claude Code Stop hook
@@ -13,6 +14,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prInstructions, prPasses, prReason, prStatus, readPrConfig } from "./pr-gate.mjs";
 
 export const REVIEW_FILE = "review.md";
 export const MAX_ROUNDS = 2;
@@ -112,6 +114,34 @@ export function reviewInstructions(featureDir, status) {
   ].join("\n");
 }
 
+/**
+ * Everything an accepted stamp needs: a passing review, then (PR mode) a
+ * merged PR. `stuck` = a human must decide, so hooks and the desk stop pushing.
+ * @returns {{ ok: boolean, stuck?: boolean, reason?: string, instructions?: string }}
+ */
+export function jobGate(featureDir, repoRoot, { branch = "" } = {}) {
+  const review = reviewStatus(featureDir, repoRoot);
+  if (!reviewPasses(review)) {
+    return {
+      ok: false,
+      stuck: review.result === "stuck",
+      reason: reviewReason(review),
+      instructions: reviewInstructions(featureDir, review),
+    };
+  }
+  const config = readPrConfig(repoRoot);
+  if (!config) return { ok: true };
+  const delivery = readJson(path.join(featureDir, "delivery.json"));
+  const pr = prStatus(repoRoot, { url: String(delivery?.pr?.url || ""), branch });
+  if (prPasses(pr)) return { ok: true };
+  return {
+    ok: false,
+    stuck: pr.result === "stuck",
+    reason: prReason(pr),
+    instructions: prInstructions(featureDir, pr, { base: config.base, branch }),
+  };
+}
+
 /** Jobs that claim accepted in the project and its live worktrees. */
 export function claimedJobs(projectDir) {
   const roots = [projectDir];
@@ -124,11 +154,17 @@ export function claimedJobs(projectDir) {
   const jobs = [];
   for (const root of roots) {
     const active = readJson(path.join(root, ".duaer", "active-job.json"));
-    if (!active?.feature) continue;
-    const featureDir = path.join(root, ".duaer", "specs", String(active.feature));
+    // Editor jobs write `feature`; FDE dispatch writes `specDir`.
+    const rel = active?.specDir
+      ? String(active.specDir)
+      : active?.feature
+        ? path.join(".duaer", "specs", String(active.feature))
+        : "";
+    if (!rel) continue;
+    const featureDir = path.join(root, rel);
     const delivery = readJson(path.join(featureDir, "delivery.json"));
     if (delivery?.status !== "accepted") continue;
-    jobs.push({ root, featureDir, status: reviewStatus(featureDir, root) });
+    jobs.push({ root, featureDir, gate: jobGate(featureDir, root, { branch: String(active.branch || "") }) });
   }
   return jobs;
 }
@@ -151,11 +187,9 @@ function main(host) {
   // One forced retry per stop; the CLI verdict keeps the job unaccepted after that.
   if (host === "claude" && input.stop_hook_active) return;
   if (host === "cursor" && Number(input.loop_count || 0) >= MAX_ROUNDS) return;
-  const failing = claimedJobs(projectDir).filter(
-    (j) => !reviewPasses(j.status) && j.status.result !== "stuck",
-  );
+  const failing = claimedJobs(projectDir).filter((j) => !j.gate.ok && !j.gate.stuck);
   if (!failing.length) return;
-  const message = failing.map((j) => reviewInstructions(j.featureDir, j.status)).join("\n\n");
+  const message = failing.map((j) => j.gate.instructions).join("\n\n");
   const out =
     host === "cursor"
       ? { followup_message: message }
