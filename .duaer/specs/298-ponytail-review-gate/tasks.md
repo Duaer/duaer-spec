@@ -17,4 +17,5 @@
 - [x] T016 Review R1 #1: a stale review restarts at Round 1
 - [x] T017 Review R1 #2: desk reopen as tested `reviewGateReopen`
 - [x] T018 Review R1 #3: JSDoc back on `buildBugTaskPool`
-- [ ] T015 Ponytail review of this job's diff passes (`review.md`, Verdict: Ship.)
+- [x] T019 Review R2 note: nudge fingerprint includes the review commit
+- [x] T015 Ponytail review of this job's diff passes (`review.md`, Verdict: Ship.)

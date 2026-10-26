@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T00:00:00Z",
+  "summary": "Ponytail review gate enforced in duaer check/job, Claude Code and Cursor stop hooks, and the FDE desk; init installs Ponytail skills on three hosts and merges the hooks.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "npm run test:live",
+      "node bin/duaer.mjs check . --delivery --strict"
+    ],
+    "result": "npm test 285 pass; test:live pass; review.md Round 2 Verdict: Ship."
+  }
+}
