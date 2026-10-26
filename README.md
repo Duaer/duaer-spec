@@ -58,7 +58,7 @@ After install, these are the capabilities you actually use:
 - **You talk; it runs the process.** No slash commands, no “you must run Spec phases.”
 - **Clarify before coding.** It turns your ask into: what to build, what not to build, how we know it’s done.
 - **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
-- **Reviewed before done.** It codes the Ponytail way (smallest complete change) and runs a Ponytail review of its own diff before accept. A stop hook sends it back if it skips that.
+- **Reviewed before done.** It codes the Ponytail way (smallest complete change) and runs a Ponytail review of its own diff before accept. If it skips that, `duaer check` keeps the job open, and in Claude Code a stop hook sends it back.
 - **Optional PR mode.** Turn on `.duaer/memory/pr.json` and every job merges through a GitHub PR: CI failures go back to the employee, and the PR auto-merges when green.
 - **Supported in Cursor and Claude Code.** Install once, then speak there — no professional Spec workflow required. (Optional adapters for other editors: [`ADOPT.md`](ADOPT.md).)
 
