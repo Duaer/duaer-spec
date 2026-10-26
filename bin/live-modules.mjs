@@ -289,14 +289,14 @@ export function aggregateModulesCard(modules) {
   return { goal, outOfScope, acceptance, assumptions };
 }
 
-/**
- * Short defect task pool: reproduce → fix → acceptance atoms → regress → README → stamp.
- * Used when desk kind is bug (not the modular feature implement chain).
- */
 // Last code-touching step, so the review sees the final diff (README included).
 const REVIEW_TASK_TITLE =
   "Code review: run ponytail-review on the job diff; write review.md (Round, Commit, report); Must fix → new tasks, max 2 rounds";
 
+/**
+ * Short defect task pool: reproduce → fix → acceptance atoms → regress → README → stamp.
+ * Used when desk kind is bug (not the modular feature implement chain).
+ */
 export function buildBugTaskPool(modules, { deployNeeded = false, deployTaskText = null } = {}) {
   const list = clipModules(modules).filter((m) => m.status === "confirmed");
   const pick = list.find((m) => m.id === "bug") || list[0];

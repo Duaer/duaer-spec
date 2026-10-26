@@ -101,7 +101,8 @@ export function reviewReason(status) {
 
 export function reviewInstructions(featureDir, status) {
   const rel = path.join(featureDir, REVIEW_FILE);
-  const next = status.result === "fix" ? status.round + 1 : Math.max(status.round, 1);
+  // A stale or missing review starts a new cycle (e.g. a revision after Ship).
+  const next = status.result === "fix" ? status.round + 1 : 1;
   return [
     `Duaer review gate: delivery.json says accepted, but ${reviewReason(status)}.`,
     `1. Commit the work. Run the ponytail-review skill on the job diff against the integration branch.`,

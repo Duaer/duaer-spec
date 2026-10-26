@@ -11,7 +11,8 @@ import {
   reviewStatus,
 } from "../.duaer/hooks/review-gate.mjs";
 import { buildBugTaskPool, buildTaskPoolFromModules } from "../bin/live-modules.mjs";
-import { verifyNudgePrompt } from "../bin/live-verify-gate.mjs";
+import { reviewGateReopen, verifyNudgePrompt } from "../bin/live-verify-gate.mjs";
+import { reviewInstructions } from "../.duaer/hooks/review-gate.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CLI = path.join(ROOT, "bin", "duaer.mjs");
@@ -204,4 +205,27 @@ test("review nudge prompt carries the gate instructions", () => {
   });
   assert.match(text, /run ponytail-review/);
   assert.match(text, /\/w/);
+});
+
+test("desk reopen: failing review reopens, stuck stops nudging, pass keeps the stamp", () => {
+  const stamp = { status: "accepted", acceptedAt: "2026-10-26T00:00:00Z", preview: { url: "x" } };
+  assert.equal(reviewGateReopen(stamp, "/b", { result: "pass", round: 1, verdict: "Ship." }), null);
+  assert.equal(reviewGateReopen(stamp, "/b", { result: "waived", round: 0, verdict: "" }), null);
+
+  const fix = reviewGateReopen(stamp, "/b", { result: "fix", round: 1, verdict: "fix 1 first." });
+  assert.equal(fix.delivery.status, "open");
+  assert.equal(fix.delivery.acceptedAt, undefined);
+  assert.equal(fix.delivery.preview.url, "x");
+  assert.deepEqual(fix.gate, { result: "review", review: "fix", round: 1 });
+  assert.match(fix.nudge.instructions, /Round: 2/);
+  assert.equal(stamp.status, "accepted", "input not mutated");
+
+  const stuck = reviewGateReopen(stamp, "/b", { result: "stuck", round: 2, verdict: "fix 1 first." });
+  assert.equal(stuck.delivery.status, "open");
+  assert.equal(stuck.nudge, null);
+});
+
+test("a stale review after Ship starts a new round cycle", () => {
+  assert.match(reviewInstructions("/b", { result: "stale", round: 2, verdict: "Ship." }), /Round: 1/);
+  assert.match(reviewInstructions("/b", { result: "fix", round: 1, verdict: "fix 1" }), /Round: 2/);
 });

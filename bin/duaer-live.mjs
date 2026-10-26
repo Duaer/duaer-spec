@@ -33,13 +33,10 @@ import {
 import {
   evaluateVerifyGate,
   regressionLane,
+  reviewGateReopen,
   verifyNudgePrompt,
 } from "./live-verify-gate.mjs";
-import {
-  reviewInstructions,
-  reviewPasses,
-  reviewStatus,
-} from "../.duaer/hooks/review-gate.mjs";
+import { reviewStatus } from "../.duaer/hooks/review-gate.mjs";
 import {
   deployPromptForTarget,
   isDeployPlanned,
@@ -5953,26 +5950,19 @@ function dispatchStatus(jobId) {
       accepted = false;
     }
     // Machine verify passed → the Ponytail review must pass too, or the stamp reopens.
-    if (accepted && verifyGate?.result === "pass" && featureDir) {
-      const review = reviewStatus(featureDir, dispatch.worktreePath);
-      if (!reviewPasses(review)) {
-        verifyGate = { result: "review", review: review.result, round: review.round };
-        if (review.result !== "stuck") {
-          verifyNudge = {
-            fingerprint: `REVIEW:${review.result}:${review.round}:${review.verdict}`,
-            result: "review",
-            instructions: reviewInstructions(featureDir, review),
-          };
-        }
-        delivery = { ...delivery, status: "open", review: verifyGate };
-        delete delivery.acceptedAt;
-        try {
-          fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`, "utf8");
-        } catch {
-          // keep in-memory reopen even if the stamp file cannot be rewritten
-        }
-        accepted = false;
+    const reopen =
+      accepted && verifyGate?.result === "pass" && featureDir
+        ? reviewGateReopen(delivery, featureDir, reviewStatus(featureDir, dispatch.worktreePath))
+        : null;
+    if (reopen) {
+      ({ delivery, gate: verifyGate } = reopen);
+      if (reopen.nudge) verifyNudge = reopen.nudge;
+      try {
+        fs.writeFileSync(deliveryPath, `${JSON.stringify(delivery, null, 2)}\n`, "utf8");
+      } catch {
+        // keep in-memory reopen even if the stamp file cannot be rewritten
       }
+      accepted = false;
     }
     if (!accepted && delivery?.status === "open" && delivery.review && (!verifyGate || verifyGate.result === "pass")) {
       verifyGate = delivery.review;

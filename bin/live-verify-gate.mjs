@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
+import { reviewInstructions, reviewPasses } from "../.duaer/hooks/review-gate.mjs";
 
 export const VERIFY_REL = path.join(".duaer", "memory", "verify.json");
 export const DOCS_WAIVER = "docs-only";
@@ -346,6 +347,30 @@ export function evaluateVerifyGate({
     state,
     frozen: { commands: contract.commands, timeoutSec: contract.timeoutSec },
     nudge: result === "pass" ? null : nudgeOf(result, state.command, state.exitCode, head?.tail),
+  };
+}
+
+/**
+ * After machine verify passed: an accept without a passing Ponytail review
+ * reopens. Returns null when the stamp stands.
+ */
+export function reviewGateReopen(delivery, featureDir, review) {
+  if (reviewPasses(review)) return null;
+  const gate = { result: "review", review: review.result, round: review.round };
+  const next = { ...delivery, status: "open", review: gate };
+  delete next.acceptedAt;
+  return {
+    delivery: next,
+    gate,
+    // stuck: a human decides; stop nudging.
+    nudge:
+      review.result === "stuck"
+        ? null
+        : {
+            fingerprint: `REVIEW:${review.result}:${review.round}:${review.verdict}`,
+            result: "review",
+            instructions: reviewInstructions(featureDir, review),
+          },
   };
 }
 
