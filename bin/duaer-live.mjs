@@ -5973,7 +5973,13 @@ function dispatchStatus(jobId) {
     // Machine verify passed → the Ponytail review must pass too, or the stamp reopens.
     let reopen =
       accepted && verifyGate?.result === "pass" && featureDir
-        ? reviewGateReopen(delivery, featureDir, reviewStatus(featureDir, dispatch.worktreePath))
+        ? reviewGateReopen(
+            delivery,
+            featureDir,
+            reviewStatus(featureDir, dispatch.worktreePath, {
+              branch: String(dispatch.branch || live.job.branch || ""),
+            }),
+          )
         : null;
     const prConfig =
       !reopen && accepted && verifyGate?.result === "pass" && featureDir

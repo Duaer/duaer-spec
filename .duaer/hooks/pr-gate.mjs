@@ -52,9 +52,12 @@ function checkState(c) {
 export function parsePrState(pr, runs = []) {
   if (!pr) return { result: "none", url: "", failing: [], round: 0 };
   const url = String(pr.url || "");
+  // Only this PR's commits count: a revision reuses the branch name.
+  const own = Array.isArray(pr.commits) ? new Set(pr.commits.map((c) => c?.oid)) : null;
   const failedHeads = new Set(
     (Array.isArray(runs) ? runs : [])
       .filter((r) => FAILED.has(String(r?.conclusion || "").toUpperCase()))
+      .filter((r) => !own || own.has(r.headSha))
       .map((r) => r.headSha),
   );
   const out = { url, failing: [], round: failedHeads.size };
@@ -103,7 +106,7 @@ export function prStatus(repoRoot, { url = "", branch = "" } = {}) {
     "view",
     ref,
     "--json",
-    "url,state,headRefName,reviewDecision,statusCheckRollup",
+    "url,state,headRefName,reviewDecision,statusCheckRollup,commits",
   ]);
   if (view.error || view.status !== 0) {
     if (/no pull requests? found/i.test(view.stderr || "")) {

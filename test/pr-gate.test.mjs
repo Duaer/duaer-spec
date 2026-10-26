@@ -31,6 +31,11 @@ test("parsePrState covers every state", () => {
     [{ headSha: "a", conclusion: "failure" }, { headSha: "a", conclusion: "failure" }],
   );
   assert.deepEqual([fail.result, fail.round, fail.failing], ["fail", 1, ["test"]]);
+  const own = parsePrState(
+    { state: "OPEN", commits: [{ oid: "new" }], statusCheckRollup: [run("FAILURE")] },
+    [{ headSha: "old1", conclusion: "failure" }, { headSha: "old2", conclusion: "failure" }, { headSha: "new", conclusion: "failure" }],
+  );
+  assert.deepEqual([own.result, own.round], ["fail", 1], "earlier revisions' runs do not count");
   const heads = Array.from({ length: MAX_CI_ROUNDS }, (_, i) => ({ headSha: `h${i}`, conclusion: "failure" }));
   assert.equal(parsePrState({ state: "OPEN", statusCheckRollup: [run("FAILURE")] }, heads).result, "stuck");
   assert.equal(
@@ -146,7 +151,8 @@ test("PR mode: duaer check and the stop hook accept only a merged PR", () => {
     r = spawnSync(process.execPath, [HOOK, "claude"], { input: "{}", encoding: "utf8", env: { ...env, CLAUDE_PROJECT_DIR: dir } });
     assert.equal(r.stdout, "");
 
-    // A pr.url for another branch's PR does not count.
+    // A pr.url for another branch's PR does not count (fresh check, no merge cache).
+    fs.rmSync(path.join(feature, "pr-gate.json"));
     fs.writeFileSync(path.join(bin, "pr.json"), JSON.stringify({ url: URL, state: "MERGED", headRefName: "feat/other" }));
     r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env });
     assert.equal(r.status, 1);
@@ -163,6 +169,30 @@ test("PR mode off: no gh call, local merge flow unchanged", () => {
     const noGh = { ...env, PATH: "/nonexistent" + path.delimiter + path.dirname(process.execPath) + path.delimiter + "/usr/bin:/bin" };
     const r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env: noGh });
     assert.equal(r.status, 0, r.stdout);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("PR mode: a confirmed merge is cached; gh errors do not block the hook", () => {
+  const { dir, feature, env, bin } = prRepo({ url: URL, state: "MERGED", headRefName: BRANCH });
+  try {
+    fs.writeFileSync(path.join(feature, "delivery.json"), JSON.stringify({ status: "accepted", pr: { url: URL } }));
+    let r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env });
+    assert.equal(r.status, 0, r.stdout);
+    assert.ok(fs.existsSync(path.join(feature, "pr-gate.json")));
+    // gh now fails (offline): the cached merge still passes.
+    fs.writeFileSync(path.join(bin, "gh"), "#!/bin/sh\necho offline >&2\nexit 1\n", { mode: 0o755 });
+    r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env });
+    assert.equal(r.status, 0, r.stdout);
+
+    // Without the cache: the CLI reports the error, the hook stays quiet.
+    fs.rmSync(path.join(feature, "pr-gate.json"));
+    r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env });
+    assert.equal(r.status, 1);
+    assert.match(r.stdout, /cannot read PR state: offline/);
+    r = spawnSync(process.execPath, [HOOK, "claude"], { input: "{}", encoding: "utf8", env: { ...env, CLAUDE_PROJECT_DIR: dir } });
+    assert.equal(r.stdout, "");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

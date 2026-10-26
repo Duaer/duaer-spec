@@ -11,6 +11,8 @@
 - Desk Progress shows the PR state in all locales; the deliverables page links the PR; dispatch and revise prompts switch to the PR merge step
 - Without `pr.json` the local merge flow is unchanged
 - Fix: the stop hook now finds FDE-dispatched jobs (`active-job.json` `specDir`)
+- Fix: a review only goes stale on the job's own branch, so a job merged next to other jobs stays accepted on `develop`
+- CI rounds count only the PR's own commits; a merge confirmed by `gh` is cached in the Brief (`pr-gate.json`); the stop hook does not block when `gh` cannot be reached
 
 ### Feat: enforced Ponytail review gate
 
