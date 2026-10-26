@@ -14,4 +14,5 @@
 - [x] T013 Review R1 #1: staleness only on the job branch (also fixes the 0.27.8 review gate)
 - [x] T014 Review R1 #2: CI rounds count only the PR's commits
 - [x] T015 Review R1 #3: cache confirmed merge (`pr-gate.json`); hook quiet on `gh` error
-- [ ] T012 Ponytail review of this job's diff passes
+- [x] T016 Review R2 note: staleness fallback for markers without branch; specify template writes `branch`
+- [x] T012 Ponytail review of this job's diff passes

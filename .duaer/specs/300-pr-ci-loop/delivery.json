@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T00:00:00Z",
+  "summary": "Opt-in PR mode: push, PR, CI loop (max 3 rounds), auto-merge; accepted only when the PR is merged, enforced by duaer check/job, stop hooks and the desk.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "npm run test:live",
+      "node bin/duaer.mjs check . --delivery --strict"
+    ],
+    "result": "npm test 294 pass; test:live pass; review Round 2 Verdict: Ship."
+  }
+}
