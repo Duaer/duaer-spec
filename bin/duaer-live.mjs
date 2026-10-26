@@ -33,10 +33,24 @@ import {
 import {
   evaluateVerifyGate,
   regressionLane,
+  prGateReopen,
   reviewGateReopen,
   verifyNudgePrompt,
 } from "./live-verify-gate.mjs";
 import { reviewStatus } from "../.duaer/hooks/review-gate.mjs";
+import { MAX_CI_ROUNDS, prStatus, readPrConfig } from "../.duaer/hooks/pr-gate.mjs";
+
+// gh is a network call; Progress polls every 3 s.
+const PR_STATUS_TTL_MS = 30_000;
+const prStatusCache = new Map();
+function cachedPrStatus(repoRoot, query) {
+  const key = `${repoRoot}\n${query.url}\n${query.branch}`;
+  const hit = prStatusCache.get(key);
+  if (hit && Date.now() - hit.at < PR_STATUS_TTL_MS) return hit.status;
+  const status = prStatus(repoRoot, query);
+  prStatusCache.set(key, { at: Date.now(), status });
+  return status;
+}
 import {
   deployPromptForTarget,
   isDeployPlanned,
@@ -4149,6 +4163,7 @@ ${archUrl ? `架构图（只读参考）：${archUrl}` : ""}
 `
     : "";
 
+  const prMode = readPrConfig(worktreePath);
   const defaultPrompt = `Duaer
 
 按 Duaer 数字员工流程在本 worktree 开工（Duaer-spec FDE 已派工）。
@@ -4173,9 +4188,11 @@ Brief: ${featureDir}
 6. 必须在 delivery.json 写入 preview.url（满意交付的必填证据）：必须是可打开的成品入口——HTTP 服务用 http://localhost:…；静态页用 index.html 等 HTML。禁止把 docs/**/*.md 等说明文档当作 preview.url——不要因「没有页面」而省略
 6b. 若交付是 HTTP 服务：验收前必须先把服务跑起来（如 npm start），确认能打开 preview.url 后再 stamp accepted；不要只写地址却不启动
 7. ${
-    liveHotfix
-      ? "先合入 main（生产 hotfix），再回补 develop，并 handoff 清理 worktree"
-      : "合入 develop 并 handoff 清理 worktree"
+    prMode
+      ? `PR 模式（.duaer/memory/pr.json）：评审 Ship 后 push 本分支，gh pr create --base ${prMode.base}（正文含 Brief 目标、验收和 review.md），gh pr checks --watch；CI 失败或有 Request changes 就写成 - [ ] 任务修好再 push（CI 最多 ${MAX_CI_ROUNDS} 轮）；全绿后 gh pr merge --merge --delete-branch，主检出 git pull --ff-only，再 stamp accepted（delivery.json 写 pr.url）并 handoff 清理 worktree。不要本地 git merge`
+      : liveHotfix
+        ? "先合入 main（生产 hotfix），再回补 develop，并 handoff 清理 worktree"
+        : "合入 develop 并 handoff 清理 worktree"
   }
 8. 文档语言：英文文档不得出现中文；中文文档可夹英文术语
 
@@ -4797,7 +4814,11 @@ ${restated.keep}
 3. 对照本轮 Revision acceptance 全部满足后，才 stamp delivery.json 为 accepted，并必须更新 preview.url 为可打开的成品入口（http://localhost:… 或 HTML 页面，必填；禁止用 docs/**/*.md 当预览）；若是服务须先启动并可打开。禁止以 Job not accepted yet 收尾
 3b. 交付前必须更新产品仓 README（说明文档）以反映本轮改动后的行为/用法；需求变了就改 README，不要只改代码。英文 README 不得出现中文；中文说明用 README.zh-CN.md（或项目既有约定）
 4. 按 testing.md 做风险验证（若有）
-5. 不要推远程除非用户明确要求部署/发布
+5. ${
+    readPrConfig(dispatch.worktreePath)
+      ? "PR 模式（.duaer/memory/pr.json）：评审 Ship 后 push 本分支并开新 PR（gh pr create），CI 绿后 gh pr merge --merge --delete-branch，再 stamp accepted（delivery.json 写新 pr.url）。不要本地 git merge"
+      : "不要推远程除非用户明确要求部署/发布"
+  }
 
 ${DISPATCH_MUST_FINISH_RULES}
 `;
@@ -5950,10 +5971,22 @@ function dispatchStatus(jobId) {
       accepted = false;
     }
     // Machine verify passed → the Ponytail review must pass too, or the stamp reopens.
-    const reopen =
+    let reopen =
       accepted && verifyGate?.result === "pass" && featureDir
         ? reviewGateReopen(delivery, featureDir, reviewStatus(featureDir, dispatch.worktreePath))
         : null;
+    const prConfig =
+      !reopen && accepted && verifyGate?.result === "pass" && featureDir
+        ? readPrConfig(dispatch.worktreePath)
+        : null;
+    if (prConfig) {
+      const branch = String(dispatch.branch || live.job.branch || "");
+      const pr = cachedPrStatus(dispatch.worktreePath, {
+        url: String(delivery?.pr?.url || ""),
+        branch,
+      });
+      reopen = prGateReopen(delivery, featureDir, pr, { base: prConfig.base, branch });
+    }
     if (reopen) {
       ({ delivery, gate: verifyGate } = reopen);
       if (reopen.nudge) verifyNudge = reopen.nudge;
@@ -5964,8 +5997,8 @@ function dispatchStatus(jobId) {
       }
       accepted = false;
     }
-    if (!accepted && delivery?.status === "open" && delivery.review && (!verifyGate || verifyGate.result === "pass")) {
-      verifyGate = delivery.review;
+    if (!accepted && delivery?.status === "open" && delivery.gate && (!verifyGate || verifyGate.result === "pass")) {
+      verifyGate = delivery.gate;
     }
     if (!accepted && live.job.status === "accepted" && verifyGate && verifyGate.result !== "pass") {
       try {

@@ -522,6 +522,13 @@ export function buildDeliverablesModel(session, opts = {}) {
               : "",
         },
         {
+          id: "pull-request",
+          title: "Pull request",
+          kind: "link",
+          ready: Boolean(delivery?.pr?.url),
+          url: delivery?.pr?.url || null,
+        },
+        {
           id: "preview",
           title: pickLang(lang, { en: "Preview", ja: "プレビュー", zh: "预览" }),
           kind: "link",

@@ -7384,8 +7384,20 @@ function fillRunProgress(block, data) {
       stale: "verify.reviewStale",
       stuck: "verify.reviewStuck",
     }[gate.review];
+    const prKey = {
+      none: "verify.prNone",
+      closed: "verify.prClosed",
+      pending: "verify.prPending",
+      fail: "verify.prFail",
+      changes: "verify.prChanges",
+      ready: "verify.prReady",
+      stuck: "verify.prStuck",
+      error: "verify.prError",
+    }[gate.pr];
     const line =
-      gate.result === "review" && reviewKey
+      gate.result === "pr" && prKey
+        ? t(prKey, { round: String(gate.round ?? "") })
+        : gate.result === "review" && reviewKey
         ? t(reviewKey, { round: String(gate.round ?? "") })
         : gate.result === "fail"
         ? t("verify.fail", {

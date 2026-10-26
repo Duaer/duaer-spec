@@ -233,3 +233,16 @@ test("a stale review after Ship starts a new round cycle", () => {
   assert.match(reviewInstructions("/b", { result: "stale", round: 2, verdict: "Ship." }), /Round: 1/);
   assert.match(reviewInstructions("/b", { result: "fix", round: 1, verdict: "fix 1" }), /Round: 2/);
 });
+
+test("stop hook finds FDE-dispatched jobs (active-job.json specDir)", () => {
+  const { dir } = acceptedRepo();
+  try {
+    fs.writeFileSync(
+      path.join(dir, ".duaer", "active-job.json"),
+      JSON.stringify({ specDir: `.duaer/specs/${JOB}`, source: "live-dispatch" }),
+    );
+    assert.equal(JSON.parse(runHook("claude", dir).stdout).decision, "block");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

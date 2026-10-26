@@ -6,6 +6,13 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { reviewInstructions, reviewPasses } from "../.duaer/hooks/review-gate.mjs";
+import { prInstructions, prPasses } from "../.duaer/hooks/pr-gate.mjs";
+
+function reopened(delivery, gate) {
+  const next = { ...delivery, status: "open", gate };
+  delete next.acceptedAt;
+  return next;
+}
 
 export const VERIFY_REL = path.join(".duaer", "memory", "verify.json");
 export const DOCS_WAIVER = "docs-only";
@@ -357,10 +364,8 @@ export function evaluateVerifyGate({
 export function reviewGateReopen(delivery, featureDir, review) {
   if (reviewPasses(review)) return null;
   const gate = { result: "review", review: review.result, round: review.round };
-  const next = { ...delivery, status: "open", review: gate };
-  delete next.acceptedAt;
   return {
-    delivery: next,
+    delivery: reopened(delivery, gate),
     gate,
     // stuck: a human decides; stop nudging.
     nudge:
@@ -372,6 +377,27 @@ export function reviewGateReopen(delivery, featureDir, review) {
             result: "review",
             instructions: reviewInstructions(featureDir, review),
           },
+  };
+}
+
+/**
+ * PR mode, after review passed: an accept whose PR is not merged reopens.
+ * No nudge while CI runs (the employee is watching) or once stuck.
+ */
+export function prGateReopen(delivery, featureDir, pr, { base, branch } = {}) {
+  if (prPasses(pr)) return null;
+  const gate = { result: "pr", pr: pr.result, round: pr.round, url: pr.url };
+  const quiet = pr.result === "pending" || pr.result === "stuck";
+  return {
+    delivery: reopened(delivery, gate),
+    gate,
+    nudge: quiet
+      ? null
+      : {
+          fingerprint: `PR:${pr.result}:${pr.round}:${pr.url}:${pr.failing.join(",")}`,
+          result: "review",
+          instructions: prInstructions(featureDir, pr, { base, branch }),
+        },
   };
 }
 
