@@ -5,4 +5,5 @@
 - [x] T003 `duaer check` warns on a missing hook entry or an uncommitted hook file (never fails)
 - [x] T004 Tests `test/hook-commit-reminder.test.mjs`; `npm test` and `npm run test:live` pass
 - [x] T005 CHANGELOG Unreleased, E2E-226
+- [x] T007 Review R1 #1: no hook warnings on ops-only installs
 - [ ] T006 Ponytail review passes
