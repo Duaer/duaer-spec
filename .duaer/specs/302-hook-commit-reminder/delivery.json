@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T03:00:00Z",
+  "summary": "init/update remind to commit the Claude review hook files; duaer check warns while missing or uncommitted (never fails; skipped on ops-only installs).",
+  "verification": {
+    "commands": [
+      "npm test",
+      "npm run test:live",
+      "node bin/duaer.mjs check . --delivery --strict"
+    ],
+    "result": "npm test 297 pass; test:live pass; review Round 2 Verdict: Ship."
+  }
+}

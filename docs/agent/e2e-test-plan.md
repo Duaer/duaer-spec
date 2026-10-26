@@ -444,4 +444,5 @@ the table for their app.
 | E2E-223 | `296-init-omit-progress` | init method skeleton; empty specs; package omits Brief history |
 | E2E-224 | `298-ponytail-review-gate` | review task in pool; `review.md` gate in `duaer check`, stop hooks, desk; init merges hooks |
 | E2E-225 | `300-pr-ci-loop` | PR mode: `pr.json` opt-in; PR state gate in `duaer check`, stop hooks, desk; auto-merge instructions |
+| E2E-226 | `302-hook-commit-reminder` | init/update reminder and `duaer check` warnings for uncommitted Claude review hook files |
 
