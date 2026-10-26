@@ -1,11 +1,9 @@
 {
   "schemaVersion": 1,
   "onWorktreeRemove": {
-    "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs). Also stop the FDE desk if it was started from a worktree copy of duaer-live.",
+    "stop": "Stop any process whose working directory is under the request worktree (dev servers, file watchers, local APIs).",
     "restartFromPrimary": true,
-    "commands": [
-      "launchctl kickstart -k \"gui/$(id -u)/com.duaer.live8787\" 2>/dev/null || (lsof -t -iTCP:8787 -sTCP:LISTEN | xargs kill 2>/dev/null; sleep 1; DUAER_LIVE_NO_BROWSER=1 node bin/duaer-live.mjs --port 8787)"
-    ]
+    "commands": []
   },
-  "notes": "FDE desk is ONLY http://127.0.0.1:8787 (com.duaer.live8787). Never start duaer-live on another port. LaunchAgent sets DUAER_LIVE_NO_BROWSER=1 so kickstart does not open new browser tabs. After merge: remove worktree, then kickstart so routes load from primary checkout on develop."
+  "notes": "After merging into develop, stop worktree processes, remove .worktree/<id>, then restart from the primary checkout. Do not start or restart the FDE desk on handoff."
 }

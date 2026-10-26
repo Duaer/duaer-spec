@@ -9,17 +9,17 @@ The Duaer-spec FDE console has **one** URL:
 
 `http://127.0.0.1:8787`
 
-Managed by LaunchAgent `com.duaer.live8787`.
+It runs only when the user starts it (`duaer live`). It is not restarted on
+handoff, and no LaunchAgent keeps it alive.
 
 ## Do
 
-- Check / restart with `launchctl kickstart -k "gui/$(id -u)/com.duaer.live8787"`
 - Verify with `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8787/`
-- After merge handoff, restart that LaunchAgent only (see `.duaer/handoff.json`)
 - Open architecture / 派工图 via console `POST /api/open-external` (OS browser on :8787)
 
 ## Do not
 
+- Start or restart the console on handoff, or with `launchctl kickstart`
 - Start `node bin/duaer-live.mjs` on any port other than **8787**
 - Start a second console when 8787 is already listening
 - Use Cursor Browser / Simple Browser / browser MCP to open the console or
@@ -27,5 +27,5 @@ Managed by LaunchAgent `com.duaer.live8787`.
   (`:62489`, `:64074`, …). That is **not** a second FDE server.
 - Treat product preview ports (3000, 8081, …) as the FDE console
 
-Interactive `duaer live` may still open the OS browser once; LaunchAgent sets
-`DUAER_LIVE_NO_BROWSER=1` so kickstart does not spam tabs.
+Interactive `duaer live` opens the OS browser once; set
+`DUAER_LIVE_NO_BROWSER=1` to skip that.
