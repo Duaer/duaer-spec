@@ -110,6 +110,7 @@ Given that feature description, do this:
        "schemaVersion": 1,
        "feature": "<directory-name only, e.g. 003-user-auth>",
        "featureDirectory": "<resolved feature dir>",
+       "branch": "<current git branch, e.g. feat/user-auth>",
        "updatedAt": "<ISO-8601 UTC>",
        "source": "duaer-specify"
      }

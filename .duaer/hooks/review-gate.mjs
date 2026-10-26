@@ -19,6 +19,8 @@ import { prInstructions, prPasses, prReason, prStatus, readPrConfig } from "./pr
 export const REVIEW_FILE = "review.md";
 export const MAX_ROUNDS = 2;
 const PR_SEEN_FILE = "pr-gate.json";
+// Used when active-job.json names no branch.
+const INTEGRATION_BRANCHES = new Set(["develop", "main", "master"]);
 
 function readJson(file) {
   try {
@@ -50,7 +52,8 @@ function codeMatches(repoRoot, commit, branch) {
     encoding: "utf8",
   });
   if (head.status !== 0) return null;
-  if (branch && head.stdout.trim() !== branch) return null;
+  const current = head.stdout.trim();
+  if (branch ? current !== branch : INTEGRATION_BRANCHES.has(current)) return null;
   if (!commit) return false;
   const r = spawnSync(
     "git",

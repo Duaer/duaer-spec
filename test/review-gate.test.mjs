@@ -42,6 +42,7 @@ function acceptedRepo() {
   git(dir, "init", "-q", "-b", "develop");
   git(dir, "add", "-A");
   git(dir, "commit", "-qm", "init");
+  git(dir, "switch", "-qc", "feat/demo");
   return { dir, feature, head: git(dir, "rev-parse", "HEAD") };
 }
 
@@ -252,11 +253,16 @@ test("after merge the base branch holds other jobs' code: review stays current t
   try {
     writeReview(feature, `Round: 1\nCommit: ${head}\nVerdict: Ship.\n`);
     // Another job lands on develop after this one was reviewed.
+    git(dir, "switch", "-q", "develop");
     fs.writeFileSync(path.join(dir, "other.js"), "x\n");
     git(dir, "add", "-A");
     git(dir, "commit", "-qm", "other job");
     assert.equal(reviewStatus(feature, dir, { branch: "feat/demo" }).result, "pass", "on develop, not the job branch");
-    git(dir, "switch", "-qc", "feat/demo");
+    assert.equal(reviewStatus(feature, dir).result, "pass", "no job branch known: develop is skipped");
+    git(dir, "switch", "-qc", "feat/next");
+    assert.equal(reviewStatus(feature, dir).result, "stale", "no job branch known: feature branch is checked");
+    git(dir, "switch", "-q", "feat/demo");
+    git(dir, "merge", "-q", "develop");
     assert.equal(reviewStatus(feature, dir, { branch: "feat/demo" }).result, "stale", "on the job branch");
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
