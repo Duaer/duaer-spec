@@ -391,6 +391,7 @@ they only get the hooks once these are committed:
 
 /** Warnings only: a missing or uncommitted hook weakens the gate but is not a broken install. */
 function checkReviewHooks(target) {
+  if (!existsSync(join(target, REVIEW_HOOK))) return // ops-only install: no hook to check
   const settings = join(target, '.claude', 'settings.json')
   if (!existsSync(settings) || !readFileSync(settings, 'utf8').includes(REVIEW_HOOK)) {
     console.log('warn .claude/settings.json has no review stop hook — run: duaer update')

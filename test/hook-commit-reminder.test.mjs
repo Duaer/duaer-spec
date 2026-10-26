@@ -52,3 +52,14 @@ test("outside git: no reminder, no crash", () => {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("ops-only install: no hook warnings", () => {
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-hookrem-ops-"));
+  try {
+    git(dir, "init", "-q", "-b", "develop");
+    cli("init", dir, "--ops");
+    assert.doesNotMatch(cli("check", dir, "--workplace").stdout, /^warn/m);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
