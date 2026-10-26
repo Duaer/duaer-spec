@@ -1,5 +1,5 @@
 {
-  "feature": "304-desk-off",
-  "branch": "fix/desk-off",
-  "worktree": ".worktree/fix-desk-off"
+  "feature": "305-release-02710",
+  "branch": "feat/release-02710",
+  "worktree": ".worktree/feat-release-02710"
 }
