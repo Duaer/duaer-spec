@@ -55,7 +55,9 @@ Devin, Cline, Continue, Gemini CLI, and Aider — see the file list below.
 - Autonomous job loop (ask → Brief → **understand** → work → accept)  
 - Cursor: `.cursor/rules` + `.cursor/skills`  
 - Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills` (includes Ponytail and Ponytail review)  
-- Codex: `AGENTS.md` + `.agents/skills`  
+- Codex: `AGENTS.md` + `.agents/skills` (also Ponytail; Cursor gets them under `.cursor/skills`)  
+- Review gate: `.duaer/hooks/review-gate.mjs`, merged as a stop hook into `.claude/settings.json` and `.cursor/hooks.json` (existing entries kept). Commit both files so request worktrees have the hook  
+- Optional PR mode: create `.duaer/memory/pr.json` with `{ "enabled": true, "base": "develop" }` (needs `gh` logged in); see `docs/agent/branching-and-release.md` § PR mode  
 - Copilot: `.github/copilot-instructions.md`  
 - Windsurf / Devin: `.windsurf/rules`, `.devin/rules`  
 - Cline: `.clinerules/`  

@@ -58,6 +58,8 @@ After install, these are the capabilities you actually use:
 - **You talk; it runs the process.** No slash commands, no “you must run Spec phases.”
 - **Clarify before coding.** It turns your ask into: what to build, what not to build, how we know it’s done.
 - **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
+- **Reviewed before done.** It codes the Ponytail way (smallest complete change) and runs a Ponytail review of its own diff before accept. A stop hook sends it back if it skips that.
+- **Optional PR mode.** Turn on `.duaer/memory/pr.json` and every job merges through a GitHub PR: CI failures go back to the employee, and the PR auto-merges when green.
 - **Supported in Cursor and Claude Code.** Install once, then speak there — no professional Spec workflow required. (Optional adapters for other editors: [`ADOPT.md`](ADOPT.md).)
 
 ### In the browser: Duaer-spec FDE (live console)
@@ -131,7 +133,9 @@ The sections below are **how to run it**; this section is **what it can do**.
 1. Turns your ask into a Brief with **checkable acceptance**  
 2. Implements within that Brief  
 3. Verifies against acceptance (and project testing rules)  
-4. Stamps accept only when the result should satisfy you — one handoff line  
+4. Runs a Ponytail review of its diff; fixes Must fix items (at most 2 rounds)  
+5. In PR mode: opens a PR, fixes CI failures (at most 3 rounds), auto-merges when green  
+6. Stamps accept only when the result should satisfy you — one handoff line  
 
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
