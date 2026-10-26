@@ -61,7 +61,7 @@ HTML page generated from the project session:
 | Architecture | Diagram link · confirmation note |
 | Kickoff & implementation | Brief/job id · task pool · employee roles |
 
-| Delivery | Delivery stamp · preview URL |
+| Delivery | Code review (`review.md`) · delivery stamp · preview URL |
 | Revisions | Each revise plan card (when present) |
 
 API: `GET /api/projects/deliverables?path=…&lang=zh|en|ja` (`format=json` for the
@@ -223,6 +223,12 @@ Additional notes:
   regression lane. It does not nudge the employee to stamp accept. A
   `docs-only` waiver (no commands) is the only skip. The first command list is
   frozen so a later waiver cannot replace it.
+- **Code review gate:** the pool ends with a review task (last lane, after the
+  README update, before the stamp). After machine verify passes, the desk reads
+  the Brief `review.md` (`.duaer/hooks/review-gate.mjs`). Missing, not
+  `Verdict: Ship.`, or code changed since its `Commit:` reopens `accepted`
+  and nudges the regression lane. After 2 failing rounds the desk stops
+  nudging and Progress shows that a human must decide.
 - **Execution graph:** after worker-count confirm, the desk builds the task
   path with the **same Archify renderer and layered layout** as the system
   architecture diagram. **查看派工图** / **Dispatch center** open

@@ -442,4 +442,5 @@ the table for their app.
 | E2E-221 | `290-remove-quicknav` | no chat 导航 control |
 | E2E-222 | `292-atomic-clause-split` | sentence split and goal fallback |
 | E2E-223 | `296-init-omit-progress` | init method skeleton; empty specs; package omits Brief history |
+| E2E-224 | `298-ponytail-review-gate` | review task in pool; `review.md` gate in `duaer check`, stop hooks, desk; init merges hooks |
 
