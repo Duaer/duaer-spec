@@ -1,0 +1,12 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-10-26T04:00:00Z",
+  "summary": "Handoff no longer restarts the FDE desk; rules say start it only when the user asks.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "grep kickstart/live8787 in handoff.json, AGENTS.md, rules"
+    ],
+    "result": "npm test 297 pass; no restart left; review Ship."
+  }
+}
