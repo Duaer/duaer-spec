@@ -1,5 +1,5 @@
 {
-  "feature": "301-release-0278",
-  "branch": "feat/release-0278",
-  "worktree": ".worktree/feat-release-0278"
+  "feature": "302-hook-commit-reminder",
+  "branch": "feat/hook-coverage",
+  "worktree": ".worktree/feat-hook-coverage"
 }
