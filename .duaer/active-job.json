@@ -1,5 +1,5 @@
 {
-  "feature": "300-pr-ci-loop",
-  "branch": "feat/pr-ci-loop",
-  "worktree": ".worktree/feat-pr-ci-loop"
+  "feature": "301-release-0278",
+  "branch": "feat/release-0278",
+  "worktree": ".worktree/feat-release-0278"
 }
