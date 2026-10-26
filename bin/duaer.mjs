@@ -15,7 +15,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs'
-import { spawn } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
@@ -362,6 +362,44 @@ function installReviewHooks(target) {
   })
 }
 
+const HOOK_FILES = ['.claude/settings.json', REVIEW_HOOK, '.duaer/hooks/pr-gate.mjs']
+
+/**
+ * Hook files that a request worktree would miss: not in git yet, or changed
+ * since the last commit. Empty outside a git checkout.
+ */
+function uncommittedHookFiles(target) {
+  const r = spawnSync('git', ['-C', target, 'status', '--porcelain', '--', ...HOOK_FILES], {
+    encoding: 'utf8',
+  })
+  if (r.status !== 0) return []
+  return r.stdout
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => line.slice(3).trim())
+}
+
+function hookCommitReminder(target) {
+  const files = uncommittedHookFiles(target)
+  if (!files.length) return
+  console.log(`
+Review hooks are not committed yet. Request worktrees branch from git, so
+they only get the hooks once these are committed:
+  git add ${files.join(' ')}
+  git commit -m "chore(duaer): add review gate hooks"`)
+}
+
+/** Warnings only: a missing or uncommitted hook weakens the gate but is not a broken install. */
+function checkReviewHooks(target) {
+  const settings = join(target, '.claude', 'settings.json')
+  if (!existsSync(settings) || !readFileSync(settings, 'utf8').includes(REVIEW_HOOK)) {
+    console.log('warn .claude/settings.json has no review stop hook — run: duaer update')
+  }
+  for (const file of uncommittedHookFiles(target)) {
+    console.log(`warn ${file} not committed — request worktrees will not run the review hook`)
+  }
+}
+
 function installClaudeMethod(target, opts) {
   mirrorDuaerSkills(
     target,
@@ -696,6 +734,7 @@ Hired.
 Talk to the agent in plain language (Cursor, Claude, Codex, Copilot, and more).
 Later update:  npx duaer-spec update
 `)
+  if (opts.mode === 'all' || opts.mode === 'method') hookCommitReminder(target)
 }
 
 function cmdUpdate(opts) {
@@ -951,7 +990,10 @@ function cmdCheck(opts) {
   console.log(`Checking ${target}${strictFlag ? ' (strict handoff)' : ''}\n`)
 
   let workplaceMissing = 0
-  if (wp) workplaceMissing = checkWorkplace(target)
+  if (wp) {
+    workplaceMissing = checkWorkplace(target)
+    checkReviewHooks(target)
+  }
 
   let delivery = { unfinished: false }
   if (del) {
