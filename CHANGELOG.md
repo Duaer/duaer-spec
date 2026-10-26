@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.27.9 — 2026-10-26
+
+### Feat: hook commit reminder
+
 - `duaer init` / `update` remind you to commit the Claude Code review hook files (with the exact commands), and `duaer check` warns while they are missing or uncommitted, because request worktrees only get committed files
 
 ## 0.27.8 — 2026-10-26
