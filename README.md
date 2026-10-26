@@ -101,6 +101,8 @@ With multiple workers, the **last lane** owns functional regression (and deploy 
 
 Before a job can stay accepted, the console runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
 
+**PR mode (opt-in).** With `.duaer/memory/pr.json` set to `{ "enabled": true, "base": "develop" }`, a job merges through a GitHub PR instead of a local merge: push → `gh pr create` → CI → failures and Request changes go back to the employee as tasks (at most 3 CI rounds) → auto-merge when green. A job counts as accepted only when its PR is merged. Needs `gh` logged in. Turning it on authorizes pushing the request branch and merging its PR.
+
 **Code review gate.** Employees code the Ponytail way (smallest complete change). Before accept they run `ponytail-review` on the job diff and save `review.md` in the Brief. Only `Verdict: Ship.` for the current code passes; Must fix items go back as tasks, at most 2 rounds. `duaer init` installs the Ponytail skills for Claude Code, Cursor and Codex and merges a stop hook into `.claude/settings.json` and `.cursor/hooks.json`, so the gate also holds when Claude Code or Cursor runs the duaer-spec rules on its own, in the terminal or the editor, without the console. `duaer check` / `duaer job`, the stop hooks and the console all reopen a stamp that fails it.
 
 ### Deploy: supported hosts

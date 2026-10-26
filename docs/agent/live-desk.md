@@ -229,6 +229,12 @@ Additional notes:
   `Verdict: Ship.`, or code changed since its `Commit:` reopens `accepted`
   and nudges the regression lane. After 2 failing rounds the desk stops
   nudging and Progress shows that a human must decide.
+- **PR mode:** with `.duaer/memory/pr.json` enabled, the merge step becomes
+  push → PR → CI → auto-merge (see branching-and-release § PR mode). After the
+  review passes, the desk reads the PR through `gh` (cached 30 s), reopens an
+  accept whose PR is not merged, and nudges the regression lane with the next
+  step (none while CI runs, none once stuck after 3 CI rounds). Progress shows
+  the PR state; the deliverables page links the PR.
 - **Execution graph:** after worker-count confirm, the desk builds the task
   path with the **same Archify renderer and layered layout** as the system
   architecture diagram. **查看派工图** / **Dispatch center** open

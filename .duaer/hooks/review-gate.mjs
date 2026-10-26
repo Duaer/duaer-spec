@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Ponytail review gate. A job stamped accepted only counts when the Brief's
- * review.md says `Verdict: Ship.` for the current code. Shared by
+ * Delivery gate. A job stamped accepted only counts when the Brief's
+ * review.md says `Verdict: Ship.` for the current code and, in PR mode
+ * (pr-gate.mjs), its PR is merged. Shared by
  * `duaer check` / `duaer job`, the FDE desk, and the agent stop hooks:
  *
  *   node .duaer/hooks/review-gate.mjs claude   # Claude Code Stop hook
@@ -13,9 +14,13 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { prInstructions, prPasses, prReason, prStatus, readPrConfig } from "./pr-gate.mjs";
 
 export const REVIEW_FILE = "review.md";
 export const MAX_ROUNDS = 2;
+const PR_SEEN_FILE = "pr-gate.json";
+// Used when active-job.json names no branch.
+const INTEGRATION_BRANCHES = new Set(["develop", "main", "master"]);
 
 function readJson(file) {
   try {
@@ -37,12 +42,18 @@ export function parseReview(text) {
   return { ship, verdict: last || (ship ? "Ship." : ""), round, commit };
 }
 
-/** Exit 0 = code outside .duaer/ unchanged since commit; null = not a git checkout. */
-function codeMatches(repoRoot, commit) {
-  const inside = spawnSync("git", ["-C", repoRoot, "rev-parse", "--is-inside-work-tree"], {
+/**
+ * true = code outside .duaer/ unchanged since commit; null = nothing to compare
+ * (not a git checkout, or not on the job branch: once merged, the base also
+ * holds other jobs' code, so only the job's own branch can go stale).
+ */
+function codeMatches(repoRoot, commit, branch) {
+  const head = spawnSync("git", ["-C", repoRoot, "rev-parse", "--abbrev-ref", "HEAD"], {
     encoding: "utf8",
   });
-  if (inside.status !== 0) return null;
+  if (head.status !== 0) return null;
+  const current = head.stdout.trim();
+  if (branch ? current !== branch : INTEGRATION_BRANCHES.has(current)) return null;
   if (!commit) return false;
   const r = spawnSync(
     "git",
@@ -63,7 +74,7 @@ function codeMatches(repoRoot, commit) {
  * @returns {{ result: "pass"|"waived"|"missing"|"fix"|"stale"|"stuck", round: number, verdict: string, commit?: string }}
  * stuck = still failing after MAX_ROUNDS; a human decides next.
  */
-export function reviewStatus(featureDir, repoRoot) {
+export function reviewStatus(featureDir, repoRoot, { branch = "" } = {}) {
   const verify = readJson(path.join(repoRoot, ".duaer", "memory", "verify.json"));
   const hasCommands = Array.isArray(verify?.commands) && verify.commands.some((c) => String(c).trim());
   if (!hasCommands && verify?.waiver === "docs-only") {
@@ -76,7 +87,7 @@ export function reviewStatus(featureDir, repoRoot) {
   if (!review.ship) {
     return { ...out, result: review.round >= MAX_ROUNDS ? "stuck" : "fix" };
   }
-  if (codeMatches(repoRoot, review.commit) === false) return { ...out, result: "stale" };
+  if (codeMatches(repoRoot, review.commit, branch) === false) return { ...out, result: "stale" };
   return { ...out, result: "pass" };
 }
 
@@ -112,6 +123,48 @@ export function reviewInstructions(featureDir, status) {
   ].join("\n");
 }
 
+/**
+ * Everything an accepted stamp needs: a passing review, then (PR mode) a
+ * merged PR. `stuck` = a human must decide, so hooks and the desk stop pushing.
+ * @returns {{ ok: boolean, stuck?: boolean, reason?: string, instructions?: string }}
+ */
+export function jobGate(featureDir, repoRoot, { branch = "" } = {}) {
+  const review = reviewStatus(featureDir, repoRoot, { branch });
+  if (!reviewPasses(review)) {
+    return {
+      ok: false,
+      stuck: review.result === "stuck",
+      reason: reviewReason(review),
+      instructions: reviewInstructions(featureDir, review),
+    };
+  }
+  const config = readPrConfig(repoRoot);
+  if (!config) return { ok: true };
+  const delivery = readJson(path.join(featureDir, "delivery.json"));
+  const url = String(delivery?.pr?.url || "");
+  // A merged PR stays merged: after gh confirmed it once, skip the network.
+  const seen = path.join(featureDir, PR_SEEN_FILE);
+  if (url && readJson(seen)?.mergedUrl === url) return { ok: true };
+  const pr = prStatus(repoRoot, { url, branch });
+  if (prPasses(pr)) {
+    if (url === pr.url) {
+      try {
+        fs.writeFileSync(seen, `${JSON.stringify({ mergedUrl: url, checkedAt: new Date().toISOString() })}\n`);
+      } catch {
+        // cache only
+      }
+    }
+    return { ok: true };
+  }
+  return {
+    ok: false,
+    // error: cannot reach GitHub; report it, but do not block the agent over it.
+    stuck: pr.result === "stuck" || pr.result === "error",
+    reason: prReason(pr),
+    instructions: prInstructions(featureDir, pr, { base: config.base, branch }),
+  };
+}
+
 /** Jobs that claim accepted in the project and its live worktrees. */
 export function claimedJobs(projectDir) {
   const roots = [projectDir];
@@ -124,11 +177,17 @@ export function claimedJobs(projectDir) {
   const jobs = [];
   for (const root of roots) {
     const active = readJson(path.join(root, ".duaer", "active-job.json"));
-    if (!active?.feature) continue;
-    const featureDir = path.join(root, ".duaer", "specs", String(active.feature));
+    // Editor jobs write `feature`; FDE dispatch writes `specDir`.
+    const rel = active?.specDir
+      ? String(active.specDir)
+      : active?.feature
+        ? path.join(".duaer", "specs", String(active.feature))
+        : "";
+    if (!rel) continue;
+    const featureDir = path.join(root, rel);
     const delivery = readJson(path.join(featureDir, "delivery.json"));
     if (delivery?.status !== "accepted") continue;
-    jobs.push({ root, featureDir, status: reviewStatus(featureDir, root) });
+    jobs.push({ root, featureDir, gate: jobGate(featureDir, root, { branch: String(active.branch || "") }) });
   }
   return jobs;
 }
@@ -151,11 +210,9 @@ function main(host) {
   // One forced retry per stop; the CLI verdict keeps the job unaccepted after that.
   if (host === "claude" && input.stop_hook_active) return;
   if (host === "cursor" && Number(input.loop_count || 0) >= MAX_ROUNDS) return;
-  const failing = claimedJobs(projectDir).filter(
-    (j) => !reviewPasses(j.status) && j.status.result !== "stuck",
-  );
+  const failing = claimedJobs(projectDir).filter((j) => !j.gate.ok && !j.gate.stuck);
   if (!failing.length) return;
-  const message = failing.map((j) => reviewInstructions(j.featureDir, j.status)).join("\n\n");
+  const message = failing.map((j) => j.gate.instructions).join("\n\n");
   const out =
     host === "cursor"
       ? { followup_message: message }

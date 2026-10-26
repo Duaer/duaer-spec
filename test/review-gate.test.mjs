@@ -42,6 +42,7 @@ function acceptedRepo() {
   git(dir, "init", "-q", "-b", "develop");
   git(dir, "add", "-A");
   git(dir, "commit", "-qm", "init");
+  git(dir, "switch", "-qc", "feat/demo");
   return { dir, feature, head: git(dir, "rev-parse", "HEAD") };
 }
 
@@ -232,4 +233,38 @@ test("desk reopen: failing review reopens, stuck stops nudging, pass keeps the s
 test("a stale review after Ship starts a new round cycle", () => {
   assert.match(reviewInstructions("/b", { result: "stale", round: 2, verdict: "Ship." }), /Round: 1/);
   assert.match(reviewInstructions("/b", { result: "fix", round: 1, verdict: "fix 1" }), /Round: 2/);
+});
+
+test("stop hook finds FDE-dispatched jobs (active-job.json specDir)", () => {
+  const { dir } = acceptedRepo();
+  try {
+    fs.writeFileSync(
+      path.join(dir, ".duaer", "active-job.json"),
+      JSON.stringify({ specDir: `.duaer/specs/${JOB}`, source: "live-dispatch" }),
+    );
+    assert.equal(JSON.parse(runHook("claude", dir).stdout).decision, "block");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("after merge the base branch holds other jobs' code: review stays current there", () => {
+  const { dir, feature, head } = acceptedRepo();
+  try {
+    writeReview(feature, `Round: 1\nCommit: ${head}\nVerdict: Ship.\n`);
+    // Another job lands on develop after this one was reviewed.
+    git(dir, "switch", "-q", "develop");
+    fs.writeFileSync(path.join(dir, "other.js"), "x\n");
+    git(dir, "add", "-A");
+    git(dir, "commit", "-qm", "other job");
+    assert.equal(reviewStatus(feature, dir, { branch: "feat/demo" }).result, "pass", "on develop, not the job branch");
+    assert.equal(reviewStatus(feature, dir).result, "pass", "no job branch known: develop is skipped");
+    git(dir, "switch", "-qc", "feat/next");
+    assert.equal(reviewStatus(feature, dir).result, "stale", "no job branch known: feature branch is checked");
+    git(dir, "switch", "-q", "feat/demo");
+    git(dir, "merge", "-q", "develop");
+    assert.equal(reviewStatus(feature, dir, { branch: "feat/demo" }).result, "stale", "on the job branch");
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

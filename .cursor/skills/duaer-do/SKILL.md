@@ -84,6 +84,15 @@ Do **not** lecture about methodology. Do **not** ask them to run commands.
    `verify.json` waiver `docs-only` skips the review. `duaer check`, the agent
    stop hooks and the FDE desk all reopen a stamp that fails this gate.
 
+   **PR mode** (`.duaer/memory/pr.json` `enabled: true`): after review Ship,
+   push the branch, `gh pr create --base <base>` (body: goal, acceptance,
+   review), `gh pr checks --watch`. CI failure → `gh run view --log-failed`,
+   tasks, fix, push (max 3 CI rounds, then stop for a human). Request changes
+   → verify each ask, tasks, fix, push. All green → `gh pr merge --merge
+   --delete-branch`, `git pull --ff-only` on the base in the primary checkout,
+   then stamp with `"pr": { "url": "<PR url>" }`. No local `git merge`. The
+   same gates accept the job only when the PR is merged.
+
 6. **Handoff** — One line to the human:
    - `✅ Job accepted — ready for your review.`
    - `⏳ Job not accepted yet — <one sentence>.` (**not** for FDE / live-dispatch

@@ -1,5 +1,5 @@
 {
-  "feature": "299-review-gate-wording",
-  "branch": "fix/review-gate-wording",
-  "worktree": ".worktree/fix-review-gate-wording"
+  "feature": "300-pr-ci-loop",
+  "branch": "feat/pr-ci-loop",
+  "worktree": ".worktree/feat-pr-ci-loop"
 }

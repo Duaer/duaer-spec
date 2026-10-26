@@ -53,6 +53,29 @@ Optional types when the project already uses them: `docs/`, `chore/`, `refactor/
 
 ---
 
+## PR mode (opt-in)
+
+A project that sets `.duaer/memory/pr.json` to
+`{ "enabled": true, "base": "develop" }` merges every request through a GitHub
+PR instead of a local merge. Turning it on authorizes the employee to push the
+request branch and to open and merge its PR (nothing else).
+
+```text
+review Ship → git push -u origin <branch>
+  → gh pr create --base <base>   (body: Brief goal + acceptance, then review.md)
+  → gh pr checks --watch
+       CI failed        → gh run view --log-failed → tasks → fix, push (max 3 CI rounds)
+       Request changes  → verify each ask → tasks → fix, push, reply
+  → all green → gh pr merge --merge --delete-branch
+  → git pull --ff-only on <base> in the primary checkout
+  → stamp delivery.json accepted with "pr": { "url": "<PR url>" } → handoff
+```
+
+`duaer check` / `duaer job`, the agent stop hooks and the FDE desk count a job
+as accepted only when its PR is merged (`.duaer/hooks/pr-gate.mjs`, via `gh`).
+After 3 failing CI rounds they stop pushing and leave it for a human. Without
+the file, or with `enabled: false`, the local merge below applies.
+
 ## 2. Day-to-day development (feature or normal bug)
 
 ```text

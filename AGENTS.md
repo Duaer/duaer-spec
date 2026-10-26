@@ -299,7 +299,9 @@ After normal development:
 10. Remove the request worktree
 11. Delete the merged request branch
 12. Push only when the user explicitly requested remote publishing for the
-    current request
+    current request, or the project turned on PR mode
+    (`.duaer/memory/pr.json`), which authorizes pushing the request branch and
+    opening / merging its PR
 13. Promote **`develop` → `main`** only when the user explicitly asks to ship /
     go online (see [branching-and-release](docs/agent/branching-and-release.md)).
     Fast iteration: bump the **patch** (`0.27.1`, `0.27.2`, …). Do not bump
@@ -355,10 +357,11 @@ git worktree prune
 9. Review the complete diff
 10. Commit each logical change
 11. Refresh against latest **`develop`** (or **`main`** for hotfix)
-12. Merge into local **`develop`** (hotfix: **`main`**, then back-merge to **`develop`**)
+12. Merge into local **`develop`** (hotfix: **`main`**, then back-merge to **`develop`**);
+    in PR mode merge through the PR instead (branching-and-release § PR mode)
 13. Stop worktree services; remove worktree; delete short branch; **handoff**
     restart on `develop` (`duaer handoff [--run]` / `.duaer/handoff.json`)
-14. Push only when explicitly requested
+14. Push only when explicitly requested, or in PR mode for the request branch
 15. Promote **`develop` → `main`** only when the user explicitly asks to go online.
     Version bump is the patch (`0.27.2` next); see branching-and-release.
 

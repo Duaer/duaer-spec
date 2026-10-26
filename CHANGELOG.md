@@ -4,6 +4,16 @@
 
 ## 0.27.8 — 2026-10-26
 
+### Feat: PR + CI merge loop (opt-in)
+
+- `.duaer/memory/pr.json` (`{ "enabled": true, "base": "develop" }`) turns on PR mode: push → `gh pr create` → CI → failures and Request changes go back as tasks (max 3 CI rounds) → `gh pr merge` when green; turning it on authorizes pushing the request branch and merging its PR
+- In PR mode a job counts as accepted only when its PR is merged: `duaer check` / `duaer job`, the stop hooks and the FDE desk check it through `gh` (`.duaer/hooks/pr-gate.mjs`)
+- Desk Progress shows the PR state in all locales; the deliverables page links the PR; dispatch and revise prompts switch to the PR merge step
+- Without `pr.json` the local merge flow is unchanged
+- Fix: the stop hook now finds FDE-dispatched jobs (`active-job.json` `specDir`)
+- Fix: a review only goes stale on the job's own branch, so a job merged next to other jobs stays accepted on `develop`
+- CI rounds count only the PR's own commits; a merge confirmed by `gh` is cached in the Brief (`pr-gate.json`); the stop hook does not block when `gh` cannot be reached
+
 ### Feat: enforced Ponytail review gate
 
 - A job counts as accepted only when the Brief's `review.md` says `Verdict: Ship.` for the current code (`.duaer/hooks/review-gate.mjs`); a `docs-only` verify waiver skips it

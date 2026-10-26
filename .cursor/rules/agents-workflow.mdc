@@ -51,7 +51,8 @@ cd .worktree/feat-login
 - **FDE desk:** only `http://127.0.0.1:8787` (`com.duaer.live8787`). Never start
   `duaer-live` on another port; do not open Cursor Browser just to check the desk
 - Push only when the user explicitly asks (a deploy/hosting ask authorizes
-  the `gh` + push needed for that publish — see `docs/agent/deploy-github.md`)
+  the `gh` + push needed for that publish — see `docs/agent/deploy-github.md`).
+  PR mode (`.duaer/memory/pr.json` `enabled: true`) authorizes pushing the request branch and opening / merging its PR — see `docs/agent/branching-and-release.md` § PR mode
 - Promote **`develop` → `main`** only when the user asks to go online
 - Version: fast iteration bumps the **patch** (`0.27.1`, `0.27.2`, …). Next
   after `0.27.1` is `0.27.2`. Do not bump the minor on every ship.
