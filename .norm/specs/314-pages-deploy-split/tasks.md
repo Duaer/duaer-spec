@@ -5,4 +5,4 @@
 - [x] Both files parse; deploy `needs: build`
 - [x] `npm test` passes
 - [x] Ponytail review Ship, merge to `develop`
-- [ ] Promote to `main`; push-triggered Pages run succeeds; live site has no `duaer`
+- [x] Promote to `main`; push-triggered Pages run succeeds; live site has no `duaer`

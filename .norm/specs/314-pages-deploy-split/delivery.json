@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T05:12:50Z",
+  "summary": "Pages workflow and adopter template split into build + deploy jobs; deploys on main succeed and the live site has no duaer text.",
+  "verification": {
+    "commands": ["npm test", "YAML parse of both workflows", "push-triggered pages.yml on main (828d994)", "2 extra workflow_dispatch runs", "curl https://fujiezee.github.io/norm/ | grep -ci duaer"],
+    "result": "302 pass; 3/3 Pages runs success (before: 6 of 9 failed); live duaer count 0; review Round 1 Ship."
+  }
+}
