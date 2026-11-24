@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T03:51:04Z",
+  "summary": "L3 smoke test spawns the desk with NORM_LIVE_NO_BROWSER=1; test runs no longer open browser tabs.",
+  "verification": {
+    "commands": ["npm test", "npm run test:live"],
+    "result": "302 pass; test:live pass; zero open launches in the unified log during the run."
+  }
+}

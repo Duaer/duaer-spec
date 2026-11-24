@@ -158,6 +158,7 @@ async function startLive({ home, port, baseUrl }) {
       ...process.env,
       NORM_HOME: home,
       NORM_NO_UPDATE_CHECK: "1",
+      NORM_LIVE_NO_BROWSER: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });

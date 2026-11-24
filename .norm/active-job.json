@@ -1,5 +1,5 @@
 {
-  "feature": "307-release-02711",
-  "branch": "feat/release-02711",
-  "worktree": ".worktree/feat-release-02711"
+  "feature": "308-smoke-no-browser",
+  "branch": "fix/smoke-no-browser",
+  "worktree": ".worktree/fix-smoke-no-browser"
 }
