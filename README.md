@@ -16,12 +16,12 @@ You do **not** need to understand that process. After a one-time install, talk
 in **Cursor** or **Claude Code** in plain language; the employee runs the
 workflow.
 
-> Formerly **duaer-spec**. Existing installs: run `npx ainorm update` once.
+> Formerly **duaer-spec**. Existing installs: run `npx @fujiezee/norm update` once. Global CLI: `npm rm -g duaer-spec && npm i -g @fujiezee/norm`.
 
 ## One-time install
 
 ```bash
-npx ainorm init --here
+npx @fujiezee/norm init --here
 ```
 
 ## Update
@@ -29,7 +29,7 @@ npx ainorm init --here
 **Global CLI** (when `norm` is installed globally):
 
 ```bash
-npm i -g ainorm@latest   # works on any build (incl. older CLIs without self-update)
+npm i -g @fujiezee/norm@latest   # works on any build (incl. older CLIs without self-update)
 norm self-update            # same as above once CLI ≥ 0.13
 ```
 
@@ -39,7 +39,7 @@ The CLI also prints a one-line hint when a newer npm release exists
 **Product repo adapters** (after `init`):
 
 ```bash
-npx ainorm update
+npx @fujiezee/norm update
 ```
 
 Then use **Cursor** or **Claude Code** — describe what you want in plain
@@ -238,7 +238,7 @@ Go-live and flows by issue type:
 ## Optional
 
 ```bash
-npx ainorm init --here --method
+npx @fujiezee/norm init --here --method
 ```
 
 Details: [`ADOPT.md`](ADOPT.md) · Method: [`NORM.md`](NORM.md) · Ops: [`AGENTS.md`](AGENTS.md)

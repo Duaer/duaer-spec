@@ -37,9 +37,9 @@ const POLICY_MODES = new Set(['off', 'coach', 'strict'])
 
 const USAGE = `norm — digital-employee delivery (Norm ${PKG.version})
 
-Install:  npx ainorm init --here
-Update:   npx ainorm update          # product-repo adapters
-          npm i -g ainorm@latest     # bootstrap / upgrade global CLI
+Install:  npx @fujiezee/norm init --here
+Update:   npx @fujiezee/norm update          # product-repo adapters
+          npm i -g @fujiezee/norm@latest     # bootstrap / upgrade global CLI
           norm self-update              # same as npm i -g (0.13+)
 
 Then talk to the agent in plain language.
@@ -698,7 +698,7 @@ function writeInitMarker(target, opts) {
     installedAt: new Date().toISOString(),
     mode: opts.mode,
     branch: opts.branch,
-    source: 'ainorm',
+    source: "norm",
   }
   writeFileSync(marker, JSON.stringify(payload, null, 2) + '\n')
   console.log('  .norm/norm-init.json')
@@ -745,7 +745,7 @@ function cmdInit(opts) {
 Hired.
 
 Talk to the agent in plain language (Cursor, Claude, Codex, Copilot, and more).
-Later update:  npx ainorm update
+Later update:  npx @fujiezee/norm update
 `)
   if (opts.mode === 'all' || opts.mode === 'method') hookCommitReminder(target)
 }
@@ -755,7 +755,7 @@ function cmdUpdate(opts) {
   reportLegacyMigration(target)
   const marker = readJson(join(target, '.norm', 'norm-init.json'), null)
   if (!marker && !existsSync(join(target, '.norm')) && !existsSync(join(target, 'NORM.md'))) {
-    console.log('No norm install found here. Use: npx ainorm init --here')
+    console.log('No norm install found here. Use: npx @fujiezee/norm init --here')
     process.exitCode = 1
     return
   }
@@ -1235,11 +1235,11 @@ function main() {
         console.error(`Unknown command: ${opts.cmd}\n`)
         if (/self[-_]?update|upgrade/i.test(String(opts.cmd || ""))) {
           console.error(
-            "This CLI build is too old for self-update. Bootstrap once:\n  npm i -g ainorm@latest\nThen: norm self-update\n",
+            "This CLI build is too old for self-update. Bootstrap once:\n  npm i -g @fujiezee/norm@latest\nThen: norm self-update\n",
           )
         } else {
           console.error(
-            "Tip: upgrade the global CLI with:\n  npm i -g ainorm@latest\n",
+            "Tip: upgrade the global CLI with:\n  npm i -g @fujiezee/norm@latest\n",
           )
         }
         console.log(USAGE)

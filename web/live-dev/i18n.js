@@ -565,9 +565,9 @@ const zhCN = {
     "需求卡已确认锁定，对话不会改卡内容。要改 Brief 请点「再改一版」。",
   "bot.reviseKickoffFail": "改进对话暂时没接上：{msg}",
   "update.notice":
-    "新版本 {latest}（当前 {current}）。终端执行：npm i -g ainorm@latest（或 norm self-update）；业务仓再跑 npx ainorm@latest update",
+    "新版本 {latest}（当前 {current}）。终端执行：npm i -g @fujiezee/norm@latest（或 norm self-update）；业务仓再跑 npx @fujiezee/norm@latest update",
   "update.noticeHtml":
-    "新版本 <code>{latest}</code>（当前 <code>{current}</code>）。终端执行：<code>npm i -g ainorm@latest</code>（或 <code>norm self-update</code>）；业务仓再跑 <code>npx ainorm@latest update</code>",
+    "新版本 <code>{latest}</code>（当前 <code>{current}</code>）。终端执行：<code>npm i -g @fujiezee/norm@latest</code>（或 <code>norm self-update</code>）；业务仓再跑 <code>npx @fujiezee/norm@latest update</code>",
   "repo.recent": "最近",
   "repo.discovered": "发现",
   "repo.empty":
@@ -1251,9 +1251,9 @@ const en = {
     "The requirements card is locked. Chat will not change it — tap Revise again to edit the Brief.",
   "bot.reviseKickoffFail": "Revise chat hiccup: {msg}",
   "update.notice":
-    "Update {latest} (current {current}). Run: npm i -g ainorm@latest (or norm self-update); in product repos: npx ainorm@latest update",
+    "Update {latest} (current {current}). Run: npm i -g @fujiezee/norm@latest (or norm self-update); in product repos: npx @fujiezee/norm@latest update",
   "update.noticeHtml":
-    "Update <code>{latest}</code> (current <code>{current}</code>). Run <code>npm i -g ainorm@latest</code> (or <code>norm self-update</code>); in product repos: <code>npx ainorm@latest update</code>",
+    "Update <code>{latest}</code> (current <code>{current}</code>). Run <code>npm i -g @fujiezee/norm@latest</code> (or <code>norm self-update</code>); in product repos: <code>npx @fujiezee/norm@latest update</code>",
   "repo.recent": "recent",
   "repo.discovered": "found",
   "repo.empty": "Browse / scan, or run norm live repo add in a product repo",

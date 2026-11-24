@@ -3,7 +3,7 @@
 ## Install
 
 ```bash
-npx ainorm init --here
+npx @fujiezee/norm init --here
 ```
 
 ## Update
@@ -14,13 +14,13 @@ npx ainorm init --here
 norm self-update
 ```
 
-Or: `npm i -g ainorm@latest`. The CLI prints a hint when npm has a newer
+Or: `npm i -g @fujiezee/norm@latest`. The CLI prints a hint when npm has a newer
 release (≤24h cache; `NORM_NO_UPDATE_CHECK=1` skips).
 
 **Product-repo adapters:**
 
 ```bash
-npx ainorm update
+npx @fujiezee/norm update
 ```
 
 Do **not** use `init --here --force` as the everyday refresh. `update` reuses
@@ -39,9 +39,9 @@ to learn Spec phases or a professional delivery process.
 ## Options
 
 ```bash
-npx ainorm init --here --method
-npx ainorm init --here --ops
-npx ainorm update --method    # rare; usually omit
+npx @fujiezee/norm init --here --method
+npx @fujiezee/norm init --here --ops
+npx @fujiezee/norm update --method    # rare; usually omit
 ```
 
 **Supported for day-to-day use:** **Cursor** and **Claude Code** (FDE desk

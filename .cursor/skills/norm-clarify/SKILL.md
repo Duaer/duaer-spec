@@ -4,7 +4,7 @@ description: "Identify underspecified areas in the current feature spec by askin
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

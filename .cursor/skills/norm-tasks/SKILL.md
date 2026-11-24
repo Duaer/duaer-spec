@@ -4,7 +4,7 @@ description: "Generate an actionable, dependency-ordered tasks.md for the featur
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

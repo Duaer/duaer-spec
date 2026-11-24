@@ -17,5 +17,5 @@ Wins over Norm and `examples/` when they conflict.
 | [../adr/001-verification-gate.md](../adr/001-verification-gate.md) | Risk-based verification gate (ADR) |
 
 Root contracts: [`AGENTS.md`](../../AGENTS.md), [`.norm/memory/testing.md`](../../.norm/memory/testing.md).  
-Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx ainorm init --here` / `npx ainorm update`.  
+Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx @fujiezee/norm init --here` / `npx @fujiezee/norm update`.  
 Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).

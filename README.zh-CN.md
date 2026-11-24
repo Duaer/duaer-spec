@@ -83,22 +83,22 @@
 
 下面「安装 / 更新 / FDE 流程」是怎么用；上面这一节是**能干什么**。
 
-> 原名 **duaer-spec**。已经装过的仓库，跑一次 `npx ainorm update` 即可。
+> 原名 **duaer-spec**。已经装过的仓库，跑一次 `npx @fujiezee/norm update` 即可。全局 CLI：`npm rm -g duaer-spec && npm i -g @fujiezee/norm`。
 
 ## 安装
 
 ```bash
-npx ainorm init --here
+npx @fujiezee/norm init --here
 ```
 
 `init` 安装方法骨架（`memory`、`templates`、`extensions`、`integrations`、`scripts`、`workflows`），并创建空的 `.norm/specs/`，供当前项目自己的任务使用。Norm 仓库里的 Brief 历史留在 Norm 仓库。
 
 ## 更新
 
-**全局 CLI**（已 `npm i -g ainorm` 时）：
+**全局 CLI**（已 `npm i -g @fujiezee/norm` 时）：
 
 ```bash
-npm i -g ainorm@latest   # 任意旧版都可用（含没有 self-update 的版本）
+npm i -g @fujiezee/norm@latest   # 任意旧版都可用（含没有 self-update 的版本）
 norm self-update            # CLI ≥ 0.13 后与上一行等价
 ```
 
@@ -107,7 +107,7 @@ norm self-update            # CLI ≥ 0.13 后与上一行等价
 **业务仓适配文件**（`init` 之后）：
 
 ```bash
-npx ainorm update
+npx @fujiezee/norm update
 ```
 
 若你改过本地 constitution / baseline / `handoff.json` 命令，看一眼 `git diff` 即可。

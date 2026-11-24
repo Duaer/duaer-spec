@@ -66,7 +66,7 @@ test("sources: deploy target UI + self-update bootstrap + task split", () => {
 
   const norm = fs.readFileSync(path.join(ROOT, "bin/norm.mjs"), "utf8");
   assert.match(norm, /case 'upgrade'/);
-  assert.match(norm, /npm i -g ainorm@latest/);
+  assert.match(norm, /npm i -g @fujiezee\/norm@latest/);
 
   const docs = fs.readFileSync(
     path.join(ROOT, "docs/agent/deploy-targets.md"),

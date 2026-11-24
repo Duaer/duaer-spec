@@ -1,5 +1,5 @@
 {
-  "feature": "308-smoke-no-browser",
-  "branch": "fix/smoke-no-browser",
-  "worktree": ".worktree/fix-smoke-no-browser"
+  "feature": "309-npm-name",
+  "branch": "fix/npm-name",
+  "worktree": ".worktree/fix-npm-name"
 }

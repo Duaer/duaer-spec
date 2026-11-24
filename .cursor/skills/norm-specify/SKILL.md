@@ -4,7 +4,7 @@ description: "Create or update the feature specification from a natural language
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 
