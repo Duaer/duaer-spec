@@ -1,5 +1,5 @@
 {
-  "feature": "311-repo-rename",
-  "branch": "feat/repo-rename",
-  "worktree": ".worktree/feat-repo-rename"
+  "feature": "312-site-redesign",
+  "branch": "feat/site-redesign",
+  "worktree": ".worktree/feat-site-redesign"
 }
