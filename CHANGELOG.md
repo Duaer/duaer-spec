@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Chore: repository is `fujiezee/norm`
+
+- The GitHub repository moved from `Duaer/duaer-spec` to `fujiezee/norm` (old links redirect); package metadata, docs, desk links and the GitHub stars check point at the new repo
+- The intro site is now https://fujiezee.github.io/norm/
+
 ## 0.27.12 — 2026-11-24
 
 ### Fix: npm package is `@fujiezee/norm`

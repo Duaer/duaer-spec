@@ -1,5 +1,5 @@
 {
-  "feature": "310-release-02712",
-  "branch": "feat/release-02712",
-  "worktree": ".worktree/feat-release-02712"
+  "feature": "311-repo-rename",
+  "branch": "feat/repo-rename",
+  "worktree": ".worktree/feat-repo-rename"
 }
