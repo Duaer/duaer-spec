@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T05:01:04Z",
+  "summary": "Intro site no longer shows the former name duaer-spec; README / ADOPT keep the upgrade note.",
+  "verification": {
+    "commands": ["npm test", "grep -i duaer site/index.html"],
+    "result": "302 pass; no duaer text in site; review Round 1 Ship."
+  }
+}
