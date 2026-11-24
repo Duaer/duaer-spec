@@ -239,7 +239,7 @@ let updateInfoCache = null;
 /** Cached GitHub repo meta for header stars (`/api/github`). */
 const GITHUB_CACHE_MS = 5 * 60 * 1000;
 const DEFAULT_GITHUB_REPO =
-  process.env.NORM_GITHUB_REPO?.trim() || "fujiezee/duaer-spec";
+  process.env.NORM_GITHUB_REPO?.trim() || "fujiezee/norm";
 const DEFAULT_GITHUB_URL = `https://github.com/${DEFAULT_GITHUB_REPO}`;
 let githubMetaCache = {
   at: 0,

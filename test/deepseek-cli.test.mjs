@@ -33,11 +33,11 @@ test("live workers are Cursor Agent and Claude Code only", () => {
   assert.doesNotMatch(i18n, /deepseek-tui/);
   assert.match(
     i18n,
-    /github\.com\/fujiezee\/duaer-spec\/blob\/main\/docs\/agent\/worker-models\.zh-CN\.md/,
+    /github\.com\/fujiezee\/norm\/blob\/main\/docs\/agent\/worker-models\.zh-CN\.md/,
   );
   assert.match(
     i18n,
-    /github\.com\/fujiezee\/duaer-spec\/blob\/main\/docs\/agent\/worker-models\.md/,
+    /github\.com\/fujiezee\/norm\/blob\/main\/docs\/agent\/worker-models\.md/,
   );
   assert.match(i18n, /data-i18n-html|\[data-i18n-html\]/);
 

@@ -2,7 +2,7 @@
 
 This directory is a **sample product overlay**, not the Norm method itself.
 
-When adopting [Norm](https://github.com/fujiezee/duaer-spec), prefer the
+When adopting [Norm](https://github.com/fujiezee/norm), prefer the
 repository root:
 
 - [`NORM.md`](../../NORM.md)

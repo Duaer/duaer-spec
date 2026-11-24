@@ -21,8 +21,9 @@ The npm name `norm` is taken.
    - The first CLI run moves `~/.duaer` to `~/.norm` when `~/.norm` is absent.
    - `norm init` / `update` move a repo's `.duaer/`, `DUADER.md`, init marker,
      and hook commands to the new names and remove the old `duaer-*` adapters.
-4. The GitHub repository keeps its name until it is renamed separately; links
-   still point at `duaer-spec`.
+4. The GitHub repository moves from `Duaer/duaer-spec` to `fujiezee/norm`
+   (GitHub redirects old repo links). The intro site moves to
+   `https://fujiezee.github.io/norm/`; the old Pages URL does not redirect.
 
 ## Consequences
 
