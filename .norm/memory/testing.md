@@ -106,7 +106,7 @@ desk runs those commands in the worktree. A non-zero exit, or a missing /
 invalid file, sets status back to `open` and stores the command, exit code, and
 output tail on `delivery.verification`. Docs-only work with no commands uses
 `{ "waiver": "docs-only" }`. The first command list is frozen for that dispatch
-so a later waiver cannot replace it. `npx ainorm update` does not overwrite
+so a later waiver cannot replace it. `npx @fujiezee/norm update` does not overwrite
 an existing `verify.json`.
 
 ## Adopter profiles

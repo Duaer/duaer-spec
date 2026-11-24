@@ -4,7 +4,7 @@ description: "Generate a custom checklist for the current feature based on user 
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

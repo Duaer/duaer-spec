@@ -8,7 +8,7 @@
 
 ## 1. 在 npm 网站配置（一次性）
 
-1. 打开包页：https://www.npmjs.com/package/ainorm  
+1. 打开包页：https://www.npmjs.com/package/@fujiezee/norm  
 2. 点 **Settings**（需已登录且是 maintainer）  
 3. 找到 **Trusted Publisher** → 选 **GitHub Actions**  
 4. 填写：

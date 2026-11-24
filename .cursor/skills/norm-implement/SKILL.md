@@ -4,7 +4,7 @@ description: "Execute the implementation plan by processing and executing all ta
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

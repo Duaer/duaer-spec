@@ -4,7 +4,7 @@ description: "Autonomous job loop for digital employees: Brief â†’ understand â†
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 ## Trigger

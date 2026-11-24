@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.27.12 — 2026-11-24
+
+### Fix: npm package is `@fujiezee/norm`
+
+- npm refused the name `ainorm` (too close to `unorm`), so 0.27.11 never reached npm. The package is now `@fujiezee/norm`; the CLI is still `norm`
+- Dropped the `duaer` / `duaer-spec` bin aliases, which would clash with a global `duaer-spec` install. Upgrade the global CLI with `npm rm -g duaer-spec && npm i -g @fujiezee/norm`
+- L3 smoke test no longer opens a browser tab
+
 ## 0.27.11 — 2026-11-24
 
 ### Feat: rename duaer-spec to Norm

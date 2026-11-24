@@ -10,8 +10,8 @@ Humans are not the operators of the phase machine.
 
 ## Human experience
 
-1. One-time install: `npx ainorm init --here`  
-2. Later refresh: `npx ainorm update`  
+1. One-time install: `npx @fujiezee/norm init --here`  
+2. Later refresh: `npx @fujiezee/norm update`  
 3. Ongoing: describe work in chat  
 4. Review the handoff line (accepted / not yet) — accepted means the result
    should satisfy the Brief acceptance, not that phases were clicked through

@@ -31,5 +31,5 @@ not enforce them.
 - Agents spend more time on targeted tests; full-suite cost is controlled by
   subsets and opt-in lists.
 - Pure docs/CLI projects without L3 stay valid if the risk table says so.
-- Existing installs need `npx ainorm update` (or manual pull of
+- Existing installs need `npx @fujiezee/norm update` (or manual pull of
   `testing.md` / AGENTS) to pick up the gate.

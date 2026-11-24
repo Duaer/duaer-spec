@@ -9,7 +9,7 @@ Chinese guide: [`npm-trusted-publishing.zh-CN.md`](npm-trusted-publishing.zh-CN.
 
 ## 1. Configure on npmjs.com (once)
 
-1. Open https://www.npmjs.com/package/ainorm
+1. Open https://www.npmjs.com/package/@fujiezee/norm
 2. Open **Settings** (maintainer login required)
 3. **Trusted Publisher** → **GitHub Actions**
 4. Fill in:
