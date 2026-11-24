@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Fix: GitHub Pages deploy finds its artifact
+
+- The Pages workflow and the adopter template `deploy-github-pages.yml` now upload in a `build` job and deploy in a separate `deploy` job, like GitHub's starter workflow; deploying in the upload job intermittently failed with "No artifacts named github-pages"
+
 ### Feat: intro site redesign
 
 - The intro site now covers what Norm does today: delivery flow with the review gate, editor-side capabilities (Ponytail review, optional PR mode), Norm FDE with a desk sketch, the three digital-employee roles, deploy targets, and install / update commands

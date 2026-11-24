@@ -1,5 +1,5 @@
 {
-  "feature": "313-site-drop-rename-note",
-  "branch": "feat/site-drop-rename-note",
-  "worktree": ".worktree/feat-site-drop-rename-note"
+  "feature": "314-pages-deploy-split",
+  "branch": "fix/pages-deploy",
+  "worktree": ".worktree/fix-pages-deploy"
 }
