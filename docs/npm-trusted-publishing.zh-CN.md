@@ -8,14 +8,14 @@
 
 ## 1. 在 npm 网站配置（一次性）
 
-1. 打开包页：https://www.npmjs.com/package/duaer-spec  
+1. 打开包页：https://www.npmjs.com/package/ainorm  
 2. 点 **Settings**（需已登录且是 maintainer）  
 3. 找到 **Trusted Publisher** → 选 **GitHub Actions**  
 4. 填写：
 
 | 字段 | 填什么 |
 |---|---|
-| Organization or user | `Duaer` |
+| Organization or user | `Norm` |
 | Repository | `duaer-spec` |
 | Workflow filename | `npm-publish.yml`（**只要文件名**，不要 `.github/workflows/`） |
 | Environment name | 留空（除非你在 GitHub 建了 Environment） |

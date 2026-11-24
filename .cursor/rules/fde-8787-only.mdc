@@ -5,11 +5,11 @@ alwaysApply: true
 
 # FDE console port (8787 only)
 
-The Duaer-spec FDE console has **one** URL:
+The Norm FDE console has **one** URL:
 
 `http://127.0.0.1:8787`
 
-It runs only when the user starts it (`duaer live`). It is not restarted on
+It runs only when the user starts it (`norm live`). It is not restarted on
 handoff, and no LaunchAgent keeps it alive.
 
 ## Do
@@ -20,12 +20,12 @@ handoff, and no LaunchAgent keeps it alive.
 ## Do not
 
 - Start or restart the console on handoff, or with `launchctl kickstart`
-- Start `node bin/duaer-live.mjs` on any port other than **8787**
+- Start `node bin/norm-live.mjs` on any port other than **8787**
 - Start a second console when 8787 is already listening
 - Use Cursor Browser / Simple Browser / browser MCP to open the console or
   architecture present pages — Cursor proxies those as random high ports
   (`:62489`, `:64074`, …). That is **not** a second FDE server.
 - Treat product preview ports (3000, 8081, …) as the FDE console
 
-Interactive `duaer live` opens the OS browser once; set
-`DUAER_LIVE_NO_BROWSER=1` to skip that.
+Interactive `norm live` opens the OS browser once; set
+`NORM_LIVE_NO_BROWSER=1` to skip that.

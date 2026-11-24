@@ -1,13 +1,13 @@
 # AGENTS.md
 
-Mandatory rules for AI coding agents working in **duaer-spec**, and for any
+Mandatory rules for AI coding agents working in **Norm**, and for any
 repository that adopts this file as its agent-ops contract.
 
 Treat agents as **digital employees**: they execute the job loop themselves.
-Humans state intent; they do not operate Duaer phases. This file is workplace
-policy for *how* agents may operate (isolation, commits, Issue/PR gates). Duaer
-([`DUADER.md`](DUADER.md)) is how jobs are briefed and accepted. If Duaer
-(`.duaer/`), `examples/`, or other overlays conflict with this file,
+Humans state intent; they do not operate Norm phases. This file is workplace
+policy for *how* agents may operate (isolation, commits, Issue/PR gates). Norm
+([`NORM.md`](NORM.md)) is how jobs are briefed and accepted. If Norm
+(`.norm/`), `examples/`, or other overlays conflict with this file,
 **follow this file**.
 
 See also: [workflow](docs/agent/workflow.md) · [change checklist](docs/agent/change-checklist.md) · [ADOPT](ADOPT.md)
@@ -30,13 +30,13 @@ commands, phase names, or CLI flags.
 
 1. Isolate: `feat|fix/<name>` + `.worktree/feat-<name>/` (or `fix-…`); never
    reuse the Brief folder name as the worktree id.
-2. Follow the `duaer-do` skill under the host skill root (when the host has skills):
-   - Codex / shared: `.agents/skills/duaer-do/SKILL.md`
-   - Cursor: `.cursor/skills/duaer-do/SKILL.md`
-   - Claude Code: `.claude/skills/duaer-do/SKILL.md`
+2. Follow the `norm-do` skill under the host skill root (when the host has skills):
+   - Codex / shared: `.agents/skills/norm-do/SKILL.md`
+   - Cursor: `.cursor/skills/norm-do/SKILL.md`
+   - Claude Code: `.claude/skills/norm-do/SKILL.md`
    - Copilot / Windsurf / Cline / Continue / Gemini / Aider: follow this section
-     and the host adapter files installed by `duaer init`
-3. Briefs live in `.duaer/specs/<nnn-slug>/`. Method notes: [`DUADER.md`](DUADER.md).
+     and the host adapter files installed by `norm init`
+3. Briefs live in `.norm/specs/<nnn-slug>/`. Method notes: [`NORM.md`](NORM.md).
 4. **Understand before Work:** restate precise goal / scope / acceptance; if
    the ask is vague, confirm with the human before implementing. Do not jump
    from a casual sentence to code.
@@ -44,7 +44,7 @@ commands, phase names, or CLI flags.
    change). Before stamping `accepted`, commit, run `ponytail-review` on the
    job diff and save it as `review.md` in the Brief (`Round: N`,
    `Commit: <sha>`, full report). Only `Verdict: Ship.` passes; Must fix items
-   become tasks, at most 2 rounds. `duaer check`, the agent stop hooks and the
+   become tasks, at most 2 rounds. `norm check`, the agent stop hooks and the
    FDE desk all reopen a stamp without a passing, current review.
 6. One handoff line; never claim done unless `delivery.json` is `accepted`
    and the review passed.
@@ -134,10 +134,10 @@ copy limited to the information and actions users need to complete the task:
 * Put rationale and implementation detail in documentation or code comments,
   not in the page UI, unless the user explicitly requests explanatory content.
 
-**Duaer brand (site-wide):** Visible live-desk / FDE copy that names the
-product surface must include **Duaer** (or **Duaer-spec FDE** where that full
+**Norm brand (site-wide):** Visible live-desk / FDE copy that names the
+product surface must include **Norm** (or **Norm FDE** where that full
 mark is already used). Do not write anonymous「控制台」/ “console” alone for this
-product’s chat surface or model setup — prefer「Duaer 控制台」/ “Duaer console”.
+product’s chat surface or model setup — prefer「Norm 控制台」/ “Norm console”.
 Branding is a short name signal, not a slogan paragraph.
 
 ## Mandatory branch model
@@ -154,7 +154,7 @@ Repositories that adopt this agent-ops contract **must** use:
 Do **not** develop on `main` or `develop`. Full flows (including go-live by
 issue type): [branching-and-release](docs/agent/branching-and-release.md).
 
-**duaer-spec itself** uses this model: integrate on **`develop`**, promote to
+**Norm itself** uses this model: integrate on **`develop`**, promote to
 **`main`** only when shipping.
 
 ## Mandatory Isolated Development
@@ -192,12 +192,12 @@ cd .worktree/feat-login
 | Layer | Path | Role |
 |---|---|---|
 | Worktree | `.worktree/feat-<name>/` | Full git checkout for isolation |
-| Brief | `.duaer/specs/<nnn-slug>/` | Job Spec / tasks / delivery stamp |
+| Brief | `.norm/specs/<nnn-slug>/` | Job Spec / tasks / delivery stamp |
 
 A worktree is a **complete** repo copy, so Briefs live *inside* it:
 
 ```text
-.worktree/feat-login/.duaer/specs/002-login/spec.md
+.worktree/feat-login/.norm/specs/002-login/spec.md
 ```
 
 That is expected. What is **wrong** is reusing the Brief folder name as the
@@ -206,7 +206,7 @@ double nesting and confuses humans. Always:
 
 * Branch: `feat/<name>` or `fix/<name>`
 * Worktree: `.worktree/feat-<name>` or `.worktree/fix-<name>` (slash → hyphen)
-* Brief: `.duaer/specs/<nnn-slug>/` (numbered catalog; may differ from `<name>`)
+* Brief: `.norm/specs/<nnn-slug>/` (numbered catalog; may differ from `<name>`)
 
 Branch and worktree names must be unique and clearly associated with the request.
 Do **not** place request worktrees outside the repo (for example `../worktrees/`)
@@ -233,8 +233,8 @@ reused when that cannot modify tracked files or interfere with another worktree.
 ### 1. Keep Specs Synchronized
 
 Every behavior change must update the relevant project specification
-(commonly under `docs/spec/`, Duaer feature specs, or this repo's
-`docs/agent/` when changing duaer-spec itself).
+(commonly under `docs/spec/`, Norm feature specs, or this repo's
+`docs/agent/` when changing Norm itself).
 
 Add an ADR under `docs/adr/` when changing architecture, public interfaces,
 data ownership, security boundaries, or frozen decisions.
@@ -249,7 +249,7 @@ data ownership, security boundaries, or frozen decisions.
 ### 3. Verify by risk (tests + E2E docs)
 
 Agent-owned development **must** run verification required by the project's
-[`.duaer/memory/testing.md`](.duaer/memory/testing.md) risk table before
+[`.norm/memory/testing.md`](.norm/memory/testing.md) risk table before
 accepting a job or merging into local **`develop`**. Prefer targeted subsets
 over full suites. Record commands and results in the handoff / `delivery.json`
 `verification` field when used.
@@ -300,7 +300,7 @@ After normal development:
 11. Delete the merged request branch
 12. Push only when the user explicitly requested remote publishing for the
     current request, or the project turned on PR mode
-    (`.duaer/memory/pr.json`), which authorizes pushing the request branch and
+    (`.norm/memory/pr.json`), which authorizes pushing the request branch and
     opening / merging its PR
 13. Promote **`develop` → `main`** only when the user explicitly asks to ship /
     go online (see [branching-and-release](docs/agent/branching-and-release.md)).
@@ -338,7 +338,7 @@ git worktree prune
 * Delete only your own worktree and branch
 * Never commit `.worktree/` (ignored)
 * Stop worktree-bound services before remove; then restart from the primary
-  checkout on **`develop`** via `.duaer/handoff.json` / `duaer handoff [--run]`
+  checkout on **`develop`** via `.norm/handoff.json` / `norm handoff [--run]`
   (mandatory handoff — see [branching-and-release](docs/agent/branching-and-release.md))
 * FDE desk: never start or restart it on handoff. Start it only when the user
   asks, and only on `http://127.0.0.1:8787` (see `.cursor/rules/fde-8787-only.mdc`)
@@ -348,7 +348,7 @@ git worktree prune
 1. Update local **`develop`** (or **`main`** for hotfix)
 2. Create a unique `feat/` or `fix/` branch
 3. Create and enter `.worktree/<request-id>`
-4. Read the baseline and relevant specs (and Duaer memory when present)
+4. Read the baseline and relevant specs (and Norm memory when present)
 5. Identify affected specs, ADRs, E2E scenarios, and **`testing.md` levels**
 6. Implement the smallest coherent change
 7. Update documentation as required
@@ -359,14 +359,14 @@ git worktree prune
 12. Merge into local **`develop`** (hotfix: **`main`**, then back-merge to **`develop`**);
     in PR mode merge through the PR instead (branching-and-release § PR mode)
 13. Stop worktree services; remove worktree; delete short branch; **handoff**
-    restart on `develop` (`duaer handoff [--run]` / `.duaer/handoff.json`)
+    restart on `develop` (`norm handoff [--run]` / `.norm/handoff.json`)
 14. Push only when explicitly requested, or in PR mode for the request branch
 15. Promote **`develop` → `main`** only when the user explicitly asks to go online.
     Version bump is the patch (`0.27.2` next); see branching-and-release.
 
 Development must not begin before isolation steps 1–3 are complete.
 
-For feature work that uses Duaer, the agent runs the job loop autonomously
+For feature work that uses Norm, the agent runs the job loop autonomously
 (Brief → work → accept). Agent ops in this file still govern isolation, commits,
 and merge. Branch/release detail:
 [branching-and-release](docs/agent/branching-and-release.md).

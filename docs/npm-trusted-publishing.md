@@ -9,14 +9,14 @@ Chinese guide: [`npm-trusted-publishing.zh-CN.md`](npm-trusted-publishing.zh-CN.
 
 ## 1. Configure on npmjs.com (once)
 
-1. Open https://www.npmjs.com/package/duaer-spec
+1. Open https://www.npmjs.com/package/ainorm
 2. Open **Settings** (maintainer login required)
 3. **Trusted Publisher** → **GitHub Actions**
 4. Fill in:
 
 | Field | Value |
 |---|---|
-| Organization or user | `Duaer` |
+| Organization or user | `Norm` |
 | Repository | `duaer-spec` |
 | Workflow filename | `npm-publish.yml` (filename only, no `.github/workflows/`) |
 | Environment name | leave empty unless you use a GitHub Environment |

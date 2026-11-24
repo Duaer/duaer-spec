@@ -1,6 +1,6 @@
 /**
- * npm latest check + self-update helpers for duaer-spec CLI / live desk.
- * Default: notify only. Never auto-install without `duaer self-update`.
+ * npm latest check + self-update helpers for Norm CLI / live desk.
+ * Default: notify only. Never auto-install without `norm self-update`.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -19,14 +19,14 @@ const PKG_ROOT = join(__dirname, "..");
 const PKG = JSON.parse(readFileSync(join(PKG_ROOT, "package.json"), "utf8"));
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const REGISTRY_URL = "https://registry.npmjs.org/duaer-spec/latest";
+const REGISTRY_URL = "https://registry.npmjs.org/ainorm/latest";
 
-function duaerHome() {
-  return process.env.DUAER_HOME || join(homedir(), ".duaer");
+function normHome() {
+  return process.env.NORM_HOME || join(homedir(), ".norm");
 }
 
 function cachePath() {
-  return join(duaerHome(), "update-check.json");
+  return join(normHome(), "update-check.json");
 }
 
 export function localPackageVersion() {
@@ -100,13 +100,13 @@ async function fetchLatestFromNpm(timeoutMs = 4000) {
 export async function checkForUpdate({ force = false } = {}) {
   const current = localPackageVersion();
   const now = Date.now();
-  if (process.env.DUAER_NO_UPDATE_CHECK === "1") {
+  if (process.env.NORM_NO_UPDATE_CHECK === "1") {
     return {
       current,
       latest: null,
       outdated: false,
       skipped: true,
-      reason: "DUAER_NO_UPDATE_CHECK=1",
+      reason: "NORM_NO_UPDATE_CHECK=1",
       checkedAt: new Date().toISOString(),
     };
   }
@@ -156,7 +156,7 @@ export async function checkForUpdate({ force = false } = {}) {
 
 export function formatUpdateHint(info) {
   if (!info?.outdated || !info.latest) return null;
-  return `duaer-spec ${info.current} → ${info.latest} available. Upgrade CLI: npm i -g duaer-spec@latest   (or: duaer self-update)   ·  refresh a product repo: npx duaer-spec@latest update`;
+  return `ainorm ${info.current} → ${info.latest} available. Upgrade CLI: npm i -g ainorm@latest   (or: norm self-update)   ·  refresh a product repo: npx ainorm@latest update`;
 }
 
 /** Fire-and-forget console hint (non-blocking for callers that await briefly). */
@@ -164,7 +164,7 @@ export async function maybePrintUpdateHint({ force = false } = {}) {
   try {
     const info = await checkForUpdate({ force });
     const line = formatUpdateHint(info);
-    if (line) console.log(`\n[duaer] ${line}\n`);
+    if (line) console.log(`\n[norm] ${line}\n`);
     return info;
   } catch {
     return null;
@@ -172,11 +172,11 @@ export async function maybePrintUpdateHint({ force = false } = {}) {
 }
 
 export function runSelfUpdate() {
-  console.log(`Current: duaer-spec ${localPackageVersion()}`);
-  console.log("Installing: npm i -g duaer-spec@latest …\n");
+  console.log(`Current: Norm ${localPackageVersion()}`);
+  console.log("Installing: npm i -g ainorm@latest …\n");
   const r = spawnSync(
     "npm",
-    ["install", "-g", "duaer-spec@latest"],
+    ["install", "-g", "ainorm@latest"],
     { stdio: "inherit", env: process.env, shell: process.platform === "win32" },
   );
   if (r.error) {
@@ -184,18 +184,18 @@ export function runSelfUpdate() {
   }
   if (r.status !== 0) {
     process.exitCode = r.status || 1;
-    console.error("\nself-update failed. Try: npm i -g duaer-spec@latest");
+    console.error("\nself-update failed. Try: npm i -g ainorm@latest");
     return;
   }
   console.log("\nCLI upgraded. In each product repo that used init, also run:");
-  console.log("  npx duaer-spec@latest update");
+  console.log("  npx ainorm@latest update");
   // Refresh cache
   checkForUpdate({ force: true }).catch(() => {});
 }
 
 /** Background check that never blocks the event loop long for live server. */
 export function scheduleUpdateHint() {
-  if (process.env.DUAER_NO_UPDATE_CHECK === "1") return;
+  if (process.env.NORM_NO_UPDATE_CHECK === "1") return;
   setTimeout(() => {
     void maybePrintUpdateHint({ force: false });
   }, 50);

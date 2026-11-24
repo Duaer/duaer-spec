@@ -1,24 +1,26 @@
 {
-  "name": "duaer-spec",
-  "version": "0.27.10",
+  "name": "ainorm",
+  "version": "0.27.11",
   "description": "Norms → satisfactory delivery: digital employees for Cursor and Claude Code — talk in plain language, no Spec workflow required",
   "type": "module",
   "bin": {
-    "duaer": "bin/duaer.mjs",
-    "duaer-spec": "bin/duaer.mjs"
+    "norm": "bin/norm.mjs",
+    "ainorm": "bin/norm.mjs",
+    "duaer": "bin/norm.mjs",
+    "duaer-spec": "bin/norm.mjs"
   },
   "files": [
     "bin",
     "web",
-    ".duaer",
-    "!.duaer/specs",
-    "!.duaer/active-job.json",
+    ".norm",
+    "!.norm/specs",
+    "!.norm/active-job.json",
     ".cursor",
     ".claude",
     "AGENTS.md",
     "CLAUDE.md",
     "GEMINI.md",
-    "DUADER.md",
+    "NORM.md",
     "ADOPT.md",
     "CHANGELOG.md",
     "docs/agent",
@@ -43,7 +45,7 @@
   },
   "homepage": "https://github.com/Duaer/duaer-spec#readme",
   "keywords": [
-    "duaer",
+    "norm",
     "digital-employee",
     "delivery-os",
     "spec-driven",
@@ -65,8 +67,8 @@
   ],
   "license": "MIT",
   "scripts": {
-    "duaer": "node ./bin/duaer.mjs",
-    "live": "node ./bin/duaer-live.mjs",
+    "norm": "node ./bin/norm.mjs",
+    "live": "node ./bin/norm-live.mjs",
     "test": "node --test test/**/*.test.mjs",
     "test:live": "node --test test/live-smoke.test.mjs"
   }

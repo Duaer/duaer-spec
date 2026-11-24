@@ -15,7 +15,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CLI = path.join(ROOT, "bin", "duaer.mjs");
+const CLI = path.join(ROOT, "bin", "norm.mjs");
 
 function init(dir, extra = []) {
   return spawnSync(process.execPath, [CLI, "init", dir, "--method", ...extra], {
@@ -24,19 +24,19 @@ function init(dir, extra = []) {
 }
 
 test("init installs the method skeleton and an empty specs directory", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "duaer-init-omit-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "norm-init-omit-"));
   try {
     const run = init(dir);
     assert.equal(run.status, 0, run.stderr || run.stdout);
     assert.equal(
-      readFileSync(path.join(dir, ".duaer", "memory", "testing.md"), "utf8"),
-      readFileSync(path.join(ROOT, ".duaer", "memory", "testing.md"), "utf8"),
+      readFileSync(path.join(dir, ".norm", "memory", "testing.md"), "utf8"),
+      readFileSync(path.join(ROOT, ".norm", "memory", "testing.md"), "utf8"),
     );
-    assert.ok(existsSync(path.join(dir, ".duaer", "templates", "spec-template.md")));
-    assert.deepEqual(readdirSync(path.join(dir, ".duaer", "specs")), []);
-    assert.equal(existsSync(path.join(dir, ".duaer", "active-job.json")), false);
+    assert.ok(existsSync(path.join(dir, ".norm", "templates", "spec-template.md")));
+    assert.deepEqual(readdirSync(path.join(dir, ".norm", "specs")), []);
+    assert.equal(existsSync(path.join(dir, ".norm", "active-job.json")), false);
     assert.equal(
-      existsSync(path.join(dir, ".duaer", "specs", "295-ponytail-init")),
+      existsSync(path.join(dir, ".norm", "specs", "295-ponytail-init")),
       false,
     );
   } finally {
@@ -45,13 +45,13 @@ test("init installs the method skeleton and an empty specs directory", () => {
 });
 
 test("init --force keeps the adopting project's own job files", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "duaer-init-keep-"));
-  const specDir = path.join(dir, ".duaer", "specs", "001-user-job");
+  const dir = mkdtempSync(path.join(tmpdir(), "norm-init-keep-"));
+  const specDir = path.join(dir, ".norm", "specs", "001-user-job");
   try {
     mkdirSync(specDir, { recursive: true });
     writeFileSync(path.join(specDir, "spec.md"), "# User job\n", "utf8");
     writeFileSync(
-      path.join(dir, ".duaer", "active-job.json"),
+      path.join(dir, ".norm", "active-job.json"),
       JSON.stringify({ feature: "001-user-job" }) + "\n",
       "utf8",
     );
@@ -62,15 +62,15 @@ test("init --force keeps the adopting project's own job files", () => {
       "# User job\n",
     );
     assert.equal(
-      JSON.parse(readFileSync(path.join(dir, ".duaer", "active-job.json"), "utf8"))
+      JSON.parse(readFileSync(path.join(dir, ".norm", "active-job.json"), "utf8"))
         .feature,
       "001-user-job",
     );
     assert.equal(
-      existsSync(path.join(dir, ".duaer", "specs", "295-ponytail-init")),
+      existsSync(path.join(dir, ".norm", "specs", "295-ponytail-init")),
       false,
     );
-    assert.ok(existsSync(path.join(dir, ".duaer", "memory", "testing.md")));
+    assert.ok(existsSync(path.join(dir, ".norm", "memory", "testing.md")));
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
@@ -86,8 +86,8 @@ test("npm pack omits packaged job progress", () => {
   const packed = JSON.parse(run.stdout.slice(start));
   const files = packed[0].files.map((file) => file.path);
   assert.equal(
-    files.some((file) => file === ".duaer/active-job.json" || file.startsWith(".duaer/specs/")),
+    files.some((file) => file === ".norm/active-job.json" || file.startsWith(".norm/specs/")),
     false,
   );
-  assert.ok(files.includes(".duaer/memory/testing.md"));
+  assert.ok(files.includes(".norm/memory/testing.md"));
 });

@@ -14,7 +14,7 @@ boundaries, and branch model.
 
 See [branching-and-release](agent/branching-and-release.md).
 
-**duaer-spec itself:** English docs and commits; integrate on **`develop`**;
+**Norm itself:** English docs and commits; integrate on **`develop`**;
 promote to **`main`** when shipping; no application runtime.
 
 When you copy agent ops into another repository, keep this branch model unless

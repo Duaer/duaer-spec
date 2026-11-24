@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/assets/duaer-spec-fde.svg" alt="Duaer-spec FDE" width="420" />
+  <img src="docs/assets/norm-fde.svg" alt="Norm FDE" width="420" />
 </p>
 
-# duaer-spec
+# Norm
 
-**Duaer** turns AI coding agents into **digital employees** that deliver
+**Norm** turns AI coding agents into **digital employees** that deliver
 **satisfactory work**: you speak in normal language; the employee turns that
 into a checkable Brief (goal / boundary / acceptance), implements only that
 scope, and only claims done when acceptance is met.
@@ -16,28 +16,30 @@ You do **not** need to understand that process. After a one-time install, talk
 in **Cursor** or **Claude Code** in plain language; the employee runs the
 workflow.
 
+> Formerly **duaer-spec**. Existing installs: run `npx ainorm update` once.
+
 ## One-time install
 
 ```bash
-npx duaer-spec init --here
+npx ainorm init --here
 ```
 
 ## Update
 
-**Global CLI** (when `duaer` is installed globally):
+**Global CLI** (when `norm` is installed globally):
 
 ```bash
-npm i -g duaer-spec@latest   # works on any build (incl. older CLIs without self-update)
-duaer self-update            # same as above once CLI ≥ 0.13
+npm i -g ainorm@latest   # works on any build (incl. older CLIs without self-update)
+norm self-update            # same as above once CLI ≥ 0.13
 ```
 
 The CLI also prints a one-line hint when a newer npm release exists
-(cache ≤24h; disable with `DUAER_NO_UPDATE_CHECK=1`).
+(cache ≤24h; disable with `NORM_NO_UPDATE_CHECK=1`).
 
 **Product repo adapters** (after `init`):
 
 ```bash
-npx duaer-spec update
+npx ainorm update
 ```
 
 Then use **Cursor** or **Claude Code** — describe what you want in plain
@@ -58,13 +60,13 @@ After install, these are the capabilities you actually use:
 - **You talk; it runs the process.** No slash commands, no “you must run Spec phases.”
 - **Clarify before coding.** It turns your ask into: what to build, what not to build, how we know it’s done.
 - **Done means accepted.** It only claims finished when acceptance checks out — not when code merely exists.
-- **Reviewed before done.** It codes the Ponytail way (smallest complete change) and runs a Ponytail review of its own diff before accept. If it skips that, `duaer check` keeps the job open, and in Claude Code a stop hook sends it back.
-- **Optional PR mode.** Turn on `.duaer/memory/pr.json` and every job merges through a GitHub PR: CI failures go back to the employee, and the PR auto-merges when green.
+- **Reviewed before done.** It codes the Ponytail way (smallest complete change) and runs a Ponytail review of its own diff before accept. If it skips that, `norm check` keeps the job open, and in Claude Code a stop hook sends it back.
+- **Optional PR mode.** Turn on `.norm/memory/pr.json` and every job merges through a GitHub PR: CI failures go back to the employee, and the PR auto-merges when green.
 - **Supported in Cursor and Claude Code.** Install once, then speak there — no professional Spec workflow required. (Optional adapters for other editors: [`ADOPT.md`](ADOPT.md).)
 
-### In the browser: Duaer-spec FDE (live console)
+### In the browser: Norm FDE (live console)
 
-A local web console (`duaer live`) for “chat → confirm → dispatch → watch → open result”:
+A local web console (`norm live`) for “chat → confirm → dispatch → watch → open result”:
 
 - **Projects.** Create and switch projects; each keeps its own chat and progress.
 - **Chat until the ask is clear.** Left chat; center confirm cards (goal / out of scope / checkable acceptance). Feature cards also need **device matrix, critical paths, and exception cases**. Vague acceptance cannot be confirmed. Beside **Send**, tap **Record** to capture speech; with a **speech recognition (STT) model** in Settings (OpenAI-compatible `/audio/transcriptions`, e.g. whisper-1), the clip is decoded into the composer—edit, then send.
@@ -96,16 +98,16 @@ Open **Employees** in the top bar. Runtime is still Cursor Agent or Claude Code;
 | Role | Does | Does not |
 |---|---|---|
 | **Implementer** | Build to acceptance; update product README; start preview and stamp delivery | — |
-| **Functional regression** | Check confirmed acceptance against the product `.duaer/memory/testing.md` risk table (prefer Playwright, `npm test`, `npm run test:live`, L0–L3); add missing tests, run them, keep evidence | **Change product scope**; on failure, leave a reproducible note — do not stamp accepted |
+| **Functional regression** | Check confirmed acceptance against the product `.norm/memory/testing.md` risk table (prefer Playwright, `npm test`, `npm run test:live`, L0–L3); add missing tests, run them, keep evidence | **Change product scope**; on failure, leave a reproducible note — do not stamp accepted |
 | **Deployer** | Publish to the planned host and write the public URL into delivery preview | Change product scope |
 
 With multiple workers, the **last lane** owns functional regression (and deploy tasks); implement work stays on earlier lanes. With one worker, the same CLI session runs roles in task order.
 
-Before a job can stay accepted, the console runs the commands in the product `.duaer/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
+Before a job can stay accepted, the console runs the commands in the product `.norm/memory/verify.json`. A non-zero exit, or a missing contract, reopens delivery. Docs-only work must set `{ "waiver": "docs-only" }` explicitly.
 
-**PR mode (opt-in).** With `.duaer/memory/pr.json` set to `{ "enabled": true, "base": "develop" }`, a job merges through a GitHub PR instead of a local merge: push → `gh pr create` → CI → failures and Request changes go back to the employee as tasks (at most 3 CI rounds) → auto-merge when green. A job counts as accepted only when its PR is merged. Needs `gh` logged in. Turning it on authorizes pushing the request branch and merging its PR.
+**PR mode (opt-in).** With `.norm/memory/pr.json` set to `{ "enabled": true, "base": "develop" }`, a job merges through a GitHub PR instead of a local merge: push → `gh pr create` → CI → failures and Request changes go back to the employee as tasks (at most 3 CI rounds) → auto-merge when green. A job counts as accepted only when its PR is merged. Needs `gh` logged in. Turning it on authorizes pushing the request branch and merging its PR.
 
-**Code review gate.** Employees code the Ponytail way (smallest complete change). Before accept they run `ponytail-review` on the job diff and save `review.md` in the Brief. Only `Verdict: Ship.` for the current code passes; Must fix items go back as tasks, at most 2 rounds. `duaer init` installs the Ponytail skills for Claude Code, Cursor and Codex and merges a stop hook into `.claude/settings.json` and `.cursor/hooks.json`, so the gate also holds when Claude Code or Cursor runs the duaer-spec rules on its own, in the terminal or the editor, without the console. `duaer check` / `duaer job`, the stop hooks and the console all reopen a stamp that fails it.
+**Code review gate.** Employees code the Ponytail way (smallest complete change). Before accept they run `ponytail-review` on the job diff and save `review.md` in the Brief. Only `Verdict: Ship.` for the current code passes; Must fix items go back as tasks, at most 2 rounds. `norm init` installs the Ponytail skills for Claude Code, Cursor and Codex and merges a stop hook into `.claude/settings.json` and `.cursor/hooks.json`, so the gate also holds when Claude Code or Cursor runs the Norm rules on its own, in the terminal or the editor, without the console. `norm check` / `norm job`, the stop hooks and the console all reopen a stamp that fails it.
 
 ### Deploy: supported hosts
 
@@ -140,29 +142,29 @@ The sections below are **how to run it**; this section is **what it can do**.
 Step skills and CLI checks exist for agents and power users — not as the
 everyday human UI.
 
-## Duaer-spec FDE (live console)
+## Norm FDE (live console)
 
-Isolated from product repos. Config and Briefs live under `~/.duaer/live/`.
-**Duaer-spec FDE** = Field Development Environment.
+Isolated from product repos. Config and Briefs live under `~/.norm/live/`.
+**Norm FDE** = Field Development Environment.
 
 ```bash
 # Start anytime (opens the console even if the model is not configured yet)
-duaer live
+norm live
 
 # In the page Settings, or via CLI:
-duaer live config --provider deepseek --api-key sk-...
+norm live config --provider deepseek --api-key sk-...
 
 # Remember a product repo for dispatch (optional; run inside that repo)
-duaer live repo add
+norm live repo add
 ```
 
-`duaer live` opens the browser to the console URL (default `http://127.0.0.1:8787`).
+`norm live` opens the browser to the console URL (default `http://127.0.0.1:8787`).
 If the model is missing, use **Settings** in the page. The console is **full-width**
 with three columns: **chat** | **modules / confirm / architecture / kickoff /
 revise** | **task progress**. Detail:
 [`docs/agent/live-desk.md`](docs/agent/live-desk.md).
 
-**Verify (maintainers / agents):** after Duaer-spec FDE UI or validate-gate changes,
+**Verify (maintainers / agents):** after Norm FDE UI or validate-gate changes,
 run `npm run test:live` (L3 smoke: console shell markers + `/api/validate` with a
 mock LLM — no paid API).
 
@@ -196,7 +198,7 @@ mock LLM — no paid API).
    - Cursor: `curl https://cursor.com/install -fsS | bash`  
    - Claude Code: `npm install -g @anthropic-ai/claude-code` (or `curl -fsSL https://claude.ai/install.sh | bash`)  
    - To run **DeepSeek or other models** for coding, point Claude Code at that API — see [`docs/agent/worker-models.md`](docs/agent/worker-models.md). The FDE setup page guide covers the same.  
-6. Edit the start command (must begin with `Duaer`) → kickoff creates
+6. Edit the start command (must begin with `Norm`) → kickoff creates
    `.worktree/feat-*` and opens **Terminal** for each worker lane.  
 7. Progress shows a **next-action** stage strip, then `tasks.md` polling.
    **View deliverables** (above progress) opens a generated HTML page of stage
@@ -216,7 +218,7 @@ mock LLM — no paid API).
    Default when unspecified: **GitHub CLI (`gh`) + Actions**
    ([`docs/agent/deploy-github.md`](docs/agent/deploy-github.md))
 
-Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.duaer/specs/<nnn-slug>/` inside that worktree.
+Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under `.norm/specs/<nnn-slug>/` inside that worktree.
 
 ## Branches (mandatory)
 
@@ -230,15 +232,15 @@ Worktree id ≠ Brief folder name — use `.worktree/feat-<name>/`, Brief under 
 Go-live and flows by issue type:
 [`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md).
 
-**After merge:** `duaer handoff [--run]` restarts local services on `develop`
-(configure commands in `.duaer/handoff.json`).
+**After merge:** `norm handoff [--run]` restarts local services on `develop`
+(configure commands in `.norm/handoff.json`).
 
 ## Optional
 
 ```bash
-npx duaer-spec init --here --method
+npx ainorm init --here --method
 ```
 
-Details: [`ADOPT.md`](ADOPT.md) · Method: [`DUADER.md`](DUADER.md) · Ops: [`AGENTS.md`](AGENTS.md)
+Details: [`ADOPT.md`](ADOPT.md) · Method: [`NORM.md`](NORM.md) · Ops: [`AGENTS.md`](AGENTS.md)
 
 When agent ops and method conflict, **agent ops win**.

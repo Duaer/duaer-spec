@@ -1,4 +1,4 @@
-# 003 — Bug dispatch path on Duaer desk
+# 003 — Bug dispatch path on Norm desk
 
 ## Context
 

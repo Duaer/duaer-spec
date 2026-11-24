@@ -23,13 +23,13 @@ FDE 首次打开的「配置模型」页下方也有同样说明。
 也可用命令行：
 
 ```bash
-duaer live config --provider deepseek --api-key <key>
+norm live config --provider deepseek --api-key <key>
 # 或
-duaer live config --base-url https://api.openai.com/v1 --api-key <key> --model gpt-4o-mini
+norm live config --base-url https://api.openai.com/v1 --api-key <key> --model gpt-4o-mini
 # 其它服务商同理：换 base-url / model
 ```
 
-配置写入 `~/.duaer/live/config.json`。
+配置写入 `~/.norm/live/config.json`。
 
 ## 安装 Cursor Agent
 
@@ -98,6 +98,6 @@ DeepSeek 还写了 Codex 等工具的接入说明：
 
 FDE **自动派工**目前只支持 Cursor Agent 与 Claude Code。日常使用以 **Cursor**、
 **Claude Code** 为准：用平常话交代即可，不必学专业 Spec 流程。其它编辑器仍可
-从 `npx duaer-spec init --here` 拿到可选适配（见 [`ADOPT.md`](../../ADOPT.md)）。
+从 `npx ainorm init --here` 拿到可选适配（见 [`ADOPT.md`](../../ADOPT.md)）。
 
 English: [worker-models.md](worker-models.md).

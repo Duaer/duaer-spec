@@ -5,7 +5,7 @@ a **template** for that catalog — not a product suite.
 
 When a change is user-visible or protocol-visible, add or update a scenario
 before or alongside the change, **and** run the risk-required verification from
-[`.duaer/memory/testing.md`](../../.duaer/memory/testing.md) (see
+[`.norm/memory/testing.md`](../../.norm/memory/testing.md) (see
 [R3](workflow.md#r3--verification--e2e-coverage)).
 The catalog is not a substitute for executing checks.
 
@@ -17,7 +17,7 @@ Title:       Short name
 Preconditions:
 Steps:
 Expected:
-Specs:       Links to specs / Duaer feature dirs
+Specs:       Links to specs / Norm feature dirs
 Status:      planned | automated | manual
 ```
 
@@ -28,13 +28,13 @@ the table for their app.
 
 | ID | Title | Status |
 |---|---|---|
-| E2E-001 | After `duaer init`, banner says talk to agent — no slash ops | manual |
-| E2E-223 | `duaer init` installs the method skeleton and an empty `.duaer/specs/`; the package file list omits duaer-spec Brief history and `active-job.json` | `npm test` |
+| E2E-001 | After `norm init`, banner says talk to agent — no slash ops | manual |
+| E2E-223 | `norm init` installs the method skeleton and an empty `.norm/specs/`; the package file list omits Norm Brief history and `active-job.json` | `npm test` |
 | E2E-002 | README: install once, then plain-language asks | manual |
 | E2E-003 | Always-on rule requires autonomous job loop without user slash | manual |
 | E2E-004 | Default `coach`: unfinished job — agent must not claim done | manual |
 | E2E-005 | Converge stamps `accepted`; agent reports ready for review | manual |
-| E2E-021 | `duaer live` stream + auto-accept + CLI dispatch (Terminal agent/claude) | manual / curl |
+| E2E-021 | `norm live` stream + auto-accept + CLI dispatch (Terminal agent/claude) | manual / curl |
 | E2E-022 | Live desk detects agents and launches selected digital employee | manual / curl |
 | E2E-023 | Live desk shows task progress from dispatched Brief tasks.md | manual / curl |
 | E2E-024 | Live desk shows preview link when delivery accepted | manual / curl |
@@ -44,10 +44,10 @@ the table for their app.
 | E2E-027 | After preview, feedback revise relaunches agent on same worktree | manual / curl |
 | E2E-028 | Revise uses left-chat dialogue then confirm; Terminal uses --continue | manual / curl |
 | E2E-029 | Accept failure shows Auto-fix; fix then re-accept | manual / curl |
-| E2E-030 | CLI/live notify when npm has newer `duaer-spec`; `npm i -g duaer-spec@latest` / `duaer self-update` upgrades global CLI | manual / curl |
+| E2E-030 | CLI/live notify when npm has newer `ainorm`; `npm i -g ainorm@latest` / `norm self-update` upgrades global CLI | manual / curl |
 | E2E-080 | Dispatch picks planned host (Cloudflare/阿里云/AWS/GitHub Pages); Cloudflare constrains code; tasks split finely with no max-12 cap | `npm test` + manual |
 | E2E-031 | After revise confirm, right card stays locked 改进卡; chat busy ≠「续派中」 | manual |
-| E2E-032 | Dispatch/browse installs Duaer in the chosen directory (no silent redirect) | manual |
+| E2E-032 | Dispatch/browse installs Norm in the chosen directory (no silent redirect) | manual |
 | E2E-033 | Revise: original brief visible; preview kept; Terminal queue reuse | manual |
 | E2E-034 | Live detects agent/claude under ~/.local/bin even with launchd PATH | manual |
 | E2E-035 | After handoff removes worktree, status/preview work; revise recreates wt | manual |
@@ -59,14 +59,14 @@ the table for their app.
 | E2E-041 | Busy Terminal runner: revise/dispatch enqueue waits (no interrupt) while job is still in progress; after accept, see E2E-047 | manual |
 | E2E-042 | Wide desk layout; FIFO jobs/ queue auto-runs next task after running.cmd finishes | manual |
 | E2E-043 | Progress panel has no harsh gray/white slab; matches desk plate; readable 进行中 line | manual |
-| E2E-044 | Duaer-spec FDE「项目」: header Projects button; drawer create/select project; chats listed under active project; restore loads job | `npm test` + `npm run test:live` + manual |
+| E2E-044 | Norm FDE「项目」: header Projects button; drawer create/select project; chats listed under active project; restore loads job | `npm test` + `npm run test:live` + manual |
 | E2E-079 | Project-first: chat/Send locked until active project; `/api/projects` + activate; confirm stamps projectPath; parent folder UI in project drawer | `npm test` + `npm run test:live` |
 | E2E-080 | Project create requires title + background description; list shows both | `npm test` + `npm run test:live` |
-| E2E-081 | Project chat persists under `~/.duaer/live/project-chats/`; refresh restores messages | `npm test` + `npm run test:live` |
+| E2E-081 | Project chat persists under `~/.norm/live/project-chats/`; refresh restores messages | `npm test` + `npm run test:live` |
 | E2E-082 | Project desk session also restores requirements card + jobId/progress after refresh | `npm test` + `npm run test:live` |
 | E2E-083 | After refresh, previously passed auto-validate keeps Confirm enabled | `npm test` + `npm run test:live` |
 | E2E-084 | Requirements fields edit as structured rows (add/remove), not raw textarea | `npm test` + `npm run test:live` |
-| E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model/Settings reopens it; setup.hint names Duaer desk model; guideDoc links locale-specific GitHub worker-models | `npm test` + `npm run test:live` |
+| E2E-085 | Setup 说明 covers Cursor/Claude install + other model wiring; header Model/Settings reopens it; setup.hint names Norm desk model; guideDoc links locale-specific GitHub worker-models | `npm test` + `npm run test:live` |
 | E2E-086 | After Confirm, architecture dialogue + Archify HTML under hosting (no diagram-container height clip; click diagram opens present fullscreen — embed does not zoom nodes); gate dispatch; revise confirms plan then re-confirms architecture before dispatch; ready chat says diagram is under hosting; Confirm architecture clickable after render | `npm test` + `npm run test:live` |
 | E2E-087 | After「派工并用…启动」succeeds, button stays「已派工」(persisted + restored from status); refresh / client timeout does not re-enable first launch | `npm test` + `npm run test:live` |
 | E2E-088 | After accept, Result panel always visible (查看结果 and/or 打开项目目录); progress column mirrors CTA; no-page jobs still show open-folder | `npm test` + `npm run test:live` |
@@ -91,12 +91,12 @@ the table for their app.
 | E2E-108 | Revise kickoff keeps streamed model reply; safe chat done SSE (no stack-overflow wipe) | `npm run test:live` + manual |
 | E2E-109 | 再改一版 never shows Maximum call stack; persist/SSE omit deep IR | `npm run test:live` + manual |
 | E2E-110 | Architecture embed click opens present fullscreen (no in-embed node zoom / passport) | `npm test` + manual |
-| E2E-111 | Served architecture HTML upgrades stale `#duaer-embed-fit` so passport CSS applies | `npm test` + manual |
+| E2E-111 | Served architecture HTML upgrades stale `#norm-embed-fit` so passport CSS applies | `npm test` + manual |
 | E2E-112 | Architecture embed passport sits 100px left and 100px up from prior inset | `npm test` + manual |
 | E2E-113 | Architecture embed passport stays in-view (left flush, top 100px, high z-index) | `npm test` + manual |
 | E2E-114 | Architecture passport offset 100px via gutter padding without iframe clip | `npm test` + manual |
 | E2E-115 | Architecture passport expands fully with no inner scroll; iframe grows | `npm test` + manual |
-| E2E-116 | README EN/ZH show Duaer-spec FDE brand SVG from desk header | manual |
+| E2E-116 | README EN/ZH show Norm FDE brand SVG from desk header | manual |
 | E2E-117 | 再改一版 kickoff shows real error; no right-panel focus race during stream | `npm run test:live` + manual |
 | E2E-118 | Desk drops deep architecture IR after render (viewBox/fingerprint only); dispatch loads IR from disk; revise SSE omits jsonBlock | `npm run test:live` + manual |
 | E2E-119 | 再改一版 kickoff skips heavy chrome; no false「架构图序列化爆栈」; chrome after success only | `npm run test:live` + manual |
@@ -133,10 +133,10 @@ the table for their app.
 | E2E-150 | Requirements click-to-edit then blur without changes keeps field text (no wipe) | `npm run test:live` + manual |
 | E2E-151 | Modular `[模块]` card fields render section titles + numbered acceptance lists | `npm test` + `npm run test:live` |
 | E2E-152 | Project portfolio shows delivery status chips + open deliverables; Progress shows stage next-action | `npm test` + `npm run test:live` |
-| E2E-153 | `duaer live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
+| E2E-153 | `norm live` starts without model config, opens desk URL, Settings guides setup | `npm test` + `npm run test:live` |
 | E2E-154 | 产品父目录 is read-only; 选择… or path click opens frontmost native folder pick and saves; 清除 empties; no path typing | `npm test` + manual |
 | E2E-155 | FDE dispatch: prompts forbid Job not accepted yet; desk verify gate replaces the stamp-accept nudge | `npm test` + `npm run test:live` |
-| E2E-166 | Desk runs `.duaer/memory/verify.json` before accept sticks; fail or missing contract reopens delivery and records command exit codes | `npm test` |
+| E2E-166 | Desk runs `.norm/memory/verify.json` before accept sticks; fail or missing contract reopens delivery and records command exit codes | `npm test` |
 | E2E-167 | Use-as-current-project: missing name or description shows in the project drawer; button disables while switching; drawer scrolls | `npm test` |
 | E2E-168 | Finished wave still holding the Terminal is preempted once the next job is queued; a named open wave is not killed; a `cat` prompt script with a waiter is preempted | `npm test` |
 | E2E-169 | Dispatch center opens `/dispatch-center.html` in a new page: 100px project rail and the selected project's graph; desk is not covered by an overlay | `npm test` |
@@ -146,7 +146,7 @@ the table for their app.
 | E2E-173 | Config, repos, and live jobs import into desk.sqlite; live data is local-only (not packaged) | `npm test` |
 | E2E-174 | After architecture confirm: atomic task list with parallel marks; recommend 1–4 workers; confirm builds 派工图 then locks; each improve wave forces a new graph (regen button) | `npm test` |
 | E2E-175 | Confirm workers → Archify accepts task IR (edge ≥24px); render failure shows in chat | `npm test` + manual |
-| E2E-176 | FDE desk only on :8787; LaunchAgent sets DUAER_LIVE_NO_BROWSER; no alternate desk ports | `npm test` |
+| E2E-176 | FDE desk only on :8787; LaunchAgent sets NORM_LIVE_NO_BROWSER; no alternate desk ports | `npm test` |
 | E2E-177 | 「查看派工图」opens Archify present=1 fullscreen with clickable nodes (same as architecture) | `npm test` + manual |
 | E2E-178 | Dispatch graph present uses noz=1 — node passport without camera zoom | `npm test` + manual |
 | E2E-179 | Dispatch graph nodes show done / in progress / waiting; passport card lists status | `npm test` + manual |
@@ -185,7 +185,7 @@ the table for their app.
 | E2E-212 | Creating a new project refuses when the target directory already exists; open from the project list still works | `npm test` + `npm run test:live` |
 | E2E-213 | Create project accepts only a short folder name under the parent; absolute paths, duplicate folders, and duplicate titles are refused | `npm test` + `npm run test:live` |
 | E2E-214 | Architecture edges that would cross unrelated boxes get a clear corridor via; vertical labels use gap `labelAt`; Archify render succeeds | `npm test` |
-| E2E-216 | Desk shell is compact; light/dark theme toggle persists `duaer.live.theme` and applies on desk + dispatch center | `npm run test:live` |
+| E2E-216 | Desk shell is compact; light/dark theme toggle persists `norm.live.theme` and applies on desk + dispatch center | `npm run test:live` |
 | E2E-217 | After「改缺陷」, prior requirement module tabs stay visible/clickable; light wells use theme inset tokens | `npm test` + `npm run test:live` |
 | E2E-218 | Bug confirm merges modules (keeps prior tabs); progress run-blocks use theme insets; denser progress column | `npm test` + `npm run test:live` |
 | E2E-219 | Settings closes without model ready (关闭 / backdrop / gear / Escape); denser drawers | `npm test` + `npm run test:live` |
@@ -202,13 +202,13 @@ the table for their app.
 | E2E-163 | Task breakdown: acceptance splits into one atomic checkbox per line, semicolon, or sentence; progress monitorable via `- [ ]`/`- [x]` | `npm test` |
 | E2E-164 | Live desk Japanese (`ja`) locale: select option, catalog parity with en, deliverables `lang=ja` | `npm test` + manual |
 | E2E-165 | Top 数字员工 directory lists Implementer + Functional regression + Deployer; kickoff tasks carry role | `npm test` + `npm run test:live` |
-| E2E-093 | Header top actions share one button chrome; GitHub control links to duaer-spec and shows live stars via `/api/github` | `npm run test:live` + manual |
-| E2E-063 | Duaer-spec FDE brand: header/title show Duaer-spec FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Duaer | `npm test` + manual |
+| E2E-093 | Header top actions share one button chrome; GitHub control links to Norm and shows live stars via `/api/github` | `npm run test:live` + manual |
+| E2E-063 | Norm FDE brand: header/title show Norm FDE; zh secondary mark is 现场开发; en mark is Field Development Environment; setup hint / desk-model guide name Norm | `npm test` + manual |
 | E2E-078 | Claude Terminal launch includes `--permission-mode bypassPermissions` and stamps `hasTrustDialogAccepted` for the worktree | `npm test` + manual |
 | E2E-077 | Missing product path auto-created; projectsRoot via native folder pick (no typing); relative name creates under parent | `npm test` + manual |
 | E2E-076 | Worker CLIs are Cursor Agent + Claude Code only; no deepseek-tui worker; tutorial docs/agent/worker-models(.zh-CN).md | `npm test` + manual |
 | E2E-075 | DeepSeek Terminal launch uses `deepseek -w <worktree> --yolo` (not `--workspace`); job exits 0 when CLI present | `npm test` + manual |
-| E2E-074 | Missing git: auto-install then init; worker CLIs versioned; 10-day auto-upgrade stamp under `~/.duaer/cli-tools-check.json` (opt-out `DUAER_NO_CLI_UPGRADE=1`) | `npm test` + manual |
+| E2E-074 | Missing git: auto-install then init; worker CLIs versioned; 10-day auto-upgrade stamp under `~/.norm/cli-tools-check.json` (opt-out `NORM_NO_CLI_UPGRADE=1`) | `npm test` + manual |
 | E2E-073 | Progress column: run cards + meter + checklist styling; empty state title/hint | `npm run test:live` + manual |
 | E2E-072 | Sticky top nav; three desk columns equal height; card-panel (middle) and siblings scroll internally | `npm run test:live` + manual |
 | E2E-071 | Choice chips use muted (non-orange) styling; still clickable | `npm run test:live` + manual |
@@ -220,7 +220,7 @@ the table for their app.
 | E2E-065 | Chat send: after Confirm / History restore, Send/Enter still posts chat; locked specify card fields are not overwritten; busy/not-ready shows a bot notice (not silent) | `npm run test:live` + manual |
 | E2E-064 | FDE UX polish: chat empty state, accented FDE brand, opaque history drawer, stronger primary CTA | `npm test` + manual |
 | E2E-045 | Desk layout: compact header, history as side drawer (does not push columns), calm two-column desk | manual |
-| E2E-046 | Revise dispatch always returns: a stuck child (e.g. blocking `post-checkout` hook on `git worktree add`) yields HTTP 504 with an actionable message within its budget instead of hanging, so the button never sits on「续派中…」forever; normal revise still enqueues into `.duaer/live-terminal/jobs/` | manual / curl |
+| E2E-046 | Revise dispatch always returns: a stuck child (e.g. blocking `post-checkout` hook on `git worktree add`) yields HTTP 504 with an actionable message within its budget instead of hanging, so the button never sits on「续派中…」forever; normal revise still enqueues into `.norm/live-terminal/jobs/` | manual / curl |
 | E2E-047 | After delivery accepted, revise while first agent still holds `running.cmd`: `POST /api/revise` preempts leftover CLI, enqueues revise, and Terminal drains the revise job (not forever behind the accepted first agent); pre-accept busy revise still waits without interrupt | manual / curl |
 | E2E-048 | PriorAccepted preempt also TERM→KILL worktree `agent`/`cursor-agent`/`claude` orphans (match worktree path + CLI name; never kill `runner.command`); every signaled PID logged; revise agent runs Revision prompt with no leftover first-Brief orphan | manual / curl |
 | E2E-049 | Progress ownership: each dispatch/revision has its own run block under the revise/dispatch stack (timeline below); older blocks stay frozen with their revision; no single progress pile above preview/revise | manual |
@@ -240,17 +240,17 @@ the table for their app.
 | E2E-041 | Busy Terminal runner: revise/re-dispatch queues (`pending.cmd`), waits (no interrupt); API `queued`/`busy`/`reused`; UI does not claim agent already started | manual |
 | E2E-007 | Request worktrees use `.worktree/<id>`; `.worktree/` gitignored | manual |
 | E2E-008 | Docs require main+develop+feat+fix and typed go-live flows | manual |
-| E2E-009 | After merge, handoff restarts services on develop (`duaer handoff`) | manual |
-| E2E-010 | `npx duaer-spec update` refreshes an existing install | manual |
-| E2E-011 | Installed docs (`DUADER.md`, `docs/agent/`) document `update` | manual |
+| E2E-009 | After merge, handoff restarts services on develop (`norm handoff`) | manual |
+| E2E-010 | `npx ainorm update` refreshes an existing install | manual |
+| E2E-011 | Installed docs (`NORM.md`, `docs/agent/`) document `update` | manual |
 | E2E-012 | `README.zh-CN.md` covers install, update, branch model | manual |
-| E2E-013 | Worktree id ≠ Brief `<nnn-slug>`; path is `.worktree/feat-…/.duaer/specs/…` | manual |
+| E2E-013 | Worktree id ≠ Brief `<nnn-slug>`; path is `.worktree/feat-…/.norm/specs/…` | manual |
 | E2E-014 | Init installs Cursor + Claude hosts (`CLAUDE.md`, `.claude/skills`, including `ponytail` and `ponytail-review`) | manual |
 | E2E-015 | Init installs Codex skills under `.agents/skills/` | manual |
 | E2E-016 | Init installs Copilot/Windsurf/Cline/Continue/Gemini/Aider adapters | manual |
-| E2E-017 | `.duaer/memory/testing.md` defines levels + risk table + DoD | manual |
+| E2E-017 | `.norm/memory/testing.md` defines levels + risk table + DoD | manual |
 | E2E-018 | AGENTS requires risk-based verification (no blanket E2E ban) | manual |
-| E2E-019 | `duaer-tasks` defaults to verification tasks; converge needs evidence | manual |
+| E2E-019 | `norm-tasks` defaults to verification tasks; converge needs evidence | manual |
 | E2E-020 | Accept may stamp `delivery.json.verification` | manual |
 
 ## Traceability
@@ -259,15 +259,15 @@ the table for their app.
 |---|---|---|
 | E2E-001 | init banner | No human phase ops |
 | E2E-002 | README | Ask, don’t operate |
-| E2E-003 | `duaer-spec.mdc` | Autonomous |
+| E2E-003 | `norm.mdc` | Autonomous |
 | E2E-004 | policy coach | Handoff etiquette |
 | E2E-005 | `delivery.json` | Accept stamp |
-| E2E-006 | `duaer-do` | Internal playbook |
+| E2E-006 | `norm-do` | Internal playbook |
 | E2E-007 | `.worktree/` + `.gitignore` | Mandatory isolation |
 | E2E-008 | `branching-and-release.md` | Branch + release matrix |
-| E2E-009 | `.duaer/handoff.json` / `duaer handoff` | Service handoff |
-| E2E-010 | `duaer update` | One-line refresh |
-| E2E-011 | DUADER + agent docs | Update path in installed guides |
+| E2E-009 | `.norm/handoff.json` / `norm handoff` | Service handoff |
+| E2E-010 | `norm update` | One-line refresh |
+| E2E-011 | NORM + agent docs | Update path in installed guides |
 | E2E-012 | `README.zh-CN.md` | Chinese guide |
 | E2E-013 | AGENTS / branching naming | Avoid double `<nnn-slug>` |
 | E2E-014 | Claude + Cursor install | Dual host |
@@ -275,7 +275,7 @@ the table for their app.
 | E2E-016 | Extra host adapters | Copilot+Windsurf+Cline+… |
 | E2E-017 | `testing.md` | Verification contract |
 | E2E-018 | AGENTS §3 / workflow R3 | Risk-based run |
-| E2E-019 | `duaer-tasks` / `duaer-converge` | Default verify |
+| E2E-019 | `norm-tasks` / `norm-converge` | Default verify |
 | E2E-020 | `delivery.json` | Verification evidence |
 | E2E-021 | live 008–010 | Desk → product |
 | E2E-022 | `011-live-agent-launch` | Detect + launch |
@@ -288,7 +288,7 @@ the table for their app.
 | E2E-029 | `026-auto-fix-accept` | accept fail → auto-fix |
 | E2E-030 | `029-self-update` | CLI/live update check + `self-update` |
 | E2E-031 | `030-revise-card-ui` | revise card locked after dispatch |
-| E2E-032 | `031-dispatch-init` | init Duaer in chosen product dir |
+| E2E-032 | `031-dispatch-init` | init Norm in chosen product dir |
 | E2E-033 | `032-revise-ux` | original brief + preview + Terminal reuse |
 | E2E-034 | `033-agent-detect` | CLI detect under launchd PATH |
 | E2E-035 | `034-stale-worktree` | handoff-cleaned worktree recover |
@@ -305,7 +305,7 @@ the table for their app.
 | E2E-060 | `062-deepseek-cli` | DeepSeek TUI as worker CLI |
 | E2E-061 | `064-cli-install-show` | missing CLI install cmds |
 | E2E-062 | `065-detailed-progress` | fine tasks + worktree activity |
-| E2E-063 | `066-duaer-fed` | Duaer-spec FDE brand |
+| E2E-063 | `066-norm-fed` | Norm FDE brand |
 | E2E-074 | `082-git-cli-ensure` | git auto-install + 10d CLI upgrade |
 | E2E-075 | `083-deepseek-w-flag` | DeepSeek `-w` not `--workspace` |
 | E2E-076 | `084-drop-deepseek-cli` | drop deepseek worker; model tutorial |
@@ -442,7 +442,8 @@ the table for their app.
 | E2E-221 | `290-remove-quicknav` | no chat 导航 control |
 | E2E-222 | `292-atomic-clause-split` | sentence split and goal fallback |
 | E2E-223 | `296-init-omit-progress` | init method skeleton; empty specs; package omits Brief history |
-| E2E-224 | `298-ponytail-review-gate` | review task in pool; `review.md` gate in `duaer check`, stop hooks, desk; init merges hooks |
-| E2E-225 | `300-pr-ci-loop` | PR mode: `pr.json` opt-in; PR state gate in `duaer check`, stop hooks, desk; auto-merge instructions |
-| E2E-226 | `302-hook-commit-reminder` | init/update reminder and `duaer check` warnings for uncommitted Claude review hook files |
+| E2E-224 | `298-ponytail-review-gate` | review task in pool; `review.md` gate in `norm check`, stop hooks, desk; init merges hooks |
+| E2E-225 | `300-pr-ci-loop` | PR mode: `pr.json` opt-in; PR state gate in `norm check`, stop hooks, desk; auto-merge instructions |
+| E2E-226 | `302-hook-commit-reminder` | init/update reminder and `norm check` warnings for uncommitted Claude review hook files |
+| E2E-227 | `306-rename-norm` | `norm update` migrates a duaer-spec repo (`.duaer/`, `DUADER.md`, marker, hooks, old adapters); `DUAER_*` env and `~/.duaer` fallback |
 

@@ -1,5 +1,5 @@
 /**
- * Duaer-spec FDE UI — model-backed dialogue; Briefs go to ~/.duaer/live/jobs.
+ * Norm FDE UI — model-backed dialogue; Briefs go to ~/.norm/live/jobs.
  */
 
 import {
@@ -857,7 +857,7 @@ function syncDynamicI18n() {
   if (el.meta && state.lastCfg?.ready) {
     el.meta.textContent = t("meta.model", {
       model: state.lastCfg.model,
-      jobs: state.lastCfg.jobsRoot || "~/.duaer/live/jobs",
+      jobs: state.lastCfg.jobsRoot || "~/.norm/live/jobs",
     });
   }
   showUpdateNotice(state.lastUpdate);
@@ -4006,7 +4006,7 @@ function showDesk(cfg) {
   }
   el.meta.textContent = t("meta.model", {
     model: cfg.model,
-    jobs: cfg.jobsRoot || "~/.duaer/live/jobs",
+    jobs: cfg.jobsRoot || "~/.norm/live/jobs",
   });
   syncConfirmEnabled();
   syncComposerEnabled();
@@ -6066,7 +6066,7 @@ async function loadAgents() {
 
 function defaultStartCommand() {
   const goal = el.goal?.value?.trim() || t("startCmd.goalFallback");
-  return `Duaer
+  return `Norm
 
 ${goal}
 
@@ -6081,9 +6081,9 @@ function ensureStartCommandPrefix() {
     el.startCommand.value = defaultStartCommand();
     return;
   }
-  let body = raw.trim().replace(/^Agent\b/m, "Duaer");
-  if (!/^Duaer\b/m.test(body)) {
-    el.startCommand.value = `Duaer\n\n${body}\n`;
+  let body = raw.trim().replace(/^Agent\b/m, "Norm");
+  if (!/^Norm\b/m.test(body)) {
+    el.startCommand.value = `Norm\n\n${body}\n`;
   } else if (body !== raw.trim()) {
     el.startCommand.value = `${body}\n`;
   }
@@ -6766,7 +6766,7 @@ el.repoBrowse?.addEventListener("click", async () => {
     const prep = [
       data.baseBranchCreated ? t("prep.baseBranch") : null,
       data.bootstrapped && !data.baseBranchCreated ? t("prep.gitInit") : null,
-      data.duaer?.action === "init" ? t("prep.duaerInit") : null,
+      data.norm?.action === "init" ? t("prep.normInit") : null,
     ].filter(Boolean);
     addBubble(
       "bot",
@@ -7020,15 +7020,15 @@ el.doDispatch.addEventListener("click", async () => {
             : t("launch.spawned", {
                 who: launch.label || launch.agentId || "CLI",
               });
-    const duaerLine =
-      data.duaerInstall?.worktree?.action === "init" ||
-      data.duaerInstall?.repo?.action === "init"
-        ? t("launch.duaerInstalled")
-        : t("launch.duaerReady");
+    const normLine =
+      data.normInstall?.worktree?.action === "init" ||
+      data.normInstall?.repo?.action === "init"
+        ? t("launch.normInstalled")
+        : t("launch.normReady");
     addBubble(
       "bot",
       t("bot.dispatchDone", {
-        duaer: duaerLine,
+        norm: normLine,
         who,
         path: data.worktreePath,
       }),
@@ -8454,7 +8454,7 @@ async function dispatchReviseAgent() {
       agentId: state.agentId,
     };
     const ac = new AbortController();
-    // Cover recreate (git ≤60s) + optional duaer init (≤120s) + validate/launch headroom.
+    // Cover recreate (git ≤60s) + optional norm init (≤120s) + validate/launch headroom.
     const timer = setTimeout(() => ac.abort(), 180000);
     const res = await fetch("/api/revise", {
       method: "POST",

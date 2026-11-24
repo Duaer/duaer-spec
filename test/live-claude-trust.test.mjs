@@ -40,7 +40,7 @@ test("claudeTrustCandidatePaths includes .worktree parent", () => {
 });
 
 test("markClaudeWorkspacesTrusted sets hasTrustDialogAccepted and preserves config", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-claude-trust-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-claude-trust-"));
   const configPath = path.join(root, ".claude.json");
   fs.writeFileSync(
     configPath,
@@ -76,7 +76,7 @@ test("markClaudeWorkspacesTrusted sets hasTrustDialogAccepted and preserves conf
 
 test("live Claude launch stamps trust before spawn", () => {
   const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /markClaudeWorkspacesTrusted/);
   assert.match(live, /live-claude-trust/);
   assert.match(live, /--permission-mode bypassPermissions/);

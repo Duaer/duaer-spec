@@ -68,7 +68,7 @@ test("buildProjectList groups jobs under repo paths", () => {
 });
 
 test("live sources wire project-first APIs and UI", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /activeProjectPath/);
   assert.match(live, /\/api\/projects/);
   assert.match(live, /NEED_PROJECT/);

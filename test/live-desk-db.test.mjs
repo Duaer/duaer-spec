@@ -28,7 +28,7 @@ import {
 import { DatabaseSync } from "node:sqlite";
 
 test("desk schema migrates to DESK_SCHEMA_VERSION", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-mig-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-mig-"));
   try {
     const db = openDeskDb(root);
     const row = db
@@ -42,7 +42,7 @@ test("desk schema migrates to DESK_SCHEMA_VERSION", () => {
 });
 
 test("legacy project-chats JSON is imported once without duplicate", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-imp-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-imp-"));
   const projectPath = path.join(root, "app");
   const key = projectChatKey(projectPath);
   const chatDir = path.join(root, "project-chats");
@@ -77,7 +77,7 @@ test("legacy project-chats JSON is imported once without duplicate", () => {
 });
 
 test("write/read project desk session uses sqlite file", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-rw-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-rw-"));
   const projectPath = path.join(root, "app");
   try {
     writeProjectChat(root, {
@@ -104,7 +104,7 @@ test("write/read project desk session uses sqlite file", () => {
 });
 
 test("migrateDeskSchema is a no-op when already current", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-noop-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-noop-"));
   try {
     const db = openDeskDb(root);
     migrateDeskSchema(db);
@@ -119,7 +119,7 @@ test("migrateDeskSchema is a no-op when already current", () => {
 });
 
 test("future migration slot can bump schema_version", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-future-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-future-"));
   try {
     const dbPath = path.join(root, "desk.sqlite");
     const db = new DatabaseSync(dbPath);
@@ -155,7 +155,7 @@ test("future migration slot can bump schema_version", () => {
 });
 
 test("legacy config and repos import into desk_kv", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-kv-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-kv-"));
   try {
     fs.writeFileSync(
       path.join(root, "config.json"),
@@ -182,7 +182,7 @@ test("legacy config and repos import into desk_kv", () => {
 });
 
 test("legacy jobs import and round-trip through SQLite", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-desk-jobs-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-desk-jobs-"));
   const jobId = "001-demo";
   const jobDir = path.join(root, "jobs", jobId);
   try {

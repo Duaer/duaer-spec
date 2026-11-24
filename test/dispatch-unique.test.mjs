@@ -69,7 +69,7 @@ test("live dispatch allocates feat or fix and no longer hard-fails on existing w
   const path = await import("node:path");
   const { fileURLToPath } = await import("node:url");
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-  const live = fs.readFileSync(path.join(root, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(root, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /allocateUniqueBranch/);
   assert.doesNotMatch(live, /worktree 已存在/);
   assert.match(live, /fix\/\$\{dirName\}/);

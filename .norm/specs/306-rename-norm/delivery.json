@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T03:43:11Z",
+  "summary": "Renamed duaer-spec to Norm: npm ainorm, CLI norm (duaer / duaer-spec aliases), .norm/, norm-* skills, NORM_* env, ~/.norm. init/update and the desk migrate old installs.",
+  "verification": {
+    "commands": ["npm test", "npm run test:live"],
+    "result": "npm test 302 pass; test:live pass. Review round 2: Ship."
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * Progress-on-accept contract (mirrors helpers in bin/duaer-live.mjs).
+ * Progress-on-accept contract (mirrors helpers in bin/norm-live.mjs).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -82,7 +82,7 @@ test("accepted delivery never keeps done < total", () => {
 });
 
 test("reconcileTasksMdOnAccept checks remaining boxes", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-tasks-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "norm-tasks-"));
   const p = path.join(dir, "tasks.md");
   fs.writeFileSync(
     p,
@@ -99,7 +99,7 @@ test("reconcileTasksMdOnAccept checks remaining boxes", () => {
 });
 
 test("live sources include progress-on-accept helpers", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /function progressForAcceptedDelivery/);
   assert.match(live, /function reconcileTasksMdOnAccept/);
   assert.match(live, /progress = progressForAcceptedDelivery/);

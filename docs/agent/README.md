@@ -1,7 +1,7 @@
-# Agent workflow (duaer-spec)
+# Agent workflow (Norm)
 
 Authoritative docs for *how* digital employees operate (workplace policy).
-Wins over Duaer and `examples/` when they conflict.
+Wins over Norm and `examples/` when they conflict.
 
 | Doc | Description |
 |---|---|
@@ -16,6 +16,6 @@ Wins over Duaer and `examples/` when they conflict.
 | [e2e-test-plan.md](e2e-test-plan.md) | E2E scenario catalog template |
 | [../adr/001-verification-gate.md](../adr/001-verification-gate.md) | Risk-based verification gate (ADR) |
 
-Root contracts: [`AGENTS.md`](../../AGENTS.md), [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md).  
-Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx duaer-spec init --here` / `npx duaer-spec update`.  
+Root contracts: [`AGENTS.md`](../../AGENTS.md), [`.norm/memory/testing.md`](../../.norm/memory/testing.md).  
+Adoption: [`ADOPT.md`](../../ADOPT.md) — `npx ainorm init --here` / `npx ainorm update`.  
 Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).

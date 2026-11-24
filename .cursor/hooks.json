@@ -3,7 +3,7 @@
   "hooks": {
     "stop": [
       {
-        "command": "node .duaer/hooks/review-gate.mjs cursor"
+        "command": "node .norm/hooks/review-gate.mjs cursor"
       }
     ]
   }
