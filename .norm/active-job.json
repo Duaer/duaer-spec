@@ -1,5 +1,5 @@
 {
-  "feature": "312-site-redesign",
-  "branch": "feat/site-redesign",
-  "worktree": ".worktree/feat-site-redesign"
+  "feature": "313-site-drop-rename-note",
+  "branch": "feat/site-drop-rename-note",
+  "worktree": ".worktree/feat-site-drop-rename-note"
 }
