@@ -11,4 +11,4 @@
 - [x] Mobile 375px: no horizontal scroll; reduced motion respected
 - [x] Links all on `fujiezee/norm`; HTML well-formed
 - [x] `npm test` passes
-- [ ] Ponytail review Ship, stamp, merge to `develop`
+- [x] Ponytail review Ship, stamp, merge to `develop`
