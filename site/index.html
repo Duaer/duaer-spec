@@ -6,7 +6,7 @@
   <title>Norm — 数字员工，满意交付</title>
   <meta
     name="description"
-    content="Norm 把 AI 编程助手变成数字员工：自然语言说意图，Brief 约束范围，对照验收才算完成。Norm FDE 是现场开发环境。"
+    content="Norm 把 AI 编程助手变成数字员工：自然语言说意图，Brief 约束范围，评审和验收通过才算交付。Norm FDE 是现场开发环境。"
   />
   <link rel="canonical" href="https://fujiezee.github.io/norm/" />
   <meta property="og:title" content="Norm — 数字员工，满意交付" />
@@ -27,10 +27,12 @@
       --mute: #8f9eab;
       --line: rgba(244, 238, 228, 0.14);
       --bg: #070c12;
+      --panel: #0e1620;
       --ember: #e05a2b;
       --teal: #2f9e8f;
-      --pad: clamp(1.25rem, 4vw, 3rem);
-      --max: 56rem;
+      --pad: clamp(1rem, 4vw, 3rem);
+      --max: 68rem;
+      --nav-h: 3.5rem;
       --font: "Outfit", "Avenir Next", "Segoe UI", "PingFang SC", "Hiragino Sans GB",
         "Microsoft YaHei", sans-serif;
       --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -42,6 +44,7 @@
 
     html {
       scroll-behavior: smooth;
+      scroll-padding-top: var(--nav-h);
     }
 
     body {
@@ -51,6 +54,7 @@
       background: var(--bg);
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
+      overflow-x: clip;
     }
 
     a {
@@ -58,9 +62,64 @@
       text-decoration: none;
     }
 
+    code {
+      font-family: var(--mono);
+      font-size: 0.9em;
+    }
+
     .wrap {
       width: min(100% - 2 * var(--pad), var(--max));
       margin-inline: auto;
+    }
+
+    /* —— Nav —— */
+    .nav {
+      position: fixed;
+      inset: 0 0 auto;
+      z-index: 10;
+      height: var(--nav-h);
+      background: rgba(7, 12, 18, 0.78);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .nav .wrap {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .nav-brand {
+      flex: none;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-brand span {
+      color: var(--ember);
+      letter-spacing: 0.08em;
+    }
+
+    .nav ul {
+      display: flex;
+      gap: 1.25rem;
+      margin: 0 0 0 auto;
+      padding: 0;
+      list-style: none;
+      overflow-x: auto;
+      scrollbar-width: none;
+      font-size: 0.92rem;
+      color: var(--mute);
+      white-space: nowrap;
+    }
+
+    .nav ul::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav a:hover {
+      color: var(--ink);
     }
 
     /* —— Hero —— */
@@ -70,7 +129,7 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: clamp(4rem, 12vh, 7rem) 0;
+      padding: calc(var(--nav-h) + clamp(3rem, 10vh, 6rem)) 0 clamp(3rem, 10vh, 6rem);
       overflow: clip;
       background: #05090e;
     }
@@ -118,12 +177,6 @@
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.1;
-      opacity: 0;
-      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.05s forwards;
-    }
-
-    .brand .mark {
-      color: var(--ink);
     }
 
     .brand .fde {
@@ -133,31 +186,47 @@
 
     .hero h1 {
       margin: 0 0 1.1rem;
-      max-width: 12em;
-      font-size: clamp(1.85rem, 4.8vw, 3.25rem);
+      max-width: 16em;
+      font-size: clamp(2rem, 5.4vw, 3.75rem);
       font-weight: 800;
       letter-spacing: -0.03em;
-      line-height: 1.18;
-      opacity: 0;
-      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.18s forwards;
+      line-height: 1.15;
     }
 
     .hero .lede {
       margin: 0 0 2rem;
-      max-width: 36em;
+      max-width: 34em;
       font-size: clamp(1rem, 1.8vw, 1.2rem);
       color: var(--mute);
       line-height: 1.65;
+    }
+
+    .rise {
       opacity: 0;
-      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .rise:nth-child(2) { animation-delay: 0.12s; }
+    .rise:nth-child(3) { animation-delay: 0.24s; }
+    .rise:nth-child(4) { animation-delay: 0.36s; }
+    .rise:nth-child(5) { animation-delay: 0.48s; }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .cta-row {
       display: flex;
       flex-wrap: wrap;
       gap: 0.75rem;
-      opacity: 0;
-      animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.42s forwards;
+      margin-bottom: 1.5rem;
     }
 
     .btn {
@@ -167,7 +236,6 @@
       min-height: 2.85rem;
       padding: 0 1.25rem;
       border-radius: 2px;
-      font: inherit;
       font-weight: 600;
       font-size: 0.98rem;
       border: 1px solid transparent;
@@ -188,33 +256,16 @@
     }
 
     .btn-ghost {
-      background: transparent;
       border-color: rgba(244, 238, 228, 0.28);
-      color: var(--ink);
     }
 
     .btn-ghost:hover {
       border-color: rgba(244, 238, 228, 0.5);
     }
 
-    @keyframes rise {
-      from {
-        opacity: 0;
-        transform: translateY(16px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
     /* —— Sections —— */
-    main {
-      padding-bottom: 4rem;
-    }
-
     .band {
-      padding: clamp(3.25rem, 8vh, 5.5rem) 0;
+      padding: clamp(3.5rem, 9vh, 6rem) 0;
       border-top: 1px solid var(--line);
     }
 
@@ -230,43 +281,50 @@
 
     h2 {
       margin: 0 0 0.75rem;
-      max-width: 16em;
-      font-size: clamp(1.55rem, 3.2vw, 2.15rem);
+      font-size: clamp(1.55rem, 3.2vw, 2.25rem);
       font-weight: 700;
       letter-spacing: -0.02em;
       line-height: 1.2;
     }
 
+    h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.08rem;
+      font-weight: 600;
+    }
+
     .section-lede {
-      margin: 0 0 2rem;
+      margin: 0 0 2.25rem;
       max-width: 34em;
       color: var(--mute);
       font-size: 1.05rem;
     }
 
-    .flow {
+    /* Hairline grid: 1px gaps over a line-colored background. */
+    .tiles {
+      display: grid;
+      gap: 1px;
       margin: 0;
       padding: 0;
       list-style: none;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0;
+      background: var(--line);
       border: 1px solid var(--line);
-      counter-reset: step;
     }
 
-    .flow li {
+    .tiles > * {
       padding: 1.35rem 1.4rem 1.5rem;
-      border-right: 1px solid var(--line);
-      border-bottom: 1px solid var(--line);
+      background: var(--bg);
     }
 
-    .flow li:nth-child(2n) {
-      border-right: 0;
+    .tiles p {
+      margin: 0;
+      color: var(--mute);
+      font-size: 0.95rem;
     }
 
-    .flow li:nth-child(n + 3) {
-      border-bottom: 0;
+    .flow {
+      grid-template-columns: repeat(5, 1fr);
+      counter-reset: step;
     }
 
     .flow li::before {
@@ -280,34 +338,39 @@
       color: var(--ember);
     }
 
-    .flow strong {
-      display: block;
-      margin-bottom: 0.35rem;
-      font-size: 1.1rem;
-      font-weight: 600;
+    .cards {
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
     }
 
-    .flow span {
-      color: var(--mute);
-      font-size: 0.95rem;
-      line-height: 1.5;
+    .tag {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0 0.4rem;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      font-weight: 500;
+      line-height: 1.6;
+      vertical-align: 0.15em;
+      color: var(--teal);
+      border: 1px solid rgba(47, 158, 143, 0.5);
+      border-radius: 2px;
     }
 
     .cmd {
       margin: 0;
-      max-width: 32rem;
-      padding: 1.1rem 1.25rem;
-      background: #0e1620;
+      max-width: 34rem;
+      padding: 1rem 1.25rem;
+      background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 2px;
       font-family: var(--mono);
-      font-size: 0.98rem;
+      font-size: 0.95rem;
       overflow-x: auto;
       color: #e8eef4;
     }
 
     .cmd code {
-      font: inherit;
+      font-size: inherit;
     }
 
     .cmd .prompt {
@@ -316,15 +379,212 @@
       user-select: none;
     }
 
+    /* —— FDE desk sketch —— */
+    .desk {
+      display: grid;
+      grid-template-columns: 1fr 1.6fr 1fr;
+      gap: 1px;
+      margin: 0 0 2.25rem;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .desk > div {
+      min-height: 13rem;
+      padding: 0.9rem 1rem;
+      background: var(--panel);
+    }
+
+    .desk-label {
+      margin: 0 0 0.9rem;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--mute);
+    }
+
+    .bubble {
+      height: 0.6rem;
+      margin-bottom: 0.55rem;
+      border-radius: 2px;
+      background: rgba(244, 238, 228, 0.1);
+    }
+
+    .bubble.me {
+      width: 62%;
+      margin-left: auto;
+      background: rgba(224, 90, 43, 0.35);
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .chips span {
+      padding: 0.1rem 0.5rem;
+      font-size: 0.78rem;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      color: var(--mute);
+    }
+
+    .chips span:first-child {
+      color: var(--ink);
+      border-color: var(--teal);
+    }
+
+    .card-sketch {
+      padding: 0.7rem 0.8rem;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      font-size: 0.82rem;
+      color: var(--mute);
+    }
+
+    .card-sketch div + div {
+      margin-top: 0.3rem;
+    }
+
+    .card-sketch b {
+      color: var(--ink);
+      font-weight: 600;
+      margin-right: 0.4rem;
+    }
+
+    .tasks {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      font-size: 0.82rem;
+      color: var(--mute);
+    }
+
+    .tasks li {
+      padding: 0.25rem 0;
+    }
+
+    .tasks li::before {
+      content: "☐";
+      margin-right: 0.45rem;
+    }
+
+    .tasks li.done {
+      color: var(--ink);
+    }
+
+    .tasks li.done::before {
+      content: "☑";
+      color: var(--teal);
+    }
+
+    .groups {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .groups ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--mute);
+      font-size: 0.95rem;
+    }
+
+    .groups li {
+      position: relative;
+      padding: 0.3rem 0 0.3rem 0.95rem;
+    }
+
+    .groups li::before,
+    .hosts li::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: calc(0.3rem + 0.6em);
+      width: 0.35rem;
+      height: 0.35rem;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    /* —— Roles —— */
+    .roles {
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .roles dl {
+      margin: 0.9rem 0 0;
+      font-size: 0.95rem;
+    }
+
+    .roles dt {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--ember);
+    }
+
+    .roles dt.not {
+      color: var(--mute);
+    }
+
+    .roles dd {
+      margin: 0.2rem 0 0.9rem;
+      color: var(--mute);
+    }
+
+    /* —— Deploy —— */
+    .deploy {
+      grid-template-columns: 1fr;
+    }
+
+    .deploy > li {
+      display: grid;
+      grid-template-columns: 10rem 1fr 1fr;
+      gap: 0.25rem 1.5rem;
+      padding-block: 1rem;
+    }
+
+    .deploy strong {
+      font-weight: 600;
+    }
+
+    .deploy span {
+      color: var(--mute);
+      font-size: 0.95rem;
+    }
+
+    .deploy .head span {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+    }
+
+    /* —— Install —— */
+    .steps {
+      display: grid;
+      gap: 1.5rem;
+      margin: 0 0 2.25rem;
+      padding: 0;
+      list-style: none;
+    }
+
+    .steps h3 {
+      margin-bottom: 0.6rem;
+    }
+
     .hosts {
       display: flex;
       flex-wrap: wrap;
       gap: 0.5rem 1.5rem;
-      margin: 1.5rem 0 0;
+      margin: 0.6rem 0 1.5rem;
       padding: 0;
       list-style: none;
       color: var(--mute);
-      font-size: 0.98rem;
     }
 
     .hosts li {
@@ -333,14 +593,24 @@
     }
 
     .hosts li::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0.55em;
-      width: 0.35rem;
-      height: 0.35rem;
-      border-radius: 50%;
-      background: var(--teal);
+      top: 0.6em;
+    }
+
+    .hosts.main {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .hosts.main li::before {
+      background: var(--ember);
+    }
+
+    .note {
+      margin: 0;
+      padding-left: 1rem;
+      border-left: 2px solid var(--ember);
+      color: var(--mute);
+      font-size: 0.95rem;
     }
 
     footer {
@@ -361,31 +631,68 @@
       color: var(--ink);
     }
 
+    @media (max-width: 900px) {
+      .flow {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .groups,
+      .roles {
+        grid-template-columns: 1fr;
+      }
+
+      .desk {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .desk > div:nth-child(2) {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        min-height: 0;
+      }
+    }
+
     @media (max-width: 640px) {
       .flow {
         grid-template-columns: 1fr;
       }
 
-      .flow li {
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
+      .nav-brand {
+        display: none;
       }
 
-      .flow li:nth-child(n + 3) {
-        border-bottom: 1px solid var(--line);
+      .nav ul {
+        margin-left: 0;
       }
 
-      .flow li:last-child {
-        border-bottom: 0;
+      .deploy > li {
+        grid-template-columns: 1fr;
+      }
+
+      .deploy .head {
+        display: none;
+      }
+
+      .deploy > li span:last-child::before {
+        content: "准备：";
+      }
+
+      .desk {
+        grid-template-columns: 1fr;
+      }
+
+      .desk > div {
+        min-height: 0;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
       .hero-grid,
-      .brand,
-      .hero h1,
-      .hero .lede,
-      .cta-row {
+      .rise {
         animation: none !important;
         opacity: 1;
         transform: none;
@@ -394,22 +701,38 @@
   </style>
 </head>
 <body>
-  <header class="hero">
+  <nav class="nav" aria-label="页面导航">
+    <div class="wrap">
+      <a class="nav-brand" href="#top">Norm <span>FDE</span></a>
+      <ul>
+        <li><a href="#how">流程</a></li>
+        <li><a href="#editor">编辑器</a></li>
+        <li><a href="#fde">Norm FDE</a></li>
+        <li><a href="#roles">角色</a></li>
+        <li><a href="#deploy">部署</a></li>
+        <li><a href="#install">安装</a></li>
+        <li><a href="https://github.com/fujiezee/norm">GitHub</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
     <div class="hero-sky" aria-hidden="true"></div>
     <div class="hero-grid" aria-hidden="true"></div>
     <div class="wrap">
-      <p class="brand">
-        <span class="mark">Norm</span>
+      <p class="brand rise">
+        <span>Norm</span>
         <span class="fde">FDE</span>
       </p>
-      <h1>把 AI 助手变成能交付的数字员工</h1>
-      <p class="lede">
-        你用自然语言说意图。Norm 先写成可检查的 Brief，再按范围实现，对照验收通过才算完成——不是让你去操作阶段和命令。
+      <h1 class="rise">把 AI 助手变成能交付的数字员工</h1>
+      <p class="lede rise">
+        你用平常话说意图。Norm 先写成可检查的 Brief，按范围实现，评审和验收都过了才算交付。
       </p>
-      <div class="cta-row">
+      <div class="cta-row rise">
         <a class="btn btn-ember" href="https://github.com/fujiezee/norm">GitHub 仓库</a>
         <a class="btn btn-ghost" href="#install">安装起步</a>
       </div>
+      <pre class="cmd rise"><code><span class="prompt">›</span>npx @fujiezee/norm init --here</code></pre>
     </div>
   </header>
 
@@ -418,25 +741,63 @@
       <div class="wrap">
         <p class="eyebrow">Delivery</p>
         <h2>它自己会跑完交付</h2>
-        <p class="section-lede">日常你只要说话；流程由数字员工执行。</p>
-        <ol class="flow">
+        <p class="section-lede">你只要说话，流程由数字员工执行。</p>
+        <ol class="tiles flow">
           <li>
-            <strong>Brief</strong>
-            <span>目标 / 边界 / 可检查验收</span>
+            <h3>Brief</h3>
+            <p>目标 / 不做 / 可检查验收</p>
           </li>
           <li>
-            <strong>实现</strong>
-            <span>只做 Brief 范围，隔离分支与 worktree</span>
+            <h3>实现</h3>
+            <p>只做 Brief 范围，独立分支与 worktree</p>
           </li>
           <li>
-            <strong>验收</strong>
-            <span>对照验收与项目测试规则；未满足不算完成</span>
+            <h3>评审</h3>
+            <p>Ponytail 评审，只有 Ship 才放行</p>
           </li>
           <li>
-            <strong>交接</strong>
-            <span>一行结论；满意后再改一版或部署</span>
+            <h3>验收</h3>
+            <p>对照验收与测试规则，未满足不算完成</p>
+          </li>
+          <li>
+            <h3>交接</h3>
+            <p>一行结论；不满意再改一版</p>
           </li>
         </ol>
+      </div>
+    </section>
+
+    <section class="band" id="editor">
+      <div class="wrap">
+        <p class="eyebrow">In your editor</p>
+        <h2>在编辑器里交代就行</h2>
+        <p class="section-lede">装一次，在 Cursor 或 Claude Code 里用平常话说。</p>
+        <ul class="tiles cards">
+          <li>
+            <h3>不用记命令</h3>
+            <p>不用 slash 命令，也不用自己点「写 Spec / 拆任务」。</p>
+          </li>
+          <li>
+            <h3>先谈清楚再动手</h3>
+            <p>整理成要做什么、不做什么、怎样算做完。</p>
+          </li>
+          <li>
+            <h3>做完才算完</h3>
+            <p>对照验收通过才说「交付好了」，半成品不会假装完成。</p>
+          </li>
+          <li>
+            <h3>评审闸门</h3>
+            <p>最小的完整改动；没过 <code>ponytail-review</code>，<code>norm check</code> 和收尾钩子都会打回。</p>
+          </li>
+          <li>
+            <h3>PR 模式<span class="tag">可选</span></h3>
+            <p>每个任务走 GitHub PR：CI 失败退回修，全绿自动合并。</p>
+          </li>
+          <li>
+            <h3>分支规矩</h3>
+            <p><code>main</code> 上线、<code>develop</code> 日常；每个任务一个独立 worktree。</p>
+          </li>
+        </ul>
       </div>
     </section>
 
@@ -444,10 +805,124 @@
       <div class="wrap">
         <p class="eyebrow">Field Development Environment</p>
         <h2>Norm FDE</h2>
-        <p class="section-lede">
-          与业务仓隔离的现场开发环境：对话确认需求、架构、派工、预览与改进。
-        </p>
-        <pre class="cmd"><code><span class="prompt">›</span>norm live</code></pre>
+        <p class="section-lede">本机的 Norm 控制台：聊需求、派工、看进度、看结果。</p>
+
+        <div class="desk" aria-hidden="true">
+          <div>
+            <p class="desk-label">对话</p>
+            <div class="bubble me"></div>
+            <div class="bubble" style="width: 88%"></div>
+            <div class="bubble" style="width: 70%"></div>
+            <div class="bubble me" style="width: 48%"></div>
+            <div class="bubble" style="width: 80%"></div>
+          </div>
+          <div>
+            <p class="desk-label">模块 / 确认 / 架构 / 开工</p>
+            <div class="chips"><span>登录</span><span>订单</span><span>报表</span></div>
+            <div class="card-sketch">
+              <div><b>目标</b>手机号验证码登录</div>
+              <div><b>不做</b>第三方登录</div>
+              <div><b>验收</b>验证码输错 3 次锁定 10 分钟</div>
+            </div>
+          </div>
+          <div>
+            <p class="desk-label">任务进度</p>
+            <ul class="tasks">
+              <li class="done">登录接口</li>
+              <li class="done">验证码发送</li>
+              <li>锁定策略</li>
+              <li>功能回归</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="tiles groups">
+          <div>
+            <h3>谈清楚</h3>
+            <ul>
+              <li>按模块确认目标、不做、可检查验收</li>
+              <li>功能卡填设备矩阵、关键路径、异常态</li>
+              <li>系统架构图，可全屏查看</li>
+              <li>签署范围与验收基线；改范围开变更单</li>
+              <li>录音转文字输入</li>
+            </ul>
+          </div>
+          <div>
+            <h3>派工</h3>
+            <ul>
+              <li>一键派 Cursor Agent 或 Claude Code</li>
+              <li>隔离 worktree，不动主分支</li>
+              <li>任务按依赖排队，进度实时刷新</li>
+              <li>多个数字员工并行</li>
+              <li>调度中心看派工图</li>
+            </ul>
+          </div>
+          <div>
+            <h3>交付与迭代</h3>
+            <ul>
+              <li>交付物页：时间线、确认书、架构、任务</li>
+              <li>打开结果页面或项目目录</li>
+              <li>不满意继续聊，同一任务续派</li>
+              <li>修 bug 走缺陷卡与 <code>fix/</code> 分支</li>
+              <li>11 种界面语言</li>
+            </ul>
+          </div>
+        </div>
+
+        <pre class="cmd" style="margin-top: 2.25rem"><code><span class="prompt">›</span>norm live</code></pre>
+      </div>
+    </section>
+
+    <section class="band" id="roles">
+      <div class="wrap">
+        <p class="eyebrow">Digital employees</p>
+        <h2>三种角色</h2>
+        <p class="section-lede">运行时都是 Cursor Agent 或 Claude Code，按任务角色分工。</p>
+        <ul class="tiles roles">
+          <li>
+            <h3>实现员工</h3>
+            <dl>
+              <dt>干什么</dt>
+              <dd>按验收写功能；更新产品 README；把预览跑起来并 stamp 交付</dd>
+              <dt class="not">不干什么</dt>
+              <dd>—</dd>
+            </dl>
+          </li>
+          <li>
+            <h3>功能回归</h3>
+            <dl>
+              <dt>干什么</dt>
+              <dd>对照验收做确定性回归（Playwright、<code>npm test</code> 等）；缺测就补测、跑通、留证据</dd>
+              <dt class="not">不干什么</dt>
+              <dd>不改业务功能范围；测挂了不擅自 stamp「验收通过」</dd>
+            </dl>
+          </li>
+          <li>
+            <h3>部署员工</h3>
+            <dl>
+              <dt>干什么</dt>
+              <dd>按选定平台上线，把公网地址写入交付预览</dd>
+              <dt class="not">不干什么</dt>
+              <dd>不改业务功能范围</dd>
+            </dl>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="band" id="deploy">
+      <div class="wrap">
+        <p class="eyebrow">Deploy</p>
+        <h2>部署到哪里</h2>
+        <p class="section-lede">开工前在控制台选计划托管平台，部署员工负责上线。</p>
+        <ul class="tiles deploy">
+          <li class="head"><span>方式</span><span>适合</span><span>你要准备</span></li>
+          <li><strong>暂不部署</strong><span>只在本地做完</span><span>无</span></li>
+          <li><strong>GitHub Pages</strong><span>静态站 / 文档站（默认）</span><span>GitHub 仓库与 <code>gh</code> 登录</span></li>
+          <li><strong>Cloudflare</strong><span>Pages 静态站；Workers 接口</span><span>API Token 与 Account ID</span></li>
+          <li><strong>阿里云</strong><span>OSS（+ CDN）；函数计算</span><span>AccessKey</span></li>
+          <li><strong>AWS</strong><span>S3 + CloudFront；Amplify / Lambda</span><span>Access Key</span></li>
+        </ul>
       </div>
     </section>
 
@@ -456,10 +931,27 @@
         <p class="eyebrow">Install</p>
         <h2>装一次，在熟悉的工具里说话</h2>
         <p class="section-lede">写入各宿主适配文件后，继续用你习惯的 Agent。</p>
-        <pre class="cmd"><code><span class="prompt">›</span>npx @fujiezee/norm init --here</code></pre>
-        <ul class="hosts">
+        <ol class="steps">
+          <li>
+            <h3>安装到项目</h3>
+            <pre class="cmd"><code><span class="prompt">›</span>npx @fujiezee/norm init --here</code></pre>
+          </li>
+          <li>
+            <h3>更新适配文件</h3>
+            <pre class="cmd"><code><span class="prompt">›</span>npx @fujiezee/norm update</code></pre>
+          </li>
+          <li>
+            <h3>全局 CLI</h3>
+            <pre class="cmd"><code><span class="prompt">›</span>npm i -g @fujiezee/norm@latest</code></pre>
+          </li>
+        </ol>
+        <h3>派工</h3>
+        <ul class="hosts main">
           <li>Cursor</li>
           <li>Claude Code</li>
+        </ul>
+        <h3>可选适配</h3>
+        <ul class="hosts">
           <li>Codex</li>
           <li>Copilot</li>
           <li>Windsurf</li>
@@ -468,6 +960,7 @@
           <li>Gemini</li>
           <li>Aider</li>
         </ul>
+        <p class="note">原名 duaer-spec：已装过的仓库跑一次 <code>npx @fujiezee/norm update</code> 即可。</p>
       </div>
     </section>
   </main>

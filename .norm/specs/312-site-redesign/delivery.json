@@ -1,0 +1,13 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T04:55:17Z",
+  "summary": "Intro site rebuilt around current Norm (README.zh-CN): nav, delivery flow with review gate, editor capabilities, Norm FDE desk sketch, three roles, deploy targets, install/update. Chinese only, existing palette.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "headless Chromium render at 375px and 1280px (scrollWidth check + screenshots)",
+      "HTML tag balance check"
+    ],
+    "result": "302 pass; no horizontal overflow at 375px or 1280px; tags balance; review Round 1 Ship."
+  }
+}
