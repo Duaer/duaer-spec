@@ -1,0 +1,15 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T04:07:19Z",
+  "summary": "Released 0.27.12: Norm on npm as @fujiezee/norm (bin norm). Tag v0.27.12 on main; GitHub Release published; v0.27.11 notes say it never reached npm; duaer-spec deprecated with a pointer to @fujiezee/norm.",
+  "verification": {
+    "commands": [
+      "npm test",
+      "gh release view v0.27.12",
+      "curl https://registry.npmjs.org/@fujiezee%2fnorm",
+      "npx -y @fujiezee/norm@0.27.12 version",
+      "curl https://registry.npmjs.org/duaer-spec"
+    ],
+    "result": "npm test 302 pass. npm @fujiezee/norm latest 0.27.12, bin norm; npx prints 0.27.12. duaer-spec 0.27.10 deprecated. Manual publish (OTP): the release workflow failed ENEEDAUTH until Trusted Publisher is set for @fujiezee/norm."
+  }
+}
