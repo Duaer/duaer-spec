@@ -43,9 +43,9 @@ Details: [`.norm/memory/testing.md`](../.norm/memory/testing.md).
 Adopter install / update:
 
 ```bash
-npx ainorm init --here
+npx @fujiezee/norm init --here
 norm self-update              # global CLI
-npx ainorm update          # product-repo adapters
+npx @fujiezee/norm update          # product-repo adapters
 ```
 
 ## Examples
@@ -56,6 +56,6 @@ this repository's `main` + `develop` + `.worktree/` policy.
 ## Adopters
 
 Projects that copied files do not auto-update. They re-run
-`npx ainorm update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
+`npx @fujiezee/norm update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
 method revision. Global CLI installs can run `norm self-update` (or
-`npm i -g ainorm@latest`). The CLI notifies when npm has a newer release.
+`npm i -g @fujiezee/norm@latest`). The CLI notifies when npm has a newer release.

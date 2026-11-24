@@ -25,7 +25,7 @@ This repository uses **Norm**: coding agents are digital employees.
 | Gemini CLI | `GEMINI.md` | — |
 | Aider | `.aider.conf.yml` | reads `AGENTS.md` |
 
-Installed by `npx ainorm init --here` / `update`.
+Installed by `npx @fujiezee/norm init --here` / `update`.
 
 ## Branches
 

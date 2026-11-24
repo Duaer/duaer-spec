@@ -4,7 +4,7 @@ description: "Convert existing tasks into actionable, dependency-ordered GitHub 
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

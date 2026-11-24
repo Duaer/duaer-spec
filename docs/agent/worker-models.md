@@ -109,6 +109,6 @@ DeepSeek also documents integrations for Codex and other tools:
 FDE still only **auto-launches** Cursor Agent and Claude Code. Day-to-day
 product support is **Cursor** and **Claude Code** — talk in plain language; you
 do not need a professional Spec workflow. Other editors may still receive
-optional adapters from `npx ainorm init --here` (see [`ADOPT.md`](../../ADOPT.md)).
+optional adapters from `npx @fujiezee/norm init --here` (see [`ADOPT.md`](../../ADOPT.md)).
 
 Chinese version: [worker-models.zh-CN.md](worker-models.zh-CN.md).

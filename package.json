@@ -1,13 +1,10 @@
 {
-  "name": "ainorm",
+  "name": "@fujiezee/norm",
   "version": "0.27.11",
   "description": "Norms → satisfactory delivery: digital employees for Cursor and Claude Code — talk in plain language, no Spec workflow required",
   "type": "module",
   "bin": {
-    "norm": "bin/norm.mjs",
-    "ainorm": "bin/norm.mjs",
-    "duaer": "bin/norm.mjs",
-    "duaer-spec": "bin/norm.mjs"
+    "norm": "bin/norm.mjs"
   },
   "files": [
     "bin",

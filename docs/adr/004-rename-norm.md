@@ -12,11 +12,11 @@ The npm name `norm` is taken.
 
 ## Decision
 
-1. Brand **Norm**; npm package `ainorm`; CLI `norm` (also `ainorm`).
+1. Brand **Norm**; npm package `@fujiezee/norm` (npm refused `ainorm` as too close to `unorm`); CLI `norm`.
 2. Installed layout: `.norm/`, `NORM.md`, `norm-*` skills, `norm.md` /
    `norm.mdc` rules, `NORM_*` env vars, `~/.norm` home.
 3. Compatibility (`bin/legacy-names.mjs`):
-   - `duaer` and `duaer-spec` remain bin aliases.
+   - No `duaer` / `duaer-spec` bin aliases: they would clash with a global `duaer-spec` install (`EEXIST`). The deprecated `duaer-spec` package tells users to `npm rm -g duaer-spec` first.
    - `DUAER_*` env vars fill unset `NORM_*` names.
    - The first CLI run moves `~/.duaer` to `~/.norm` when `~/.norm` is absent.
    - `norm init` / `update` move a repo's `.duaer/`, `DUADER.md`, init marker,
@@ -26,6 +26,6 @@ The npm name `norm` is taken.
 
 ## Consequences
 
-- Existing installs upgrade with one `npx ainorm update`.
+- Existing installs upgrade with one `npx @fujiezee/norm update`.
 - Desk UI preferences kept in browser storage under old key names reset once.
 - Job history (past Briefs, past CHANGELOG entries) keeps the old names.

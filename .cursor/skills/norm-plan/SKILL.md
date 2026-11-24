@@ -4,7 +4,7 @@ description: "Execute the implementation planning workflow using the plan templa
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T03:59:19Z",
+  "summary": "Package renamed to @fujiezee/norm (npm refused ainorm); bin norm only; install, update, self-update and registry check use the new name.",
+  "verification": {
+    "commands": ["npm test", "npm run test:live", "npm pack --dry-run"],
+    "result": "302 pass; test:live pass; pack name @fujiezee/norm."
+  }
+}

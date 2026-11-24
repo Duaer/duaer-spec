@@ -19,7 +19,7 @@ const PKG_ROOT = join(__dirname, "..");
 const PKG = JSON.parse(readFileSync(join(PKG_ROOT, "package.json"), "utf8"));
 
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
-const REGISTRY_URL = "https://registry.npmjs.org/ainorm/latest";
+const REGISTRY_URL = "https://registry.npmjs.org/@fujiezee%2fnorm/latest";
 
 function normHome() {
   return process.env.NORM_HOME || join(homedir(), ".norm");
@@ -156,7 +156,7 @@ export async function checkForUpdate({ force = false } = {}) {
 
 export function formatUpdateHint(info) {
   if (!info?.outdated || !info.latest) return null;
-  return `ainorm ${info.current} → ${info.latest} available. Upgrade CLI: npm i -g ainorm@latest   (or: norm self-update)   ·  refresh a product repo: npx ainorm@latest update`;
+  return `@fujiezee/norm ${info.current} → ${info.latest} available. Upgrade CLI: npm i -g @fujiezee/norm@latest   (or: norm self-update)   ·  refresh a product repo: npx @fujiezee/norm@latest update`;
 }
 
 /** Fire-and-forget console hint (non-blocking for callers that await briefly). */
@@ -173,10 +173,10 @@ export async function maybePrintUpdateHint({ force = false } = {}) {
 
 export function runSelfUpdate() {
   console.log(`Current: Norm ${localPackageVersion()}`);
-  console.log("Installing: npm i -g ainorm@latest …\n");
+  console.log("Installing: npm i -g @fujiezee/norm@latest …\n");
   const r = spawnSync(
     "npm",
-    ["install", "-g", "ainorm@latest"],
+    ["install", "-g", "@fujiezee/norm@latest"],
     { stdio: "inherit", env: process.env, shell: process.platform === "win32" },
   );
   if (r.error) {
@@ -184,11 +184,11 @@ export function runSelfUpdate() {
   }
   if (r.status !== 0) {
     process.exitCode = r.status || 1;
-    console.error("\nself-update failed. Try: npm i -g ainorm@latest");
+    console.error("\nself-update failed. Try: npm i -g @fujiezee/norm@latest");
     return;
   }
   console.log("\nCLI upgraded. In each product repo that used init, also run:");
-  console.log("  npx ainorm@latest update");
+  console.log("  npx @fujiezee/norm@latest update");
   // Refresh cache
   checkForUpdate({ force: true }).catch(() => {});
 }

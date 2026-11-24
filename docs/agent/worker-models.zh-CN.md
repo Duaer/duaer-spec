@@ -98,6 +98,6 @@ DeepSeek 还写了 Codex 等工具的接入说明：
 
 FDE **自动派工**目前只支持 Cursor Agent 与 Claude Code。日常使用以 **Cursor**、
 **Claude Code** 为准：用平常话交代即可，不必学专业 Spec 流程。其它编辑器仍可
-从 `npx ainorm init --here` 拿到可选适配（见 [`ADOPT.md`](../../ADOPT.md)）。
+从 `npx @fujiezee/norm init --here` 拿到可选适配（见 [`ADOPT.md`](../../ADOPT.md)）。
 
 English: [worker-models.md](worker-models.md).

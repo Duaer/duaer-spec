@@ -4,7 +4,7 @@ description: "Perform a non-destructive cross-artifact consistency and quality a
 compatibility: "Requires Norm project structure with .norm/ directory"
 metadata:
   author: "Norm"
-  source: "ainorm"
+  source: "norm"
 ---
 
 

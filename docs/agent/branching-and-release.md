@@ -255,9 +255,9 @@ All implementation edits happen inside the request worktree.
 ## 7. Install and update (adopters)
 
 ```bash
-npx ainorm init --here     # once
+npx @fujiezee/norm init --here     # once
 norm self-update              # upgrade global CLI from npm
-npx ainorm update          # later refresh product-repo adapters — no --force recipe
+npx @fujiezee/norm update          # later refresh product-repo adapters — no --force recipe
 ```
 
 `norm` prints a one-line hint when a newer npm release exists (≤24h cache;
