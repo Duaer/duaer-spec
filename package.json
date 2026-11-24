@@ -35,12 +35,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Duaer/duaer-spec.git"
+    "url": "git+https://github.com/fujiezee/norm.git"
   },
   "bugs": {
-    "url": "https://github.com/Duaer/duaer-spec/issues"
+    "url": "https://github.com/fujiezee/norm/issues"
   },
-  "homepage": "https://github.com/Duaer/duaer-spec#readme",
+  "homepage": "https://github.com/fujiezee/norm#readme",
   "keywords": [
     "norm",
     "digital-employee",

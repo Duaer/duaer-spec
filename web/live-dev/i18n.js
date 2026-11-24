@@ -209,7 +209,7 @@ const zhCN = {
   "setup.guideOther2": "写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code",
   "setup.guideOther3": "Cursor Agent 的模型在 Cursor 账号/设置里选；FDE 只负责启动 agent",
   "setup.guideDoc":
-    '完整步骤见 <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a>',
+    '完整步骤见 <a href="https://github.com/fujiezee/norm/blob/main/docs/agent/worker-models.zh-CN.md" target="_blank" rel="noopener">GitHub · worker-models.zh-CN.md</a>',
   "provider.custom": "自定义",
   "chat.aria": "对话",
   "chat.inputLabel": "你的话",
@@ -673,7 +673,7 @@ const zhCN = {
   "err.code.CHILD_TIMEOUT": "子进程超时被中止。请重试续派；若 git/init 卡住请检查仓库与钩子。",
   "err.code.LAUNCH_FAILED": "续派启动失败。可直接再点「再派一版」重试。",
   "err.code.NO_AGENT":
-    "未检测到可用 CLI。请安装 Cursor Agent 或 Claude Code 后重试。见 https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.zh-CN.md",
+    "未检测到可用 CLI。请安装 Cursor Agent 或 Claude Code 后重试。见 https://github.com/fujiezee/norm/blob/main/docs/agent/worker-models.zh-CN.md",
   "err.code.AGENT_MISSING": "所选 CLI 未安装。请安装后重试。",
   "err.retryableHint": "可以再试一次。",
   "status.terminalLine": "Terminal：{state}",
@@ -869,7 +869,7 @@ const en = {
   "setup.guideOther2": "To code with DeepSeek (etc.): point Claude Code at that API (~/.claude/settings.json ANTHROPIC_*), then pick Claude Code on dispatch",
   "setup.guideOther3": "Cursor Agent models are chosen in Cursor account/settings; FDE only launches agent",
   "setup.guideDoc":
-    'Full steps: <a href="https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.md" target="_blank" rel="noopener">GitHub · worker-models.md</a>',
+    'Full steps: <a href="https://github.com/fujiezee/norm/blob/main/docs/agent/worker-models.md" target="_blank" rel="noopener">GitHub · worker-models.md</a>',
   "provider.custom": "Custom",
   "chat.aria": "Chat",
   "chat.inputLabel": "Your message",
@@ -1360,7 +1360,7 @@ const en = {
     "A child process timed out. Retry revise; check git hooks if checkout/init stalls.",
   "err.code.LAUNCH_FAILED": "Revise launch failed. Tap Confirm revise to retry.",
   "err.code.NO_AGENT":
-    "No CLI found. Install Cursor Agent or Claude Code, then retry. See https://github.com/fujiezee/duaer-spec/blob/main/docs/agent/worker-models.md.",
+    "No CLI found. Install Cursor Agent or Claude Code, then retry. See https://github.com/fujiezee/norm/blob/main/docs/agent/worker-models.md.",
   "err.code.AGENT_MISSING": "Selected CLI is not installed. Install it, then retry.",
   "err.retryableHint": "You can retry.",
   "status.terminalLine": "Terminal: {state}",

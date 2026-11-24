@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T04:10:46Z",
+  "summary": "Repository moved from Duaer/duaer-spec to fujiezee/norm; origin updated; develop pushed; site live at https://fujiezee.github.io/norm/ (old Pages URL 404s as expected). Links on main update with the next develop -> main promotion.",
+  "verification": {
+    "commands": ["npm test", "npm run test:live", "gh repo view fujiezee/norm", "git ls-remote origin", "curl https://fujiezee.github.io/norm/"],
+    "result": "302 pass; test:live pass; repo fujiezee/norm; origin develop = 400fea4; site 200."
+  }
+}

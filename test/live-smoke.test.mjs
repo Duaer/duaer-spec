@@ -451,7 +451,7 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.equal(health.ready, true);
 
   const gh = await (await fetch(`${live.base}/api/github`)).json();
-  assert.match(String(gh.url || ""), /github\.com\/(Duaer|fujiezee)\/duaer-spec/);
+  assert.match(String(gh.url || ""), /github\.com\/fujiezee\/norm/);
   assert.ok(
     gh.stars === null || typeof gh.stars === "number",
     "stars null or number",

@@ -15,8 +15,8 @@
 
 | 字段 | 填什么 |
 |---|---|
-| Organization or user | `Norm` |
-| Repository | `duaer-spec` |
+| Organization or user | `fujiezee` |
+| Repository | `norm` |
 | Workflow filename | `npm-publish.yml`（**只要文件名**，不要 `.github/workflows/`） |
 | Environment name | 留空（除非你在 GitHub 建了 Environment） |
 | Allowed actions | 勾选 **npm publish** |

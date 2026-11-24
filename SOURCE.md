@@ -1,7 +1,7 @@
 # Source (provenance)
 
 **Norm** is an independent methodology repository:
-https://github.com/fujiezee/duaer-spec
+https://github.com/fujiezee/norm
 
 Early drafts borrowed ideas from Spec-Driven Development practice and from
 product agent-ops rules. Those sources are **not** runtime dependencies. The
