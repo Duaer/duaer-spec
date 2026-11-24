@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.27.11 — 2026-11-24
+
 ### Feat: rename duaer-spec to Norm
 
 - The product is now **Norm**: npm package `ainorm`, CLI `norm` (`duaer` and `duaer-spec` still work as aliases)
