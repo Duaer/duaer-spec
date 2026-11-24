@@ -300,10 +300,6 @@
       font-size: 1.05rem;
     }
 
-    .mute {
-      color: var(--mute);
-    }
-
     /* Hairline grid: 1px gaps over a line-colored background. */
     .tiles {
       display: grid;
@@ -508,7 +504,7 @@
       content: "";
       position: absolute;
       left: 0;
-      top: 0.85em;
+      top: calc(0.3rem + 0.6em);
       width: 0.35rem;
       height: 0.35rem;
       border-radius: 50%;
@@ -594,6 +590,10 @@
     .hosts li {
       position: relative;
       padding-left: 0.9rem;
+    }
+
+    .hosts li::before {
+      top: 0.6em;
     }
 
     .hosts.main {
@@ -822,7 +822,7 @@
             <div class="card-sketch">
               <div><b>目标</b>手机号验证码登录</div>
               <div><b>不做</b>第三方登录</div>
-              <div><b>验收</b>错误码 3 次后锁定 10 分钟</div>
+              <div><b>验收</b>验证码输错 3 次锁定 10 分钟</div>
             </div>
           </div>
           <div>
