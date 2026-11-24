@@ -18,3 +18,24 @@ Checked: every `.duaer` path in code now has a `.norm` twin; rule file names (`n
 Verdict: fix 1 first.
 
 Not checked: npm trusted publishing has to be set up for the new `ainorm` package before the release workflow can publish it.
+
+---
+
+Round: 2
+Commit: 7f6f271c08f54d25aa028ee53ce9832b62ee83fc
+
+What this change does: Same rename as round 1, plus the fix for finding 1: `ensureNormInstalled` in the desk now calls `migrateLegacyRepo(abs)` before it checks for an install, and a test pins that order.
+
+Checked finding 1: an old repo with `.duaer/` and `AGENTS.md` is now moved to `.norm/` before the desk writes any Brief, so history and new jobs live in one folder. The call is idempotent (a no-op once `.duaer/` is gone), and a failed rename throws the same way a failed init already did. `npm test` 302 pass, `npm run test:live` pass.
+
+**Nice to have**
+
+1. **The desk leaves the rename uncommitted in the primary checkout** (`bin/norm-live.mjs` `ensureNormInstalled`)
+   - **What this is:** When the desk meets an old repo, it now moves `.duaer/` to `.norm/` in that checkout.
+   - **Problem:** Those are tracked files, so the user sees an uncommitted rename in `git status`, the same as after `norm update` or the desk's existing auto-init.
+   - **Fix:** None needed now; the CHANGELOG tells adopters to run `npx ainorm update` once and commit.
+   - **If we skip it:** One dirty `git status` per old repo, until it is committed.
+
+Looks good. Ship.
+
+Verdict: Ship.
