@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.27.12 — 2026-11-24
+
 ### Fix: npm package is `@fujiezee/norm`
 
 - npm refused the name `ainorm` (too close to `unorm`), so 0.27.11 never reached npm. The package is now `@fujiezee/norm`; the CLI is still `norm`
