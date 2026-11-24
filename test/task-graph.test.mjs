@@ -386,7 +386,7 @@ test("desk wires decompose → recommend workers → graph confirm", () => {
   assert.match(js, /dispatch\.graphBuilding/);
   assert.match(js, /\/api\/architecture\/render/);
   assert.match(js, /recommendWorkerCount/);
-  assert.match(css, /duaer-btn-spin|is-busy/);
+  assert.match(css, /norm-btn-spin|is-busy/);
   assert.match(css, /#confirmWorkersGraph\.is-locked/);
   assert.match(js, /annotateParallelTasks/);
 });

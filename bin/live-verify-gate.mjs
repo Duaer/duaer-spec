@@ -1,12 +1,12 @@
 /**
  * Desk-owned accept gate. The employee may write delivery.json; the desk
- * runs `.duaer/memory/verify.json` and reopens a stamp the commands do not support.
+ * runs `.norm/memory/verify.json` and reopens a stamp the commands do not support.
  */
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { reviewInstructions, reviewPasses } from "../.duaer/hooks/review-gate.mjs";
-import { prInstructions, prPasses } from "../.duaer/hooks/pr-gate.mjs";
+import { reviewInstructions, reviewPasses } from "../.norm/hooks/review-gate.mjs";
+import { prInstructions, prPasses } from "../.norm/hooks/pr-gate.mjs";
 
 function reopened(delivery, gate) {
   const next = { ...delivery, status: "open", gate };
@@ -14,7 +14,7 @@ function reopened(delivery, gate) {
   return next;
 }
 
-export const VERIFY_REL = path.join(".duaer", "memory", "verify.json");
+export const VERIFY_REL = path.join(".norm", "memory", "verify.json");
 export const DOCS_WAIVER = "docs-only";
 
 const MAX_COMMANDS = 8;
@@ -404,7 +404,7 @@ export function prGateReopen(delivery, featureDir, pr, { base, branch } = {}) {
 export function verifyNudgePrompt({ nudge, worktreePath, featureDir }) {
   if (!nudge) return "";
   if (nudge.result === "review") {
-    return `Duaer
+    return `Norm
 
 工作目录: ${worktreePath}
 
@@ -412,18 +412,18 @@ ${nudge.instructions || ""}
 `;
   }
   if (nudge.result === "missing" || nudge.result === "invalid") {
-    return `Duaer
+    return `Norm
 
 机器验收未放行。工作目录: ${worktreePath}
 Brief: ${featureDir || ""}
 
-产品仓需要 \`.duaer/memory/verify.json\`。
+产品仓需要 \`.norm/memory/verify.json\`。
 - 有可跑测试时写入 { "commands": ["<真实命令>"] }（例如 npm test）
 - 只有纯文档、没有可跑命令时才允许 { "waiver": "docs-only" }
 不要 stamp delivery.json 为 accepted。控制台会自己复跑；失败会把 accepted 打回 open。
 `;
   }
-  return `Duaer
+  return `Norm
 
 机器验收未通过。工作目录: ${worktreePath}
 Brief: ${featureDir || ""}

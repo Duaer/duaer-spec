@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("live dispatch prompts forbid early Job not accepted yet", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /DISPATCH_MUST_FINISH_RULES/);
   assert.match(live, /禁止半途收尾/);
   assert.match(live, /evaluateVerifyGate/);
@@ -20,9 +20,9 @@ test("live dispatch prompts forbid early Job not accepted yet", () => {
   );
 });
 
-test("duaer-do skill requires finish for live-dispatch", () => {
+test("norm-do skill requires finish for live-dispatch", () => {
   const skill = fs.readFileSync(
-    path.join(ROOT, ".cursor/skills/duaer-do/SKILL.md"),
+    path.join(ROOT, ".cursor/skills/norm-do/SKILL.md"),
     "utf8",
   );
   assert.match(skill, /live-dispatch/);

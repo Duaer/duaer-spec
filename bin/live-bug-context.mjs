@@ -55,14 +55,14 @@ export function readPackageStartScripts(projectPath) {
 }
 
 /**
- * Read `.duaer/handoff.json` restart commands when present.
+ * Read `.norm/handoff.json` restart commands when present.
  * @param {string} projectPath
  * @returns {string[]}
  */
 export function readHandoffCommands(projectPath) {
   const root = String(projectPath || "").trim();
   if (!root) return [];
-  const file = path.join(root, ".duaer", "handoff.json");
+  const file = path.join(root, ".norm", "handoff.json");
   if (!fs.existsSync(file)) return [];
   try {
     const raw = JSON.parse(fs.readFileSync(file, "utf8"));

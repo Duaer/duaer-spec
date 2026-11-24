@@ -24,7 +24,7 @@ function restoreTextFile(filePath, snap) {
 }
 
 test("Brief file snapshot/restore rolls back revision writes", () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-snap-"));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "norm-snap-"));
   const spec = path.join(dir, "spec.md");
   fs.writeFileSync(spec, "# Spec\n\n**Status**: Accepted\n", "utf8");
   const snap = snapshotTextFile(spec);
@@ -37,7 +37,7 @@ test("Brief file snapshot/restore rolls back revision writes", () => {
 });
 
 test("live sources declare reliability contracts", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /class LaunchGateError/);
   assert.match(live, /PREEMPT_FAILED/);
   assert.match(live, /terminalQueueSnapshot/);

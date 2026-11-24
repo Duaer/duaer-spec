@@ -1,6 +1,6 @@
 /**
  * Live desk L3 smoke — no paid LLM.
- * Starts a mock OpenAI-compatible server + duaer-live on ephemeral ports.
+ * Starts a mock OpenAI-compatible server + norm-live on ephemeral ports.
  */
 import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
@@ -12,7 +12,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const LIVE_BIN = path.join(ROOT, "bin", "duaer-live.mjs");
+const LIVE_BIN = path.join(ROOT, "bin", "norm-live.mjs");
 
 function listen(server) {
   return new Promise((resolve, reject) => {
@@ -156,8 +156,8 @@ async function startLive({ home, port, baseUrl }) {
     cwd: ROOT,
     env: {
       ...process.env,
-      DUAER_HOME: home,
-      DUAER_NO_UPDATE_CHECK: "1",
+      NORM_HOME: home,
+      NORM_NO_UPDATE_CHECK: "1",
     },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -197,7 +197,7 @@ async function freePort() {
 }
 
 test("live L3 smoke: desk shell + validate gate", async (t) => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-live-smoke-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-live-smoke-"));
   const mock = await startMockLlm();
   const port = await freePort();
   const live = await startLive({
@@ -342,14 +342,14 @@ test("live L3 smoke: desk shell + validate gate", async (t) => {
   assert.match(html, /@anthropic-ai\/claude-code/);
   assert.match(html, /id="cfgOpen"/);
   assert.match(html, /id="themeToggle"/);
-  assert.match(html, /duaer\.live\.theme|data-theme/);
+  assert.match(html, /norm\.live\.theme|data-theme/);
   assert.match(html, /id="historyToggle"/);
   assert.match(html, /top-btn project-badge/);
   assert.doesNotMatch(html, /id="projectBadge"/);
   assert.match(js, /projectBadge:\s*document\.getElementById\("historyToggle"\)/);
   assert.match(html, /id="githubStars"|class="[^"]*top-btn[^"]*github-btn/);
   assert.match(html, /class="top-btn"/);
-  assert.match(js, /toggleTheme|initTheme|duaer\.live\.theme|theme\.mjs/);
+  assert.match(js, /toggleTheme|initTheme|norm\.live\.theme|theme\.mjs/);
   assert.match(css, /\[data-theme="light"\]|--brand-size|theme-compact|#themeToggle/);
   assert.match(css, /--inset|--inset-strong/);
   assert.doesNotMatch(css, /rgba\(8,\s*14,\s*20/);

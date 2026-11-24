@@ -1,8 +1,8 @@
 # AI-Assisted Development Workflow
 
-> Scope: **duaer-spec** agent ops (adoptable by other repositories)  
+> Scope: **Norm** agent ops (adoptable by other repositories)  
 > Status: Accepted  
-> Precedence: this document and root `AGENTS.md` win over Duaer / examples  
+> Precedence: this document and root `AGENTS.md` win over Norm / examples  
 > Cross-references: [baseline](../baseline.md) · [e2e-test-plan](e2e-test-plan.md) · [change-checklist](change-checklist.md) · [ADR index](../adr/README.md) · [ADOPT](../../ADOPT.md)
 
 ---
@@ -18,8 +18,8 @@ handling. They cannot be relaxed without explicit human override.
 > **No behavior change without updating the corresponding spec.**
 
 - Every change that alters observable behavior must update the relevant
-  specification (project `docs/spec/`, Duaer feature specs, or
-  `docs/agent/` when changing duaer-spec itself).
+  specification (project `docs/spec/`, Norm feature specs, or
+  `docs/agent/` when changing Norm itself).
 - Architectural boundary changes also require an ADR under `docs/adr/`.
 - Pure refactors that preserve behavior and contracts do not require spec
   updates, but must still be committed (R2).
@@ -34,11 +34,11 @@ handling. They cannot be relaxed without explicit human override.
 ### R3 — Verification + E2E coverage
 
 > **Agent-owned work must run risk-based verification from
-> `.duaer/memory/testing.md`. User-visible or protocol-visible changes must
+> `.norm/memory/testing.md`. User-visible or protocol-visible changes must
 > also update E2E scenario docs.**
 
 - Execute the levels required by the project's
-  [testing contract](../../.duaer/memory/testing.md) (prefer subsets).
+  [testing contract](../../.norm/memory/testing.md) (prefer subsets).
 - Document scenarios in the project's E2E catalog (see
   [e2e-test-plan](e2e-test-plan.md)).
 - Do **not** wait for the human to request ordinary L0–L3 checks.
@@ -71,7 +71,7 @@ handling. They cannot be relaxed without explicit human override.
 Full matrix by issue type:
 [branching-and-release](branching-and-release.md).
 
-**duaer-spec itself** requires `main` + `develop` + `feat/*` + `fix/*`.
+**Norm itself** requires `main` + `develop` + `feat/*` + `fix/*`.
 Example overlays under `examples/` do not change this.
 ### R5 — Verify linked GitHub issues before work, then reply and close
 
@@ -96,8 +96,8 @@ unrelated pushes.
 
 1. **Intake** — If an issue or PR is linked, complete R5 / R6 first.
 2. **Isolate** — Update `develop` (hotfix: `main`), create `feat|fix` + `.worktree/` (R4).
-3. **Orient** — Read baseline, relevant specs, and Duaer memory when present.
-4. **Specify (when using Duaer)** — Agent runs Brief → understand → work → accept autonomously.
+3. **Orient** — Read baseline, relevant specs, and Norm memory when present.
+4. **Specify (when using Norm)** — Agent runs Brief → understand → work → accept autonomously.
 5. **Implement** — Smallest coherent change; update specs alongside (R1).
 6. **Verify** — Risk-based checks per `testing.md` (E2E subset when UI/UX
    touched; fork landing rules still in `AGENTS.md`).
@@ -118,8 +118,8 @@ unrelated pushes.
 | New public interface or data ownership | Required | Required |
 | Docs-only / standards-only in this repo | Update `docs/` / `AGENTS.md` as needed | If a frozen decision changes |
 
-Prefer Duaer feature directories for product feature work. Prefer `docs/agent/`
-when changing duaer-spec's own agent-ops contract.
+Prefer Norm feature directories for product feature work. Prefer `docs/agent/`
+when changing Norm's own agent-ops contract.
 
 ---
 
@@ -133,11 +133,11 @@ when changing duaer-spec's own agent-ops contract.
 
 ---
 
-## 5. Duaer Relationship
+## 5. Norm Relationship
 
 - **Agent ops** (`AGENTS.md`, this file): isolation, commits, Issue/PR, merge.
-- **Duaer** (repo root `.duaer/`, `DUADER.md`): what to build — specify →
+- **Norm** (repo root `.norm/`, `NORM.md`): what to build — specify →
   plan → tasks → implement → converge.
 
 When they conflict, **agent ops win**. Install and conventions:
-[DUADER.md](../../DUADER.md) · [ADOPT.md](../../ADOPT.md).
+[NORM.md](../../NORM.md) · [ADOPT.md](../../ADOPT.md).

@@ -3,11 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Duaer-spec FDE</title>
+    <title>Norm FDE</title>
     <script>
       (function () {
         try {
-          var t = localStorage.getItem("duaer.live.theme");
+          var t = localStorage.getItem("norm.live.theme");
           if (t !== "light" && t !== "dark") {
             t = window.matchMedia("(prefers-color-scheme: light)").matches
               ? "light"
@@ -33,7 +33,7 @@
         <div class="top-row">
           <div class="top-lead">
             <p class="brand">
-              <span data-i18n="header.brandProduct">Duaer-spec</span>
+              <span data-i18n="header.brandProduct">Norm</span>
               <span class="brand-fde" data-i18n="header.brandFde">FDE</span>
             </p>
             <p class="flow-line">
@@ -373,12 +373,12 @@
                 <button type="button" class="btn" id="copyInstallCmd" data-i18n="dispatch.copyInstall">复制安装命令</button>
               </div>
               <label class="field start-cmd-field" id="startCmdField">
-                <span data-i18n="dispatch.startCmd">启动命令（开头须为 Duaer）</span>
+                <span data-i18n="dispatch.startCmd">启动命令（开头须为 Norm）</span>
                 <textarea
                   id="startCommand"
                   rows="6"
                   data-i18n-placeholder="dispatch.startCmdPh"
-                  placeholder="Duaer&#10;&#10;在这里写要数字员工做的事…"
+                  placeholder="Norm&#10;&#10;在这里写要数字员工做的事…"
                   spellcheck="false"
                 ></textarea>
               </label>
@@ -576,7 +576,7 @@
     <aside id="settingsPanel" class="history-drawer panel settings-drawer" hidden>
       <div class="history-head">
         <div>
-          <p class="mark" data-i18n="setup.mark">Duaer-spec FDE · model</p>
+          <p class="mark" data-i18n="setup.mark">Norm FDE · model</p>
           <h2 class="history-title" data-i18n="setup.title">配置模型</h2>
         </div>
         <button type="button" class="btn history-close" id="settingsClose" data-i18n="setup.close">
@@ -584,7 +584,7 @@
         </button>
       </div>
       <div class="settings-body" id="setup">
-        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Duaer 控制台模型，再在控制台说需求。写入 ~/.duaer/live/config.json</p>
+        <p class="hint settings-lead" data-i18n="setup.hint">先接好 Norm 控制台模型，再在控制台说需求。写入 ~/.norm/live/config.json</p>
 
         <details class="setup-block" id="setupModelBlock" open>
           <summary class="setup-block-sum" data-i18n="setup.modelBlock">控制台模型</summary>
@@ -612,7 +612,7 @@
               <ol class="setup-howto-list">
                 <li data-i18n="setup.howtoModel1">选 DeepSeek / OpenAI 预设，或 Custom 填兼容 Base URL</li>
                 <li data-i18n="setup.howtoModel2">API Key 来自对应服务商控制台；Model 填该服务商的模型名</li>
-                <li data-i18n-html="setup.howtoModel3">命令行：<code>duaer live config --provider deepseek --api-key &lt;key&gt;</code></li>
+                <li data-i18n-html="setup.howtoModel3">命令行：<code>norm live config --provider deepseek --api-key &lt;key&gt;</code></li>
               </ol>
             </details>
           </div>
@@ -741,7 +741,7 @@
         <details class="setup-block setup-guide-block" id="setupGuideBlock">
           <summary class="setup-block-sum" data-i18n="setup.guideTitle">派工与模型说明</summary>
           <div class="setup-block-body setup-guide" data-i18n-aria="setup.guideAria" aria-label="说明">
-            <p class="setup-guide-lead" data-i18n="setup.guideLead">Duaer 控制台聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
+            <p class="setup-guide-lead" data-i18n="setup.guideLead">Norm 控制台聊天模型 ≠ 派工用的数字员工 CLI，两边都要配好。</p>
 
             <h4 class="setup-guide-h" data-i18n="setup.guideCliTitle">数字员工 CLI（派工）</h4>
             <p class="setup-guide-p" data-i18n="setup.guideCliLead">派工只启动 Cursor Agent 或 Claude Code。未安装时派工卡会给出可复制命令。</p>
@@ -753,7 +753,7 @@
 
             <h4 class="setup-guide-h" data-i18n="setup.guideOtherTitle">其它模型怎么接</h4>
             <ul class="setup-guide-list">
-              <li data-i18n="setup.guideOther1">Duaer 控制台用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
+              <li data-i18n="setup.guideOther1">Norm 控制台用其它模型：选 Custom，填该服务商的 Base URL / Key / Model 名</li>
               <li data-i18n="setup.guideOther2">写代码要用 DeepSeek 等模型：把 Claude Code 接到对应 API（改 ~/.claude/settings.json 的 ANTHROPIC_*），派工仍选 Claude Code</li>
               <li data-i18n="setup.guideOther3">Cursor Agent 的模型在 Cursor 账号/设置里选；FDE 只负责启动 agent</li>
             </ul>

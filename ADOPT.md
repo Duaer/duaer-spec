@@ -1,9 +1,9 @@
-# Adopt duaer-spec
+# Adopt Norm
 
 ## Install
 
 ```bash
-npx duaer-spec init --here
+npx ainorm init --here
 ```
 
 ## Update
@@ -11,22 +11,22 @@ npx duaer-spec init --here
 **Global CLI:**
 
 ```bash
-duaer self-update
+norm self-update
 ```
 
-Or: `npm i -g duaer-spec@latest`. The CLI prints a hint when npm has a newer
-release (≤24h cache; `DUAER_NO_UPDATE_CHECK=1` skips).
+Or: `npm i -g ainorm@latest`. The CLI prints a hint when npm has a newer
+release (≤24h cache; `NORM_NO_UPDATE_CHECK=1` skips).
 
 **Product-repo adapters:**
 
 ```bash
-npx duaer-spec update
+npx ainorm update
 ```
 
 Do **not** use `init --here --force` as the everyday refresh. `update` reuses
-the mode/branch from `.duaer/duaer-init.json`.
+the mode/branch from `.norm/norm-init.json`.
 
-If you customized constitution / baseline / `.duaer/handoff.json` commands,
+If you customized constitution / baseline / `.norm/handoff.json` commands,
 glance at `git diff` once and keep your overrides.
 
 Ensure the repo has **`main`** and **`develop`**. See
@@ -39,9 +39,9 @@ to learn Spec phases or a professional delivery process.
 ## Options
 
 ```bash
-npx duaer-spec init --here --method
-npx duaer-spec init --here --ops
-npx duaer-spec update --method    # rare; usually omit
+npx ainorm init --here --method
+npx ainorm init --here --ops
+npx ainorm update --method    # rare; usually omit
 ```
 
 **Supported for day-to-day use:** **Cursor** and **Claude Code** (FDE desk
@@ -56,20 +56,20 @@ Devin, Cline, Continue, Gemini CLI, and Aider — see the file list below.
 - Cursor: `.cursor/rules` + `.cursor/skills`  
 - Claude Code: `CLAUDE.md` + `.claude/rules` + `.claude/skills` (includes Ponytail and Ponytail review)  
 - Codex: `AGENTS.md` + `.agents/skills` (also Ponytail; Cursor gets them under `.cursor/skills`)  
-- Review gate: `.duaer/hooks/review-gate.mjs`, merged as a stop hook into `.claude/settings.json` and `.cursor/hooks.json` (existing entries kept). Commit both files so request worktrees have the hook  
-- Optional PR mode: create `.duaer/memory/pr.json` with `{ "enabled": true, "base": "develop" }` (needs `gh` logged in); see `docs/agent/branching-and-release.md` § PR mode  
+- Review gate: `.norm/hooks/review-gate.mjs`, merged as a stop hook into `.claude/settings.json` and `.cursor/hooks.json` (existing entries kept). Commit both files so request worktrees have the hook  
+- Optional PR mode: create `.norm/memory/pr.json` with `{ "enabled": true, "base": "develop" }` (needs `gh` logged in); see `docs/agent/branching-and-release.md` § PR mode  
 - Copilot: `.github/copilot-instructions.md`  
 - Windsurf / Devin: `.windsurf/rules`, `.devin/rules`  
 - Cline: `.clinerules/`  
 - Continue: `.continue/rules/`  
 - Gemini CLI: `GEMINI.md`  
 - Aider: `.aider.conf.yml` → reads `AGENTS.md`  
-- Method skeleton under `.duaer/` (`memory`, `templates`, `extensions`, `integrations`, `scripts`, `workflows`) and an empty `.duaer/specs/` for this project's jobs. Brief history of duaer-spec stays in the duaer-spec repository  
-- `.duaer/handoff.json` + `duaer handoff` after worktree remove  
+- Method skeleton under `.norm/` (`memory`, `templates`, `extensions`, `integrations`, `scripts`, `workflows`) and an empty `.norm/specs/` for this project's jobs. Brief history of Norm stays in the Norm repository  
+- `.norm/handoff.json` + `norm handoff` after worktree remove  
 - Agent ops: `main` / `develop` / `feat` / `fix` + `.worktree/`  
-- Verification contract: `.duaer/memory/testing.md` (risk-based checks before accept)  
+- Verification contract: `.norm/memory/testing.md` (risk-based checks before accept)  
 
 ## Precedence
 
 1. `AGENTS.md`  
-2. `DUADER.md` / `.duaer/`  
+2. `NORM.md` / `.norm/`  

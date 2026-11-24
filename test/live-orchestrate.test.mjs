@@ -180,7 +180,7 @@ test("finishedWaveBlocksQueue preempts only a checked running wave with a waiter
 
 test("desk status path calls finishedWaveBlocksQueue before preempt", () => {
   const src = readFileSync(
-    new URL("../bin/duaer-live.mjs", import.meta.url),
+    new URL("../bin/norm-live.mjs", import.meta.url),
     "utf8",
   );
   const gate = src.indexOf("finishedWaveBlocksQueue(");
@@ -205,7 +205,7 @@ test("undoneReleasedFingerprints drops only open task waves", () => {
 
 test("desk drops an idle undone wave before the next release", () => {
   const src = readFileSync(
-    new URL("../bin/duaer-live.mjs", import.meta.url),
+    new URL("../bin/norm-live.mjs", import.meta.url),
     "utf8",
   );
   const drop = src.indexOf("undoneReleasedFingerprints(");

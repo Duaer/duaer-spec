@@ -17,4 +17,4 @@ jobs:
       - name: Live desk L3 smoke
         run: npm run test:live
         env:
-          DUAER_NO_UPDATE_CHECK: "1"
+          NORM_NO_UPDATE_CHECK: "1"

@@ -1,18 +1,18 @@
-# Duaer-spec FDE (live console)
+# Norm FDE (live console)
 
 Field Development Environment for digital employees. Durable state lives in
-`~/.duaer/live/desk.sqlite` (config, repos, jobs, project sessions). That
+`~/.norm/live/desk.sqlite` (config, repos, jobs, project sessions). That
 directory is **per-machine only** — it is never part of the npm package; each
 user starts with an empty live root. Product work runs in isolated worktrees
 inside the chosen product repo.
 
-`duaer live` starts the console on **port 8787** (`http://127.0.0.1:8787`). A missing
+`norm live` starts the console on **port 8787** (`http://127.0.0.1:8787`). A missing
 model does not block startup — the Settings drawer opens so the operator can save
 credentials (always dismissible via 关闭 / backdrop / gear / Escape), then chat.
 
 **Agents:** do not start the console, restart it on handoff, or use another
-port. It runs only when the user starts `duaer live`, which opens the browser
-once; `DUAER_LIVE_NO_BROWSER=1` skips that.
+port. It runs only when the user starts `norm live`, which opens the browser
+once; `NORM_LIVE_NO_BROWSER=1` skips that.
 
 Also see root [`README.md`](../../README.md) (EN) / [`README.zh-CN.md`](../../README.zh-CN.md).
 
@@ -21,7 +21,7 @@ Also see root [`README.md`](../../README.md) (EN) / [`README.zh-CN.md`](../../RE
 Three columns: chat | confirm/progress | delivery. Prefer a **compact** shell
 (tighter gaps, smaller brand). Color themes are **dark** (default) and
 **light** via `html[data-theme]`; the top bar toggles and persists
-`duaer.live.theme` in `localStorage` (also on the dispatch-center page).
+`norm.live.theme` in `localStorage` (also on the dispatch-center page).
 Palettes use a soft blue accent — avoid harsh orange glow and dense hatch
 backgrounds that fatigue long sessions. Light theme keeps the same tokens
 for inputs/composer/bubbles (no leftover dark hardcodes).
@@ -37,7 +37,7 @@ for inputs/composer/bubbles (no leftover dark hardcodes).
 The **Projects** drawer lists remembered product folders. Each row shows a
 **delivery status** chip (`drafting` / `confirming` / `building` / `delivered` /
 `revising`) derived from the per-project session in
-`~/.duaer/live/desk.sqlite` (legacy `project-chats/*.json`, `config.json`,
+`~/.norm/live/desk.sqlite` (legacy `project-chats/*.json`, `config.json`,
 `repos.json`, and `jobs/*` import on first open after upgrade). When the session has anything to show, a short
 **Deliverables** control opens the dossier without hunting through progress.
 
@@ -65,7 +65,7 @@ HTML page generated from the project session:
 | Revisions | Each revise plan card (when present) |
 
 API: `GET /api/projects/deliverables?path=…&lang=zh|en|ja` (`format=json` for the
-model). A cache file is written under `~/.duaer/live/project-chats/*-deliverables.html`.
+model). A cache file is written under `~/.norm/live/project-chats/*-deliverables.html`.
 The HTML uses a **white client dossier** look (not the desk dark theme).
 Each page includes a **Contents** nav, stage anchors, and labeled field rows
 (goal / out of scope / acceptance / assumptions) for confirmation cards.
@@ -186,7 +186,7 @@ Additional notes:
 - **Employee directory** (top bar): lists specialized roles — **Implementer**,
   **Functional regression**, and **Deployer**.
   - **Functional regression** checks confirmed acceptance against the product
-    `.duaer/memory/testing.md` risk table (prefer Playwright / `npm test` /
+    `.norm/memory/testing.md` risk table (prefer Playwright / `npm test` /
     `npm run test:live`, L0–L3); writes or runs tests and keeps evidence; does
     **not** change product scope; on failure leaves a reproducible note and does
     not stamp `accepted`.
@@ -218,18 +218,18 @@ Additional notes:
   possible so chained work stays on-lane.
 - **Must finish:** prompts forbid ending with `Job not accepted yet`. Workers
   complete every assigned task and stamp `delivery.json` `accepted`. The desk
-  then runs `.duaer/memory/verify.json` in the worktree. A non-zero exit, or a
+  then runs `.norm/memory/verify.json` in the worktree. A non-zero exit, or a
   missing contract, reopens `accepted` and enqueues the failure on the
   regression lane. It does not nudge the employee to stamp accept. A
   `docs-only` waiver (no commands) is the only skip. The first command list is
   frozen so a later waiver cannot replace it.
 - **Code review gate:** the pool ends with a review task (last lane, after the
   README update, before the stamp). After machine verify passes, the desk reads
-  the Brief `review.md` (`.duaer/hooks/review-gate.mjs`). Missing, not
+  the Brief `review.md` (`.norm/hooks/review-gate.mjs`). Missing, not
   `Verdict: Ship.`, or code changed since its `Commit:` reopens `accepted`
   and nudges the regression lane. After 2 failing rounds the desk stops
   nudging and Progress shows that a human must decide.
-- **PR mode:** with `.duaer/memory/pr.json` enabled, the merge step becomes
+- **PR mode:** with `.norm/memory/pr.json` enabled, the merge step becomes
   push → PR → CI → auto-merge (see branching-and-release § PR mode). After the
   review passes, the desk reads the PR through `gh` (cached 30 s), reopens an
   accept whose PR is not merged, and nudges the regression lane with the next
@@ -259,7 +259,7 @@ Additional notes:
 ## Verification
 
 Touching live desk UI / protocol UX: L0 + **`npm run test:live`** (L3) per
-[`.duaer/memory/testing.md`](../../.duaer/memory/testing.md). Catalog rows:
+[`.norm/memory/testing.md`](../../.norm/memory/testing.md). Catalog rows:
 E2E-135…E2E-139 (modular / pool / README-on-delivery / chat Markdown / lanes),
 E2E-145 (multi-worker progress lanes), E2E-146 (wave orchestration),
 E2E-197 (composer Record / voice input).

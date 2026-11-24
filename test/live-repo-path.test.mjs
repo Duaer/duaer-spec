@@ -18,7 +18,7 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("resolveProductRepoPath joins relative names under projectsRoot", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   const root = path.join(home, "Projects");
   fs.mkdirSync(root);
   try {
@@ -44,7 +44,7 @@ test("resolveProductRepoPath requires projectsRoot for relative names", () => {
 });
 
 test("ensureProductDir creates missing absolute path", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   const target = path.join(home, "Projects", "new-app");
   try {
     const r = ensureProductDir(target, { home });
@@ -58,7 +58,7 @@ test("ensureProductDir creates missing absolute path", () => {
 });
 
 test("ensureProductDir refuses $HOME and FS root", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   try {
     assert.throws(
       () => ensureProductDir(home, { home }),
@@ -74,7 +74,7 @@ test("ensureProductDir refuses $HOME and FS root", () => {
 });
 
 test("resolveCreateProductRepoPath accepts only a short name under parent", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   const root = path.join(home, "Projects");
   fs.mkdirSync(root);
   try {
@@ -137,7 +137,7 @@ test("assertProjectIdentityFreeForCreate refuses duplicate path or title", () =>
 });
 
 test("assertProductDirFreeForCreate refuses an existing directory", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   const target = path.join(home, "Projects", "taken");
   fs.mkdirSync(target, { recursive: true });
   fs.writeFileSync(path.join(target, "keep.txt"), "do not wipe\n");
@@ -156,7 +156,7 @@ test("assertProductDirFreeForCreate refuses an existing directory", () => {
 });
 
 test("assertProductDirFreeForCreate allows a missing path", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-home-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-home-"));
   const target = path.join(home, "Projects", "fresh");
   try {
     assert.equal(assertProductDirFreeForCreate(target), path.resolve(target));
@@ -167,7 +167,7 @@ test("assertProductDirFreeForCreate allows a missing path", () => {
 });
 
 test("live sources wire product dir ensure", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /assertProductDirFreeForCreate/);
   assert.match(live, /resolveCreateProductRepoPath/);
   assert.match(live, /assertProjectIdentityFreeForCreate/);

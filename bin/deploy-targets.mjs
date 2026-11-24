@@ -81,7 +81,7 @@ export function deployPromptForTarget(targetId) {
       specNote:
         "Planned host: **Cloudflare** (Workers / Pages). Follow `docs/agent/deploy-targets.md` § Cloudflare.",
       promptBlock: `
-9. 计划托管：**Cloudflare**（Workers / Pages）。编码从第一天就符合边缘运行时约束（见 worktree 内 duaer-spec 文档 docs/agent/deploy-targets.md）
+9. 计划托管：**Cloudflare**（Workers / Pages）。编码从第一天就符合边缘运行时约束（见 worktree 内 Norm 文档 docs/agent/deploy-targets.md）
 10. Cloudflare 硬约束：无持久本地文件系统；不要依赖 Node \`fs\` 写盘；优先 Web 标准 Fetch / Request / Response；长任务用 Durable Objects / Queues / Cron，不要假设常驻 Node 进程；密钥用 wrangler secrets / 仪表盘，不要写入仓库
 11. 静态站 → Cloudflare Pages；动态 API → Workers（或 Pages Functions）。可用 Wrangler；部署流程写进产品仓 README
 12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看结果」）
@@ -136,7 +136,7 @@ export function deployPromptForTarget(targetId) {
       "Planned host: **GitHub Pages** via `gh` + Actions. See `docs/agent/deploy-github.md`.",
     promptBlock: `
 9. 计划托管：**GitHub Pages**：走 GitHub CLI 自动化部署（\`gh\` + GitHub Actions），不要默认用 Vercel/Netlify 等第三方 CLI
-10. 静态站：复制本 worktree 的 .duaer/templates/deploy-github-pages.yml → .github/workflows/deploy.yml（按构建产物改 path）；不要去其它仓找模板
+10. 静态站：复制本 worktree 的 .norm/templates/deploy-github-pages.yml → .github/workflows/deploy.yml（按构建产物改 path）；不要去其它仓找模板
 11. \`gh auth status\`；需要时 \`gh repo create\` / 确保 GitHub remote；合并到 main 后 push；\`gh workflow run\` / \`gh run watch\`
 12. 部署成功后把公网 URL 写入 delivery.preview.url（label 可用「查看结果」）
 13. 用户选了 GitHub Pages 即授权本次发布所需的 push / gh 操作（仍禁止 force-push 与无关分支推送）

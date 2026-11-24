@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Feat: rename duaer-spec to Norm
+
+- The product is now **Norm**: npm package `ainorm`, CLI `norm` (`duaer` and `duaer-spec` still work as aliases)
+- Installs use `.norm/`, `NORM.md`, `norm-*` skills and `NORM_*` env vars; `norm update` (or `npx ainorm update`) moves a duaer-spec repo over in place, and the first CLI run moves `~/.duaer` to `~/.norm`
+- `DUAER_*` env vars still apply when the `NORM_*` name is unset
+
 ## 0.27.10 — 2026-10-26
 
 ### Fix: handoff no longer restarts the FDE desk

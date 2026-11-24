@@ -309,7 +309,7 @@ test("mergeModulesFromChat preserves confirmed cards", () => {
 });
 
 test("project chat persists modules and workerCount", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-mod-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-mod-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -343,7 +343,7 @@ test("project chat persists modules and workerCount", () => {
 
 test("live sources wire modular confirm and late kickoff", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /modulesAllConfirmed/);
   assert.match(live, /needArchitecture/);
   assert.match(live, /writeBrief: false/);
@@ -447,7 +447,7 @@ test("mergeBugModuleIntoList keeps prior feature modules", () => {
 });
 
 test("project chat persists deskKind bug", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-kind-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-bug-kind-"));
   const projectPath = path.join(root, "app");
   fs.mkdirSync(projectPath);
   writeProjectChat(root, {

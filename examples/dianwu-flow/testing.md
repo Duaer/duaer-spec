@@ -1,10 +1,10 @@
 # 点物 Flow · 完整测试约定
 
-> Duaer / Agent 做验收与质量门禁时必读。  
+> Norm / Agent 做验收与质量门禁时必读。  
 > 目标：**层叠测全**——单测 → 产品验收 → Live/Smoke → **Playwright E2E** → UI/Mobbin → 专家审阅。
 >
 > 本文件是 **adopter 加厚配置**：先满足仓库根目录
-> [`.duaer/memory/testing.md`](../../.duaer/memory/testing.md) 的通用风险门禁，
+> [`.norm/memory/testing.md`](../../.norm/memory/testing.md) 的通用风险门禁，
 > 再叠加下列 L3–L6 与产品命令。
 
 ---
@@ -20,10 +20,10 @@
 | **L4 Smoke 脚本** | `scripts/smoke-*.mts`、`call-generate-*.mts` | `npm run smoke:gap` 等 | 发版前 / 生成大改 |
 | **L5 Playwright E2E** | `e2e/*.spec.ts` + GitHub Actions | `npm run test:e2e`（壳层）；`test:e2e:generate`（真生成，需 `E2E_GENERATE=1`） | 改 Studio / 壳层 UI；CI 跑壳层 |
 | **L5b 体验对照** | Browser MCP + **Mobbin** | Agent 探索 + 设计约定 | 大改体验时 |
-| **L6 专家审阅** | Bugbot / Security / Duaer checklist·analyze·converge | 见 §3 | Feature 合并前 |
+| **L6 专家审阅** | Bugbot / Security / Norm checklist·analyze·converge | 见 §3 | Feature 合并前 |
 
 一键本地门禁：`npm run test:full`（单测 + tsc + E2E 壳层）。  
-**核心功能验收**：`npm run test:core` + 清单 [.duaer/memory/core-acceptance.md](core-acceptance.md)。
+**核心功能验收**：`npm run test:core` + 清单 [.norm/memory/core-acceptance.md](core-acceptance.md)。
 
 ### i18n 门禁（用户可见改动）
 
@@ -46,8 +46,8 @@
 3. [ ] **真实登录账号**在浏览器走改动主路径（及空态/报错等边上）；禁止只靠单测宣称完成  
 4. [ ] 若改 UI / Studio：**`npm run test:e2e`** 通过；大改体验另加 Mobbin 摘要  
 5. [ ] 若改缺口/模型：`test:live:gap` 或等价 smoke 至少一条  
-6. [ ] Duaer：`checklist` / `analyze` / `converge`（热修至少有 `spec.md` + `converge`）  
-7. [ ] `/duaer-converge` 无未关闭缺口  
+6. [ ] Norm：`checklist` / `analyze` / `converge`（热修至少有 `spec.md` + `converge`）  
+7. [ ] `/norm-converge` 无未关闭缺口  
 8. [ ] 专家：Bugbot（或等价）；涉密钥/推送/LOADER → Security Review  
 
 合 **main** 部署后：再用账号看正式环境一眼。  
@@ -79,13 +79,13 @@ CI：`.github/workflows/e2e.yml` 在 push/PR 跑 `npm test` + `npx tsc --noEmit`
 
 ## 4. 专家能力与插件
 
-### Duaer
+### Norm
 
 | 命令 | 测什么 |
 | --- | --- |
-| `/duaer-checklist` | 需求可测性 |
-| `/duaer-analyze` | spec/plan/tasks 一致性 |
-| `/duaer-converge` | 代码是否覆盖规格 |
+| `/norm-checklist` | 需求可测性 |
+| `/norm-analyze` | spec/plan/tasks 一致性 |
+| `/norm-converge` | 代码是否覆盖规格 |
 
 ### Cursor
 
@@ -112,7 +112,7 @@ CI：`.github/workflows/e2e.yml` 在 push/PR 跑 `npm test` + `npx tsc --noEmit`
 2. npx tsc --noEmit
 3. npm run test:e2e
 4. （可选）test:live:gap / smoke:* / E2E_GENERATE=1
-5. /duaer-converge
+5. /norm-converge
 6. Bugbot
 7. 涉安全 → Security Review
 ```
@@ -121,7 +121,7 @@ CI：`.github/workflows/e2e.yml` 在 push/PR 跑 `npm test` + `npx tsc --noEmit`
 
 ---
 
-## 6. Duaer 挂钩
+## 6. Norm 挂钩
 
 | 阶段 | 测试动作 |
 | --- | --- |
@@ -137,7 +137,7 @@ CI：`.github/workflows/e2e.yml` 在 push/PR 跑 `npm test` + `npx tsc --noEmit`
 
 | 日期 | 变更 |
 | --- | --- |
-| 2026-09-15 | 对齐 duaer-spec **verification gate**（通用 `testing.md` 为基座） |
+| 2026-09-15 | 对齐 Norm **verification gate**（通用 `testing.md` 为基座） |
 | 2026-09-04 | 初版 |
 | 2026-09-04 | **补 L5 Playwright** + CI workflow + `test:full` |
 | 2026-09-04 | **核心路径验收**：`core-path.test.ts` + `test:core` + core-acceptance 清单 |

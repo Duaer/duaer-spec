@@ -54,9 +54,9 @@ test("ensureGitInstalled throws GIT_MISSING when install fails", () => {
   );
 });
 
-test("ensureWorkerClisFresh skips when DUAER_NO_CLI_UPGRADE=1", () => {
-  const prev = process.env.DUAER_NO_CLI_UPGRADE;
-  process.env.DUAER_NO_CLI_UPGRADE = "1";
+test("ensureWorkerClisFresh skips when NORM_NO_CLI_UPGRADE=1", () => {
+  const prev = process.env.NORM_NO_CLI_UPGRADE;
+  process.env.NORM_NO_CLI_UPGRADE = "1";
   try {
     const r = ensureWorkerClisFresh(
       () => "/usr/bin/agent",
@@ -65,18 +65,18 @@ test("ensureWorkerClisFresh skips when DUAER_NO_CLI_UPGRADE=1", () => {
       },
     );
     assert.equal(r.skipped, true);
-    assert.equal(r.reason, "DUAER_NO_CLI_UPGRADE=1");
+    assert.equal(r.reason, "NORM_NO_CLI_UPGRADE=1");
   } finally {
-    if (prev === undefined) delete process.env.DUAER_NO_CLI_UPGRADE;
-    else process.env.DUAER_NO_CLI_UPGRADE = prev;
+    if (prev === undefined) delete process.env.NORM_NO_CLI_UPGRADE;
+    else process.env.NORM_NO_CLI_UPGRADE = prev;
   }
 });
 
 test("ensureWorkerClisFresh upgrades installed CLIs when due and stamps cache", () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-cli-"));
-  const prevHome = process.env.DUAER_HOME;
-  process.env.DUAER_HOME = tmp;
-  delete process.env.DUAER_NO_CLI_UPGRADE;
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "norm-cli-"));
+  const prevHome = process.env.NORM_HOME;
+  process.env.NORM_HOME = tmp;
+  delete process.env.NORM_NO_CLI_UPGRADE;
   try {
     const which = (cmd) => {
       if (cmd === "agent") return "/fake/agent";
@@ -107,14 +107,14 @@ test("ensureWorkerClisFresh upgrades installed CLIs when due and stamps cache", 
     assert.equal(again.skipped, true);
     assert.equal(again.reason, "within-10d");
   } finally {
-    if (prevHome === undefined) delete process.env.DUAER_HOME;
-    else process.env.DUAER_HOME = prevHome;
+    if (prevHome === undefined) delete process.env.NORM_HOME;
+    else process.env.NORM_HOME = prevHome;
     fs.rmSync(tmp, { recursive: true, force: true });
   }
 });
 
 test("live sources wire git ensure + 10d CLI refresh", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /ensureGitInstalled/);
   assert.match(live, /scheduleWorkerCliRefresh/);
   assert.match(live, /claudeCliVersion/);

@@ -1,10 +1,10 @@
 # Branching and release flows
 
-> Part of **duaer-spec** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md) ·
+> Part of **Norm** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md) ·
 > [workflow](workflow.md).  
 > Language: English for branch names and docs.
 
-This is **mandatory** for repositories that adopt duaer-spec agent ops.
+This is **mandatory** for repositories that adopt Norm agent ops.
 Yes: every such repo **must** have a production main branch, a development
 integration branch, feature branches, and bugfix branches.
 
@@ -43,9 +43,9 @@ branch feat/login  →  .worktree/feat-login
 branch fix/timer   →  .worktree/fix-timer
 ```
 
-Duaer Brief folders are separate: `.duaer/specs/<nnn-slug>/`. Because a worktree
+Norm Brief folders are separate: `.norm/specs/<nnn-slug>/`. Because a worktree
 is a full checkout, Specs appear as
-`.worktree/feat-login/.duaer/specs/002-login/spec.md`. That nesting is normal.
+`.worktree/feat-login/.norm/specs/002-login/spec.md`. That nesting is normal.
 Do **not** reuse `<nnn-slug>` as the worktree folder name.
 
 Optional types when the project already uses them: `docs/`, `chore/`, `refactor/`,
@@ -55,7 +55,7 @@ Optional types when the project already uses them: `docs/`, `chore/`, `refactor/
 
 ## PR mode (opt-in)
 
-A project that sets `.duaer/memory/pr.json` to
+A project that sets `.norm/memory/pr.json` to
 `{ "enabled": true, "base": "develop" }` merges every request through a GitHub
 PR instead of a local merge. Turning it on authorizes the employee to push the
 request branch and to open and merge its PR (nothing else).
@@ -71,8 +71,8 @@ review Ship → git push -u origin <branch>
   → stamp delivery.json accepted with "pr": { "url": "<PR url>" } → handoff
 ```
 
-`duaer check` / `duaer job`, the agent stop hooks and the FDE desk count a job
-as accepted only when its PR is merged (`.duaer/hooks/pr-gate.mjs`, via `gh`).
+`norm check` / `norm job`, the agent stop hooks and the FDE desk count a job
+as accepted only when its PR is merged (`.norm/hooks/pr-gate.mjs`, via `gh`).
 After 3 failing CI rounds they stop pushing and leave it for a human. Without
 the file, or with `enabled: false`, the local merge below applies.
 
@@ -81,13 +81,13 @@ the file, or with `enabled: false`, the local merge below applies.
 ```text
 update develop
   → git worktree add .worktree/<id> -b feat|fix/<name> develop
-  → work only in that worktree (Duaer job loop as needed)
+  → work only in that worktree (Norm job loop as needed)
   → merge into local develop
   → handoff (mandatory):
        stop processes bound to the worktree
        remove .worktree/<id>; delete feat|fix/<name>
        restart services from the primary checkout on develop
-         (see .duaer/handoff.json / `duaer handoff [--run]`)
+         (see .norm/handoff.json / `norm handoff [--run]`)
   → push develop only if the user asked
 ```
 
@@ -109,8 +109,8 @@ git merge feat/login
 git worktree remove .worktree/feat-login
 git branch -d feat/login
 # 2) restart on develop (primary checkout)
-duaer handoff --run
-# or: npm run dev   # if listed in .duaer/handoff.json
+norm handoff --run
+# or: npm run dev   # if listed in .norm/handoff.json
 ```
 
 ### Worktree → develop service handoff (mandatory)
@@ -123,14 +123,14 @@ break. Agents **must**:
 2. **Stop** processes whose cwd is under `.worktree/<id>/`
 3. `git worktree remove .worktree/<id>` and delete the short branch
 4. **Restart** from the **primary checkout** on the merged long-lived branch:
-   - Read `.duaer/handoff.json` → `onWorktreeRemove.commands`
-   - Run `duaer handoff` (prints the plan) or `duaer handoff --run` (starts
+   - Read `.norm/handoff.json` → `onWorktreeRemove.commands`
+   - Run `norm handoff` (prints the plan) or `norm handoff --run` (starts
      configured commands in the background from the project root)
    - If `commands` is empty but the agent started a server in the worktree,
      restart the **same** command from the primary checkout on `develop`
    - Tell the user the new service is on the merged branch, not the old worktree
 
-Configure per project by editing `.duaer/handoff.json`, for example:
+Configure per project by editing `.norm/handoff.json`, for example:
 
 ```json
 {
@@ -173,7 +173,7 @@ This repo ships often. The default bump is the **patch** (the last number):
 
 The next release after `0.27.1` is **`0.27.2`**. Do not jump to `0.28.0` just
 because features landed. Bump the minor or major only when the user asks for
-that cut, or when the change breaks adopters (`duaer init` / public CLI).
+that cut, or when the change breaks adopters (`norm init` / public CLI).
 
 Set `package.json` `version`, move `CHANGELOG.md` `Unreleased` under that
 version, tag `vX.Y.Z`, and publish the GitHub Release (npm Trusted Publishing
@@ -255,13 +255,13 @@ All implementation edits happen inside the request worktree.
 ## 7. Install and update (adopters)
 
 ```bash
-npx duaer-spec init --here     # once
-duaer self-update              # upgrade global CLI from npm
-npx duaer-spec update          # later refresh product-repo adapters — no --force recipe
+npx ainorm init --here     # once
+norm self-update              # upgrade global CLI from npm
+npx ainorm update          # later refresh product-repo adapters — no --force recipe
 ```
 
-`duaer` prints a one-line hint when a newer npm release exists (≤24h cache;
-`DUAER_NO_UPDATE_CHECK=1` disables). Live desk `/api/health` exposes
+`norm` prints a one-line hint when a newer npm release exists (≤24h cache;
+`NORM_NO_UPDATE_CHECK=1` disables). Live desk `/api/health` exposes
 `update.outdated` / versions for a short UI notice.
 
 Details: [`ADOPT.md`](../../ADOPT.md). Chinese summary: [`README.zh-CN.md`](../../README.zh-CN.md).

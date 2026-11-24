@@ -1585,10 +1585,10 @@ a.btn[hidden] {
   border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
   border-top-color: currentColor;
   border-radius: 50%;
-  animation: duaer-btn-spin 0.7s linear infinite;
+  animation: norm-btn-spin 0.7s linear infinite;
 }
 
-@keyframes duaer-btn-spin {
+@keyframes norm-btn-spin {
   to {
     transform: rotate(360deg);
   }

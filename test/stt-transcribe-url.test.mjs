@@ -1,5 +1,5 @@
 /**
- * STT transcriptions URL helper (mirrors duaer-live.mjs).
+ * STT transcriptions URL helper (mirrors norm-live.mjs).
  */
 import assert from "node:assert/strict";
 import test from "node:test";

@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.duaer/hooks/review-gate.mjs\" claude"
+            "command": "node \"$CLAUDE_PROJECT_DIR/.norm/hooks/review-gate.mjs\" claude"
           }
         ]
       }

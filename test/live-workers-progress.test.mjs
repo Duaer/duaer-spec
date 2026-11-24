@@ -32,8 +32,8 @@ test("buildWorkersProgress splits tasks and states per worker", () => {
       w2: { busy: false, queueDepth: 1, runnerHealthy: true },
     },
     logTails: {
-      w1: ["[duaer] w1 start"],
-      w2: ["[duaer] w2 queued"],
+      w1: ["[norm] w1 start"],
+      w2: ["[norm] w2 queued"],
     },
   });
   assert.equal(workers.length, 2);
@@ -42,7 +42,7 @@ test("buildWorkersProgress splits tasks and states per worker", () => {
   assert.equal(workers[0].done, 1);
   assert.equal(workers[0].total, 2);
   assert.match(workers[0].current, /T002/);
-  assert.equal(workers[0].logTail[0], "[duaer] w1 start");
+  assert.equal(workers[0].logTail[0], "[norm] w1 start");
   assert.equal(workers[1].id, "w2");
   assert.equal(workers[1].state, "queued");
   assert.equal(workers[1].total, 1);

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const LIVE = fs.readFileSync(path.join(ROOT, "bin", "duaer-live.mjs"), "utf8");
+const LIVE = fs.readFileSync(path.join(ROOT, "bin", "norm-live.mjs"), "utf8");
 const APP = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
 const I18N = fs.readFileSync(path.join(ROOT, "web/live-dev/i18n.js"), "utf8");
 const HTML = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
@@ -56,7 +56,7 @@ test("desk UI: 打开看看 + version list + clear 续派中 on accept", () => {
 });
 
 test("snapshot + prune keeps only previewable files after worktree gone", () => {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-result-"));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "norm-result-"));
   try {
     const featureDir = path.join(tmp, "job");
     const wt = path.join(tmp, "wt");

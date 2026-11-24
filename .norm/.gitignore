@@ -1,0 +1,10 @@
+# Machine-local Norm state — not meant to be shared.
+
+# Local pointer to the current feature directory. Rewritten when you switch features.
+feature.json
+
+# Written by `norm init` in adopting projects (optional to commit there).
+norm-init.json
+
+# Per-machine extension config overrides.
+extensions/*/local-config.yml

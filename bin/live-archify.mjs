@@ -1,6 +1,6 @@
 /**
  * Bootstrap Archify (MIT, tt-a1i/archify) and render architecture JSON IR
- * to self-contained HTML under ~/.duaer/live/architecture/.
+ * to self-contained HTML under ~/.norm/live/architecture/.
  */
 
 import { spawnSync } from "node:child_process";
@@ -194,7 +194,7 @@ function dropUnpinnedRepositoryEvidence(meta, components) {
 }
 
 export function archifyHome() {
-  return path.join(os.homedir(), ".duaer", "tools", "archify");
+  return path.join(os.homedir(), ".norm", "tools", "archify");
 }
 
 export function archifyBin() {
@@ -979,27 +979,27 @@ export function architectureSummary(ir) {
   return `${title}: ${comps.join(" → ")}`;
 }
 
-/** CSS id used when patching Archify HTML for the Duaer desk embed. */
-export const DUAER_EMBED_FIT_STYLE_ID = "duaer-embed-fit";
+/** CSS id used when patching Archify HTML for the Norm desk embed. */
+export const NORM_EMBED_FIT_STYLE_ID = "norm-embed-fit";
 /** Script id: force single-node zoom on click inside the desk iframe. */
-export const DUAER_EMBED_ZOOM_SCRIPT_ID = "duaer-embed-node-zoom";
+export const NORM_EMBED_ZOOM_SCRIPT_ID = "norm-embed-node-zoom";
 /** Script id: expand passport fully + report embed height to the desk. */
-export const DUAER_EMBED_EXPAND_SCRIPT_ID = "duaer-embed-passport-expand";
+export const NORM_EMBED_EXPAND_SCRIPT_ID = "norm-embed-passport-expand";
 /** Script id: present mode keeps passport but does not zoom the camera. */
-export const DUAER_PRESENT_NO_ZOOM_SCRIPT_ID = "duaer-present-no-zoom";
+export const NORM_PRESENT_NO_ZOOM_SCRIPT_ID = "norm-present-no-zoom";
 /** postMessage source for embed → desk height sync. */
-export const DUAER_ARCH_EMBED_MESSAGE_SOURCE = "duaer-arch-embed";
+export const NORM_ARCH_EMBED_MESSAGE_SOURCE = "norm-arch-embed";
 
 /**
  * Archify's .diagram-container uses overflow:hidden (one-screen reader).
- * Inside the Duaer iframe we need the full diagram height — inject overrides
+ * Inside the Norm iframe we need the full diagram height — inject overrides
  * for data-embed=true so the container does not clip.
  * Also restore `.focus-chip` (semantic passport): Archify hides it in embed mode.
- * Replaces any prior `#duaer-embed-fit` block so upgrades apply to cached HTML.
+ * Replaces any prior `#norm-embed-fit` block so upgrades apply to cached HTML.
  */
-export function injectDuaerEmbedFitCss(html) {
+export function injectNormEmbedFitCss(html) {
   const src = String(html || "");
-  const style = `<style id="${DUAER_EMBED_FIT_STYLE_ID}">
+  const style = `<style id="${NORM_EMBED_FIT_STYLE_ID}">
 html[data-embed="true"],
 html[data-embed="true"] body {
   height: auto !important;
@@ -1055,7 +1055,7 @@ html[data-embed="true"] .focus-chip[hidden] {
 }
 </style>`;
   const re = new RegExp(
-    `<style\\s+id="${DUAER_EMBED_FIT_STYLE_ID}"[\\s\\S]*?<\\/style>`,
+    `<style\\s+id="${NORM_EMBED_FIT_STYLE_ID}"[\\s\\S]*?<\\/style>`,
     "i",
   );
   if (re.test(src)) {
@@ -1070,17 +1070,17 @@ html[data-embed="true"] .focus-chip[hidden] {
 /**
  * Archify reveal() skips real zoom when iframe width ≤720, and neighbor framing
  * often keeps scale at 1 for hub nodes. Force desktop single-node framing in
- * the Duaer embed so every component click enlarges.
+ * the Norm embed so every component click enlarges.
  */
-export function injectDuaerEmbedNodeZoom(html) {
+export function injectNormEmbedNodeZoom(html) {
   const src = String(html || "");
-  if (src.includes(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`)) return src;
-  const script = `<script id="${DUAER_EMBED_ZOOM_SCRIPT_ID}">
+  if (src.includes(`id="${NORM_EMBED_ZOOM_SCRIPT_ID}"`)) return src;
+  const script = `<script id="${NORM_EMBED_ZOOM_SCRIPT_ID}">
 (function () {
   if (!document.documentElement || document.documentElement.getAttribute("data-embed") !== "true") return;
   function install() {
     if (!window.Archify || !Archify.view || typeof Archify.view.reveal !== "function") return false;
-    if (Archify.view.__duaerEmbedZoom) return true;
+    if (Archify.view.__normEmbedZoom) return true;
     var original = Archify.view.reveal;
     Archify.view.reveal = function (ids, options) {
       var opts = Object.assign({}, options || {}, {
@@ -1108,7 +1108,7 @@ export function injectDuaerEmbedNodeZoom(html) {
         }
       }
     };
-    Archify.view.__duaerEmbedZoom = true;
+    Archify.view.__normEmbedZoom = true;
     return true;
   }
   if (install()) return;
@@ -1129,12 +1129,12 @@ export function injectDuaerEmbedNodeZoom(html) {
  * iframe how tall the document needs to be so the chip is not clipped.
  * Replaces any prior expand script so upgrades apply to cached HTML.
  */
-export function injectDuaerEmbedPassportExpand(html) {
+export function injectNormEmbedPassportExpand(html) {
   const src = String(html || "");
-  const script = `<script id="${DUAER_EMBED_EXPAND_SCRIPT_ID}">
+  const script = `<script id="${NORM_EMBED_EXPAND_SCRIPT_ID}">
 (function () {
   if (!document.documentElement || document.documentElement.getAttribute("data-embed") !== "true") return;
-  var SOURCE = ${JSON.stringify(DUAER_ARCH_EMBED_MESSAGE_SOURCE)};
+  var SOURCE = ${JSON.stringify(NORM_ARCH_EMBED_MESSAGE_SOURCE)};
   function chipEl() { return document.getElementById("focus-chip"); }
   function expandChip() {
     var chip = chipEl();
@@ -1183,8 +1183,8 @@ export function injectDuaerEmbedPassportExpand(html) {
     expandChip();
     schedule();
     var chip = chipEl();
-    if (chip && !chip.__duaerExpandObserved) {
-      chip.__duaerExpandObserved = true;
+    if (chip && !chip.__normExpandObserved) {
+      chip.__normExpandObserved = true;
       new MutationObserver(schedule).observe(chip, {
         attributes: true,
         childList: true,
@@ -1205,7 +1205,7 @@ export function injectDuaerEmbedPassportExpand(html) {
 })();
 </script>`;
   const re = new RegExp(
-    `<script\\s+id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
+    `<script\\s+id="${NORM_EMBED_EXPAND_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
     "i",
   );
   if (re.test(src)) {
@@ -1221,13 +1221,13 @@ export function injectDuaerEmbedPassportExpand(html) {
  * Present / fullscreen view: keep node passport, do not enlarge the camera.
  * Used for dispatch graphs that are already large enough (`?noz=1`).
  */
-export function injectDuaerPresentNoZoom(html) {
+export function injectNormPresentNoZoom(html) {
   const src = String(html || "");
-  const script = `<script id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}">
+  const script = `<script id="${NORM_PRESENT_NO_ZOOM_SCRIPT_ID}">
 (function () {
   function install() {
     if (!window.Archify || !Archify.view || typeof Archify.view.reveal !== "function") return false;
-    if (Archify.view.__duaerPresentNoZoom) return true;
+    if (Archify.view.__normPresentNoZoom) return true;
     var original = Archify.view.reveal;
     Archify.view.reveal = function (ids, options) {
       var opts = Object.assign({}, options || {}, {
@@ -1239,7 +1239,7 @@ export function injectDuaerPresentNoZoom(html) {
       });
       return original.call(Archify.view, ids, opts);
     };
-    Archify.view.__duaerPresentNoZoom = true;
+    Archify.view.__normPresentNoZoom = true;
     return true;
   }
   if (install()) return;
@@ -1250,7 +1250,7 @@ export function injectDuaerPresentNoZoom(html) {
 })();
 </script>`;
   const re = new RegExp(
-    `<script\\s+id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
+    `<script\\s+id="${NORM_PRESENT_NO_ZOOM_SCRIPT_ID}"[\\s\\S]*?<\\/script>`,
     "i",
   );
   if (re.test(src)) {
@@ -1262,10 +1262,10 @@ export function injectDuaerPresentNoZoom(html) {
   return `${src}\n${script}`;
 }
 
-/** Apply all Duaer desk patches to Archify HTML (idempotent). */
-export function injectDuaerEmbedPatches(html) {
-  return injectDuaerEmbedNodeZoom(
-    injectDuaerEmbedPassportExpand(injectDuaerEmbedFitCss(html)),
+/** Apply all Norm desk patches to Archify HTML (idempotent). */
+export function injectNormEmbedPatches(html) {
+  return injectNormEmbedNodeZoom(
+    injectNormEmbedPassportExpand(injectNormEmbedFitCss(html)),
   );
 }
 
@@ -1323,7 +1323,7 @@ export function renderArchitectureHtml(liveRoot, irInput) {
     e.code = "ARCHIFY_DELIVER";
     throw e;
   }
-  const patched = injectDuaerEmbedPatches(fs.readFileSync(htmlPath, "utf8"));
+  const patched = injectNormEmbedPatches(fs.readFileSync(htmlPath, "utf8"));
   fs.writeFileSync(htmlPath, patched, "utf8");
   return {
     key,

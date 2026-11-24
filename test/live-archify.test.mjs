@@ -8,21 +8,21 @@ import path from "node:path";
 import test from "node:test";
 import {
   extractArchitectureIr,
-  injectDuaerEmbedFitCss,
-  injectDuaerEmbedNodeZoom,
-  injectDuaerEmbedPassportExpand,
-  injectDuaerEmbedPatches,
-  injectDuaerPresentNoZoom,
+  injectNormEmbedFitCss,
+  injectNormEmbedNodeZoom,
+  injectNormEmbedPassportExpand,
+  injectNormEmbedPatches,
+  injectNormPresentNoZoom,
   layoutArchitectureIr,
   renderArchitectureHtml,
   routeCrossingEdges,
   repairEdgeLabelPlacement,
   sanitizeArchitectureIr,
-  DUAER_EMBED_FIT_STYLE_ID,
-  DUAER_EMBED_ZOOM_SCRIPT_ID,
-  DUAER_EMBED_EXPAND_SCRIPT_ID,
-  DUAER_PRESENT_NO_ZOOM_SCRIPT_ID,
-  DUAER_ARCH_EMBED_MESSAGE_SOURCE,
+  NORM_EMBED_FIT_STYLE_ID,
+  NORM_EMBED_ZOOM_SCRIPT_ID,
+  NORM_EMBED_EXPAND_SCRIPT_ID,
+  NORM_PRESENT_NO_ZOOM_SCRIPT_ID,
+  NORM_ARCH_EMBED_MESSAGE_SOURCE,
 } from "../bin/live-archify.mjs";
 import {
   extractArchitectureIr as extractBrowser,
@@ -167,7 +167,7 @@ test("routeCrossingEdges corridor-detours stacked column mates (speaker→editor
 });
 
 test("renderArchitectureHtml accepts stacked column IR that used to fail clean-flow", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-stack-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-stack-"));
   const out = renderArchitectureHtml(root, {
     schema_version: 1,
     diagram_type: "architecture",
@@ -197,7 +197,7 @@ test("renderArchitectureHtml accepts stacked column IR that used to fail clean-f
 });
 
 test("renderArchitectureHtml keeps bottom-via label under the floor (改稿/artifact)", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-via-label-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-via-label-"));
   const out = renderArchitectureHtml(root, {
     schema_version: 1,
     diagram_type: "architecture",
@@ -237,7 +237,7 @@ test("renderArchitectureHtml keeps bottom-via label under the floor (改稿/arti
 });
 
 test("renderArchitectureHtml accepts PPT IR with long reverse edge", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-ppt-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-ppt-"));
   const out = renderArchitectureHtml(root, {
     schema_version: 1,
     diagram_type: "architecture",
@@ -392,7 +392,7 @@ test("extractArchitectureIr finds diagram JSON", () => {
 });
 
 test("repairGeometry fits long CJK sublabels and edge labels for Archify", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-repair-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-repair-"));
   const out = renderArchitectureHtml(root, {
     schema_version: 1,
     diagram_type: "architecture",
@@ -477,7 +477,7 @@ test("sanitize strips Brief/chat extras before Archify", () => {
     ],
     cards: [{ dot: "cyan", title: "Edge", items: ["App"], more: 1 }],
   };
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-dirty-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-dirty-"));
   const out = renderArchitectureHtml(root, contaminated);
   assert.ok(fs.existsSync(out.htmlPath));
   assert.equal(out.ir.goal, undefined);
@@ -489,7 +489,7 @@ test("sanitize strips Brief/chat extras before Archify", () => {
 });
 
 test("renderArchitectureHtml produces HTML via Archify", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-arch-test-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-arch-test-"));
   const out = renderArchitectureHtml(root, {
     schema_version: 1,
     diagram_type: "architecture",
@@ -507,19 +507,19 @@ test("renderArchitectureHtml produces HTML via Archify", () => {
   assert.ok(fs.existsSync(out.htmlPath));
   assert.ok(fs.statSync(out.htmlPath).size > 1000);
   const html = fs.readFileSync(out.htmlPath, "utf8");
-  assert.match(html, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
-  assert.match(html, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
-  assert.match(html, new RegExp(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`));
+  assert.match(html, new RegExp(`id="${NORM_EMBED_FIT_STYLE_ID}"`));
+  assert.match(html, new RegExp(`id="${NORM_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.match(html, new RegExp(`id="${NORM_EMBED_EXPAND_SCRIPT_ID}"`));
   assert.match(html, /\.diagram-container\s*\{[^}]*max-height:\s*none/s);
-  assert.match(html, /__duaerEmbedZoom|includeNeighbors:\s*false/);
-  assert.match(html, new RegExp(DUAER_ARCH_EMBED_MESSAGE_SOURCE));
+  assert.match(html, /__normEmbedZoom|includeNeighbors:\s*false/);
+  assert.match(html, new RegExp(NORM_ARCH_EMBED_MESSAGE_SOURCE));
   fs.rmSync(root, { recursive: true, force: true });
 });
 
-test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () => {
+test("injectNormEmbedFitCss lifts diagram-container height clip for embed", () => {
   const raw = `<!doctype html><html><head></head><body><div class="diagram-container"></div></body></html>`;
-  const once = injectDuaerEmbedFitCss(raw);
-  assert.match(once, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
+  const once = injectNormEmbedFitCss(raw);
+  assert.match(once, new RegExp(`id="${NORM_EMBED_FIT_STYLE_ID}"`));
   assert.match(once, /html\[data-embed="true"\] \.diagram-container/);
   assert.match(once, /max-height:\s*none\s*!important/);
   assert.match(once, /overflow:\s*visible\s*!important/);
@@ -560,9 +560,9 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
     once,
     /html\[data-embed="true"\] \.focus-chip\[hidden\]\s*\{[^}]*display:\s*none\s*!important/s,
   );
-  const twice = injectDuaerEmbedFitCss(once);
+  const twice = injectNormEmbedFitCss(once);
   assert.equal(
-    twice.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
+    twice.split(`id="${NORM_EMBED_FIT_STYLE_ID}"`).length - 1,
     1,
   );
   // Upgrade path: old fit block without passport is replaced in place.
@@ -571,51 +571,51 @@ test("injectDuaerEmbedFitCss lifts diagram-container height clip for embed", () 
     "",
   );
   assert.doesNotMatch(stale, /\.focus-chip\s*\{[^}]*display:\s*block/s);
-  const upgraded = injectDuaerEmbedFitCss(stale);
+  const upgraded = injectNormEmbedFitCss(stale);
   assert.match(
     upgraded,
     /html\[data-embed="true"\] \.focus-chip\s*\{[^}]*display:\s*block\s*!important/s,
   );
   assert.equal(
-    upgraded.split(`id="${DUAER_EMBED_FIT_STYLE_ID}"`).length - 1,
+    upgraded.split(`id="${NORM_EMBED_FIT_STYLE_ID}"`).length - 1,
     1,
   );
 });
 
-test("injectDuaerEmbedNodeZoom forces single-node reveal in embed", () => {
+test("injectNormEmbedNodeZoom forces single-node reveal in embed", () => {
   const raw = `<!doctype html><html data-embed="true"><head></head><body></body></html>`;
-  const once = injectDuaerEmbedNodeZoom(raw);
-  assert.match(once, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
+  const once = injectNormEmbedNodeZoom(raw);
+  assert.match(once, new RegExp(`id="${NORM_EMBED_ZOOM_SCRIPT_ID}"`));
   assert.match(once, /includeNeighbors:\s*false/);
   assert.match(once, /innerWidth/);
-  const patched = injectDuaerEmbedPatches(raw);
-  assert.match(patched, new RegExp(`id="${DUAER_EMBED_FIT_STYLE_ID}"`));
-  assert.match(patched, new RegExp(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`));
-  assert.match(patched, new RegExp(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`));
-  assert.match(patched, new RegExp(DUAER_ARCH_EMBED_MESSAGE_SOURCE));
+  const patched = injectNormEmbedPatches(raw);
+  assert.match(patched, new RegExp(`id="${NORM_EMBED_FIT_STYLE_ID}"`));
+  assert.match(patched, new RegExp(`id="${NORM_EMBED_ZOOM_SCRIPT_ID}"`));
+  assert.match(patched, new RegExp(`id="${NORM_EMBED_EXPAND_SCRIPT_ID}"`));
+  assert.match(patched, new RegExp(NORM_ARCH_EMBED_MESSAGE_SOURCE));
   assert.equal(
-    injectDuaerEmbedPatches(patched).split(`id="${DUAER_EMBED_ZOOM_SCRIPT_ID}"`)
+    injectNormEmbedPatches(patched).split(`id="${NORM_EMBED_ZOOM_SCRIPT_ID}"`)
       .length - 1,
     1,
   );
-  const expandOnce = injectDuaerEmbedPassportExpand(raw);
-  const expandTwice = injectDuaerEmbedPassportExpand(expandOnce);
+  const expandOnce = injectNormEmbedPassportExpand(raw);
+  const expandTwice = injectNormEmbedPassportExpand(expandOnce);
   assert.equal(
-    expandTwice.split(`id="${DUAER_EMBED_EXPAND_SCRIPT_ID}"`).length - 1,
+    expandTwice.split(`id="${NORM_EMBED_EXPAND_SCRIPT_ID}"`).length - 1,
     1,
   );
   assert.match(expandOnce, /getBoundingClientRect/);
   assert.match(expandOnce, /diagram-container/);
 });
 
-test("injectDuaerPresentNoZoom clamps reveal scale for dispatch present", () => {
+test("injectNormPresentNoZoom clamps reveal scale for dispatch present", () => {
   const raw = `<!doctype html><html><head></head><body></body></html>`;
-  const once = injectDuaerPresentNoZoom(raw);
-  assert.match(once, new RegExp(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`));
+  const once = injectNormPresentNoZoom(raw);
+  assert.match(once, new RegExp(`id="${NORM_PRESENT_NO_ZOOM_SCRIPT_ID}"`));
   assert.match(once, /maxScale:\s*1/);
-  assert.match(once, /__duaerPresentNoZoom/);
+  assert.match(once, /__normPresentNoZoom/);
   assert.equal(
-    injectDuaerPresentNoZoom(once).split(`id="${DUAER_PRESENT_NO_ZOOM_SCRIPT_ID}"`)
+    injectNormPresentNoZoom(once).split(`id="${NORM_PRESENT_NO_ZOOM_SCRIPT_ID}"`)
       .length - 1,
     1,
   );
@@ -623,7 +623,7 @@ test("injectDuaerPresentNoZoom clamps reveal scale for dispatch present", () => 
 
 test("live sources wire architecture API + desk panel", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /\/api\/architecture\/render/);
   assert.match(live, /ARCHITECTURE_CHAT_PROMPT/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
@@ -647,8 +647,8 @@ test("live sources wire architecture API + desk panel", () => {
   assert.doesNotMatch(i18n, /可渲染的架构 JSON/);
   assert.doesNotMatch(live, /以下为可渲染的架构 JSON/);
   assert.match(live, /禁止提 JSON|右侧「计划托管」/);
-  assert.match(live, /injectDuaerEmbedPatches/);
-  assert.match(live, /injectDuaerPresentNoZoom/);
+  assert.match(live, /injectNormEmbedPatches/);
+  assert.match(live, /injectNormPresentNoZoom/);
   assert.match(live, /searchParams\.get\("noz"\)/);
   assert.match(live, /\.json\$\/i|architecture\/.*\.json/);
   const mount = fs.readFileSync(
@@ -657,12 +657,12 @@ test("live sources wire architecture API + desk panel", () => {
   );
   assert.match(mount, /attachShadow|archify-root|runViewerScript|scopeArchifyCss/);
   assert.match(mount, /data-motion-capable|disableEmbedNodeZoom|bodyHtml|btn-preset/);
-  assert.match(mount, /__duaerEmbedNoZoom|duaerNoZoomReveal/);
-  assert.match(mount, /__duaerStageZoom|duaerStageZoomReveal/);
+  assert.match(mount, /__normEmbedNoZoom|normNoZoomReveal/);
+  assert.match(mount, /__normStageZoom|normStageZoomReveal/);
   assert.match(mount, /maxScale:\s*2\.6/);
   assert.match(mount, /zoom:\s*Boolean\(opts\.stage\)/);
-  assert.doesNotMatch(mount, /installDesktopReveal|__duaerEmbedZoom/);
+  assert.doesNotMatch(mount, /installDesktopReveal|__normEmbedZoom/);
   assert.match(mount, /\.focus-chip\s*\{\s*display:\s*none\s*!important/);
-  assert.match(mount, /100vh|100dvh|duaer-arch-host-chrome|height:\s*auto\s*!important/);
+  assert.match(mount, /100vh|100dvh|norm-arch-host-chrome|height:\s*auto\s*!important/);
   assert.doesNotMatch(mount, /arch-passport/);
 });

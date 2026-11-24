@@ -18,12 +18,12 @@ export const CLI_UPGRADE_TTL_MS = 10 * 24 * 60 * 60 * 1000;
 export const CURSOR_INSTALL_CMD = "curl https://cursor.com/install -fsS | bash";
 export const CLAUDE_UPDATE_CMD = "claude update";
 
-function duaerHome() {
-  return process.env.DUAER_HOME || join(homedir(), ".duaer");
+function normHome() {
+  return process.env.NORM_HOME || join(homedir(), ".norm");
 }
 
 export function cliToolsCachePath() {
-  return join(duaerHome(), "cli-tools-check.json");
+  return join(normHome(), "cli-tools-check.json");
 }
 
 function readCliCache() {
@@ -187,13 +187,13 @@ export function upgradeWorkerCli(id, whichCmd, runChild) {
 export function ensureWorkerClisFresh(whichCmd, runChild, { force = false } = {}) {
   const now = Date.now();
   const checkedAt = new Date(now).toISOString();
-  if (process.env.DUAER_NO_CLI_UPGRADE === "1") {
+  if (process.env.NORM_NO_CLI_UPGRADE === "1") {
     return {
       skipped: true,
       due: false,
       checkedAt,
       results: [],
-      reason: "DUAER_NO_CLI_UPGRADE=1",
+      reason: "NORM_NO_CLI_UPGRADE=1",
     };
   }
 

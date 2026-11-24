@@ -1,6 +1,6 @@
 /**
  * Persist per-project desk session (chat + requirements + job).
- * Storage: ~/.duaer/live/desk.sqlite (see live-desk-db.mjs).
+ * Storage: ~/.norm/live/desk.sqlite (see live-desk-db.mjs).
  */
 
 import path from "node:path";

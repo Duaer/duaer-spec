@@ -5,12 +5,12 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { MAX_CI_ROUNDS, parsePrState, prInstructions, readPrConfig } from "../.duaer/hooks/pr-gate.mjs";
+import { MAX_CI_ROUNDS, parsePrState, prInstructions, readPrConfig } from "../.norm/hooks/pr-gate.mjs";
 import { prGateReopen } from "../bin/live-verify-gate.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CLI = path.join(ROOT, "bin", "duaer.mjs");
-const HOOK = path.join(ROOT, ".duaer", "hooks", "review-gate.mjs");
+const CLI = path.join(ROOT, "bin", "norm.mjs");
+const HOOK = path.join(ROOT, ".norm", "hooks", "review-gate.mjs");
 const JOB = "001-demo";
 const BRANCH = "feat/demo";
 const URL = "https://github.com/o/r/pull/7";
@@ -47,11 +47,11 @@ test("parsePrState covers every state", () => {
 });
 
 test("readPrConfig is opt-in", () => {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-prcfg-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-prcfg-"));
   try {
     assert.equal(readPrConfig(dir), null);
-    fs.mkdirSync(path.join(dir, ".duaer", "memory"), { recursive: true });
-    const file = path.join(dir, ".duaer", "memory", "pr.json");
+    fs.mkdirSync(path.join(dir, ".norm", "memory"), { recursive: true });
+    const file = path.join(dir, ".norm", "memory", "pr.json");
     fs.writeFileSync(file, '{"enabled":false}');
     assert.equal(readPrConfig(dir), null);
     fs.writeFileSync(file, '{"enabled":true}');
@@ -92,17 +92,17 @@ test("desk PR reopen: merged keeps, pending/stuck reopen quietly, fail nudges", 
 
 /** Accepted job + passing review + PR mode, with a fake `gh` on PATH. */
 function prRepo(prJson) {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-pr-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-pr-"));
   const g = (...a) =>
     spawnSync("git", ["-C", dir, "-c", "user.email=t@e", "-c", "user.name=t", ...a], { encoding: "utf8" });
-  const feature = path.join(dir, ".duaer", "specs", JOB);
+  const feature = path.join(dir, ".norm", "specs", JOB);
   fs.mkdirSync(feature, { recursive: true });
-  fs.mkdirSync(path.join(dir, ".duaer", "memory"), { recursive: true });
-  fs.writeFileSync(path.join(dir, ".duaer", "memory", "pr.json"), '{"enabled":true}');
+  fs.mkdirSync(path.join(dir, ".norm", "memory"), { recursive: true });
+  fs.writeFileSync(path.join(dir, ".norm", "memory", "pr.json"), '{"enabled":true}');
   fs.writeFileSync(path.join(feature, "spec.md"), "# Demo\n");
   fs.writeFileSync(path.join(feature, "tasks.md"), "- [x] T001\n");
   fs.writeFileSync(path.join(feature, "delivery.json"), '{"status":"accepted"}');
-  fs.writeFileSync(path.join(dir, ".duaer", "active-job.json"), JSON.stringify({ feature: JOB, branch: BRANCH }));
+  fs.writeFileSync(path.join(dir, ".norm", "active-job.json"), JSON.stringify({ feature: JOB, branch: BRANCH }));
   fs.writeFileSync(path.join(dir, "app.js"), "1\n");
   g("init", "-q", "-b", "develop");
   g("add", "-A");
@@ -130,7 +130,7 @@ esac
   return { dir, feature, env, bin };
 }
 
-test("PR mode: duaer check and the stop hook accept only a merged PR", () => {
+test("PR mode: norm check and the stop hook accept only a merged PR", () => {
   const { dir, feature, env, bin } = prRepo({
     url: URL,
     state: "OPEN",
@@ -165,7 +165,7 @@ test("PR mode: duaer check and the stop hook accept only a merged PR", () => {
 test("PR mode off: no gh call, local merge flow unchanged", () => {
   const { dir, env } = prRepo({});
   try {
-    fs.rmSync(path.join(dir, ".duaer", "memory", "pr.json"));
+    fs.rmSync(path.join(dir, ".norm", "memory", "pr.json"));
     const noGh = { ...env, PATH: "/nonexistent" + path.delimiter + path.dirname(process.execPath) + path.delimiter + "/usr/bin:/bin" };
     const r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8", env: noGh });
     assert.equal(r.status, 0, r.stdout);

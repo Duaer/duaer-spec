@@ -9,14 +9,14 @@ import {
   parseReview,
   reviewPasses,
   reviewStatus,
-} from "../.duaer/hooks/review-gate.mjs";
+} from "../.norm/hooks/review-gate.mjs";
 import { buildBugTaskPool, buildTaskPoolFromModules } from "../bin/live-modules.mjs";
 import { reviewGateReopen, verifyNudgePrompt } from "../bin/live-verify-gate.mjs";
-import { reviewInstructions } from "../.duaer/hooks/review-gate.mjs";
+import { reviewInstructions } from "../.norm/hooks/review-gate.mjs";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const CLI = path.join(ROOT, "bin", "duaer.mjs");
-const HOOK = path.join(ROOT, ".duaer", "hooks", "review-gate.mjs");
+const CLI = path.join(ROOT, "bin", "norm.mjs");
+const HOOK = path.join(ROOT, ".norm", "hooks", "review-gate.mjs");
 const JOB = "001-demo";
 
 function git(dir, ...args) {
@@ -31,13 +31,13 @@ function git(dir, ...args) {
 
 /** Git repo with one accepted job; returns { dir, feature, head }. */
 function acceptedRepo() {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-review-"));
-  const feature = path.join(dir, ".duaer", "specs", JOB);
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-review-"));
+  const feature = path.join(dir, ".norm", "specs", JOB);
   fs.mkdirSync(feature, { recursive: true });
   fs.writeFileSync(path.join(feature, "spec.md"), "# Demo\n");
   fs.writeFileSync(path.join(feature, "tasks.md"), "- [x] T001 done\n");
   fs.writeFileSync(path.join(feature, "delivery.json"), '{"status":"accepted"}\n');
-  fs.writeFileSync(path.join(dir, ".duaer", "active-job.json"), `{"feature":"${JOB}"}\n`);
+  fs.writeFileSync(path.join(dir, ".norm", "active-job.json"), `{"feature":"${JOB}"}\n`);
   fs.writeFileSync(path.join(dir, "app.js"), "export const a = 1;\n");
   git(dir, "init", "-q", "-b", "develop");
   git(dir, "add", "-A");
@@ -91,15 +91,15 @@ test("reviewStatus: missing, fix, stuck, pass, stale, waived", () => {
     writeReview(feature, "Verdict: Ship.\n");
     assert.equal(reviewStatus(feature, dir).result, "stale", "no Commit line in a git repo");
     fs.rmSync(path.join(feature, "review.md"));
-    fs.mkdirSync(path.join(dir, ".duaer", "memory"), { recursive: true });
-    fs.writeFileSync(path.join(dir, ".duaer", "memory", "verify.json"), '{"waiver":"docs-only"}');
+    fs.mkdirSync(path.join(dir, ".norm", "memory"), { recursive: true });
+    fs.writeFileSync(path.join(dir, ".norm", "memory", "verify.json"), '{"waiver":"docs-only"}');
     assert.ok(reviewPasses(reviewStatus(feature, dir)));
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
-test("duaer check / job treat accepted without a passing review as not accepted", () => {
+test("norm check / job treat accepted without a passing review as not accepted", () => {
   const { dir, feature, head } = acceptedRepo();
   try {
     let r = spawnSync(process.execPath, [CLI, "check", dir, "--delivery", "--strict"], { encoding: "utf8" });
@@ -144,7 +144,7 @@ test("stop hooks block only a claimed accept that fails review", () => {
 
 test("stop hook checks jobs inside .worktree checkouts", () => {
   const { dir } = acceptedRepo();
-  const project = fs.mkdtempSync(path.join(tmpdir(), "duaer-review-proj-"));
+  const project = fs.mkdtempSync(path.join(tmpdir(), "norm-review-proj-"));
   try {
     fs.mkdirSync(path.join(project, ".worktree"));
     fs.renameSync(dir, path.join(project, ".worktree", "feat-demo"));
@@ -156,7 +156,7 @@ test("stop hook checks jobs inside .worktree checkouts", () => {
 });
 
 test("init installs Ponytail skills on every host and merges stop hooks", () => {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-init-review-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-init-review-"));
   try {
     fs.mkdirSync(path.join(dir, ".claude"));
     const mine = { hooks: { Stop: [{ hooks: [{ type: "command", command: "echo mine" }] }] } };
@@ -170,7 +170,7 @@ test("init installs Ponytail skills on every host and merges stop hooks", () => 
         assert.ok(fs.existsSync(path.join(dir, host, "skills", name, "SKILL.md")), `${host}/${name}`);
       }
     }
-    assert.ok(fs.existsSync(path.join(dir, ".duaer", "hooks", "review-gate.mjs")));
+    assert.ok(fs.existsSync(path.join(dir, ".norm", "hooks", "review-gate.mjs")));
     const claude = JSON.parse(fs.readFileSync(path.join(dir, ".claude", "settings.json"), "utf8"));
     const cmds = claude.hooks.Stop.flatMap((h) => h.hooks.map((x) => x.command));
     assert.equal(cmds[0], "echo mine");
@@ -202,7 +202,7 @@ test("review nudge prompt carries the gate instructions", () => {
   const text = verifyNudgePrompt({
     nudge: { result: "review", instructions: "run ponytail-review" },
     worktreePath: "/w",
-    featureDir: "/w/.duaer/specs/x",
+    featureDir: "/w/.norm/specs/x",
   });
   assert.match(text, /run ponytail-review/);
   assert.match(text, /\/w/);
@@ -239,8 +239,8 @@ test("stop hook finds FDE-dispatched jobs (active-job.json specDir)", () => {
   const { dir } = acceptedRepo();
   try {
     fs.writeFileSync(
-      path.join(dir, ".duaer", "active-job.json"),
-      JSON.stringify({ specDir: `.duaer/specs/${JOB}`, source: "live-dispatch" }),
+      path.join(dir, ".norm", "active-job.json"),
+      JSON.stringify({ specDir: `.norm/specs/${JOB}`, source: "live-dispatch" }),
     );
     assert.equal(JSON.parse(runHook("claude", dir).stdout).decision, "block");
   } finally {
