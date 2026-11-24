@@ -1,18 +1,18 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Norm — 数字员工，满意交付</title>
+  <title>Norm — digital employees, satisfactory delivery</title>
   <meta
     name="description"
-    content="Norm 把 AI 编程助手变成数字员工：自然语言说意图，Brief 约束范围，评审和验收通过才算交付。Norm FDE 是现场开发环境。"
+    content="Norm turns AI coding agents into digital employees: say what you want in plain language, a Brief bounds the scope, and work counts as delivered only after review and acceptance pass. Norm FDE is the field development environment."
   />
   <link rel="canonical" href="https://fujiezee.github.io/norm/" />
-  <meta property="og:title" content="Norm — 数字员工，满意交付" />
+  <meta property="og:title" content="Norm — digital employees, satisfactory delivery" />
   <meta
     property="og:description"
-    content="规范 → 满意交付。你说话，数字员工跑流程。"
+    content="Norms → satisfactory delivery. You talk; the digital employee runs the process."
   />
   <meta property="og:type" content="website" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -666,7 +666,7 @@
       }
 
       .deploy > li span:last-child::before {
-        content: "准备：";
+        content: "You prepare: ";
       }
 
       .desk {
@@ -693,16 +693,16 @@
   </style>
 </head>
 <body>
-  <nav class="nav" aria-label="页面导航">
+  <nav class="nav" aria-label="Sections">
     <div class="wrap">
       <a class="nav-brand" href="#top">Norm <span>FDE</span></a>
       <ul>
-        <li><a href="#how">流程</a></li>
-        <li><a href="#editor">编辑器</a></li>
+        <li><a href="#how">Delivery</a></li>
+        <li><a href="#editor">Editor</a></li>
         <li><a href="#fde">Norm FDE</a></li>
-        <li><a href="#roles">角色</a></li>
-        <li><a href="#deploy">部署</a></li>
-        <li><a href="#install">安装</a></li>
+        <li><a href="#roles">Roles</a></li>
+        <li><a href="#deploy">Deploy</a></li>
+        <li><a href="#install">Install</a></li>
         <li><a href="https://github.com/fujiezee/norm">GitHub</a></li>
       </ul>
     </div>
@@ -716,13 +716,13 @@
         <span>Norm</span>
         <span class="fde">FDE</span>
       </p>
-      <h1 class="rise">把 AI 助手变成能交付的数字员工</h1>
+      <h1 class="rise">Turn AI coding agents into digital employees that deliver</h1>
       <p class="lede rise">
-        你用平常话说意图。Norm 先写成可检查的 Brief，按范围实现，评审和验收都过了才算交付。
+        Say what you want in plain language. Norm writes it into a checkable Brief, builds only that scope, and calls it delivered only after review and acceptance pass.
       </p>
       <div class="cta-row rise">
-        <a class="btn btn-ember" href="https://github.com/fujiezee/norm">GitHub 仓库</a>
-        <a class="btn btn-ghost" href="#install">安装起步</a>
+        <a class="btn btn-ember" href="https://github.com/fujiezee/norm">GitHub</a>
+        <a class="btn btn-ghost" href="#install">Get started</a>
       </div>
       <pre class="cmd rise"><code><span class="prompt">›</span>npx @fujiezee/norm init --here</code></pre>
     </div>
@@ -732,28 +732,28 @@
     <section class="band" id="how">
       <div class="wrap">
         <p class="eyebrow">Delivery</p>
-        <h2>它自己会跑完交付</h2>
-        <p class="section-lede">你只要说话，流程由数字员工执行。</p>
+        <h2>It runs the delivery itself</h2>
+        <p class="section-lede">You talk; the digital employee runs the process.</p>
         <ol class="tiles flow">
           <li>
             <h3>Brief</h3>
-            <p>目标 / 不做 / 可检查验收</p>
+            <p>Goal / out of scope / checkable acceptance</p>
           </li>
           <li>
-            <h3>实现</h3>
-            <p>只做 Brief 范围，独立分支与 worktree</p>
+            <h3>Implement</h3>
+            <p>Only the Brief scope, on its own branch and worktree</p>
           </li>
           <li>
-            <h3>评审</h3>
-            <p>Ponytail 评审，只有 Ship 才放行</p>
+            <h3>Review</h3>
+            <p>Ponytail review; only Ship passes</p>
           </li>
           <li>
-            <h3>验收</h3>
-            <p>对照验收与测试规则，未满足不算完成</p>
+            <h3>Accept</h3>
+            <p>Checked against acceptance and test rules; not done until met</p>
           </li>
           <li>
-            <h3>交接</h3>
-            <p>一行结论；不满意再改一版</p>
+            <h3>Hand off</h3>
+            <p>One-line result; revise if it is not right</p>
           </li>
         </ol>
       </div>
@@ -762,32 +762,32 @@
     <section class="band" id="editor">
       <div class="wrap">
         <p class="eyebrow">In your editor</p>
-        <h2>在编辑器里交代就行</h2>
-        <p class="section-lede">装一次，在 Cursor 或 Claude Code 里用平常话说。</p>
+        <h2>Just ask in your editor</h2>
+        <p class="section-lede">Install once, then talk in Cursor or Claude Code.</p>
         <ul class="tiles cards">
           <li>
-            <h3>不用记命令</h3>
-            <p>不用 slash 命令，也不用自己点「写 Spec / 拆任务」。</p>
+            <h3>No commands to learn</h3>
+            <p>No slash commands, no Spec phases to run yourself.</p>
           </li>
           <li>
-            <h3>先谈清楚再动手</h3>
-            <p>整理成要做什么、不做什么、怎样算做完。</p>
+            <h3>Clarify before coding</h3>
+            <p>Your ask becomes what to build, what not to build, and how we know it is done.</p>
           </li>
           <li>
-            <h3>做完才算完</h3>
-            <p>对照验收通过才说「交付好了」，半成品不会假装完成。</p>
+            <h3>Done means accepted</h3>
+            <p>It claims finished only when acceptance checks out, not when code merely exists.</p>
           </li>
           <li>
-            <h3>评审闸门</h3>
-            <p>最小的完整改动；没过 <code>ponytail-review</code>，<code>norm check</code> 和收尾钩子都会打回。</p>
+            <h3>Code review gate</h3>
+            <p>Smallest complete change. Without a passing <code>ponytail-review</code>, <code>norm check</code> and the stop hooks reopen the job.</p>
           </li>
           <li>
-            <h3>PR 模式<span class="tag">可选</span></h3>
-            <p>每个任务走 GitHub PR：CI 失败退回修，全绿自动合并。</p>
+            <h3>PR mode<span class="tag">opt-in</span></h3>
+            <p>Every job merges through a GitHub PR: CI failures go back to the employee, and it auto-merges when green.</p>
           </li>
           <li>
-            <h3>分支规矩</h3>
-            <p><code>main</code> 上线、<code>develop</code> 日常；每个任务一个独立 worktree。</p>
+            <h3>Clear branches</h3>
+            <p><code>main</code> for production, <code>develop</code> day to day; every job in its own worktree.</p>
           </li>
         </ul>
       </div>
@@ -797,11 +797,11 @@
       <div class="wrap">
         <p class="eyebrow">Field Development Environment</p>
         <h2>Norm FDE</h2>
-        <p class="section-lede">本机的 Norm 控制台：聊需求、派工、看进度、看结果。</p>
+        <p class="section-lede">The local Norm console: chat, confirm, dispatch, watch progress, open the result.</p>
 
         <div class="desk" aria-hidden="true">
           <div>
-            <p class="desk-label">对话</p>
+            <p class="desk-label">Chat</p>
             <div class="bubble me"></div>
             <div class="bubble" style="width: 88%"></div>
             <div class="bubble" style="width: 70%"></div>
@@ -809,54 +809,54 @@
             <div class="bubble" style="width: 80%"></div>
           </div>
           <div>
-            <p class="desk-label">模块 / 确认 / 架构 / 开工</p>
-            <div class="chips"><span>登录</span><span>订单</span><span>报表</span></div>
+            <p class="desk-label">Modules / confirm / architecture / kickoff</p>
+            <div class="chips"><span>Login</span><span>Orders</span><span>Reports</span></div>
             <div class="card-sketch">
-              <div><b>目标</b>手机号验证码登录</div>
-              <div><b>不做</b>第三方登录</div>
-              <div><b>验收</b>验证码输错 3 次锁定 10 分钟</div>
+              <div><b>Goal</b>Sign in with an SMS code</div>
+              <div><b>Out of scope</b>Social login</div>
+              <div><b>Acceptance</b>3 wrong codes lock for 10 min</div>
             </div>
           </div>
           <div>
-            <p class="desk-label">任务进度</p>
+            <p class="desk-label">Progress</p>
             <ul class="tasks">
-              <li class="done">登录接口</li>
-              <li class="done">验证码发送</li>
-              <li>锁定策略</li>
-              <li>功能回归</li>
+              <li class="done">Login API</li>
+              <li class="done">Send code</li>
+              <li>Lockout rule</li>
+              <li>Functional regression</li>
             </ul>
           </div>
         </div>
 
         <div class="tiles groups">
           <div>
-            <h3>谈清楚</h3>
+            <h3>Clarify</h3>
             <ul>
-              <li>按模块确认目标、不做、可检查验收</li>
-              <li>功能卡填设备矩阵、关键路径、异常态</li>
-              <li>系统架构图，可全屏查看</li>
-              <li>签署范围与验收基线；改范围开变更单</li>
-              <li>录音转文字输入</li>
+              <li>Confirm goal, out of scope and checkable acceptance per module</li>
+              <li>Feature cards add device matrix, critical paths, exception cases</li>
+              <li>System architecture diagram, fullscreen on click</li>
+              <li>Sign the scope and acceptance baseline; open a change to alter scope</li>
+              <li>Record speech into the composer</li>
             </ul>
           </div>
           <div>
-            <h3>派工</h3>
+            <h3>Dispatch</h3>
             <ul>
-              <li>一键派 Cursor Agent 或 Claude Code</li>
-              <li>隔离 worktree，不动主分支</li>
-              <li>任务按依赖排队，进度实时刷新</li>
-              <li>多个数字员工并行</li>
-              <li>调度中心看派工图</li>
+              <li>Dispatch Cursor Agent or Claude Code in one click</li>
+              <li>Isolated worktree; long-lived branches untouched</li>
+              <li>Tasks release by dependency; progress refreshes live</li>
+              <li>Several digital employees in parallel</li>
+              <li>Dispatch center shows the task graph</li>
             </ul>
           </div>
           <div>
-            <h3>交付与迭代</h3>
+            <h3>Deliver and revise</h3>
             <ul>
-              <li>交付物页：时间线、确认书、架构、任务</li>
-              <li>打开结果页面或项目目录</li>
-              <li>不满意继续聊，同一任务续派</li>
-              <li>修 bug 走缺陷卡与 <code>fix/</code> 分支</li>
-              <li>11 种界面语言</li>
+              <li>Deliverables page: timeline, confirmation, architecture, tasks</li>
+              <li>Open the result page or project folder</li>
+              <li>Not right? Keep chatting and relaunch the same job</li>
+              <li>Fix a bug with a defect card and a <code>fix/</code> branch</li>
+              <li>11 UI languages</li>
             </ul>
           </div>
         </div>
@@ -868,34 +868,34 @@
     <section class="band" id="roles">
       <div class="wrap">
         <p class="eyebrow">Digital employees</p>
-        <h2>三种角色</h2>
-        <p class="section-lede">运行时都是 Cursor Agent 或 Claude Code，按任务角色分工。</p>
+        <h2>Three roles</h2>
+        <p class="section-lede">All run as Cursor Agent or Claude Code; the task role decides who does what.</p>
         <ul class="tiles roles">
           <li>
-            <h3>实现员工</h3>
+            <h3>Implementer</h3>
             <dl>
-              <dt>干什么</dt>
-              <dd>按验收写功能；更新产品 README；把预览跑起来并 stamp 交付</dd>
-              <dt class="not">不干什么</dt>
+              <dt>Does</dt>
+              <dd>Builds to acceptance; updates the product README; starts the preview and stamps delivery</dd>
+              <dt class="not">Does not</dt>
               <dd>—</dd>
             </dl>
           </li>
           <li>
-            <h3>功能回归</h3>
+            <h3>Functional regression</h3>
             <dl>
-              <dt>干什么</dt>
-              <dd>对照验收做确定性回归（Playwright、<code>npm test</code> 等）；缺测就补测、跑通、留证据</dd>
-              <dt class="not">不干什么</dt>
-              <dd>不改业务功能范围；测挂了不擅自 stamp「验收通过」</dd>
+              <dt>Does</dt>
+              <dd>Runs deterministic regression against acceptance (Playwright, <code>npm test</code>, …); adds missing tests, runs them, keeps evidence</dd>
+              <dt class="not">Does not</dt>
+              <dd>Change product scope; stamp accepted when tests fail</dd>
             </dl>
           </li>
           <li>
-            <h3>部署员工</h3>
+            <h3>Deployer</h3>
             <dl>
-              <dt>干什么</dt>
-              <dd>按选定平台上线，把公网地址写入交付预览</dd>
-              <dt class="not">不干什么</dt>
-              <dd>不改业务功能范围</dd>
+              <dt>Does</dt>
+              <dd>Publishes to the planned host and writes the public URL into the delivery preview</dd>
+              <dt class="not">Does not</dt>
+              <dd>Change product scope</dd>
             </dl>
           </li>
         </ul>
@@ -905,15 +905,15 @@
     <section class="band" id="deploy">
       <div class="wrap">
         <p class="eyebrow">Deploy</p>
-        <h2>部署到哪里</h2>
-        <p class="section-lede">开工前在控制台选计划托管平台，部署员工负责上线。</p>
+        <h2>Where it deploys</h2>
+        <p class="section-lede">Pick a planned host in the Norm console before kickoff; the Deployer publishes.</p>
         <ul class="tiles deploy">
-          <li class="head"><span>方式</span><span>适合</span><span>你要准备</span></li>
-          <li><strong>暂不部署</strong><span>只在本地做完</span><span>无</span></li>
-          <li><strong>GitHub Pages</strong><span>静态站 / 文档站（默认）</span><span>GitHub 仓库与 <code>gh</code> 登录</span></li>
-          <li><strong>Cloudflare</strong><span>Pages 静态站；Workers 接口</span><span>API Token 与 Account ID</span></li>
-          <li><strong>阿里云</strong><span>OSS（+ CDN）；函数计算</span><span>AccessKey</span></li>
-          <li><strong>AWS</strong><span>S3 + CloudFront；Amplify / Lambda</span><span>Access Key</span></li>
+          <li class="head"><span>Option</span><span>Good for</span><span>You prepare</span></li>
+          <li><strong>No deploy yet</strong><span>Local delivery only</span><span>Nothing</span></li>
+          <li><strong>GitHub Pages</strong><span>Static / docs sites (default)</span><span>GitHub repo + <code>gh</code> auth</span></li>
+          <li><strong>Cloudflare</strong><span>Pages for static; Workers for APIs</span><span>API Token + Account ID</span></li>
+          <li><strong>Alibaba Cloud</strong><span>OSS (+ CDN); Function Compute</span><span>AccessKey</span></li>
+          <li><strong>AWS</strong><span>S3 + CloudFront; Amplify / Lambda</span><span>Access keys</span></li>
         </ul>
       </div>
     </section>
@@ -921,28 +921,28 @@
     <section class="band" id="install">
       <div class="wrap">
         <p class="eyebrow">Install</p>
-        <h2>装一次，在熟悉的工具里说话</h2>
-        <p class="section-lede">写入各宿主适配文件后，继续用你习惯的 Agent。</p>
+        <h2>Install once, talk in the tools you know</h2>
+        <p class="section-lede">Writes the adapter files for each host; keep using your usual agent.</p>
         <ol class="steps">
           <li>
-            <h3>安装到项目</h3>
+            <h3>Install in a project</h3>
             <pre class="cmd"><code><span class="prompt">›</span>npx @fujiezee/norm init --here</code></pre>
           </li>
           <li>
-            <h3>更新适配文件</h3>
+            <h3>Update adapters</h3>
             <pre class="cmd"><code><span class="prompt">›</span>npx @fujiezee/norm update</code></pre>
           </li>
           <li>
-            <h3>全局 CLI</h3>
+            <h3>Global CLI</h3>
             <pre class="cmd"><code><span class="prompt">›</span>npm i -g @fujiezee/norm@latest</code></pre>
           </li>
         </ol>
-        <h3>派工</h3>
+        <h3>Dispatch</h3>
         <ul class="hosts main">
           <li>Cursor</li>
           <li>Claude Code</li>
         </ul>
-        <h3>可选适配</h3>
+        <h3>Optional adapters</h3>
         <ul class="hosts">
           <li>Codex</li>
           <li>Copilot</li>
@@ -958,11 +958,11 @@
 
   <footer>
     <div class="wrap">
-      <span>Norm · 规范 → 满意交付</span>
+      <span>Norm · norms → satisfactory delivery</span>
       <span>
         <a href="https://github.com/fujiezee/norm">GitHub</a>
         ·
-        <a href="https://github.com/fujiezee/norm/blob/main/README.zh-CN.md">中文说明</a>
+        <a href="https://github.com/fujiezee/norm/blob/main/README.zh-CN.md">中文</a>
         ·
         <a href="https://www.npmjs.com/package/@fujiezee/norm">npm</a>
       </span>

@@ -11,6 +11,7 @@
 - The intro site now covers what Norm does today: delivery flow with the review gate, editor-side capabilities (Ponytail review, optional PR mode), Norm FDE with a desk sketch, the three digital-employee roles, deploy targets, and install / update commands
 - Sticky section nav; layout tested at 375px and 1280px
 - The site no longer shows the former name
+- The site is now in English
 
 ### Chore: repository is `fujiezee/norm`
 
