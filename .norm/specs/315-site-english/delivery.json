@@ -1,0 +1,9 @@
+{
+  "status": "accepted",
+  "acceptedAt": "2026-11-24T05:15:53Z",
+  "summary": "Intro site switched to English with README terms; layout unchanged.",
+  "verification": {
+    "commands": ["npm test", "CJK scan of site/index.html", "headless Chromium render at 375px and 1280px"],
+    "result": "302 pass; only CJK is the 中文 README link; no horizontal scroll; review Round 1 Ship."
+  }
+}

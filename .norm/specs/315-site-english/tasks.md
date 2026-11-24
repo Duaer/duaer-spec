@@ -5,4 +5,4 @@
 - [x] No CJK except the 中文 README link
 - [x] 375px / 1280px render without horizontal scroll
 - [x] `npm test` passes
-- [ ] Ponytail review Ship, stamp, merge to `develop`
+- [x] Ponytail review Ship, stamp, merge to `develop`
