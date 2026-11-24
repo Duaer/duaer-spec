@@ -10,7 +10,7 @@ import test from "node:test";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("live sources isolate Terminal queues per worker lane", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /normalizeTerminalQueueLane/);
   assert.match(live, /function terminalQueueDir\(worktreePath, queueLane/);
   assert.match(live, /queueLane/);

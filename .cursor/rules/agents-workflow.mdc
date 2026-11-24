@@ -1,11 +1,11 @@
 ---
-description: duaer-spec agent ops (develop+main, feat/fix, .worktree, push opt-in)
+description: Norm agent ops (develop+main, feat/fix, .worktree, push opt-in)
 alwaysApply: true
 ---
 
 # Agent development workflow
 
-Part of **duaer-spec**. Authoritative over Duaer when they conflict.
+Part of **Norm**. Authoritative over Norm when they conflict.
 
 ## Required branches
 
@@ -26,7 +26,7 @@ Before editing files for a new request:
 2. Create `feat/<name>` or `fix/<name>`
 3. Create worktree at **`.worktree/feat-<name>`** or **`.worktree/fix-<name>`**
    (slash → hyphen). Do **not** reuse the Brief folder name
-   (`.duaer/specs/<nnn-slug>/`) as the worktree id.
+   (`.norm/specs/<nnn-slug>/`) as the worktree id.
 4. Develop only inside that worktree
 5. Never develop on `main` / `develop` or in the primary checkout
 6. Never reuse another agent's branch/worktree
@@ -36,23 +36,23 @@ Before editing files for a new request:
 mkdir -p .worktree
 git worktree add .worktree/feat-login -b feat/login develop
 cd .worktree/feat-login
-# Brief lives inside the checkout, e.g. .duaer/specs/002-login/
+# Brief lives inside the checkout, e.g. .norm/specs/002-login/
 ```
 
 ## Immutable habits
 
 - Spec-sync for behavior changes; ADR when architecture/security/contracts change
 - One logical change per commit; leave the worktree clean
-- Risk-based verification per `.duaer/memory/testing.md` before accept / merge
+- Risk-based verification per `.norm/memory/testing.md` before accept / merge
 - User/protocol-visible changes update E2E scenario docs **and** run required L3 subsets
 - Merge into **`develop`** when done (hotfix: **`main`**, then back-merge **`develop`**)
 - **Handoff (mandatory):** stop worktree-bound processes → remove `.worktree/<id>` →
-  restart from primary checkout on `develop` (`duaer handoff [--run]`, `.duaer/handoff.json`)
+  restart from primary checkout on `develop` (`norm handoff [--run]`, `.norm/handoff.json`)
 - **FDE desk:** never start or restart it on handoff. Start it only when the
   user asks, and only on `http://127.0.0.1:8787`
 - Push only when the user explicitly asks (a deploy/hosting ask authorizes
   the `gh` + push needed for that publish — see `docs/agent/deploy-github.md`).
-  PR mode (`.duaer/memory/pr.json` `enabled: true`) authorizes pushing the request branch and opening / merging its PR — see `docs/agent/branching-and-release.md` § PR mode
+  PR mode (`.norm/memory/pr.json` `enabled: true`) authorizes pushing the request branch and opening / merging its PR — see `docs/agent/branching-and-release.md` § PR mode
 - Promote **`develop` → `main`** only when the user asks to go online
 - Version: fast iteration bumps the **patch** (`0.27.1`, `0.27.2`, …). Next
   after `0.27.1` is `0.27.2`. Do not bump the minor on every ship.

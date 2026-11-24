@@ -1,10 +1,10 @@
 <p align="center">
-  <img src="docs/assets/duaer-spec-fde.svg" alt="Duaer-spec FDE" width="420" />
+  <img src="docs/assets/norm-fde.svg" alt="Norm FDE" width="420" />
 </p>
 
-# duaer-spec
+# Norm
 
-**Duaer** 把 AI 编程助手变成能**满意交付**的**数字员工**：你用自然语言说意图，它先把需求规范成可检查的 Brief（目标 / 边界 / 验收），再按范围实现，对照验收通过才算完成。
+**Norm** 把 AI 编程助手变成能**满意交付**的**数字员工**：你用自然语言说意图，它先把需求规范成可检查的 Brief（目标 / 边界 / 验收），再按范围实现，对照验收通过才算完成。
 
 主打的是 **规范 → 满意交付**——不是让人学会 Spec 阶段、slash 命令，或一整套专业交付流程。
 
@@ -21,13 +21,13 @@
 - **你平常怎么说，就怎么交代。** 不用记 slash 命令、不用自己点「写 Spec / 拆任务」。
 - **先谈清楚再动手。** 它会把你的想法整理成：要做什么、不做什么、怎样算做完。
 - **做完才算完。** 对照验收通过才会说「交付好了」；半成品不会假装完成。
-- **先评审再交付。** 按 Ponytail 方式写代码（最小的完整改动），验收前对自己的改动跑一次 Ponytail 评审；想跳过的话，`duaer check` 不会放行；在 Claude Code 里收尾钩子还会把它拦回去。
-- **可选 PR 模式。** 打开 `.duaer/memory/pr.json` 后，每个任务都走 GitHub PR：CI 失败退回给数字员工修，全绿后自动合并。
+- **先评审再交付。** 按 Ponytail 方式写代码（最小的完整改动），验收前对自己的改动跑一次 Ponytail 评审；想跳过的话，`norm check` 不会放行；在 Claude Code 里收尾钩子还会把它拦回去。
+- **可选 PR 模式。** 打开 `.norm/memory/pr.json` 后，每个任务都走 GitHub PR：CI 失败退回给数字员工修，全绿后自动合并。
 - **支持 Cursor 与 Claude Code。** 装一次后直接在里面说话，不必学专业交付流程。（其它编辑器可选适配见 [`ADOPT.md`](ADOPT.md)。）
 
-### 在浏览器里：Duaer-spec FDE（现场控制台）
+### 在浏览器里：Norm FDE（现场控制台）
 
-本机开一个网页控制台（`duaer live`），专门管「从聊需求到派工、看进度、看结果」：
+本机开一个网页控制台（`norm live`），专门管「从聊需求到派工、看进度、看结果」：
 
 - **项目管理。** 建项目、切换项目；每个项目自己的对话和进度，互不搅在一起。
 - **聊着把需求聊清楚。** 左边聊天；中间把目标、边界、验收写成确认卡；功能卡还要填 **浏览器/设备矩阵、关键路径、异常态**。空话验收过不了，得能检查才给确认。发送旁可点 **录音**；在设置里配置 **语音识别模型**（兼容 OpenAI `/audio/transcriptions`，如 whisper-1）后，录完会解码成文字填入输入框，改完再发送。
@@ -51,16 +51,16 @@
 | 角色 | 干什么 | 不干什么 |
 |---|---|---|
 | **实现员工** | 按验收写功能；更新产品 README；把预览跑起来并 stamp 交付 | — |
-| **功能回归** | 对照确认卡里的验收标准，按产品仓 `.duaer/memory/testing.md` 做确定性回归（优先 Playwright、`npm test`、`npm run test:live` 等 L0–L3）；缺测就补测、跑通、留下证据 | **不改业务功能范围**；测挂了只留可复现说明，不擅自 stamp「验收通过」 |
+| **功能回归** | 对照确认卡里的验收标准，按产品仓 `.norm/memory/testing.md` 做确定性回归（优先 Playwright、`npm test`、`npm run test:live` 等 L0–L3）；缺测就补测、跑通、留下证据 | **不改业务功能范围**；测挂了只留可复现说明，不擅自 stamp「验收通过」 |
 | **部署员工** | 按你选的计划托管平台上线，把公网地址写入交付预览 | 不改业务功能范围 |
 
 多人并行时：默认末位泳道承担**功能回归**（以及部署任务）；实现任务在前面的泳道。一个人时：同一 CLI 会话按任务角色依次做完。
 
-控制台在放行前会自己跑产品仓 `.duaer/memory/verify.json` 里的命令。退出码不是 0，或没有这份契约，就不会保持「已交付」。纯文档任务要显式写 `{ "waiver": "docs-only" }`。
+控制台在放行前会自己跑产品仓 `.norm/memory/verify.json` 里的命令。退出码不是 0，或没有这份契约，就不会保持「已交付」。纯文档任务要显式写 `{ "waiver": "docs-only" }`。
 
-**PR 模式（可选开启）。** 把 `.duaer/memory/pr.json` 设为 `{ "enabled": true, "base": "develop" }` 后，任务不再本地合并，而是走 GitHub PR：push → `gh pr create` → CI → 失败和 Request changes 退回给数字员工改（CI 最多 3 轮）→ 全绿后自动合并。PR 合并了才算「已交付」。需要先登录 `gh`。打开这个开关，就等于授权 push 本次任务的分支并合并它的 PR。
+**PR 模式（可选开启）。** 把 `.norm/memory/pr.json` 设为 `{ "enabled": true, "base": "develop" }` 后，任务不再本地合并，而是走 GitHub PR：push → `gh pr create` → CI → 失败和 Request changes 退回给数字员工改（CI 最多 3 轮）→ 全绿后自动合并。PR 合并了才算「已交付」。需要先登录 `gh`。打开这个开关，就等于授权 push 本次任务的分支并合并它的 PR。
 
-**代码评审闸门。** 数字员工按 Ponytail 方式写代码（最小的完整改动）。验收前对本次改动跑 `ponytail-review`，结果存为 Brief 里的 `review.md`。只有针对当前代码的 `Verdict: Ship.` 才放行；Must fix 退回成任务，最多 2 轮。`duaer init` 会为 Claude Code、Cursor、Codex 装好 Ponytail skill，并把收尾钩子合并进 `.claude/settings.json` 和 `.cursor/hooks.json`，所以不开控制台、由 Claude Code 或 Cursor 自己按 duaer-spec 规则干活时（终端或编辑器里都算），也一样生效。`duaer check` / `duaer job`、收尾钩子和控制台都会把没过评审的「已交付」打回。
+**代码评审闸门。** 数字员工按 Ponytail 方式写代码（最小的完整改动）。验收前对本次改动跑 `ponytail-review`，结果存为 Brief 里的 `review.md`。只有针对当前代码的 `Verdict: Ship.` 才放行；Must fix 退回成任务，最多 2 轮。`norm init` 会为 Claude Code、Cursor、Codex 装好 Ponytail skill，并把收尾钩子合并进 `.claude/settings.json` 和 `.cursor/hooks.json`，所以不开控制台、由 Claude Code 或 Cursor 自己按 Norm 规则干活时（终端或编辑器里都算），也一样生效。`norm check` / `norm job`、收尾钩子和控制台都会把没过评审的「已交付」打回。
 
 ### 部署：支持的几种方式
 
@@ -83,29 +83,31 @@
 
 下面「安装 / 更新 / FDE 流程」是怎么用；上面这一节是**能干什么**。
 
+> 原名 **duaer-spec**。已经装过的仓库，跑一次 `npx ainorm update` 即可。
+
 ## 安装
 
 ```bash
-npx duaer-spec init --here
+npx ainorm init --here
 ```
 
-`init` 安装方法骨架（`memory`、`templates`、`extensions`、`integrations`、`scripts`、`workflows`），并创建空的 `.duaer/specs/`，供当前项目自己的任务使用。duaer-spec 仓库里的 Brief 历史留在 duaer-spec 仓库。
+`init` 安装方法骨架（`memory`、`templates`、`extensions`、`integrations`、`scripts`、`workflows`），并创建空的 `.norm/specs/`，供当前项目自己的任务使用。Norm 仓库里的 Brief 历史留在 Norm 仓库。
 
 ## 更新
 
-**全局 CLI**（已 `npm i -g duaer-spec` 时）：
+**全局 CLI**（已 `npm i -g ainorm` 时）：
 
 ```bash
-npm i -g duaer-spec@latest   # 任意旧版都可用（含没有 self-update 的版本）
-duaer self-update            # CLI ≥ 0.13 后与上一行等价
+npm i -g ainorm@latest   # 任意旧版都可用（含没有 self-update 的版本）
+norm self-update            # CLI ≥ 0.13 后与上一行等价
 ```
 
-有新版本时 CLI / Duaer-spec FDE 会提示一行（缓存约 24 小时；`DUAER_NO_UPDATE_CHECK=1` 可关闭）。
+有新版本时 CLI / Norm FDE 会提示一行（缓存约 24 小时；`NORM_NO_UPDATE_CHECK=1` 可关闭）。
 
 **业务仓适配文件**（`init` 之后）：
 
 ```bash
-npx duaer-spec update
+npx ainorm update
 ```
 
 若你改过本地 constitution / baseline / `handoff.json` 命令，看一眼 `git diff` 即可。
@@ -121,25 +123,25 @@ npx duaer-spec update
 
 不同问题怎么上线：[`docs/agent/branching-and-release.md`](docs/agent/branching-and-release.md)
 
-合并后：`duaer handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.duaer/handoff.json`）。
+合并后：`norm handoff [--run]` 在 `develop` 上重启本地服务（命令写在 `.norm/handoff.json`）。
 
-## Duaer-spec FDE（现场开发）
+## Norm FDE（现场开发）
 
-与业务仓库隔离。配置与 Brief 写在本机 `~/.duaer/live/`。
-**Duaer-spec FDE** = Field Development Environment（现场开发）。
+与业务仓库隔离。配置与 Brief 写在本机 `~/.norm/live/`。
+**Norm FDE** = Field Development Environment（现场开发）。
 
 ```bash
 # 启动（任意目录都行，不会写入当前项目；未配模型也会打开控制台）
-duaer live
+norm live
 
 # 在打开的页面「设置」里填模型，或用 CLI：
-duaer live config --provider deepseek --api-key sk-...
+norm live config --provider deepseek --api-key sk-...
 
 # 在产品仓登记，派工时点选（可选）
-duaer live repo add
+norm live repo add
 
 # 或任意 OpenAI 兼容接口
-duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
+norm live config --base-url https://api.openai.com/v1 --api-key sk-... --model gpt-4o-mini
 ```
 
 启动后会自动打开浏览器（默认 `http://127.0.0.1:8787`）。未配置模型时请在页面
@@ -147,7 +149,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
 **对话** | **模块 / 确认 / 架构 / 开工 / 改进** | **任务进度**。细则见
 [`docs/agent/live-desk.md`](docs/agent/live-desk.md)。
 
-**验收（维护者 / 数字员工）：** 改 Duaer-spec FDE UI 或确认校验门禁后，跑
+**验收（维护者 / 数字员工）：** 改 Norm FDE UI 或确认校验门禁后，跑
 `npm run test:live`（L3 冒烟：控制台结构标记 + `/api/validate`，内置 mock 模型，
 不产生付费 API 调用）。
 
@@ -161,7 +163,7 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
    - Cursor：`curl https://cursor.com/install -fsS | bash`  
    - Claude Code：`npm install -g @anthropic-ai/claude-code`（或 `curl -fsSL https://claude.ai/install.sh | bash`）  
    - 要用 **DeepSeek 等其它模型**写代码：把 Claude Code 接到对应 API，见 [`docs/agent/worker-models.zh-CN.md`](docs/agent/worker-models.zh-CN.md)。FDE「配置模型」页下方也有同样说明。  
-6. 编辑「启动命令」（须以 `Duaer` 开头）→ 开工建 `.worktree/feat-*`，并为每条 worker 泳道打开 **Terminal**。  
+6. 编辑「启动命令」（须以 `Norm` 开头）→ 开工建 `.worktree/feat-*`，并为每条 worker 泳道打开 **Terminal**。  
 7. 右侧进度列先提示**下一步**（阶段条），并轮询 `tasks.md`。进度上方 **查看交付物** 会打开生成的 HTML 页（需求文档时间线、确认书、基线签署与变更、架构、任务池、交付等）。交付时数字员工先更新产品仓 **README**，再把 `delivery.json` 标为 `accepted`。然后出现 **结果**（有页面时 **查看结果**；否则 **打开项目目录**）。  
 8. 成品不满意：点 **继续改进（左侧对话）** → 确认改进卡（同样须校验）→ 再确认架构（保留或重画）→ 同 worktree 续派（先清残留 Agent 再入队）。进度跟本轮 `R{n}-*`。启动失败会回滚本轮 Brief Revision；状态行按泳道显示 Terminal 忙闲/队列。  
 9. 若需要上线 / 公网：在控制台选 **计划托管平台**（Cloudflare / 阿里云 / AWS / GitHub Pages），说明见 [`docs/agent/deploy-targets.md`](docs/agent/deploy-targets.md)。未指定时默认 **GitHub CLI（`gh`）+ Actions**（[`docs/agent/deploy-github.md`](docs/agent/deploy-github.md)）
@@ -173,11 +175,11 @@ duaer live config --base-url https://api.openai.com/v1 --api-key sk-... --model 
 
 ### 目录不要同名套娃
 
-Worktree 是整仓副本，Brief 在仓库内的 `.duaer/specs/`：
+Worktree 是整仓副本，Brief 在仓库内的 `.norm/specs/`：
 
 ```text
-正确: .worktree/feat-login/.duaer/specs/002-login/spec.md
-错误: .worktree/002-login/.duaer/specs/002-login/spec.md   ← worktree 名不要用 specs 目录名
+正确: .worktree/feat-login/.norm/specs/002-login/spec.md
+错误: .worktree/002-login/.norm/specs/002-login/spec.md   ← worktree 名不要用 specs 目录名
 ```
 
 英文源：[`README.md`](README.md) · 采纳细节：[`ADOPT.md`](ADOPT.md)

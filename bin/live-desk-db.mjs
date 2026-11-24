@@ -115,7 +115,7 @@ export function migrateDeskSchema(db) {
 }
 
 /**
- * Import ~/.duaer/live/project-chats/*.json that are not already in the DB.
+ * Import ~/.norm/live/project-chats/*.json that are not already in the DB.
  * Leaves JSON on disk. Safe to call on every open.
  * @param {import("node:sqlite").DatabaseSync} db
  * @param {string} liveRoot

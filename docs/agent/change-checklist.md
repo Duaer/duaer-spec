@@ -1,6 +1,6 @@
 # Change Checklist
 
-> Practical finish checklist for **duaer-spec** agent ops.  
+> Practical finish checklist for **Norm** agent ops.  
 > Cross-references: [workflow](workflow.md) · [e2e-test-plan](e2e-test-plan.md) · [ADR index](../adr/README.md) · [AGENTS.md](../../AGENTS.md)
 
 ---
@@ -55,10 +55,10 @@ See [R6](workflow.md#r6--merge-a-linked-pull-request-whose-principle-is-sound-th
 ## 2. Impact Analysis
 
 - [ ] What behavior changes?
-- [ ] Which specs / Duaer features are affected? (list paths)
+- [ ] Which specs / Norm features are affected? (list paths)
 - [ ] Architectural boundary? (contracts, storage, security, public API)
 - [ ] User-visible or protocol-visible?
-- [ ] Smallest verification set per `.duaer/memory/testing.md` (or waiver)?
+- [ ] Smallest verification set per `.norm/memory/testing.md` (or waiver)?
 
 See [spec update guidance](workflow.md#3-spec-update-guidance).
 
@@ -77,7 +77,7 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 - [ ] User/protocol-visible change → scenario added or updated in the project's
   E2E catalog ([template](e2e-test-plan.md)).
 - [ ] Unit/integration tests updated when risk requires them.
-- [ ] Risk-based levels from [testing.md](../../.duaer/memory/testing.md)
+- [ ] Risk-based levels from [testing.md](../../.norm/memory/testing.md)
   executed (prefer subsets), or waived in feature docs.
 - [ ] Opt-in-only suites (full-repo E2E, live LLM, remote triggers) run only
   when `testing.md` or the user requires them (fork landing rules in
@@ -101,7 +101,7 @@ See [spec update guidance](workflow.md#3-spec-update-guidance).
 - [ ] Branch refreshed against latest `develop` (hotfix: `main`).
 - [ ] Merged into local `develop` (hotfix: `main`, then back-merge `develop`).
 - [ ] Worktree services stopped; worktree removed; short branch deleted;
-  **handoff** restart on `develop` (`duaer handoff` / `.duaer/handoff.json`).
+  **handoff** restart on `develop` (`norm handoff` / `.norm/handoff.json`).
 - [ ] Only this request's logical changes included.
 - [ ] Push performed only if the user explicitly asked for this request.
 - [ ] `develop` → `main` promotion only if the user asked to go online.

@@ -3,7 +3,7 @@
  * Apply `data-theme` on <html> before paint via the head boot script.
  */
 
-const STORAGE_KEY = "duaer.live.theme";
+const STORAGE_KEY = "norm.live.theme";
 
 /** @returns {"light"|"dark"} */
 export function getTheme() {
@@ -24,7 +24,7 @@ export function setTheme(theme) {
     /* ignore */
   }
   document.dispatchEvent(
-    new CustomEvent("duaer-theme", { detail: { theme: next } }),
+    new CustomEvent("norm-theme", { detail: { theme: next } }),
   );
 }
 

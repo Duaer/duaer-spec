@@ -17,11 +17,11 @@ function skillText(root, name) {
 }
 
 test("init copies packaged Ponytail skills into .claude/skills", () => {
-  const dir = mkdtempSync(path.join(tmpdir(), "duaer-init-ponytail-"));
+  const dir = mkdtempSync(path.join(tmpdir(), "norm-init-ponytail-"));
   try {
     const run = spawnSync(
       process.execPath,
-      [path.join(ROOT, "bin", "duaer.mjs"), "init", dir, "--method"],
+      [path.join(ROOT, "bin", "norm.mjs"), "init", dir, "--method"],
       { encoding: "utf8" },
     );
     assert.equal(run.status, 0, run.stderr || run.stdout);

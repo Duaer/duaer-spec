@@ -28,7 +28,7 @@ test("host deploy credentials: aliyun + cloudflare + aws gates", () => {
   assert.match(html, /id="saveCfCfg"/);
   assert.match(html, /id="saveAwsCfg"/);
 
-  const live = fs.readFileSync(path.join(root, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(root, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /function hasCloudflareCredentials/);
   assert.match(live, /function hasAwsCredentials/);
   assert.match(live, /CLOUDFLARE_API_TOKEN/);

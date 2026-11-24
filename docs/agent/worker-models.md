@@ -28,13 +28,13 @@ On the FDE setup page:
 Or via CLI:
 
 ```bash
-duaer live config --provider deepseek --api-key <key>
+norm live config --provider deepseek --api-key <key>
 # or
-duaer live config --base-url https://api.openai.com/v1 --api-key <key> --model gpt-4o-mini
+norm live config --base-url https://api.openai.com/v1 --api-key <key> --model gpt-4o-mini
 # same pattern for other OpenAI-compatible gateways
 ```
 
-Saved under `~/.duaer/live/config.json`.
+Saved under `~/.norm/live/config.json`.
 
 ## Install Cursor Agent
 
@@ -109,6 +109,6 @@ DeepSeek also documents integrations for Codex and other tools:
 FDE still only **auto-launches** Cursor Agent and Claude Code. Day-to-day
 product support is **Cursor** and **Claude Code** — talk in plain language; you
 do not need a professional Spec workflow. Other editors may still receive
-optional adapters from `npx duaer-spec init --here` (see [`ADOPT.md`](../../ADOPT.md)).
+optional adapters from `npx ainorm init --here` (see [`ADOPT.md`](../../ADOPT.md)).
 
 Chinese version: [worker-models.zh-CN.md](worker-models.zh-CN.md).

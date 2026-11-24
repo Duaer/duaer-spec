@@ -22,7 +22,7 @@ test("projectChatKey is stable and path-based", () => {
 });
 
 test("write/read project desk session round-trip (chat + card + job)", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   const saved = writeProjectChat(root, {
     projectPath,
@@ -79,7 +79,7 @@ test("write/read project desk session round-trip (chat + card + job)", () => {
 });
 
 test("dispatchPhase done round-trips in project chat", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -101,7 +101,7 @@ test("dispatchPhase done round-trips in project chat", () => {
 });
 
 test("architecture mode and messages round-trip", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -130,7 +130,7 @@ test("architecture mode and messages round-trip", () => {
 });
 
 test("architecturePrevious round-trips in project chat", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -158,7 +158,7 @@ test("architecturePrevious round-trips in project chat", () => {
 });
 
 test("checking validate status is not restored (stored as idle)", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -173,7 +173,7 @@ test("checking validate status is not restored (stored as idle)", () => {
 
 test("live sources wire project desk session API + client persist", () => {
   const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /\/api\/projects\/chat/);
   assert.match(live, /readProjectChat|writeProjectChat/);
   assert.match(live, /body\.card/);
@@ -206,7 +206,7 @@ test("live sources wire project desk session API + client persist", () => {
 });
 
 test("reviseCards architecture snapshot round-trips", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-arch-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-arch-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -247,7 +247,7 @@ test("reviseCards architecture snapshot round-trips", () => {
 });
 
 test("reviseCards round-trip and legacy lastRevision migrate", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -300,7 +300,7 @@ test("reviseCards round-trip and legacy lastRevision migrate", () => {
 });
 
 test("bugCards round-trip on project timeline", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-cards-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-bug-cards-"));
   const projectPath = path.join(root, "app");
   writeProjectChat(root, {
     projectPath,
@@ -327,7 +327,7 @@ test("bugCards round-trip on project timeline", () => {
 });
 
 test("reviseCards legacy lastRevision migrate", () => {
-  const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-chat-leg-"));
+  const legacyRoot = fs.mkdtempSync(path.join(os.tmpdir(), "norm-chat-leg-"));
   const legacyPath = path.join(legacyRoot, "app");
   writeProjectChat(legacyRoot, {
     projectPath: legacyPath,

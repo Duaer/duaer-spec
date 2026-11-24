@@ -208,7 +208,7 @@ test("task pool and confirmation registry render structured", () => {
 });
 
 test("writeDeliverablesHtmlFile writes beside project chat key", () => {
-  const home = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-deliv-"));
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), "norm-deliv-"));
   const liveRoot = path.join(home, "live");
   const file = writeDeliverablesHtmlFile(
     liveRoot,

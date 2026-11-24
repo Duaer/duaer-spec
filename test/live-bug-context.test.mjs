@@ -33,7 +33,7 @@ test("filterBugDeliveryFactIssues drops delivery-fact noise", () => {
 });
 
 test("collectBugProjectContext reads package scripts and preview", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-bug-ctx-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-bug-ctx-"));
   try {
     fs.writeFileSync(
       path.join(root, "package.json"),

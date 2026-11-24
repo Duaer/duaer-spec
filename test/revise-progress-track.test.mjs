@@ -1,5 +1,5 @@
 /**
- * Revise-round progress scope (mirrors helpers in bin/duaer-live.mjs).
+ * Revise-round progress scope (mirrors helpers in bin/norm-live.mjs).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -300,7 +300,7 @@ test("revise accept normalizes only after revise idle", () => {
 });
 
 test("live sources include revise progress-scope helpers", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /function inferRevisionFromTasksMd/);
   assert.match(live, /function tasksMdScope/);
   assert.match(live, /activelyRevising/);

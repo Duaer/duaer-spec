@@ -1,5 +1,5 @@
 /**
- * Checkable-acceptance local gate (mirrors bin/duaer-live.mjs).
+ * Checkable-acceptance local gate (mirrors bin/norm-live.mjs).
  */
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -71,7 +71,7 @@ test("checkable acceptance passes local gate", () => {
 });
 
 test("live sources include checkable-acceptance helpers", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /function acceptanceLooksCheckable/);
   assert.match(live, /function acceptanceLooksVague/);
   assert.match(live, /满意的成品/);

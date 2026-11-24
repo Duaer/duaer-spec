@@ -11,7 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 test("theme.mjs and desk wire light/dark toggle", () => {
   const theme = fs.readFileSync(path.join(ROOT, "web/live-dev/theme.mjs"), "utf8");
-  assert.match(theme, /duaer\.live\.theme/);
+  assert.match(theme, /norm\.live\.theme/);
   assert.match(theme, /export function toggleTheme/);
   assert.match(theme, /export function initTheme/);
   const css = fs.readFileSync(path.join(ROOT, "web/live-dev/styles.css"), "utf8");
@@ -25,7 +25,7 @@ test("theme.mjs and desk wire light/dark toggle", () => {
   assert.doesNotMatch(css, /color:\s*#9fe8dc/);
   const html = fs.readFileSync(path.join(ROOT, "web/live-dev/index.html"), "utf8");
   assert.match(html, /id="themeToggle"/);
-  assert.match(html, /duaer\.live\.theme/);
+  assert.match(html, /norm\.live\.theme/);
   const app = fs.readFileSync(path.join(ROOT, "web/live-dev/app.js"), "utf8");
   assert.match(app, /from "\.\/theme\.mjs"/);
   assert.match(app, /toggleTheme/);

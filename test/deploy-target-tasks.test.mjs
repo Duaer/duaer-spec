@@ -49,7 +49,7 @@ test("many acceptance lines become many tasks (no 6-cap)", () => {
 });
 
 test("sources: deploy target UI + self-update bootstrap + task split", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /deployTarget/);
   assert.match(live, /deployPromptForTarget/);
   assert.match(live, /不要人为限制条数/);
@@ -64,9 +64,9 @@ test("sources: deploy target UI + self-update bootstrap + task split", () => {
   );
   assert.match(html, /deployTargetList/);
 
-  const duaer = fs.readFileSync(path.join(ROOT, "bin/duaer.mjs"), "utf8");
-  assert.match(duaer, /case 'upgrade'/);
-  assert.match(duaer, /npm i -g duaer-spec@latest/);
+  const norm = fs.readFileSync(path.join(ROOT, "bin/norm.mjs"), "utf8");
+  assert.match(norm, /case 'upgrade'/);
+  assert.match(norm, /npm i -g ainorm@latest/);
 
   const docs = fs.readFileSync(
     path.join(ROOT, "docs/agent/deploy-targets.md"),

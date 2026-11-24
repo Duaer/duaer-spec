@@ -1,6 +1,6 @@
 # Deploy via GitHub CLI (`gh`)
 
-> Part of **duaer-spec** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md).  
+> Part of **Norm** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md).  
 > Language: English only.
 
 When a user project **needs hosting or a public URL**, prefer **GitHub Actions
@@ -21,7 +21,7 @@ that deployment (still do not push unrelated branches or force-push).
 1. Ensure the product repo has a GitHub remote (`gh repo view` / `gh repo create`
    when the user wants a new GitHub repo).
 2. Add `.github/workflows/deploy.yml` from
-   [`.duaer/templates/deploy-github-pages.yml`](../../.duaer/templates/deploy-github-pages.yml)
+   [`.norm/templates/deploy-github-pages.yml`](../../.norm/templates/deploy-github-pages.yml)
    (adjust the upload `path` if the build output is not the repo root).
 3. Enable Pages for GitHub Actions:
    ```bash

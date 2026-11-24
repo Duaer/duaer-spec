@@ -569,7 +569,7 @@ export function buildTaskPoolFromModules(modules, { deployNeeded = false, deploy
     const ci = push({
       moduleId: null,
       title:
-        "FDE-02: CI provider contract test; add command to .duaer/memory/verify.json",
+        "FDE-02: CI provider contract test; add command to .norm/memory/verify.json",
       dependsOn: [mock.id],
       role: EMPLOYEE_ROLES.VERIFY_L3,
     });
@@ -632,7 +632,7 @@ export function taskPoolToMarkdown(pool) {
 
 ${lines.join("\n")}
 
-做完一步就立刻把对应项改成 \`- [x]\`，方便 Duaer-spec FDE 监控进度与编排放行。
+做完一步就立刻把对应项改成 \`- [x]\`，方便 Norm FDE 监控进度与编排放行。
 
 **角色：** \`{implement}\` 实现员工 · \`{verify-l3}\` 功能回归 · \`{deploy}\` 部署员工（Cloudflare / 阿里云 / AWS / GitHub Pages）
 

@@ -208,7 +208,7 @@ function isJsonScript(el) {
 }
 
 function isViewerMainScript(el) {
-  if (el.id === "duaer-embed-node-zoom") return false;
+  if (el.id === "norm-embed-node-zoom") return false;
   const type = String(el.getAttribute("type") || "").toLowerCase();
   if (type && type !== "text/javascript" && type !== "module") return false;
   const body = el.textContent || "";
@@ -230,7 +230,7 @@ function parseArchifyHtml(html) {
   /** @type {{ id: string, css: string }[]} */
   const styles = [];
   for (const el of doc.querySelectorAll("style")) {
-    if (el.id === "duaer-embed-fit") continue;
+    if (el.id === "norm-embed-fit") continue;
     const css = String(el.textContent || "").trim();
     if (!css) continue;
     styles.push({ id: el.id || "", css });
@@ -346,11 +346,11 @@ function createScopedDocument(rootEl, shadow) {
  */
 function disableEmbedNodeZoom(Archify) {
   if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
-  if (Archify.view.__duaerEmbedNoZoom) return;
-  Archify.view.reveal = function duaerNoZoomReveal() {
+  if (Archify.view.__normEmbedNoZoom) return;
+  Archify.view.reveal = function normNoZoomReveal() {
     /* desk: click opens present fullscreen instead */
   };
-  Archify.view.__duaerEmbedNoZoom = true;
+  Archify.view.__normEmbedNoZoom = true;
 }
 
 /**
@@ -359,9 +359,9 @@ function disableEmbedNodeZoom(Archify) {
  */
 function enableStageNodeZoom(Archify) {
   if (!Archify?.view || typeof Archify.view.reveal !== "function") return;
-  if (Archify.view.__duaerStageZoom) return;
+  if (Archify.view.__normStageZoom) return;
   const original = Archify.view.reveal;
-  Archify.view.reveal = function duaerStageZoomReveal(ids, options) {
+  Archify.view.reveal = function normStageZoomReveal(ids, options) {
     const opts = Object.assign({}, options || {}, {
       includeNeighbors: false,
       maxScale: 2.6,
@@ -369,7 +369,7 @@ function enableStageNodeZoom(Archify) {
     });
     return original.call(this, ids, opts);
   };
-  Archify.view.__duaerStageZoom = true;
+  Archify.view.__normStageZoom = true;
 }
 
 function runViewerScript(code, scopedDocument, opts = {}) {
@@ -428,7 +428,7 @@ export async function mountArchitectureDiagram(host, opts = {}) {
       return `<style${idAttr}>${scopeArchifyCss(s.css)}</style>`;
     }),
     // Host overrides last so they beat Archify 100vh / 100dvh reader layout.
-    `<style id="duaer-arch-host-chrome">${opts.stage ? stageChromeCss() : hostChromeCss()}</style>`,
+    `<style id="norm-arch-host-chrome">${opts.stage ? stageChromeCss() : hostChromeCss()}</style>`,
   ].join("\n");
 
   const shadow = host.shadowRoot || host.attachShadow({ mode: "open" });

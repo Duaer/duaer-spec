@@ -127,18 +127,18 @@ test("buildDetailedRevisionTasksMd splits a multi-sentence change", () => {
 
 test("parseWorktreeActivityFromGit prefers product files in summary", () => {
   const act = parseWorktreeActivityFromGit({
-    porcelain: ` M .duaer/specs/001-x/tasks.md
+    porcelain: ` M .norm/specs/001-x/tasks.md
  M src/app.js
 ?? public/index.html`,
     limit: 10,
   });
   assert.ok(act.files.length >= 2);
   assert.match(act.summary, /src\/app\.js|public\/index\.html/);
-  assert.doesNotMatch(act.summary, /\.duaer/);
+  assert.doesNotMatch(act.summary, /\.norm/);
 });
 
 test("live sources wire detailed progress + activity UI", () => {
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   assert.match(live, /buildDetailedProductTasksMd/);
   assert.match(live, /buildDetailedRevisionTasksMd/);
   assert.match(live, /worktreeActivity/);

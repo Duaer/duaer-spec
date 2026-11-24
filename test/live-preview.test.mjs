@@ -16,7 +16,7 @@ import {
 import { fileURLToPath } from "node:url";
 
 test("inferLocalServiceUrl reads localhost from README", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "README.md"),
     "# api\n\nRun `npm start` → http://localhost:8788/healthz\n",
@@ -27,7 +27,7 @@ test("inferLocalServiceUrl reads localhost from README", () => {
 });
 
 test("inferLocalServiceUrl falls back to package.json PORT / default", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "package.json"),
     JSON.stringify({
@@ -51,7 +51,7 @@ test("resolvePreviewPayload prefers delivery http URL", () => {
 });
 
 test("resolvePreviewPayload auto-service when no page", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "README.md"),
     "Start at http://localhost:8788\n",
@@ -69,7 +69,7 @@ test("resolvePreviewPayload auto-service when no page", () => {
 });
 
 test("resolvePreviewPayload ignores docs .md and prefers project start URL", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "README.md"),
     "Open http://localhost:3210\n",
@@ -94,7 +94,7 @@ test("resolvePreviewPayload ignores docs .md and prefers project start URL", () 
 });
 
 test("resolvePreviewPayload serves index.html when no local service", () => {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(path.join(root, "index.html"), "<h1>hi</h1>\n", "utf8");
   const got = resolvePreviewPayload({
     delivery: { status: "accepted" },
@@ -130,7 +130,7 @@ test("live prompts require starting the service before accept", () => {
     path.dirname(fileURLToPath(import.meta.url)),
     "..",
   );
-  const live = fs.readFileSync(path.join(ROOT, "bin/duaer-live.mjs"), "utf8");
+  const live = fs.readFileSync(path.join(ROOT, "bin/norm-live.mjs"), "utf8");
   const progress = fs.readFileSync(
     path.join(ROOT, "bin/live-progress.mjs"),
     "utf8",
@@ -148,7 +148,7 @@ test("live prompts require starting the service before accept", () => {
 test("parseLocalPreviewPort and pickStartCommand", () => {
   assert.equal(parseLocalPreviewPort("http://localhost:8788/"), 8788);
   assert.equal(parseLocalPreviewPort("https://example.com"), null);
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "package.json"),
     JSON.stringify({ scripts: { start: "node server.mjs" } }),
@@ -170,7 +170,7 @@ test("probeLocalPreviewStatus for static vs local URLs", async () => {
   assert.equal(staticStatus.listening, null);
   assert.equal(staticStatus.canStart, false);
 
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "duaer-prev-"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "norm-prev-"));
   fs.writeFileSync(
     path.join(root, "package.json"),
     JSON.stringify({ scripts: { start: "node server.mjs" } }),

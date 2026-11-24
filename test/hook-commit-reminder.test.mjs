@@ -6,13 +6,13 @@ import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
 
-const CLI = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin", "duaer.mjs");
+const CLI = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", "bin", "norm.mjs");
 const cli = (...args) => spawnSync(process.execPath, [CLI, ...args], { encoding: "utf8" });
 const git = (dir, ...a) =>
   spawnSync("git", ["-C", dir, "-c", "user.email=t@e", "-c", "user.name=t", ...a], { encoding: "utf8" });
 
 test("init reminds to commit the Claude review hook; check warns until it is committed", () => {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-hookrem-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-hookrem-"));
   try {
     git(dir, "init", "-q", "-b", "develop");
     git(dir, "commit", "-q", "--allow-empty", "-m", "init");
@@ -23,12 +23,12 @@ test("init reminds to commit the Claude review hook; check warns until it is com
 
     let check = cli("check", dir, "--workplace");
     assert.match(check.stdout, /warn \.claude\/settings\.json not committed/);
-    assert.match(check.stdout, /warn \.duaer\/hooks\/review-gate\.mjs not committed/);
+    assert.match(check.stdout, /warn \.norm\/hooks\/review-gate\.mjs not committed/);
     assert.doesNotMatch(check.stdout, /workplace file\(s\) missing/, "full install");
     assert.equal(check.status, 0, "warnings do not fail the check");
 
     git(dir, "add", "-A");
-    git(dir, "commit", "-qm", "duaer");
+    git(dir, "commit", "-qm", "norm");
     assert.doesNotMatch(cli("update", dir).stdout, /Review hooks are not committed/);
     check = cli("check", dir, "--workplace");
     assert.doesNotMatch(check.stdout, /^warn/m);
@@ -36,14 +36,14 @@ test("init reminds to commit the Claude review hook; check warns until it is com
     // Hook entry removed from settings → told to run update.
     fs.writeFileSync(path.join(dir, ".claude", "settings.json"), "{}\n");
     git(dir, "commit", "-qam", "drop hook");
-    assert.match(cli("check", dir, "--workplace").stdout, /no review stop hook — run: duaer update/);
+    assert.match(cli("check", dir, "--workplace").stdout, /no review stop hook — run: norm update/);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
 
 test("outside git: no reminder, no crash", () => {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-hookrem-nogit-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-hookrem-nogit-"));
   try {
     const init = cli("init", dir, "--method");
     assert.equal(init.status, 0, init.stderr);
@@ -54,7 +54,7 @@ test("outside git: no reminder, no crash", () => {
 });
 
 test("ops-only install: no hook warnings", () => {
-  const dir = fs.mkdtempSync(path.join(tmpdir(), "duaer-hookrem-ops-"));
+  const dir = fs.mkdtempSync(path.join(tmpdir(), "norm-hookrem-ops-"));
   try {
     git(dir, "init", "-q", "-b", "develop");
     cli("init", dir, "--ops");

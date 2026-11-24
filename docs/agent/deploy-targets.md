@@ -1,6 +1,6 @@
 # Deploy targets (planned hosting)
 
-> Part of **duaer-spec** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md).  
+> Part of **Norm** agent ops. Precedence: [`AGENTS.md`](../../AGENTS.md).  
 > Language: English only.
 
 On the live desk, operators pick a **planned host** before dispatch:
@@ -20,7 +20,7 @@ Use when the desk target is `cloudflare`.
 
 **FDE gate:** Operators must save **API Token** and **Account ID** in desk
 Settings first. Until both are present, the live UI hides Cloudflare. Keys
-live in `~/.duaer/live/config.json`; public config only exposes
+live in `~/.norm/live/config.json`; public config only exposes
 `hasCloudflareCredentials`. On deploy, FDE injects `CLOUDFLARE_API_TOKEN` /
 `CLOUDFLARE_ACCOUNT_ID` into the Terminal shell.
 
@@ -56,7 +56,7 @@ Use when the desk target is `aliyun`.
 
 **FDE gate:** Operators must save **AccessKey ID** and **AccessKey Secret** in
 desk Settings first. Until both are present, the live UI hides the Alibaba
-Cloud option. Keys live in `~/.duaer/live/config.json` (mode `0600` when
+Cloud option. Keys live in `~/.norm/live/config.json` (mode `0600` when
 possible); the public config API only exposes `hasAliyunCredentials`, never
 the secret values. On deploy, FDE injects
 `ALIBABA_CLOUD_ACCESS_KEY_*` / `ALIYUN_ACCESS_KEY_*` into the Terminal shell.

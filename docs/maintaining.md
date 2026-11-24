@@ -1,16 +1,16 @@
-# Maintaining duaer-spec
+# Maintaining Norm
 
-duaer-spec is the source of truth for the **Duaer** methodology. There is no
+Norm is the source of truth for the **Norm** methodology. There is no
 embedded upstream toolkit to sync.
 
 ## Evolving the method
 
 | Change | Where |
 |---|---|
-| Process principles | `.duaer/memory/constitution.md` (+ template) |
-| Templates (spec/plan/tasks/…) | `.duaer/templates/` |
-| Cursor skills / slash flows | `.cursor/skills/duaer-*` |
-| Method overview | `DUADER.md` |
+| Process principles | `.norm/memory/constitution.md` (+ template) |
+| Templates (spec/plan/tasks/…) | `.norm/templates/` |
+| Cursor skills / slash flows | `.cursor/skills/norm-*` |
+| Method overview | `NORM.md` |
 | Agent ops | `AGENTS.md`, `docs/agent/` (incl. branching-and-release) |
 | Install instructions | `ADOPT.md` |
 
@@ -24,10 +24,10 @@ Day-to-day work integrates on **`develop`**. See
 
 | Level | Command |
 |---|---|
-| L0 | `node --check bin/duaer-live.mjs` (and other touched files) |
+| L0 | `node --check bin/norm-live.mjs` (and other touched files) |
 | L3 (live desk) | `npm run test:live` |
 
-Details: [`.duaer/memory/testing.md`](../.duaer/memory/testing.md).
+Details: [`.norm/memory/testing.md`](../.norm/memory/testing.md).
 
 ## Releases (go online)
 
@@ -43,9 +43,9 @@ Details: [`.duaer/memory/testing.md`](../.duaer/memory/testing.md).
 Adopter install / update:
 
 ```bash
-npx duaer-spec init --here
-duaer self-update              # global CLI
-npx duaer-spec update          # product-repo adapters
+npx ainorm init --here
+norm self-update              # global CLI
+npx ainorm update          # product-repo adapters
 ```
 
 ## Examples
@@ -56,6 +56,6 @@ this repository's `main` + `develop` + `.worktree/` policy.
 ## Adopters
 
 Projects that copied files do not auto-update. They re-run
-`npx duaer-spec update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
-method revision. Global CLI installs can run `duaer self-update` (or
-`npm i -g duaer-spec@latest`). The CLI notifies when npm has a newer release.
+`npx ainorm update` (see [ADOPT.md](../ADOPT.md)) when they want a newer
+method revision. Global CLI installs can run `norm self-update` (or
+`npm i -g ainorm@latest`). The CLI notifies when npm has a newer release.
