@@ -84,3 +84,10 @@ test("update moves a duaer-spec install onto Norm names", () => {
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test("desk migrates an old repo before its install check", () => {
+  const src = readFileSync(path.join(ROOT, "bin", "norm-live.mjs"), "utf8");
+  const body = src.slice(src.indexOf("function ensureNormInstalled("));
+  assert.ok(body.indexOf("migrateLegacyRepo(abs)") > 0);
+  assert.ok(body.indexOf("migrateLegacyRepo(abs)") < body.indexOf("hasNormInstall(abs)"));
+});

@@ -9,4 +9,5 @@
 - [x] ADR-004, CHANGELOG Unreleased, E2E-227, README rename note
 - [x] `npm test` + `npm run test:live` pass
 - [ ] Commit, ponytail review, `review.md` Ship
+- [x] Review 1 #1: desk `ensureNormInstalled` migrates an old repo before the install check
 - [ ] Stamp `delivery.json`, merge to `develop`, handoff

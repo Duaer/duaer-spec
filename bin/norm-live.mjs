@@ -14,6 +14,7 @@
  */
 
 import "./legacy-names-init.mjs";
+import { migrateLegacyRepo } from "./legacy-names.mjs";
 import http from "node:http";
 import fs from "node:fs";
 import os from "node:os";
@@ -2464,6 +2465,7 @@ function ensureNormInstalled(targetDir) {
   if (!fs.existsSync(abs) || !fs.statSync(abs).isDirectory()) {
     throw new Error(`路径不存在或不是目录：${abs}`);
   }
+  migrateLegacyRepo(abs); // an old .duaer/ repo would otherwise get a second, empty .norm/
   if (hasNormInstall(abs)) {
     return { path: abs, action: "already", ok: true };
   }
